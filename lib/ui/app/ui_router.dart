@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../pages/messages/messages_page.dart';
 import 'package:flutter/services.dart';
 
 import '../bootstrap/loader_page.dart';
@@ -66,7 +67,7 @@ class UiRouter {
       case UiRoutes.library:
         return _pageRoute(settings, const LibraryPage());
       case UiRoutes.messages:
-        return _pageRoute(settings, const PlaceholderPage(title: 'Messages'));
+        return _pageRoute(settings, const MessagesPage());
       case UiRoutes.runBootstrap:
         final bootstrapArgs = _argsOr(
           settings.arguments,

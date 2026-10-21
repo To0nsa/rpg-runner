@@ -3,6 +3,9 @@
 Audit and planning restarted on September 15, 2026. Start here for current work.
 
 - [Current audits](audit/README.md).
+- [System messages and level gifts](gdd/messages.md): manual 25-gold claims for
+  newly reached levels and a reusable attention marker;
+  [technical contract and operator sending](tdd/system_inbox.md).
 - [Off-screen actor indicators](tdd/offscreen_indicators.md): left/top bearings,
   distance labels, enemy grouping and viewport-aware HUD placement.
 - [Town and Codex](gdd/codex.md): Théodonis city map, Store, Library,

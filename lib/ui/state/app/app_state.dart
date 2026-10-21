@@ -55,6 +55,8 @@ import '../profile/user_profile.dart';
 import '../profile/user_profile_remote_api.dart';
 import '../presentation/library_progress_tracker.dart';
 import '../developer/developer_profile_store.dart';
+import '../inbox/inbox_api.dart';
+import '../inbox/inbox_models.dart';
 
 part 'controllers/controller_base.dart';
 part 'controllers/auth_profile_controller.dart';
@@ -64,6 +66,7 @@ part 'controllers/run_submission_controller.dart';
 part 'controllers/boards_controller.dart';
 part 'controllers/run_start_controller.dart';
 part 'controllers/developer_controller.dart';
+part 'controllers/inbox_controller.dart';
 
 const String _defaultGameCompatVersion = '2026.10.21';
 
@@ -152,6 +155,7 @@ class AppState extends ChangeNotifier {
     OwnershipOutboxStore? ownershipOutboxStore,
     RunSubmissionCoordinator? runSubmissionCoordinator,
     RunSubmissionSpoolStore? runSubmissionSpoolStore,
+    InboxApi? inboxApi,
   }) {
     final resolvedRunSessionApi = runSessionApi ?? const NoopRunSessionApi();
     final resolvedLeaderboardApi = leaderboardApi ?? const NoopLeaderboardApi();
@@ -159,6 +163,7 @@ class AppState extends ChangeNotifier {
     final resolvedGhostReplayCache = ghostReplayCache ?? FileGhostReplayCache();
     return AppState._internal(
       authApi: authApi,
+      inboxApi: inboxApi,
       userProfileRemoteApi: userProfileRemoteApi,
       accountDeletionApi: accountDeletionApi,
       loadoutOwnershipApi: loadoutOwnershipApi,
@@ -193,7 +198,9 @@ class AppState extends ChangeNotifier {
     OwnershipOutboxStore? ownershipOutboxStore,
     required RunSubmissionCoordinator? runSubmissionCoordinator,
     DeveloperProfileStore? developerStore,
+    InboxApi? inboxApi,
   }) : _onlineAuthApi = authApi,
+       _inboxApi = inboxApi,
        _profileRemoteApi =
            userProfileRemoteApi ?? const NoopUserProfileRemoteApi(),
        _accountDeletionApi =
@@ -218,10 +225,13 @@ class AppState extends ChangeNotifier {
     _runSubmissionController = _AppStateRunSubmissionController(this);
     _boardsController = _AppStateBoardsController(this);
     _runStartController = _AppStateRunStartController(this);
+    _inboxController = _AppStateInboxController(this);
   }
 
   final Random _random = Random();
   final AuthApi? _onlineAuthApi;
+  final InboxApi? _inboxApi;
+  late final _AppStateInboxController _inboxController;
   AuthApi get _authApi =>
       _onlineAuthApi ??
       (throw StateError('Account actions are unavailable in Developer mode.'));
@@ -294,6 +304,23 @@ class AppState extends ChangeNotifier {
   int get ownershipRevision => _ownershipRevision;
   OwnershipSyncPolicy get ownershipSyncPolicy => _ownershipSyncPolicy;
   OwnershipSyncStatus get ownershipSyncStatus => _ownershipSyncStatus;
+
+  /// System mail is online/account-scoped and absent in Developer Practice.
+  bool get inboxAvailable => _inboxController.available;
+  InboxSummary get inboxSummary => _inboxController.summary;
+  List<InboxMessage> get inboxMessages => _inboxController.messages;
+  bool get inboxLoading => _inboxController.loading;
+  bool get inboxHasMore => _inboxController.hasMore;
+  String? get inboxLoadError => _inboxController.loadError;
+  bool inboxMessageBusy(String id) =>
+      _inboxController.busyMessages.contains(id);
+  Future<void> loadInbox({bool more = false}) =>
+      _inboxController.load(more: more);
+  Future<void> refreshInboxSummary() => _inboxController.refreshSummary();
+  Future<void> markInboxMessageRead(String id) => _inboxController.markRead(id);
+
+  /// Credits a stored gift once and reconciles canonical ownership with queued edits.
+  Future<void> claimInboxReward(String id) => _inboxController.claim(id);
 
   /// Latest newly acknowledged reward; canonical gold is already refreshed.
   /// Presentation may announce it once without blocking navigation or play.
@@ -462,10 +489,13 @@ class AppState extends ChangeNotifier {
       _runSubmissionController.processPendingRunSubmissions();
 
   /// Keeps durable replay delivery and reward refresh alive across routes.
+  /// Also refreshes system-inbox attention while foregrounded.
   /// Embedders must pass false while inactive and true on foreground resume.
   /// Developer Practice never starts online submission work.
-  void setRunSubmissionForeground(bool foreground) =>
-      _runSubmissionController.setForeground(foreground);
+  void setRunSubmissionForeground(bool foreground) {
+    _runSubmissionController.setForeground(foreground);
+    _inboxController.updateForeground();
+  }
 
   Future<OnlineLeaderboardBoard> loadOnlineLeaderboardBoard({
     required RunMode mode,
@@ -627,6 +657,7 @@ class AppState extends ChangeNotifier {
     }
     if (userChanged) {
       _runSubmissionController.resetAccount();
+      _inboxController.resetAccount();
       _ownershipFlushTimer?.cancel();
       _ownershipFlushTimer = null;
       _ownershipSyncStatus = OwnershipSyncStatus.idle;
@@ -702,6 +733,7 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _inboxController.resetAccount();
     _runSubmissionController.dispose();
     _ownershipFlushTimer?.cancel();
     _ownershipFlushTimer = null;

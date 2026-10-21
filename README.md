@@ -14,6 +14,10 @@ This is a portfolio-style game project designed to demonstrate production-minded
 
 ## Current Scope (Implemented)
 
+- [System inbox](docs/gdd/messages.md) with information messages, manually
+  claimed 25-gold gifts for new levels and a reusable menu attention marker.
+- [Targeted message delivery](docs/tdd/system_inbox.md#operator-delivery) for
+  operator-issued information and gold gifts; existing levels are not backfilled.
 - 2 authored level layouts: `forest`, `field`
 - Generated polygon terrain is the collision, navigation, placement, and
   rendering authority for normal runs and replay validation

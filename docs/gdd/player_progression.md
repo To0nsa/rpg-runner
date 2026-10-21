@@ -1,8 +1,9 @@
 # Player level and lifetime stats
 
 Player level is an account-wide record of runs played, shared by both selectable
-characters. It grants no combat power, equipment, currency or leaderboard
-advantage.
+characters. Each newly reached level delivers a manually claimed 25-gold
+[inbox gift](messages.md). Previously reached levels are not backfilled.
+Level itself grants no combat stat bonus or direct leaderboard advantage.
 
 Each accepted, replay-validated Practice, Competitive or Weekly run earns
 `floor(validatedScore / 200)` XP. A zero-score run earns zero XP but still counts

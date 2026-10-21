@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed system inbox and reusable attention marker](../archive/2026-10-21/building/system_inbox.md):
+  manually claimed 25-gold gifts for newly reached levels, game messages and a
+  shared notification dot. Locally validated; not deployed.
+
 - [Reward verification latency](reward_verification_latency.md): deployed as
   `2026.10.11.1` with the strict image benchmark passed and two owner-accepted
   terrain failures. Device, route-coverage and controlled live latency/settlement

@@ -98,6 +98,9 @@ must not bypass a resume refresh. Hub warmup starts only after bootstrap.
   the durable final receipt remains until canonical ownership is refreshed
 - loading active boards, leaderboards, ranks, and ghost manifests
 - awarding run gold back into remote progression through validated run flows
+- loading system messages and whole-inbox attention, and applying manually
+  claimed gold through the revisioned ownership flow; widgets use the shared
+  `AttentionMarker` with domain-owned visibility rules
 - handling account deletion reset flow
 
 Rules:

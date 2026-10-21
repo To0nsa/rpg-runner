@@ -240,6 +240,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
           _app._latestVerifiedReward = status;
         }
       }
+      unawaited(_app.refreshInboxSummary());
     } catch (error) {
       debugPrint(
         'Run submission canonical sync failed after final reward status: $error',

@@ -60,6 +60,11 @@ final class _AppStateAuthProfileController extends _AppStateController {
     _bootstrapped = true;
     _notifyListeners();
     if (_app._runSubmissionController._foreground) {
+      _app._inboxController.updateForeground();
+    } else {
+      unawaited(_app.refreshInboxSummary());
+    }
+    if (_app._runSubmissionController._foreground) {
       unawaited(_resumePendingRunSubmissions());
     }
   }
@@ -158,6 +163,7 @@ final class _AppStateAuthProfileController extends _AppStateController {
     }
 
     _acceptedDeletionResult = result;
+    _app._inboxController.resetAccount();
     _app._runSubmissionController.resetAccount();
     _ownershipFlushTimer?.cancel();
     _ownershipFlushTimer = null;

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../firebase_app_check_bootstrap.dart';
 import '../../firebase_options.dart';
 import '../state/app/app_state.dart';
+import '../state/inbox/firebase_inbox_api.dart';
 import '../state/settings/control_settings.dart';
 import '../state/developer/developer_profile_store.dart';
 import '../state/auth/firebase_auth_api.dart';
@@ -40,6 +41,9 @@ AppServices createFirebaseAppServices() => AppServices(
     final functions = FirebaseFunctions.instanceFor(region: 'europe-west1');
     return AppState(
       authApi: FirebaseAuthApi(),
+      inboxApi: FirebaseInboxApi(
+        source: PluginFirebaseInboxSource(functions: functions),
+      ),
       accountDeletionApi: FirebaseAccountDeletionApi(
         source: PluginFirebaseAccountDeletionSource(functions: functions),
       ),

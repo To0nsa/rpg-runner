@@ -80,6 +80,14 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 ## 3. Information Architecture
 
+### System messages
+
+The hub Messages icon opens the [system inbox](messages.md). It uses the shared
+landscape menu styling and displays a reusable attention dot while any mail is
+unread or any gift remains unclaimed. Selecting mail marks it read; Claim is a
+separate action. Newly reached levels deliver 25 gold without historical
+backfill. Live player conversations are future work and have no empty tab now.
+
 ### Developer mode (implemented, debug builds only)
 
 Options contains a Developer mode toggle for local gameplay testing. It switches
