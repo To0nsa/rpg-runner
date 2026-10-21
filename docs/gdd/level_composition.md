@@ -111,6 +111,15 @@ camp's entry rocks move deeper into the chunk to preserve Grojib's approach.
 These authored changes affect traversal and replay outcomes; source and
 generated content must ship together.
 
+Forest revision 524 shortens the variable Rocky Grove sections from 3–6 to
+2–4 distinct chunks and removes one hard grove section before the hard ruin.
+The final repeating section still uses nine distinct hard grove chunks.
+The opening's eighth chunk uses smaller tree scenery and a repositioned solid
+statue; the eighth easy grove chunk moves its rock farther right. The second
+easy ruin chunk raises its ancient statue slightly and uses a simpler solid
+collision outline. These local changes require matching generated content and
+a coordinated gameplay compatibility release before deployment.
+
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.
 The author sets the section order; seeded selection chooses chunks inside it.

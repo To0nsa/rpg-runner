@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_default_early_008",
   "id": "forest_default_early_008",
-  "revision": 62,
+  "revision": 84,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,22 +14,21 @@
   "tileLayers": [],
   "prefabs": [
     {
-      "prefabId": "pixel_fantasy_caves_tree_02",
-      "prefabKey": "pixel_fantasy_caves_tree_02",
-      "x": 296,
-      "y": 31,
-      "zIndex": 0,
-      "snapToGrid": false,
-      "scale": 2.5
+      "prefabId": "green_woods_tree_trunk_01",
+      "prefabKey": "green_woods_tree_trunk_01",
+      "x": 415,
+      "y": 130,
+      "zIndex": -1,
+      "snapToGrid": false
     },
     {
-      "prefabId": "tiny_swords_cimetery_statue_05",
-      "prefabKey": "tiny_swords_cimetery_statue_05",
-      "x": 352,
-      "y": 151,
+      "prefabId": "green_woods_tree_foliage_02",
+      "prefabKey": "green_woods_tree_foliage_02",
+      "x": 417,
+      "y": 95,
       "zIndex": 0,
-      "snapToGrid": true,
-      "flipX": true
+      "snapToGrid": false,
+      "scale": 0.8
     },
     {
       "prefabId": "tiny_swords_fire_vasque_01",
@@ -70,6 +69,15 @@
       "y": 176,
       "zIndex": 0,
       "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_cimetery_statue_05",
+      "prefabKey": "tiny_swords_cimetery_statue_05",
+      "x": 336,
+      "y": 151,
+      "zIndex": 1,
+      "snapToGrid": true,
+      "flipX": true
     }
   ],
   "markers": [],

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_ruin_easy_002",
   "id": "forest_ruin_easy_002",
-  "revision": 73,
+  "revision": 74,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -42,7 +42,7 @@
       "prefabId": "ancient_forest_statue_01",
       "prefabKey": "ancient_forest_statue_01",
       "x": 160,
-      "y": 176,
+      "y": 173,
       "zIndex": 0,
       "snapToGrid": true
     },
