@@ -58,6 +58,7 @@ class WaterImmersionSystem {
       }
       state.setImmersion(index, immersion, surfaceY: surfaceY);
       if (mi != null && state.swimming[index]) {
+        world.movement.clearRecast(entity);
         final intent = world.mobilityIntent.tryIndexOf(entity);
         if (intent != null &&
             world.mobilityIntent.slot[intent] == AbilitySlot.mobility) {

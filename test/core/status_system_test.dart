@@ -39,6 +39,33 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:runner_core/weapons/weapon_proc.dart';
 
 void main() {
+  test(
+    'stun immediately clears dash, gravity suppression and earned follow-up',
+    () {
+      final world = EcsWorld();
+      final target = world.createEntity();
+      world.health.add(
+        target,
+        const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+      );
+      world.statModifier.add(target);
+      world.movement.add(target, facing: Facing.right);
+      final mi = world.movement.indexOf(target);
+      world.movement.dashTicksLeft[mi] = 5;
+      world.movement.armRecast(target, 'eloise.double_dash', 6, 36);
+      world.gravityControl.setSuppressForTicks(target, 5);
+      final status = StatusSystem(tickHz: 60);
+      status.queue(
+        StatusRequest(target: target, profileId: StatusProfileId.stunOnHit),
+      );
+      status.applyQueued(world, currentTick: 1);
+      expect(world.controlLock.isStunned(target, 1), isTrue);
+      expect(world.movement.dashTicksLeft[mi], 0);
+      expect(world.movement.recastAbilityId[mi], isNull);
+      expect(world.gravityControl.has(target), isFalse);
+    },
+  );
+
   test('DamageSystem applies resistance and vulnerability modifiers', () {
     final world = EcsWorld();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);

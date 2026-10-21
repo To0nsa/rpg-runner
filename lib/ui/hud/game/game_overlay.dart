@@ -226,6 +226,7 @@ class GameOverlay extends StatefulWidget {
             mobilityInputMode: hud.mobilityInputMode,
             jumpAffordable: jumpAffordable,
             mobilityAffordable: mobilityAffordable,
+            mobilityRecastAvailable: hud.mobilityRecastTicksLeft > 0,
             mobilityCooldownTicksLeft:
                 hud.cooldownTicksLeft[CooldownGroup.mobility],
             mobilityCooldownTicksTotal:

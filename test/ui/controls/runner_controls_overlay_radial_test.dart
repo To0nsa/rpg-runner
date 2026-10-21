@@ -20,6 +20,48 @@ import 'package:rpg_runner/ui/controls/movement_control_mode.dart';
 import 'package:rpg_runner/ui/controls/action_button.dart';
 
 void main() {
+  testWidgets('mobility follow-up is visible and usable during cooldown', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness()
+      ..mobilityCooldownTicksLeft = 112
+      ..mobilityRecastAvailable = true;
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+    expect(find.text('+1'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Mobility, follow-up available'));
+    expect(harness.gameplayEdges, ['mobility.press']);
+    harness.mobilityRecastAvailable = false;
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+    expect(find.text('+1'), findsNothing);
+    await tester.tap(find.bySemanticsLabel('Mobility'));
+    expect(harness.gameplayEdges, ['mobility.press']);
+  });
+
+  testWidgets('mobility follow-up still requires its resource cost', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness()
+      ..mobilityCooldownTicksLeft = 112
+      ..mobilityRecastAvailable = true
+      ..mobilityAffordable = false
+      ..missingResources = {
+        AbilitySlot.mobility: const ControlResourceUsage(stamina: true),
+      };
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+    await tester.tap(find.bySemanticsLabel('Mobility, follow-up available'));
+    expect(harness.gameplayEdges, isEmpty);
+    expect(harness.shortfalls, hasLength(1));
+    await tester.pumpAndSettle();
+  });
+
   for (final mode in AbilityInputMode.values) {
     testWidgets(
       'resource-blocked $mode warns on every tap without gameplay edges',
@@ -643,6 +685,9 @@ Positioned _chargeBarPositioned(WidgetTester tester) {
 }
 
 class _OverlayHarness {
+  int mobilityCooldownTicksLeft = 0;
+  bool mobilityRecastAvailable = false;
+  bool mobilityAffordable = true;
   Map<AbilitySlot, ControlResourceUsage> missingResources = {};
   final List<ControlResourceUsage> shortfalls = [];
   final AimPreviewModel projectileAimPreview = AimPreviewModel();
@@ -710,9 +755,10 @@ class _OverlayHarness {
       chargeBarProgress01: chargeBarProgress01,
       chargeBarTier: chargeBarTier,
       jumpAffordable: true,
-      mobilityAffordable: true,
-      mobilityCooldownTicksLeft: 0,
-      mobilityCooldownTicksTotal: 0,
+      mobilityAffordable: mobilityAffordable,
+      mobilityRecastAvailable: mobilityRecastAvailable,
+      mobilityCooldownTicksLeft: mobilityCooldownTicksLeft,
+      mobilityCooldownTicksTotal: 120,
       secondaryAffordable: true,
       secondaryCooldownTicksLeft: 0,
       secondaryCooldownTicksTotal: 0,

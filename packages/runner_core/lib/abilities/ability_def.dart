@@ -378,6 +378,16 @@ class AbilityResourceCost {
   final int manaCost100;
 }
 
+/// Grants one separately triggered mobility burst after the first completes.
+/// The window is in authored 60 Hz ticks; both bursts use the same motion and
+/// resource cost. Only the first starts the shared cooldown.
+class MobilityRecastDef {
+  const MobilityRecastDef({required this.windowTicks})
+    : assert(windowTicks > 0);
+
+  final int windowTicks;
+}
+
 /// Immutable authored definition for a playable/system ability.
 class AbilityDef {
   /// Default forced interrupts for authored abilities: stun + death.
@@ -414,6 +424,7 @@ class AbilityDef {
     this.grantsRiposteOnGuardedHit = false,
     this.mobilityImpact = MobilityImpactDef.none,
     this.mobilitySpeedX,
+    this.mobilityRecast,
     this.groundJumpSpeedY,
     this.airJumpSpeedY,
     this.maxAirJumps = 0,
@@ -450,6 +461,18 @@ class AbilityDef {
          'Ticks cannot be negative',
        ),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
+       assert(
+         mobilityRecast == null ||
+             (category == AbilityCategory.mobility &&
+                 allowedSlots.length == 1 &&
+                 allowedSlots.contains(AbilitySlot.mobility) &&
+                 inputLifecycle == AbilityInputLifecycle.tap &&
+                 windupTicks == 0 &&
+                 activeTicks > 0 &&
+                 recoveryTicks == 0 &&
+                 cooldownTicks > activeTicks + mobilityRecast.windowTicks),
+         'Mobility recasts require instant tap bursts and a longer shared cooldown.',
+       ),
        assert(
          holdStaminaDrainPerSecond100 >= 0,
          'Hold stamina drain cannot be negative',
@@ -635,6 +658,9 @@ class AbilityDef {
   /// Each mobility ability defines its own speed. Non-mobility abilities
   /// leave this `null`.
   final double? mobilitySpeedX;
+
+  /// Optional single follow-up; does not grant independently recharging uses.
+  final MobilityRecastDef? mobilityRecast;
 
   /// Optional authored initial vertical speed for ground jump execution.
   ///

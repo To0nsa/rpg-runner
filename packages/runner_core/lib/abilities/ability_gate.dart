@@ -1,4 +1,5 @@
 import '../ecs/entity_id.dart';
+import 'ability_def.dart';
 import '../ecs/world.dart';
 
 /// Reason why an ability commit was rejected by [AbilityGate].
@@ -94,6 +95,9 @@ abstract class AbilityGate {
   }
 
   /// Returns `null` when mobility ability commit is allowed, otherwise a reason.
+  /// [mobilityAbilityId] opts into checking an earned follow-up for that exact
+  /// ability. Only that follow-up may pass its active-dash/cooldown gates;
+  /// resources, stun and body eligibility remain mandatory.
   static AbilityGateFail? canCommitMobility(
     EcsWorld world, {
     required EntityId entity,
@@ -102,6 +106,7 @@ abstract class AbilityGate {
     required int healthCost100,
     required int manaCost100,
     required int staminaCost100,
+    AbilityKey? mobilityAbilityId,
   }) {
     if (world.controlLock.isStunned(entity, currentTick)) {
       return AbilityGateFail.stunned;
@@ -117,11 +122,14 @@ abstract class AbilityGate {
       return AbilityGateFail.bodyDisabledOrKinematic;
     }
 
-    if (world.movement.dashTicksLeft[mi] > 0) {
+    final recast =
+        mobilityAbilityId != null &&
+        world.movement.canRecast(entity, mobilityAbilityId, currentTick);
+    if (world.movement.dashTicksLeft[mi] > 0 && !recast) {
       return AbilityGateFail.dashAlreadyActive;
     }
 
-    if (world.cooldown.isOnCooldown(entity, cooldownGroupId)) {
+    if (!recast && world.cooldown.isOnCooldown(entity, cooldownGroupId)) {
       return AbilityGateFail.onCooldown;
     }
 

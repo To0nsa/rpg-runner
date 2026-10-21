@@ -125,10 +125,12 @@ void main() {
     final mi = world.movement.indexOf(player);
     world.swimState.nextStrokeTick[si] = 30;
     world.movement.dashTicksLeft[mi] = 10;
+    world.movement.armRecast(player, 'eloise.double_dash', 11, 41);
     world.gravityControl.setSuppressForTicks(player, 10);
     WaterImmersionSystem().step(world, [_pool('pool', 0, 200)]);
     expect(world.swimState.isSwimming(player), isTrue);
     expect(world.movement.dashTicksLeft[mi], 0);
+    expect(world.movement.recastAbilityId[mi], isNull);
     expect(world.gravityControl.has(player), isFalse);
     world.body.enabled[world.body.indexOf(player)] = false;
     WaterImmersionSystem().step(world, [_pool('pool', 0, 200)]);

@@ -23,6 +23,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Pose-aligned combat capsules, shared fixed-tick animation clocks, and exact
   [combat debug geometry](docs/tdd/combat_pose_geometry.md)
 - Authored abilities (mobility, melee, ranged, defense, utility)
+- Dash and selectable [Double Dash](docs/gdd/combat/abilities/eloise/mobility.md),
+  with two separately triggered bursts and a visible follow-up window
 - 5 enemy archetypes: ground chaser, ambusher, flying demon, transforming cultist,
   and Bringer of Death in a mandatory [Forest boss arena](docs/gdd/bringer_of_death.md),
   with shared attack knockback, 1.5x boss/column scale, faster attacks/pursuit and

@@ -428,11 +428,28 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     targetingModel: TargetingModel.directional,
     inputLifecycle: AbilityInputLifecycle.tap,
     windupTicks: 0,
-    activeTicks: 15,
+    activeTicks: 12, // 0.20s at 60 Hz: 80% of the original 15-tick range.
     recoveryTicks: 0,
     defaultCost: AbilityResourceCost(staminaCost100: 200),
     cooldownTicks: 120,
     mobilitySpeedX: 550,
+    animKey: AnimKey.dash,
+  ),
+
+  'eloise.double_dash': AbilityDef(
+    id: 'eloise.double_dash',
+    category: AbilityCategory.mobility,
+    allowedSlots: {AbilitySlot.mobility},
+    targetingModel: TargetingModel.directional,
+    inputLifecycle: AbilityInputLifecycle.tap,
+    windupTicks: 0,
+    activeTicks: 8,
+    recoveryTicks: 0,
+    defaultCost: AbilityResourceCost(staminaCost100: 200),
+    cooldownTicks: 120,
+    // Two 8-tick bursts cover the original 137.5 units at 60 Hz, before modifiers.
+    mobilitySpeedX: 515.625,
+    mobilityRecast: MobilityRecastDef(windowTicks: 30), // 0.5s after burst one.
     animKey: AnimKey.dash,
   ),
 

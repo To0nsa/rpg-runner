@@ -77,6 +77,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.mobilityAffordable,
     required this.mobilityCooldownTicksLeft,
     required this.mobilityCooldownTicksTotal,
+    this.mobilityRecastAvailable = false,
     required this.secondaryAffordable,
     required this.secondaryCooldownTicksLeft,
     required this.secondaryCooldownTicksTotal,
@@ -142,6 +143,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final bool mobilityAffordable;
   final int mobilityCooldownTicksLeft;
   final int mobilityCooldownTicksTotal;
+  final bool mobilityRecastAvailable;
   final bool secondaryAffordable;
   final int secondaryCooldownTicksLeft;
   final int secondaryCooldownTicksTotal;
@@ -404,7 +406,7 @@ class RunnerControlsOverlay extends StatelessWidget {
           bottom: anchorFor(AbilitySlot.mobility).bottom,
           child: feedback(
             AbilitySlot.mobility,
-            mobilityCooldownTicksLeft,
+            mobilityRecastAvailable ? 0 : mobilityCooldownTicksLeft,
             mobilityInputMode == AbilityInputMode.tap
                 ? ActionButton(
                     label: labelFor(AbilitySlot.mobility),
@@ -413,6 +415,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                         resourcesBySlot[AbilitySlot.mobility] ??
                         ControlResourceUsage.none,
                     onPressed: onMobilityPressed,
+                    recastAvailable: mobilityRecastAvailable,
                     tuning: action,
                     cooldownRing: cooldownRing,
                     affordable: mobilityAffordable,

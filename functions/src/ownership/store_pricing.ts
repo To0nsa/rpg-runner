@@ -102,6 +102,7 @@ export const storeOfferDefinitions: readonly StoreOfferDefinition[] = [
   { bucket: "ability", domain: "ability", slot: "projectile", itemId: "eloise.skewer_shot" },
   { bucket: "ability", domain: "ability", slot: "projectile", itemId: "eloise.overcharge_shot" },
   { bucket: "ability", domain: "ability", slot: "mobility", itemId: "eloise.dash" },
+  { bucket: "ability", domain: "ability", slot: "mobility", itemId: "eloise.double_dash" },
   { bucket: "ability", domain: "ability", slot: "mobility", itemId: "eloise.roll" },
   { bucket: "ability", domain: "ability", slot: "jump", itemId: "eloise.jump" },
   { bucket: "ability", domain: "ability", slot: "jump", itemId: "eloise.double_jump" },

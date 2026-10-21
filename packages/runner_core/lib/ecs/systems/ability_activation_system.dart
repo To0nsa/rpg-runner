@@ -93,6 +93,15 @@ class AbilityActivationSystem {
 
     final isStunned = world.controlLock.isStunned(player, currentTick);
 
+    final movements = world.movement;
+    if (isStunned ||
+        world.swimState.isSwimming(player) ||
+        currentTick >= movements.recastExpiresAtTick[movementIndex] ||
+        movements.recastAbilityId[movementIndex] !=
+            world.equippedLoadout.abilityMobilityId[loadoutIndex]) {
+      movements.clearRecast(player);
+    }
+
     final axis = world.playerInput.moveAxis[inputIndex];
     final Facing facing = axis != 0
         ? (axis > 0 ? Facing.right : Facing.left)
@@ -667,6 +676,10 @@ class AbilityActivationSystem {
     _cancelCombatOnMobilityPress(world, player);
 
     final isJump = slot == AbilitySlot.jump;
+    final isRecast =
+        !isJump &&
+        ability.mobilityRecast != null &&
+        world.movement.canRecast(player, ability.id, commitTick);
     final fail = AbilityGate.canCommitMobility(
       world,
       entity: player,
@@ -675,6 +688,9 @@ class AbilityActivationSystem {
       healthCost100: isJump ? 0 : commitCost.healthCost100,
       manaCost100: isJump ? 0 : commitCost.manaCost100,
       staminaCost100: isJump ? 0 : commitCost.staminaCost100,
+      mobilityAbilityId: !isJump && ability.mobilityRecast != null
+          ? ability.id
+          : null,
     );
     if (fail != null) return false;
 
@@ -695,12 +711,22 @@ class AbilityActivationSystem {
         recoveryTicks: recoveryTicks,
         facingDir: facingDir,
         cooldownGroupId: cooldownGroupId,
-        cooldownTicks: cooldownTicks,
+        cooldownTicks: isRecast ? 0 : cooldownTicks,
         healthCost100: commitCost.healthCost100,
         manaCost100: commitCost.manaCost100,
         staminaCost100: commitCost.staminaCost100,
         movementIndex: movementIndex,
       );
+      world.movement.clearRecast(player);
+      final recast = ability.mobilityRecast;
+      if (!isRecast && recast != null) {
+        final opens = executeTick + activeTicks;
+        final expires = min(
+          opens + _scaleAbilityTicks(recast.windowTicks),
+          commitTick + cooldownTicks,
+        );
+        world.movement.armRecast(player, ability.id, opens, expires);
+      }
     }
 
     world.mobilityIntent.set(

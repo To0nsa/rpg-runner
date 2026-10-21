@@ -41,6 +41,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   freeze diagnosis, incremental preparation, portable spatial queries, and local
   browser regression/performance evidence. The fixes have not been deployed.
 - [Run startup](tdd/run_startup.md): shared preflight, world/recorder readiness, loading recovery, and run-owned assets. See the [startup audit and local measurements](verification/run_startup_2026-10-11.md) for ticket reuse, bounded asset loading and native terrain preparation.
+- [Dash and Double Dash](tdd/mobility_recasts.md): shorter Dash and a separate
+  two-burst mobility choice; source prepared for `2026.10.21`, not deployed.
 - [Developer Practice](tdd/developer_practice.md): debug Options toggle, persistent
   fully unlocked local profile, and Practice without backend sessions or rewards.
 - [Android build identities](tdd/android_build_variants.md): separate dev/release

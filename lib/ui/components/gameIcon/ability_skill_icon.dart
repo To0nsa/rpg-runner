@@ -13,6 +13,7 @@ const Map<AbilityKey, String> abilitySkillIconAssets = <AbilityKey, String>{
   'eloise.bloodletter_slash':
       'assets/images/icons/skills-icons/bloodletter_slash.png',
   'eloise.dash': 'assets/images/icons/skills-icons/dash.png',
+  'eloise.double_dash': 'assets/images/icons/skills-icons/dash.png',
   'eloise.double_jump': 'assets/images/icons/skills-icons/double_jump.png',
   'eloise.jump': 'assets/images/icons/skills-icons/jump.png',
   'eloise.mana_infusion': 'assets/images/icons/skills-icons/mana_infusion.png',

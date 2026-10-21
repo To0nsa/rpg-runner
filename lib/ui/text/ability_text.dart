@@ -51,5 +51,6 @@ const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
   'eloise.jump': 'Jump',
   'eloise.double_jump': 'Double Jump',
   'eloise.dash': 'Dash',
+  'eloise.double_dash': 'Double Dash',
   'eloise.roll': 'Concussive Roll',
 };

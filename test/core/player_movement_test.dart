@@ -144,7 +144,8 @@ void main() {
     // Start dashing from the ground.
     _tick(core, dashPressed: true);
 
-    expect(core.playerVelX, closeTo(550, 1e-9));
+    // The starter loadout's 5% movement penalty applies from the first tick.
+    expect(core.playerVelX, closeTo(522.5, 1e-9));
     expect(core.playerVelY, closeTo(0, 1e-9));
     expect(core.playerPosY, closeTo(floorY - 0.0625, 1e-9));
   });
