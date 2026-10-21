@@ -1,6 +1,15 @@
 {
   "indexes": [
     {
+      "collectionGroup": "system_messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "createdAtMs", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "run_sessions",
       "queryScope": "COLLECTION",
       "fields": [

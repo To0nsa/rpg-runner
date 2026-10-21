@@ -21,6 +21,8 @@ export const abuseQuotaRoutes = [
   "run_status",
   "leaderboard_read",
   "ghost_url",
+  "inbox_read",
+  "inbox_write",
 ] as const;
 
 export type AbuseQuotaRoute = (typeof abuseQuotaRoutes)[number];
@@ -120,7 +122,7 @@ export const defaultAbuseQuotaConfiguration = {
     sustainedWindowMs: dayMs,
     sustainedLimit: 1_000,
   },
-} as const satisfies Record<AbuseQuotaRoute, AbuseQuotaDefault>;
+} as const satisfies Record<Exclude<AbuseQuotaRoute, "inbox_read" | "inbox_write">, AbuseQuotaDefault>;
 
 export const defaultRunActiveSessionsLimit = 32;
 export const defaultRunActiveUploadGrantsLimit = 8;
@@ -152,6 +154,13 @@ export function resolveAbuseQuotaPolicy(
   route: AbuseQuotaRoute,
   env: NodeJS.ProcessEnv = process.env,
 ): AbuseQuotaPolicy {
+  // Collect normal-client telemetry before selecting enforcement limits for inbox traffic.
+  if (route === "inbox_read" || route === "inbox_write") {
+    return { route, mode: "monitor", windows: [
+      { name: "burst", durationMs: minuteMs },
+      { name: "sustained", durationMs: dayMs },
+    ] };
+  }
   const prefix = `ABUSE_${route.toUpperCase()}`;
   const defaults = defaultAbuseQuotaConfiguration[route];
   return {

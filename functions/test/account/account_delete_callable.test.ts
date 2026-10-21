@@ -55,6 +55,9 @@ beforeEach(async () => {
       "run_sessions",
       "validated_runs",
       "reward_grants",
+      "system_messages",
+      "inbox_rewards",
+      "inbox_summaries",
     ].map((collection) => clearCollection(db, collection)),
   );
 });
@@ -209,6 +212,9 @@ test("bounded workflow erases large account, catches reinsertion, then deletes a
     "run_sessions",
     "validated_runs",
     "reward_grants",
+    "system_messages",
+    "inbox_rewards",
+    "inbox_summaries",
     "ghost_runs",
     "leaderboard_ghost_runs",
     "weekly_ghost_runs",
@@ -737,6 +743,10 @@ async function seedLargeAccount(args: {
       uid: args.uid,
       runSessionId: `run_${suffix}`,
     });
+    for (const collection of ["system_messages", "inbox_rewards", "inbox_summaries"]) {
+      await args.db.collection(collection).doc(`inbox_${suffix}`).set({ uid: args.uid });
+      await args.db.collection(collection).doc("other_account").set({ uid: args.otherUid });
+    }
     args.artifacts.add(
       `replay-submissions/pending/${args.uid}/run_${suffix}/replay.bin.gz`,
     );
@@ -810,6 +820,9 @@ async function seedDeletionStageArtifact(args: {
     ownership: { collection: "ownership_profiles", uidField: "uid" },
     abuse_quota: { collection: "abuse_quota", uidField: "uid" },
     reward_grants: { collection: "reward_grants", uidField: "uid" },
+    system_messages: { collection: "system_messages", uidField: "uid" },
+    inbox_rewards: { collection: "inbox_rewards", uidField: "uid" },
+    inbox_summaries: { collection: "inbox_summaries", uidField: "uid" },
     ghost_runs_uid: { collection: "ghost_runs", uidField: "uid" },
     ghost_runs_user_id: {
       collection: "ghost_runs",

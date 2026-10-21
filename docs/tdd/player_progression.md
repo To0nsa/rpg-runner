@@ -54,6 +54,11 @@ removes all progression with canonical ownership.
 
 ## Client projection
 
+Settlement also compares old and new XP-derived levels and atomically creates
+25-gold system inbox gifts for new milestones. These are manually claimed,
+separate from ordinary run gold, with no historical backfill. See
+[system inbox](system_inbox.md) for delivery and claim invariants.
+
 `ProgressionState.playerProgress` decodes the canonical subtree. The client
 derives level from lifetime XP. For levels 1–29, the XP needed for level `L` to
 `L + 1` is `round(100 × 1.24^(L - 1))`; round each cost before summing the

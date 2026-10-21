@@ -73,6 +73,7 @@ import {
   handleLeaderboardLoadMyRank,
 } from "./leaderboards/callable_handlers.js";
 import { handleGhostLoadManifest } from "./ghosts/callable_handlers.js";
+import { handleInboxRequest } from "./inbox/callable_handlers.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -88,6 +89,19 @@ setGlobalOptions({
 
 const db = getFirestore();
 const userCallableAppCheckOptions = appCheckCallableOptions();
+
+export const inboxLoadSummary = inboxCallable("inboxLoadSummary", "summary");
+export const inboxList = inboxCallable("inboxList", "list");
+export const inboxMarkRead = inboxCallable("inboxMarkRead", "read");
+export const inboxClaimReward = inboxCallable("inboxClaimReward", "claim");
+
+function inboxCallable(functionName: string, operation: "summary" | "list" | "read" | "claim") {
+  return onCall(userCallableAppCheckOptions, async (request) => {
+    logAppCheckObservation({ functionName, request });
+    requirePlayGamesCallableUser(request.auth);
+    return handleInboxRequest(request, db, operation);
+  });
+}
 
 const runSessionCreateRegion =
   process.env.RUN_SESSION_CREATE_REGION?.trim() ||
