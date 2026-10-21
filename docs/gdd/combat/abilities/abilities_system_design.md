@@ -73,8 +73,14 @@ shortest flight time; if none can be intercepted, it favors the nearest projecte
 target in reach. Clear shots take priority over blocked predictions. If every
 predicted shot is blocked, it still aims toward the best-ranked enemy, including
 enemies behind the player, instead of reverting to the player's facing.
-Prediction uses current velocities and can cross terrain that would stop an
-actor's motion; terrain collision still blocks actual projectiles. Equal scores
+Prediction follows jump arcs through their apex and stops downward lead at a
+landing. It uses the actor's gravity, fall-speed limit, temporary gravity
+suppression and current swimming state. Floors, slopes, ceilings, walls and
+one-way platforms constrain the predicted body; leaving a platform still permits
+a fall into the gap. Flying actors keep their current motion without added
+gravity. The player's motion during windup also affects the predicted launch
+position. Future inputs, AI decisions and water entry/exit are not predicted;
+terrain collision still blocks actual projectiles. Equal scores
 use stable entity IDs. With no eligible target, the shot uses current aim or
 movement/facing direction. The projectile follows its committed path and can
 still miss or be dodged.

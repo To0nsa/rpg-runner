@@ -230,23 +230,41 @@ and representative-type rules; tick order and replay wire formats are unchanged.
 
 Player projectile auto aim resolves once when an ability commits. It scans live
 hostile health entities in stable store order, rejects targets beyond the
-equipped projectile's speed-times-lifetime reach, and predicts windup and
-flight using current velocities. The intercept equation includes the same
-directional cast offset used by projectile spawning. Feasible intercepts rank
-by flight time; remaining candidates rank by projected distance, with entity
-ID as the final tie-break. An unobstructed predicted sightline takes priority
+equipped projectile's speed-times-lifetime reach, and forecasts source motion
+through windup and target motion through windup plus projectile flight.
+Activation runs before movement and execution runs after movement, so the
+forecast includes `windupTicks + 1` motion steps, including the commit tick.
+`AimMotionForecast` advances gravity before motion at the run's tick rate, with
+actor gravity scaling, suppression expiry, vertical speed caps, fixed-point
+gravity tuning and captured swimming state. Terrain forecasts use the actor's
+immutable world-contact capsule and traversal profile with a scratch
+`TerrainCapsuleController` bound to the current published geometry. They retain
+support and resolve landings, ceilings, walls, slopes, one-way platforms and
+finite edges without mutating live transforms, contacts or gravity timers.
+Current horizontal motion is retained; future input, AI decisions, ability
+transitions and changes in immersion are outside the forecast.
+
+Linear motion keeps the exact quadratic intercept solve. For accelerated or
+terrain-constrained motion, the solver scans fixed-tick segments in time order
+and solves an intercept along each segment, interpolating within that tick.
+Search work is bounded by windup and projectile lifetime. The intercept equation
+includes the same directional cast offset used by projectile spawning. Homing
+melee uses the same windup forecast without a flight or sightline search.
+Feasible projectile intercepts rank by flight time; remaining candidates rank
+by projected distance, with entity ID as the final tie-break. An unobstructed
+predicted sightline takes priority
 over a blocked one. If every predicted sightline is blocked, the best-ranked
 hostile still supplies the committed aim; only absence of an eligible hostile
 permits the manual-aim or movement/facing fallback. This avoids losing a rear
-target when velocity-only prediction projects its landing through terrain.
+target when no unobstructed predicted shot exists.
 After finding a clear candidate, only candidates that improve its intercept or
 distance rank query the published terrain edge index. Until then, any eligible
 candidate can win by having a clear sightline.
 The query reuses scratch storage until the terrain publication changes. Aim is
 stored in the committed intent and projectiles do not steer after launch.
-The blocked-sightline fallback changes replayed target selection and requires a
-new coordinated client/worker/issuer game-compatibility release before deployment;
-tick ordering and command/replay formats are unchanged. The `2026.10.1` release
+The motion forecast and blocked-sightline fallback change replayed aim and
+require a new coordinated client/worker/issuer game-compatibility release before
+deployment; tick ordering and command/replay formats are unchanged. The `2026.10.1` release
 also includes surviving NPC section combat, refreshed Forest generated content,
 and the contiguous walkable-support placement correction. These changes affect
 replay outcomes and must ship with matching client, Functions and worker artifacts.

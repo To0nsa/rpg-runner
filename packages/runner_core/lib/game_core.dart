@@ -714,6 +714,13 @@ class GameCore {
       accessories: _accessories,
       playerCastOriginOffset: _playerCharacter.catalog.castOriginOffset,
       projectileAimPathClear: projectileAimVisibility.isClear,
+      physics: _physicsTuning,
+      aimTerrainProvider: () {
+        final bundle =
+            (_worldMotionAuthority as TerrainMultiBodyWorldMotionAuthority)
+                .terrainRuntimeBundle;
+        return (geometry: bundle.geometry, index: bundle.edgeIndex);
+      },
       statsCache: _resolvedStatsCache,
     );
     _mobilityImpactSystem = MobilityImpactSystem(abilities: abilityCatalog);

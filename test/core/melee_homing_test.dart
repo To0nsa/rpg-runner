@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'dart:math' as math;
+
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/accessories/accessory_catalog.dart';
 import 'package:runner_core/combat/faction.dart';
@@ -76,29 +78,33 @@ void main() {
     expect(swordAuto.cooldownTicks, greaterThan(swordBase.cooldownTicks));
   });
 
-  test(
-    'homing melee predicts execute-time position from source and target velocity',
-    () {
-      final world = EcsWorld();
-      final system = _buildSystem();
-      final player = _spawnPlayer(
-        world,
-        abilityPrimaryId: 'eloise.seeker_slash',
-        velX: 300,
-      );
+  test('homing melee predicts execute-time position from source and target velocity', () {
+    final world = EcsWorld();
+    final system = _buildSystem();
+    final player = _spawnPlayer(
+      world,
+      abilityPrimaryId: 'eloise.seeker_slash',
+      velX: 300,
+    );
 
-      _spawnEnemy(world, x: 130, y: 140, velX: 0, velY: 0);
+    _spawnEnemy(world, x: 130, y: 140, velX: 0, velY: 0);
 
-      final inputIndex = world.playerInput.indexOf(player);
-      world.playerInput.strikePressed[inputIndex] = true;
+    final inputIndex = world.playerInput.indexOf(player);
+    world.playerInput.strikePressed[inputIndex] = true;
 
-      system.step(world, player: player, currentTick: 1);
+    system.step(world, player: player, currentTick: 1);
 
-      final meleeIndex = world.meleeIntent.indexOf(player);
-      expect(world.meleeIntent.dirX[meleeIndex], lessThan(0));
-      expect(world.meleeIntent.dirY[meleeIndex], greaterThan(0.95));
-    },
-  );
+    final meleeIndex = world.meleeIntent.indexOf(player);
+    // Commit is tick 1; that tick and the execute tick both integrate motion.
+    final motionTicks = world.meleeIntent.tick[meleeIndex];
+    final expectedX = 30 - 300 * motionTicks / 60;
+    final length = math.sqrt(expectedX * expectedX + 40 * 40);
+    expect(
+      world.meleeIntent.dirX[meleeIndex],
+      closeTo(expectedX / length, 1e-9),
+    );
+    expect(world.meleeIntent.dirY[meleeIndex], closeTo(40 / length, 1e-9));
+  });
 }
 
 AbilityActivationSystem _buildSystem() {
