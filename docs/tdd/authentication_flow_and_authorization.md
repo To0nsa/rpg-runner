@@ -77,10 +77,13 @@ invalid run arguments display explicit errors rather than routing to the hub.
 Normal-account bootstrap is intentionally fail-closed until Play Games auth succeeds.
 
 Debug builds can explicitly switch to [Developer Practice](developer_practice.md)
-from Options. Its saved preference is restored before Firebase initialization;
-the local profile has no auth/ownership clients and supports Practice only.
+from Options, or start there with `--dart-define=DEVELOPER_PRACTICE=true` even
+on a fresh Windows install. The launch override and saved preference are checked
+before Firebase initialization; the override does not change the saved toggle.
+The local profile has no auth/ownership clients and supports Practice only.
 Turning it off reloads the normal authenticated account without signing it out.
-This does not change callable authorization or introduce a public offline fallback.
+Release/profile builds ignore the flag. This does not change callable
+authorization or introduce a public offline fallback.
 
 Concurrent `AppState.bootstrap()` calls share one attempt. Forced refreshes
 finish the pending ownership flush before loading profile and canonical

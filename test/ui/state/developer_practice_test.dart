@@ -259,6 +259,71 @@ void main() {
     },
   );
 
+  for (final savedDisabled in [false, true]) {
+    test(
+      'explicit local startup skips auth with ${savedDisabled ? 'disabled' : 'missing'} preference',
+      () async {
+        final fixture = StartupFixture();
+        final store = SharedPrefsDeveloperProfileStore();
+        if (savedDisabled) await store.saveEnabled(false);
+        var onlineInitializations = 0;
+        final services = AppServices(
+          initialize: () async {
+            onlineInitializations++;
+          },
+          createAppState: () => AppState(
+            authApi: fixture.auth,
+            userProfileRemoteApi: fixture.profile,
+            loadoutOwnershipApi: fixture.ownership,
+          ),
+          developerProfileStore: store,
+          startInDeveloperMode: true,
+        );
+        addTearDown(services.dispose);
+        const bootstrapper = AppBootstrapper();
+        expect((await bootstrapper.run(services, force: false)).ok, isTrue);
+        expect((await bootstrapper.run(services, force: true)).ok, isTrue);
+        expect(services.appState.isDeveloperMode, isTrue);
+        expect(services.appState.authSession.isAuthenticated, isFalse);
+        expect(
+          (await services.appState.prepareRunStartDescriptor())
+              .isDeveloperPractice,
+          isTrue,
+        );
+        expect(onlineInitializations, 0);
+        expect(fixture.auth.calls, 0);
+        expect(await store.loadEnabled(), isFalse);
+
+        await services.setDeveloperMode(false);
+        expect((await bootstrapper.run(services, force: true)).ok, isTrue);
+        expect(services.appState.isDeveloperMode, isFalse);
+        expect(onlineInitializations, 1);
+        expect(fixture.auth.calls, greaterThan(0));
+      },
+    );
+  }
+
+  test('local startup request requires developer support', () async {
+    final fixture = StartupFixture();
+    final services = AppServices(
+      initialize: () async {},
+      createAppState: () => AppState(
+        authApi: fixture.auth,
+        userProfileRemoteApi: fixture.profile,
+        loadoutOwnershipApi: fixture.ownership,
+      ),
+      startInDeveloperMode: true,
+    );
+    addTearDown(services.dispose);
+    expect(
+      (await const AppBootstrapper().run(services, force: false)).ok,
+      isTrue,
+    );
+    expect(services.developerModeAvailable, isFalse);
+    expect(services.appState.isDeveloperMode, isFalse);
+    expect(fixture.auth.calls, 1);
+  });
+
   test('failed switch back keeps developer profile and saved toggle', () async {
     final store = SharedPrefsDeveloperProfileStore();
     await store.saveEnabled(true);

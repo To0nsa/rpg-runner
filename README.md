@@ -93,7 +93,7 @@ On Android, debug builds install as **rpg_runner Dev**
 (`com.example.rpg_runner.dev`) alongside **rpg_runner**
 (`com.example.rpg_runner`). `flutter run --release` and `--profile` still use
 the existing release app identity. Each installation has separate local data;
-the first dev install needs its own sign-in and Developer mode setup. Both
+the first online dev launch needs its own sign-in setup. Both
 connect to the same Firebase backend, so the same Play Games account shares
 online progression. See [Android build identities](docs/tdd/android_build_variants.md)
 for build commands and the dev package's Firebase/Play Games setup.
@@ -109,6 +109,19 @@ reloads the real account and requires connectivity. Developer runs grant no
 rewards and write no leaderboards. The toggle is absent from release/profile
 builds; uninstalling or clearing app data resets it. See
 [Developer Practice](docs/tdd/developer_practice.md).
+
+For Windows gameplay development, start directly in Developer Practice, including
+on a fresh install:
+
+```bash
+flutter run -d windows --debug --dart-define=DEVELOPER_PRACTICE=true
+```
+
+This debug-only launch flag skips Firebase, App Check and account sign-in before
+opening the existing hub. Steam setup is not required for local Practice. It also
+works for other debug targets. The flag does not change the saved Developer mode
+toggle; omit it to resume the saved startup choice. Developer loadouts still
+persist, and release/profile builds ignore the flag.
 
 Production web builds require the public, domain-restricted App Check key:
 

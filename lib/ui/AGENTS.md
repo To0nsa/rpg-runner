@@ -73,8 +73,10 @@ Initialize services through `AppBootstrapper`/`AppServices` behind the loader
 so initialization failures are visible and retryable. `AppServices` owns
 `AppState` disposal; the provider only subscribes after initialization. Keep
 production client construction and theme configuration out of `UiApp`.
-Debug-only Developer Practice restores its local preference before online
-service initialization. `AppServices` owns profile replacement as well as
+Debug-only Developer Practice checks the explicit `DEVELOPER_PRACTICE` launch
+flag and restores its local preference before online service initialization.
+The launch flag never writes the saved toggle and is ignored outside debug.
+`AppServices` owns profile replacement as well as
 disposal; the proxy provider owns only subscriptions. Keep developer selections
 in their separate preference namespace, preserve the real account's queues,
 and never create tickets, record/submit replays or grant rewards for local runs.

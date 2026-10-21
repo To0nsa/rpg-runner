@@ -96,6 +96,10 @@ playable equipment and abilities unlocked. Character compatibility, slot limits,
 and gameplay rules still apply. The profile remembers its own level, character,
 build name and loadouts across launches and ordinary app updates.
 
+An explicit debug launch can also enter this profile before sign-in, including
+on a fresh Windows installation. This launch choice does not change the saved
+toggle; see [startup instructions](../tdd/developer_practice.md#starting-without-account-setup).
+
 Only Practice is available. Town, account actions, leaderboards and Weekly are
 disabled, and Competitive is not offered. Run completion shows the ordinary
 score breakdown with restart/exit, without rewards or leaderboard entries.

@@ -20,10 +20,13 @@ import '../state/run/firebase_run_session_api.dart';
 import 'app_services.dart';
 
 /// Builds the standalone app's production dependencies without starting I/O.
-/// Firebase and App Check must both initialize before any client is created.
+/// Debug launches with `DEVELOPER_PRACTICE=true` start locally without changing
+/// the saved mode. Online clients require Firebase and App Check initialization.
 AppServices createFirebaseAppServices() => AppServices(
   controlSettingsStore: SharedPrefsControlSettingsStore(),
   developerProfileStore: kDebugMode ? SharedPrefsDeveloperProfileStore() : null,
+  startInDeveloperMode:
+      kDebugMode && const bool.fromEnvironment('DEVELOPER_PRACTICE'),
   initialize: () async {
     // App Check can fail after Firebase succeeds; retry that stage safely.
     if (Firebase.apps.isEmpty) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/ui/app/app_services.dart';
+import 'package:rpg_runner/ui/app/firebase_app_services.dart';
 import 'package:rpg_runner/ui/app/ui_app.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/pages/selectLevel/level_setup_page.dart';
@@ -119,6 +120,28 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     },
+  );
+
+  testWidgets(
+    'launch flag reaches the hub on a fresh install without Firebase',
+    (tester) async {
+      final services = createFirebaseAppServices();
+      await mount(tester, services);
+      await tester.pumpAndSettle();
+      expect(find.byType(PlayHubPage), findsOneWidget);
+      expect(find.text('Developer'), findsOneWidget);
+      expect(services.appState.authSession.isAuthenticated, isFalse);
+      expect(
+        (await services.appState.prepareRunStartDescriptor())
+            .isDeveloperPractice,
+        isTrue,
+      );
+      expect(await SharedPrefsDeveloperProfileStore().loadEnabled(), isFalse);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+    skip: !const bool.fromEnvironment('DEVELOPER_PRACTICE'),
   );
 
   testWidgets(

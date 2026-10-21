@@ -1,22 +1,47 @@
 # Developer Practice
 
 Developer mode is an explicit debug-build option for testing current local
-gameplay on a connected device. It is not a public offline mode and does not
-automatically activate after a connection failure.
+gameplay on a desktop or connected device. It is not a public offline mode and
+does not automatically activate after a connection failure.
 
 Android debug builds install as **rpg_runner Dev**, separately from
-release/profile. The first dev install starts with fresh preferences and still
-requires normal sign-in before enabling Developer mode in Options. Existing
-release preferences are not copied. See [Android build identities](android_build_variants.md)
+release/profile. The first dev install starts with fresh preferences. Enable
+Developer mode through Options after normal sign-in, or use the explicit debug
+launch below to start locally before any sign-in. Existing release preferences
+are not copied. See [Android build identities](android_build_variants.md)
 for the package-specific sign-in setup.
+
+## Starting without account setup
+
+Use this command from the repository root for Windows gameplay development:
+
+```bash
+flutter run -d windows --debug --dart-define=DEVELOPER_PRACTICE=true
+```
+
+The flag works on any debug target, including a fresh installation with no
+saved preferences. It opens the existing Developer hub without initializing
+Firebase, activating App Check or constructing online clients. No Steam or
+Play Games setup is required for these local Practice runs.
+
+This is a launch override, not a preference write: it takes precedence over a
+missing or disabled saved toggle and remains active across hot restart/relaunch
+of the same build. Omit the flag when rebuilding to use the saved startup choice.
+Options can still switch profiles during the session; turning Developer mode
+off requires the normal online initialization and sign-in to succeed. Windows
+online sign-in is not implemented, so failed switching leaves Practice usable.
+Local loadout persistence is unchanged. Release/profile builds ignore the flag.
 
 ## Profile ownership and startup
 
 `createFirebaseAppServices` supplies `SharedPrefsDeveloperProfileStore` only
-when `kDebugMode` is true. `AppServices` reads its enabled preference behind the
-normal loader, before Firebase/App Check initialization or client construction.
-A saved enabled preference creates `AppState.developer`; ordinary startup still
-requires authenticated bootstrap. Release/profile builds do not read or expose
+when `kDebugMode` is true, and passes `startInDeveloperMode` for debug builds
+compiled with `DEVELOPER_PRACTICE=true`. Behind the normal splash and loader,
+`AppServices` checks that startup request before reading the saved enabled
+preference and before Firebase/App Check initialization or client construction.
+Either opt-in creates `AppState.developer`; ordinary startup still requires
+authenticated bootstrap. The override is only honored when developer support
+is wired and `kDebugMode` is true. Release/profile builds do not read or expose
 the developer setting. The local state factory rejects non-debug builds.
 
 Options calls `AppServices.setDeveloperMode` outside gameplay. The service owner
@@ -80,6 +105,13 @@ writes. Restart creates a fresh local descriptor through the same preflight.
 
 Focused tests cover catalog unlocks, saved selections, local starts/restarts,
 online-action rejection, normal-profile restoration, saved startup without
-online initialization, Options/provider switching, recorder-free world
-readiness and game-over isolation. These do not establish device-specific
+online initialization, explicit startup with missing/disabled preferences,
+Options/provider switching, recorder-free world readiness and game-over
+isolation. These do not establish device-specific
 performance or replace authenticated backend/replay validation tests.
+
+The real service-factory startup test requires the launch define:
+
+```bash
+flutter test --dart-define=DEVELOPER_PRACTICE=true test/ui/bootstrap/developer_mode_ui_test.dart
+```

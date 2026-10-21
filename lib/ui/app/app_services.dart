@@ -9,19 +9,24 @@ import '../state/ownership/ownership_sync_policy.dart';
 ///
 /// Initialization is shared by concurrent callers and retried after failure.
 /// The online factory runs only after services are ready; debug developer
-/// preferences are checked first and can bypass online initialization entirely.
-/// The app shell must
-/// dispose this owner; providers expose its state without taking ownership.
+/// startup requests and preferences can bypass online initialization entirely.
+/// The app shell must dispose this owner; providers expose its state without
+/// taking ownership.
 class AppServices extends ChangeNotifier {
+  /// [startInDeveloperMode] selects local Practice for this owner's startup
+  /// without changing the saved toggle. It requires debug mode and a developer
+  /// store, and does not override later profile switches through Options.
   AppServices({
     required Future<void> Function() initialize,
     required AppState Function() createAppState,
     DeveloperProfileStore? developerProfileStore,
     ControlSettingsStore? controlSettingsStore,
+    bool startInDeveloperMode = false,
   }) : _initialize = initialize,
        controlSettings = ControlSettings(store: controlSettingsStore),
        _createAppState = createAppState,
-       _developerProfileStore = developerProfileStore;
+       _developerProfileStore = developerProfileStore,
+       _startInDeveloperMode = startInDeveloperMode;
 
   final Future<void> Function() _initialize;
 
@@ -29,6 +34,7 @@ class AppServices extends ChangeNotifier {
   final ControlSettings controlSettings;
   final AppState Function() _createAppState;
   final DeveloperProfileStore? _developerProfileStore;
+  final bool _startInDeveloperMode;
   bool _switchingProfile = false;
   Future<AppState>? _initialization;
   AppState? _appState;
@@ -68,9 +74,11 @@ class AppServices extends ChangeNotifier {
   Future<AppState> _initializeState() async {
     await controlSettings.load();
     if (_disposed) throw StateError('App services have been disposed.');
-    if (developerModeAvailable && await _developerProfileStore!.loadEnabled()) {
+    if (developerModeAvailable &&
+        (_startInDeveloperMode ||
+            await _developerProfileStore!.loadEnabled())) {
       if (_disposed) throw StateError('App services have been disposed.');
-      return _appState = AppState.developer(store: _developerProfileStore);
+      return _appState = AppState.developer(store: _developerProfileStore!);
     }
     await _initialize();
     if (_disposed) throw StateError('App services have been disposed.');

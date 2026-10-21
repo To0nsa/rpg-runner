@@ -30,8 +30,10 @@ building a mobile release.
 Android isolates each package's private storage, including Firebase sessions,
 control preferences, Developer Practice selections, ownership outbox and replay
 spool. The first dev installation therefore starts fresh: sign in and enable
-**Options > Settings > Developer mode** if local Practice is wanted. Ordinary
-dev updates and hot restarts preserve that installation's data.
+**Options > Settings > Developer mode** if local Practice is wanted, or launch
+the debug build with `--dart-define=DEVELOPER_PRACTICE=true` to start locally
+without sign-in. See [Developer Practice](developer_practice.md). Ordinary dev
+updates and hot restarts preserve that installation's data.
 
 An older debug build installed as `com.example.rpg_runner` stays in that slot.
 Install release over it to return that slot to release; do not uninstall or
