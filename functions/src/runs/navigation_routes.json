@@ -74,16 +74,16 @@
     {
       "mode": "weekly",
       "levelId": "field",
-      "windowId": "2026-W42",
+      "windowId": "2026-W43",
       "gameCompatVersion": "2026.10.21",
-      "seed": 569265916
+      "seed": 1677851556
     },
     {
       "mode": "weekly",
       "levelId": "field",
-      "windowId": "2026-W43",
+      "windowId": "2026-W44",
       "gameCompatVersion": "2026.10.21",
-      "seed": 1677851556
+      "seed": 1933856514
     }
   ]
 }
