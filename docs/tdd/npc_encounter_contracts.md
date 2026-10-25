@@ -52,11 +52,17 @@ ranked scoring is `score-v3`, and rules/ghost remain `rules-v2`/`ghost-v1`.
 The distance revision changes no rescue awards; the worker accepts only the
 current gameplay/score pair. See the [deployment workflow](deployment_workflow.md).
 
-The ordinary-combat regression uses an explicit marker roster on the generated
-`field_default_normal_001` terrain, with no encounter definitions. Its current camera-paced
-trace covers 1068 ticks and Grojib, Hashash and Unoco behavior, including
-motion, attack animation, projectiles, resources and terminal state. Derf
-placement/casting is covered separately; it does not appear in this trace.
+The ordinary-combat regression uses an explicit marker roster on generated
+`field_default_easy_004` terrain, with no encounter definitions. Its reviewed
+camera-paced trace covers 817 ticks and Grojib, Hashash, Unoco and Derf behavior,
+including motion, attack animation, projectiles, resources and terminal state.
+Assertions retain upright enemy poses, facing changes during committed strikes,
+and Derf transformation followed by melee without returning to casting.
+Review across `11dc7aa3` isolates the updated digest to gravity/terrain-aware
+homing: the preceding revision reproduces the old 819-tick trace exactly;
+the forecast revision reproduces the current trace exactly. The first difference
+is Unoco surviving a previously lethal attack at tick 258. No combat capability,
+targeting rule or damage assertion is weakened to refresh this expectation.
 The contract probe is also compiled and executed to verify admission errors
 survive AOT assertion removal.
 
