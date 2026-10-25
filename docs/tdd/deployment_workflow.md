@@ -108,6 +108,13 @@ separate task-specific gates. Production npm advisories are checked on every
 backend/coordinated preparation, including cache hits, because advisories can
 change without source changes.
 
+Runtime security overrides are mirrored in root `pnpm-workspace.yaml` and
+`functions/package.json`: Firebase uploads only `functions/` and resolves its
+production dependencies with npm. Both pin body-parser 1.x to 1.20.9 and 2.x
+to 2.4.0 for [GHSA-27r3-jxmh-p828](https://github.com/advisories/GHSA-27r3-jxmh-p828).
+Validate override changes with both the workspace production audit and an
+isolated production npm resolution/audit outside the pnpm workspace.
+
 Web builds are optimized local Developer Practice hosts. `client-build` uses
 `--no-web-resources-cdn` so CanvasKit is served with the artifact, requires no
 Firebase/App Check defines, and runs `node tools/release/web_smoke.mjs build/web`
