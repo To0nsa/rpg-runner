@@ -363,7 +363,8 @@ class TerrainSurfaceNavigator {
         hasPlan: true,
       );
     }
-    if (entity.grounded && _reachedTakeoff(entity.bodyCenter.xTicks, edge)) {
+    if (entity.grounded &&
+        _reachedTakeoff(entity.bodyCenter.xTicks, edge, graph.buildProfile)) {
       state.activeEdgeIndex = edgeIndex;
       state.activeEdgeWasAirborne = false;
       return _applyMovementLock(
@@ -677,10 +678,28 @@ class TerrainSurfaceNavigator {
         edgeIndex < graph.edgeOffsets[sourceIndex + 1];
   }
 
-  bool _reachedTakeoff(int bodyXTicks, TerrainSurfaceGraphEdge edge) =>
-      edge.commitDirectionX > 0
-      ? bodyXTicks >= edge.takeoffPoint.xTicks - takeoffToleranceTicks
-      : bodyXTicks <= edge.takeoffPoint.xTicks + takeoffToleranceTicks;
+  bool _reachedTakeoff(
+    int bodyXTicks,
+    TerrainSurfaceGraphEdge edge,
+    TerrainSurfaceGraphBuildProfile profile,
+  ) {
+    final reached = edge.commitDirectionX > 0
+        ? bodyXTicks >= edge.takeoffPoint.xTicks - takeoffToleranceTicks
+        : bodyXTicks <= edge.takeoffPoint.xTicks + takeoffToleranceTicks;
+    if (!reached || edge.kind != TerrainSurfaceEdgeKind.jump) return reached;
+    // The takeoff tolerance cannot spend more horizontal reach than the arc
+    // has. Otherwise locomotion clamps the required speed and follows a
+    // different trajectory, potentially striking an intermediate platform.
+    final jump = profile.jumpTemplate.profile;
+    final maximumReach = terrainPhysicsTickValueToInt(
+      jump.airSpeedX *
+          jump.dtSeconds *
+          edge.travelTicks *
+          terrainPhysicsTicksPerWorldUnit,
+      name: 'takeoffMaximumReach',
+    );
+    return (edge.landingPoint.xTicks - bodyXTicks).abs() <= maximumReach;
+  }
 
   void _clearPath(TerrainSurfaceNavigatorState state) {
     state.pathEdges.clear();

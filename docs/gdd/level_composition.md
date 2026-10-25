@@ -120,6 +120,13 @@ easy ruin chunk raises its ancient statue slightly and uses a simpler solid
 collision outline. These local changes require matching generated content and
 a coordinated gameplay compatibility release before deployment.
 
+`forest_trainingcamp_hard_004` revision 101 seats the statue at `(256, 145)`
+and moves the large tent to `(416, 123)`. The raised floor stays flat through
+X=477 before descending to the unchanged exit. This provides approach and
+landing space around both obstacles for the existing ground-enemy capsules;
+the rescue encounter's Grojib starts on valid terrain at X=516. The entrance
+pit, statue size, tent size, and movement capabilities remain the same.
+
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.
 The author sets the section order; seeded selection chooses chunks inside it.

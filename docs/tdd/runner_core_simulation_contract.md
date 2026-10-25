@@ -697,6 +697,24 @@ this document plus the relevant replay/consumer documentation.
 
 ## Authored content and generated outputs
 
+The undeployed `2026.10.21` preparation also includes the hard-camp clearance
+repair and stricter jump landing admission described in
+[sloped navigation](sloped_navigation_and_enemy_terrain.md#jump-and-drop-construction).
+All jump destinations require a grounded controller landing and revalidation
+at the published cruise speed; rounded-tip contacts additionally account for
+runtime collision skin. Early takeoff also requires enough horizontal reach
+at the unchanged speed cap to preserve the planned flight. The graph algorithm
+fingerprint and authored terrain are regenerated together. These changes alter
+deterministic enemy routes and require matching client, worker and issuer
+artifacts; tick ordering, movement limits, command encoding and replay wire
+formats are unchanged.
+
+The same preparation keeps the retained support normal in grounded wall-slide
+constraints. A downhill wall contact can no longer project motion into the
+floor and freeze subsequent ticks in overlap recovery. This shared controller
+fix changes player/enemy collision outcomes without changing their capabilities;
+see [terrain collision](terrain_capsule_controller.md).
+
 Gameplay compatibility `2026.10.12` regenerates Forest revision 389 with a
 nine-chunk distinct hard Rocky Grove section after Goddess. The existing final-
 section continuation policy now repeats that grove section. Client, Functions

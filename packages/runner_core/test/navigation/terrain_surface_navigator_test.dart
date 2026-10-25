@@ -352,6 +352,66 @@ void main() {
   });
 
   group('TerrainSurfaceNavigator edge execution and invalidation', () {
+    for (final direction in [-1, 1]) {
+      test(
+        'takeoff tolerance preserves jump reach in direction $direction',
+        () {
+          final fixture = _transitionFixture();
+          final profile = _profile();
+          final from = direction > 0 ? 'source' : 'destination';
+          final to = direction > 0 ? 'destination' : 'source';
+          final takeoffX = _ticks(direction > 0 ? 100 : 220);
+          final landingX = _ticks(direction > 0 ? 220 : 100);
+          final graph = _customGraph(fixture, profile, [
+            _EdgeSpec(
+              from,
+              to,
+              TerrainSurfaceEdgeKind.jump,
+              direction,
+              takeoffBodyXTicks: takeoffX,
+              landingBodyXTicks: landingX,
+              travelTicks: 24,
+            ),
+          ]);
+          final source = _surfaceForShape(fixture.surfaces, from);
+          final target = _actorOn(
+            fixture,
+            profile,
+            _surfaceForShape(fixture.surfaces, to),
+            landingX,
+          );
+          final navigator = _navigator(takeoffToleranceTicks: _ticks(4));
+          final state = TerrainSurfaceNavigatorState();
+          final early = navigator.update(
+            state: state,
+            graph: graph,
+            placementQuery: fixture.query,
+            bundleVersion: 4,
+            entity: _actorOn(
+              fixture,
+              profile,
+              source,
+              takeoffX - direction * _ticks(4),
+            ),
+            target: target,
+          );
+          expect(early.hasPlan, isTrue);
+          expect(early.jumpNow, isFalse);
+          expect(early.commitDirectionX, direction);
+          expect(state.activeEdgeIndex, -1);
+          final ready = navigator.update(
+            state: state,
+            graph: graph,
+            placementQuery: fixture.query,
+            bundleVersion: 4,
+            entity: _actorOn(fixture, profile, source, takeoffX),
+            target: target,
+          );
+          expect(ready.jumpNow, isTrue);
+          expect(state.activeEdgeIndex, isNonNegative);
+        },
+      );
+    }
     for (final kind in <TerrainSurfaceEdgeKind>[
       TerrainSurfaceEdgeKind.jump,
       TerrainSurfaceEdgeKind.drop,
@@ -755,6 +815,7 @@ class _EdgeSpec {
     this.commitDirectionX, {
     this.takeoffBodyXTicks,
     this.landingBodyXTicks,
+    this.travelTicks = 60,
   });
 
   final String fromShape;
@@ -763,6 +824,7 @@ class _EdgeSpec {
   final int commitDirectionX;
   final int? takeoffBodyXTicks;
   final int? landingBodyXTicks;
+  final int travelTicks;
 }
 
 TerrainSurfaceGraph _customGraph(
@@ -803,7 +865,7 @@ TerrainSurfaceGraph _customGraph(
               takeoffPoint: takeoff,
               landingPoint: landing,
               commitDirectionX: spec.commitDirectionX,
-              travelTicks: 60,
+              travelTicks: spec.travelTicks,
               simulationTicksPerSecond: profile.simulationTicksPerSecond,
             ),
     );

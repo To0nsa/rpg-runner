@@ -303,6 +303,10 @@ instead of becoming pinned by simultaneous floor and wall contacts. Ordinary
 grounded movement still uses the four-pixel automatic step limit; taller
 obstacles require a jump. These rules apply in normal runs and editor Play.
 
+Walking downhill into a solid rock keeps the actor above the supporting slope.
+The contact blocks forward motion while allowing the player to jump away;
+it must not push the actor into the floor and freeze movement.
+
 Solid obstacles overlapping each other or solid terrain behave as one occupied
 shape. Players and enemies collide with its exposed outline; buried sides and tops provide
 neither walls nor standing surfaces. Uncovered ledges remain solid and holes

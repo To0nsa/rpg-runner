@@ -57,9 +57,13 @@ negative controls verify blocked finishes, stall, kill-plane, and total-budget
 failures. Derf traversal starts already transformed, preserving continuous
 movement and actual catalog limits; separate tests cover the caster phase,
 first visibility, transformation and combat.
-Field ground-enemy pursuit and the exact hard ruin-to-grove-gap route through
-`forest_rocky_grove_hard_002` are excluded from this matrix. These routes are
-not established as traversable by the remaining checks.
+
+The exact hard ruin-to-grove-gap regression covers Grojib, Hashash and Derf
+through five chunks: `forest_default_early_001`, `forest_ruin_hard_005`,
+`forest_ruin_hard_001`, `forest_rocky_grove_hard_002`, and
+`forest_rocky_grove_hard_001`. `forest_rocky_grove_hard_007` supplies continuation
+terrain beyond the 3,000-unit finish. Field ground-enemy pursuit remains
+excluded and is not established as traversable by these checks.
 
 Bringer of Death is confined to its authored arena and is excluded from route-wide
 pursuit. `packages/runner_core/test/bosses/boss_arena_test.dart` exercises its

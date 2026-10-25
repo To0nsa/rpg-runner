@@ -123354,7 +123354,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
     StagedTerrainChunkData(
       chunkKey: "forest_trainingcamp_hard_004",
       id: "forest_trainingcamp_hard_004",
-      revision: 100,
+      revision: 101,
       status: "active",
       levelId: "forest",
       tileSize: 16,
@@ -123362,11 +123362,11 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       height: 270,
       difficulty: "hard",
       assemblyGroupId: "trainingcamp",
-      authoringPolygonSignature: "81daf45c04d8cfc36bd31d64c9ac8745fb5531dbb79d5b5cccf023c62443621c",
-      sourceSignature: "b45bbea3b8dea21f0516b01ba955ed32d2526865d539ad9b53818af8549c0d55",
-      edgeSignature: "5f2787e218c4dbdf271e31756015d9b60aa807c166ee522405bc0e11f71a89c2",
-      renderEdgeSignature: "9dc601b371956beee0bb8da43c22c69ac95fce914741da0e6f5d97ff4a6e7b8f",
-      placementSignature: "c61ae000666564ce230f9cdca331802063da4789d049db8140d42a47d160b0f6",
+      authoringPolygonSignature: "e0ece06c4a31c6bc51a760b91df43e527a244d7c4b92937b285247609691d266",
+      sourceSignature: "7a7b37353650c5930820c6a0e6b8e923fe4d7e698edc99bc9e3ccabe72ade35c",
+      edgeSignature: "f7aae1d07b3435e71de0fd8874a8c94274dd2ecc13916c86b64070b68738d417",
+      renderEdgeSignature: "7389dde37bc9dd4e10565bfd2f2574d12959253c99cc5a493fbbc4a4ead9c4c6",
+      placementSignature: "07f4b876bcf98cc1ca336522264d5370e3dd024469babf9f22ffa45faf493f44",
       triangleSignature: "9f7926d37698b4e9d2de540b6e48e4ff28d454fb726d714275703dcf5f5fc0a2",
       polygons: <StagedTerrainPolygonData>[
         StagedTerrainPolygonData(
@@ -123378,14 +123378,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           ),
           sourceVertices: <StagedTerrainPoint>[
             StagedTerrainPoint(288, 374),
-            StagedTerrainPoint(858, 374),
+            StagedTerrainPoint(954, 374),
             StagedTerrainPoint(1200, 448),
             StagedTerrainPoint(1200, 540),
             StagedTerrainPoint(288, 540),
           ],
           vertices: <StagedTerrainPoint>[
             StagedTerrainPoint(147456, 191488),
-            StagedTerrainPoint(439296, 191488),
+            StagedTerrainPoint(488448, 191488),
             StagedTerrainPoint(614400, 229376),
             StagedTerrainPoint(614400, 276480),
             StagedTerrainPoint(147456, 276480),
@@ -123441,10 +123441,10 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           materialKey: "grass_dirt",
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_trainingcamp_hard_004.json#placement=cimetery_statue_01|224|144|0#prefab=cimetery_statue_01#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_trainingcamp_hard_004.json#placement=cimetery_statue_01|256|145|0#prefab=cimetery_statue_01#shape=collision_001",
           id: StagedTerrainSourceId(
             chunkKey: "forest_trainingcamp_hard_004",
-            placementKey: "cimetery_statue_01|224|144|0",
+            placementKey: "cimetery_statue_01|256|145|0",
             shapeId: "collision_001",
           ),
           sourceVertices: <StagedTerrainPoint>[
@@ -123474,40 +123474,40 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             StagedTerrainPoint(-92, 210),
           ],
           vertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(210534, 186368),
-            StagedTerrainPoint(213811, 182682),
-            StagedTerrainPoint(212582, 171622),
-            StagedTerrainPoint(217088, 171622),
-            StagedTerrainPoint(220365, 149504),
-            StagedTerrainPoint(216678, 141722),
-            StagedTerrainPoint(216269, 127795),
-            StagedTerrainPoint(218317, 122880),
-            StagedTerrainPoint(224051, 118784),
-            StagedTerrainPoint(227328, 109363),
-            StagedTerrainPoint(233062, 109363),
-            StagedTerrainPoint(235520, 118374),
-            StagedTerrainPoint(241254, 122880),
-            StagedTerrainPoint(243302, 127795),
-            StagedTerrainPoint(242893, 141722),
-            StagedTerrainPoint(239206, 149504),
-            StagedTerrainPoint(242483, 171622),
-            StagedTerrainPoint(246989, 171622),
-            StagedTerrainPoint(246989, 175309),
-            StagedTerrainPoint(245350, 175309),
-            StagedTerrainPoint(245760, 182682),
-            StagedTerrainPoint(249037, 186368),
-            StagedTerrainPoint(249037, 190464),
-            StagedTerrainPoint(210534, 190464),
+            StagedTerrainPoint(243302, 187392),
+            StagedTerrainPoint(246579, 183706),
+            StagedTerrainPoint(245350, 172646),
+            StagedTerrainPoint(249856, 172646),
+            StagedTerrainPoint(253133, 150528),
+            StagedTerrainPoint(249446, 142746),
+            StagedTerrainPoint(249037, 128819),
+            StagedTerrainPoint(251085, 123904),
+            StagedTerrainPoint(256819, 119808),
+            StagedTerrainPoint(260096, 110387),
+            StagedTerrainPoint(265830, 110387),
+            StagedTerrainPoint(268288, 119398),
+            StagedTerrainPoint(274022, 123904),
+            StagedTerrainPoint(276070, 128819),
+            StagedTerrainPoint(275661, 142746),
+            StagedTerrainPoint(271974, 150528),
+            StagedTerrainPoint(275251, 172646),
+            StagedTerrainPoint(279757, 172646),
+            StagedTerrainPoint(279757, 176333),
+            StagedTerrainPoint(278118, 176333),
+            StagedTerrainPoint(278528, 183706),
+            StagedTerrainPoint(281805, 187392),
+            StagedTerrainPoint(281805, 191488),
+            StagedTerrainPoint(243302, 191488),
           ],
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: null,
           materialKey: null,
         ),
         StagedTerrainPolygonData(
-          sourcePath: "assets/authoring/level/chunks/forest/forest_trainingcamp_hard_004.json#placement=gandalf_hardcore_large_tent_01|336|123|0#prefab=gandalf_hardcore_large_tent_01#shape=collision_001",
+          sourcePath: "assets/authoring/level/chunks/forest/forest_trainingcamp_hard_004.json#placement=gandalf_hardcore_large_tent_01|416|123|0#prefab=gandalf_hardcore_large_tent_01#shape=collision_001",
           id: StagedTerrainSourceId(
             chunkKey: "forest_trainingcamp_hard_004",
-            placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+            placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
             shapeId: "collision_001",
           ),
           sourceVertices: <StagedTerrainPoint>[
@@ -123526,19 +123526,19 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             StagedTerrainPoint(96, 128),
           ],
           vertices: <StagedTerrainPoint>[
-            StagedTerrainPoint(294912, 191488),
-            StagedTerrainPoint(296960, 141312),
-            StagedTerrainPoint(297984, 112640),
-            StagedTerrainPoint(309248, 105472),
-            StagedTerrainPoint(314368, 101376),
-            StagedTerrainPoint(333824, 84992),
-            StagedTerrainPoint(344064, 74752),
-            StagedTerrainPoint(353280, 81920),
-            StagedTerrainPoint(373760, 101376),
-            StagedTerrainPoint(378880, 105472),
-            StagedTerrainPoint(390144, 112640),
-            StagedTerrainPoint(390144, 122880),
-            StagedTerrainPoint(393216, 191488),
+            StagedTerrainPoint(376832, 191488),
+            StagedTerrainPoint(378880, 141312),
+            StagedTerrainPoint(379904, 112640),
+            StagedTerrainPoint(391168, 105472),
+            StagedTerrainPoint(396288, 101376),
+            StagedTerrainPoint(415744, 84992),
+            StagedTerrainPoint(425984, 74752),
+            StagedTerrainPoint(435200, 81920),
+            StagedTerrainPoint(455680, 101376),
+            StagedTerrainPoint(460800, 105472),
+            StagedTerrainPoint(472064, 112640),
+            StagedTerrainPoint(472064, 122880),
+            StagedTerrainPoint(475136, 191488),
           ],
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: null,
@@ -123604,7 +123604,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             subEdgeIndex: 0,
           ),
           start: StagedTerrainPoint(147456, 191488),
-          end: StagedTerrainPoint(294912, 191488),
+          end: StagedTerrainPoint(243302, 191488),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -123622,7 +123622,45 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "cimetery_statue_01|256|145|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 23,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_hard_004",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          start: StagedTerrainPoint(281805, 191488),
+          end: StagedTerrainPoint(376832, 191488),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_hard_004",
+              placementKey: "cimetery_statue_01|256|145|0",
+              shapeId: "collision_001",
+            ),
+            localEdgeIndex: 21,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_trainingcamp_hard_004",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -123639,10 +123677,10 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               shapeId: "ground_001",
             ),
             localEdgeIndex: 0,
-            subEdgeIndex: 2,
+            subEdgeIndex: 4,
           ),
-          start: StagedTerrainPoint(393216, 191488),
-          end: StagedTerrainPoint(439296, 191488),
+          start: StagedTerrainPoint(475136, 191488),
+          end: StagedTerrainPoint(488448, 191488),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -123651,7 +123689,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 11,
@@ -123679,10 +123717,10 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(439296, 191488),
+          start: StagedTerrainPoint(488448, 191488),
           end: StagedTerrainPoint(614400, 229376),
-          tangent: StagedTerrainPoint(1001, 217),
-          outwardNormal: StagedTerrainPoint(217, -1001),
+          tangent: StagedTerrainPoint(981, 295),
+          outwardNormal: StagedTerrainPoint(295, -981),
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: "ground",
           materialKey: "grass_dirt",
@@ -123693,7 +123731,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               shapeId: "ground_001",
             ),
             localEdgeIndex: 0,
-            subEdgeIndex: 2,
+            subEdgeIndex: 4,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
@@ -124015,14 +124053,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(210534, 186368),
-          end: StagedTerrainPoint(213811, 182682),
+          start: StagedTerrainPoint(243302, 187392),
+          end: StagedTerrainPoint(246579, 183706),
           tangent: StagedTerrainPoint(680, -765),
           outwardNormal: StagedTerrainPoint(-765, -680),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124031,7 +124069,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 23,
@@ -124040,7 +124078,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
@@ -124053,14 +124091,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(213811, 182682),
-          end: StagedTerrainPoint(212582, 171622),
+          start: StagedTerrainPoint(246579, 183706),
+          end: StagedTerrainPoint(245350, 172646),
           tangent: StagedTerrainPoint(-113, -1018),
           outwardNormal: StagedTerrainPoint(-1018, 113),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124069,7 +124107,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -124078,7 +124116,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
@@ -124091,14 +124129,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(212582, 171622),
-          end: StagedTerrainPoint(217088, 171622),
+          start: StagedTerrainPoint(245350, 172646),
+          end: StagedTerrainPoint(249856, 172646),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124107,7 +124145,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
@@ -124116,7 +124154,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
@@ -124129,14 +124167,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(217088, 171622),
-          end: StagedTerrainPoint(220365, 149504),
+          start: StagedTerrainPoint(249856, 172646),
+          end: StagedTerrainPoint(253133, 150528),
           tangent: StagedTerrainPoint(150, -1013),
           outwardNormal: StagedTerrainPoint(-1013, -150),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124145,7 +124183,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
@@ -124154,7 +124192,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
@@ -124167,14 +124205,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(220365, 149504),
-          end: StagedTerrainPoint(216678, 141722),
+          start: StagedTerrainPoint(253133, 150528),
+          end: StagedTerrainPoint(249446, 142746),
           tangent: StagedTerrainPoint(-438, -925),
           outwardNormal: StagedTerrainPoint(-925, 438),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124183,7 +124221,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
@@ -124192,7 +124230,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
@@ -124205,14 +124243,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(216678, 141722),
-          end: StagedTerrainPoint(216269, 127795),
+          start: StagedTerrainPoint(249446, 142746),
+          end: StagedTerrainPoint(249037, 128819),
           tangent: StagedTerrainPoint(-30, -1024),
           outwardNormal: StagedTerrainPoint(-1024, 30),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124221,7 +124259,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
@@ -124230,7 +124268,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 6,
@@ -124243,14 +124281,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 6,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(216269, 127795),
-          end: StagedTerrainPoint(218317, 122880),
+          start: StagedTerrainPoint(249037, 128819),
+          end: StagedTerrainPoint(251085, 123904),
           tangent: StagedTerrainPoint(394, -945),
           outwardNormal: StagedTerrainPoint(-945, -394),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124259,7 +124297,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
@@ -124268,7 +124306,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 7,
@@ -124281,14 +124319,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 7,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(218317, 122880),
-          end: StagedTerrainPoint(224051, 118784),
+          start: StagedTerrainPoint(251085, 123904),
+          end: StagedTerrainPoint(256819, 119808),
           tangent: StagedTerrainPoint(833, -595),
           outwardNormal: StagedTerrainPoint(-595, -833),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124297,7 +124335,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 6,
@@ -124306,7 +124344,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 8,
@@ -124319,14 +124357,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 8,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(224051, 118784),
-          end: StagedTerrainPoint(227328, 109363),
+          start: StagedTerrainPoint(256819, 119808),
+          end: StagedTerrainPoint(260096, 110387),
           tangent: StagedTerrainPoint(336, -967),
           outwardNormal: StagedTerrainPoint(-967, -336),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124335,7 +124373,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 7,
@@ -124344,7 +124382,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 9,
@@ -124357,14 +124395,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 9,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(227328, 109363),
-          end: StagedTerrainPoint(233062, 109363),
+          start: StagedTerrainPoint(260096, 110387),
+          end: StagedTerrainPoint(265830, 110387),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124373,7 +124411,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 8,
@@ -124382,7 +124420,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
@@ -124395,14 +124433,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(233062, 109363),
-          end: StagedTerrainPoint(235520, 118374),
+          start: StagedTerrainPoint(265830, 110387),
+          end: StagedTerrainPoint(268288, 119398),
           tangent: StagedTerrainPoint(269, 988),
           outwardNormal: StagedTerrainPoint(988, -269),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124411,7 +124449,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 9,
@@ -124420,7 +124458,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 11,
@@ -124433,14 +124471,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 11,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(235520, 118374),
-          end: StagedTerrainPoint(241254, 122880),
+          start: StagedTerrainPoint(268288, 119398),
+          end: StagedTerrainPoint(274022, 123904),
           tangent: StagedTerrainPoint(805, 633),
           outwardNormal: StagedTerrainPoint(633, -805),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124449,7 +124487,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
@@ -124458,7 +124496,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 12,
@@ -124471,14 +124509,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 12,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(241254, 122880),
-          end: StagedTerrainPoint(243302, 127795),
+          start: StagedTerrainPoint(274022, 123904),
+          end: StagedTerrainPoint(276070, 128819),
           tangent: StagedTerrainPoint(394, 945),
           outwardNormal: StagedTerrainPoint(945, -394),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124487,7 +124525,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 11,
@@ -124496,7 +124534,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 13,
@@ -124509,14 +124547,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 13,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(243302, 127795),
-          end: StagedTerrainPoint(242893, 141722),
+          start: StagedTerrainPoint(276070, 128819),
+          end: StagedTerrainPoint(275661, 142746),
           tangent: StagedTerrainPoint(-30, 1024),
           outwardNormal: StagedTerrainPoint(1024, 30),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124525,7 +124563,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 12,
@@ -124534,7 +124572,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 14,
@@ -124547,14 +124585,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 14,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(242893, 141722),
-          end: StagedTerrainPoint(239206, 149504),
+          start: StagedTerrainPoint(275661, 142746),
+          end: StagedTerrainPoint(271974, 150528),
           tangent: StagedTerrainPoint(-438, 925),
           outwardNormal: StagedTerrainPoint(925, 438),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124563,7 +124601,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 13,
@@ -124572,7 +124610,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 15,
@@ -124585,14 +124623,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 15,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(239206, 149504),
-          end: StagedTerrainPoint(242483, 171622),
+          start: StagedTerrainPoint(271974, 150528),
+          end: StagedTerrainPoint(275251, 172646),
           tangent: StagedTerrainPoint(150, 1013),
           outwardNormal: StagedTerrainPoint(1013, -150),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124601,7 +124639,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 14,
@@ -124610,7 +124648,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 16,
@@ -124623,14 +124661,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 16,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(242483, 171622),
-          end: StagedTerrainPoint(246989, 171622),
+          start: StagedTerrainPoint(275251, 172646),
+          end: StagedTerrainPoint(279757, 172646),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124639,7 +124677,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 15,
@@ -124648,7 +124686,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 17,
@@ -124661,14 +124699,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 17,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(246989, 171622),
-          end: StagedTerrainPoint(246989, 175309),
+          start: StagedTerrainPoint(279757, 172646),
+          end: StagedTerrainPoint(279757, 176333),
           tangent: StagedTerrainPoint(0, 1024),
           outwardNormal: StagedTerrainPoint(1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124677,7 +124715,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 16,
@@ -124686,7 +124724,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 18,
@@ -124699,14 +124737,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 18,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(246989, 175309),
-          end: StagedTerrainPoint(245350, 175309),
+          start: StagedTerrainPoint(279757, 176333),
+          end: StagedTerrainPoint(278118, 176333),
           tangent: StagedTerrainPoint(-1024, 0),
           outwardNormal: StagedTerrainPoint(0, 1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124715,7 +124753,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 17,
@@ -124724,7 +124762,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 19,
@@ -124737,14 +124775,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 19,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(245350, 175309),
-          end: StagedTerrainPoint(245760, 182682),
+          start: StagedTerrainPoint(278118, 176333),
+          end: StagedTerrainPoint(278528, 183706),
           tangent: StagedTerrainPoint(57, 1022),
           outwardNormal: StagedTerrainPoint(1022, -57),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124753,7 +124791,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 18,
@@ -124762,7 +124800,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 20,
@@ -124775,14 +124813,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 20,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(245760, 182682),
-          end: StagedTerrainPoint(249037, 186368),
+          start: StagedTerrainPoint(278528, 183706),
+          end: StagedTerrainPoint(281805, 187392),
           tangent: StagedTerrainPoint(680, 765),
           outwardNormal: StagedTerrainPoint(765, -680),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124791,7 +124829,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 19,
@@ -124800,7 +124838,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 21,
@@ -124813,14 +124851,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 21,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(249037, 186368),
-          end: StagedTerrainPoint(249037, 190464),
+          start: StagedTerrainPoint(281805, 187392),
+          end: StagedTerrainPoint(281805, 191488),
           tangent: StagedTerrainPoint(0, 1024),
           outwardNormal: StagedTerrainPoint(1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124829,7 +124867,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 20,
@@ -124838,11 +124876,11 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
-              shapeId: "collision_001",
+              placementKey: null,
+              shapeId: "ground_001",
             ),
-            localEdgeIndex: 22,
-            subEdgeIndex: 0,
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
           ),
           startJoin: StagedTerrainVertexJoin.connected,
           endJoin: StagedTerrainVertexJoin.connected,
@@ -124851,52 +124889,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 22,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(249037, 190464),
-          end: StagedTerrainPoint(210534, 190464),
-          tangent: StagedTerrainPoint(-1024, 0),
-          outwardNormal: StagedTerrainPoint(0, 1024),
-          collisionMode: StagedTerrainCollisionMode.solid,
-          surfaceKind: null,
-          materialKey: null,
-          previousId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 21,
-            subEdgeIndex: 0,
-          ),
-          nextId: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 23,
             subEdgeIndex: 0,
           ),
-          startJoin: StagedTerrainVertexJoin.connected,
-          endJoin: StagedTerrainVertexJoin.connected,
-        ),
-        StagedTerrainEdgeData(
-          id: StagedTerrainEdgeId(
-            sourceId: StagedTerrainSourceId(
-              chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
-              shapeId: "collision_001",
-            ),
-            localEdgeIndex: 23,
-            subEdgeIndex: 0,
-          ),
-          start: StagedTerrainPoint(210534, 190464),
-          end: StagedTerrainPoint(210534, 186368),
+          start: StagedTerrainPoint(243302, 191488),
+          end: StagedTerrainPoint(243302, 187392),
           tangent: StagedTerrainPoint(0, -1024),
           outwardNormal: StagedTerrainPoint(-1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124905,16 +124905,16 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
-              shapeId: "collision_001",
+              placementKey: null,
+              shapeId: "ground_001",
             ),
-            localEdgeIndex: 22,
+            localEdgeIndex: 0,
             subEdgeIndex: 0,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "cimetery_statue_01|224|144|0",
+              placementKey: "cimetery_statue_01|256|145|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -124927,14 +124927,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(294912, 191488),
-          end: StagedTerrainPoint(296960, 141312),
+          start: StagedTerrainPoint(376832, 191488),
+          end: StagedTerrainPoint(378880, 141312),
           tangent: StagedTerrainPoint(42, -1023),
           outwardNormal: StagedTerrainPoint(-1023, -42),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124947,12 +124947,12 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               shapeId: "ground_001",
             ),
             localEdgeIndex: 0,
-            subEdgeIndex: 0,
+            subEdgeIndex: 2,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
@@ -124965,14 +124965,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(296960, 141312),
-          end: StagedTerrainPoint(297984, 112640),
+          start: StagedTerrainPoint(378880, 141312),
+          end: StagedTerrainPoint(379904, 112640),
           tangent: StagedTerrainPoint(37, -1023),
           outwardNormal: StagedTerrainPoint(-1023, -37),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -124981,7 +124981,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 0,
@@ -124990,7 +124990,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
@@ -125003,14 +125003,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(297984, 112640),
-          end: StagedTerrainPoint(309248, 105472),
+          start: StagedTerrainPoint(379904, 112640),
+          end: StagedTerrainPoint(391168, 105472),
           tangent: StagedTerrainPoint(864, -550),
           outwardNormal: StagedTerrainPoint(-550, -864),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125019,7 +125019,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 1,
@@ -125028,7 +125028,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
@@ -125041,14 +125041,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(309248, 105472),
-          end: StagedTerrainPoint(314368, 101376),
+          start: StagedTerrainPoint(391168, 105472),
+          end: StagedTerrainPoint(396288, 101376),
           tangent: StagedTerrainPoint(800, -640),
           outwardNormal: StagedTerrainPoint(-640, -800),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125057,7 +125057,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 2,
@@ -125066,7 +125066,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
@@ -125079,14 +125079,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(314368, 101376),
-          end: StagedTerrainPoint(333824, 84992),
+          start: StagedTerrainPoint(396288, 101376),
+          end: StagedTerrainPoint(415744, 84992),
           tangent: StagedTerrainPoint(783, -660),
           outwardNormal: StagedTerrainPoint(-660, -783),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125095,7 +125095,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 3,
@@ -125104,7 +125104,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
@@ -125117,14 +125117,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(333824, 84992),
-          end: StagedTerrainPoint(344064, 74752),
+          start: StagedTerrainPoint(415744, 84992),
+          end: StagedTerrainPoint(425984, 74752),
           tangent: StagedTerrainPoint(724, -724),
           outwardNormal: StagedTerrainPoint(-724, -724),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125133,7 +125133,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 4,
@@ -125142,7 +125142,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 6,
@@ -125155,14 +125155,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 6,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(344064, 74752),
-          end: StagedTerrainPoint(353280, 81920),
+          start: StagedTerrainPoint(425984, 74752),
+          end: StagedTerrainPoint(435200, 81920),
           tangent: StagedTerrainPoint(808, 629),
           outwardNormal: StagedTerrainPoint(629, -808),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125171,7 +125171,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 5,
@@ -125180,7 +125180,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 7,
@@ -125193,14 +125193,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 7,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(353280, 81920),
-          end: StagedTerrainPoint(373760, 101376),
+          start: StagedTerrainPoint(435200, 81920),
+          end: StagedTerrainPoint(455680, 101376),
           tangent: StagedTerrainPoint(742, 705),
           outwardNormal: StagedTerrainPoint(705, -742),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125209,7 +125209,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 6,
@@ -125218,7 +125218,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 8,
@@ -125231,14 +125231,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 8,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(373760, 101376),
-          end: StagedTerrainPoint(378880, 105472),
+          start: StagedTerrainPoint(455680, 101376),
+          end: StagedTerrainPoint(460800, 105472),
           tangent: StagedTerrainPoint(800, 640),
           outwardNormal: StagedTerrainPoint(640, -800),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125247,7 +125247,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 7,
@@ -125256,7 +125256,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 9,
@@ -125269,14 +125269,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 9,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(378880, 105472),
-          end: StagedTerrainPoint(390144, 112640),
+          start: StagedTerrainPoint(460800, 105472),
+          end: StagedTerrainPoint(472064, 112640),
           tangent: StagedTerrainPoint(864, 550),
           outwardNormal: StagedTerrainPoint(550, -864),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125285,7 +125285,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 8,
@@ -125294,7 +125294,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
@@ -125307,14 +125307,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(390144, 112640),
-          end: StagedTerrainPoint(390144, 122880),
+          start: StagedTerrainPoint(472064, 112640),
+          end: StagedTerrainPoint(472064, 122880),
           tangent: StagedTerrainPoint(0, 1024),
           outwardNormal: StagedTerrainPoint(1024, 0),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125323,7 +125323,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 9,
@@ -125332,7 +125332,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 11,
@@ -125345,14 +125345,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           id: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 11,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(390144, 122880),
-          end: StagedTerrainPoint(393216, 191488),
+          start: StagedTerrainPoint(472064, 122880),
+          end: StagedTerrainPoint(475136, 191488),
           tangent: StagedTerrainPoint(46, 1023),
           outwardNormal: StagedTerrainPoint(1023, -46),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125361,7 +125361,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           previousId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_trainingcamp_hard_004",
-              placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+              placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
               shapeId: "collision_001",
             ),
             localEdgeIndex: 10,
@@ -125374,7 +125374,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               shapeId: "ground_001",
             ),
             localEdgeIndex: 0,
-            subEdgeIndex: 2,
+            subEdgeIndex: 4,
           ),
           startJoin: StagedTerrainVertexJoin.connected,
           endJoin: StagedTerrainVertexJoin.connected,
@@ -125962,7 +125962,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             subEdgeIndex: 0,
           ),
           start: StagedTerrainPoint(147456, 191488),
-          end: StagedTerrainPoint(439296, 191488),
+          end: StagedTerrainPoint(488448, 191488),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -125999,10 +125999,10 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          start: StagedTerrainPoint(439296, 191488),
+          start: StagedTerrainPoint(488448, 191488),
           end: StagedTerrainPoint(614400, 229376),
-          tangent: StagedTerrainPoint(1001, 217),
-          outwardNormal: StagedTerrainPoint(217, -1001),
+          tangent: StagedTerrainPoint(981, 295),
+          outwardNormal: StagedTerrainPoint(295, -981),
           collisionMode: StagedTerrainCollisionMode.solid,
           surfaceKind: "ground",
           materialKey: "grass_dirt",
@@ -126370,14 +126370,14 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainPlacementLineageData(
           sourceId: StagedTerrainSourceId(
             chunkKey: "forest_trainingcamp_hard_004",
-            placementKey: "cimetery_statue_01|224|144|0",
+            placementKey: "cimetery_statue_01|256|145|0",
             shapeId: "collision_001",
           ),
           prefabKey: "cimetery_statue_01",
           prefabId: "cimetery_statue_01",
           prefabRevision: 2,
-          placementX: 224,
-          placementY: 144,
+          placementX: 256,
+          placementY: 145,
           scaleTenths: 4,
           flipX: false,
           flipY: false,
@@ -126385,13 +126385,13 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
         StagedTerrainPlacementLineageData(
           sourceId: StagedTerrainSourceId(
             chunkKey: "forest_trainingcamp_hard_004",
-            placementKey: "gandalf_hardcore_large_tent_01|336|123|0",
+            placementKey: "gandalf_hardcore_large_tent_01|416|123|0",
             shapeId: "collision_001",
           ),
           prefabKey: "gandalf_hardcore_large_tent_01",
           prefabId: "gandalf_hardcore_large_tent_01",
           prefabRevision: 15,
-          placementX: 336,
+          placementX: 416,
           placementY: 123,
           scaleTenths: 10,
           flipX: false,
