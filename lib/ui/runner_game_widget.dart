@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:run_protocol/board_key.dart';
@@ -21,6 +21,7 @@ import '../game/input/runner_semantic_action_dispatcher.dart';
 import '../game/replay/run_recorder.dart';
 import '../game/runner_flame_game.dart';
 import 'app/ui_routes.dart';
+import 'app/app_runtime_policy.dart';
 import 'bootstrap/loader_content.dart';
 import 'components/loader_shell.dart';
 import 'controls/movement_control_mode.dart';
@@ -56,7 +57,7 @@ import 'viewport/viewport_metrics.dart';
 /// builds independent terrain candidates concurrently; browser work cooperates
 /// with rendering. A bounded native worker computes ghost ticks ahead; only
 /// presentation follows the live tick.
-/// Debug-only developer Practice skips recording and account submission while
+/// Developer Practice on web or native debug skips recording and submission,
 /// preserving the normal simulation, loading, controls and score breakdown.
 ///
 /// During play, missing terrain holds the next tick asynchronously and keeps
@@ -136,7 +137,7 @@ class RunnerGameWidget extends StatefulWidget {
   /// Optional verified ghost replay payload to race against.
   final GhostReplayBootstrap? ghostReplayBootstrap;
 
-  /// Debug-only local Practice, without recording, rewards or leaderboard writes.
+  /// Local Practice on web or native debug; no recording, rewards or leaderboards.
   final bool isDeveloperPractice;
 
   /// Arrows, floating joystick, or fixed joystick, retained on restart. All emit
@@ -479,12 +480,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _validateInitialRunInputs() {
     if (widget.isDeveloperPractice &&
-        (!kDebugMode ||
+        (!developerPracticeAllowed ||
             widget.runMode != RunMode.practice ||
             widget.boardId != null ||
             widget.boardKey != null ||
             widget.ghostReplayBootstrap != null)) {
-      throw StateError('Developer runs require debug, local Practice only.');
+      throw StateError(
+        'Developer runs require web or native debug, local Practice only.',
+      );
     }
     if (widget.runSessionId.trim().isEmpty) {
       throw StateError('RunnerGameWidget requires non-empty runSessionId.');

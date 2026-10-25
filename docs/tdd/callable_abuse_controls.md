@@ -91,12 +91,12 @@ client-supplied platform claim is not an acceptable bypass. Embedding hosts are
 responsible for activating App Check before using the exported game Firebase
 adapters.
 
-The production web provider is a score-based reCAPTCHA Enterprise key limited
-to the Firebase Hosting `web.app` and `firebaseapp.com` domains. The public
-site key is supplied by the tracked `web/production_defines.json` through
-`--dart-define-from-file` during the release build. This public configuration
-contains no credentials or debug tokens. Firebase
-App Check exchanges its assessment for a one-hour App Check token.
+The standalone web build currently uses local Developer Practice and never
+initializes App Check or calls the backend. It requires no web key. The optional
+web activation helper still requires `FIREBASE_APP_CHECK_WEB_SITE_KEY` in release
+when an embedding host explicitly initializes Firebase; it uses reCAPTCHA
+Enterprise. Re-enabling online browser play requires an implemented account,
+storage and transport flow plus reviewed attestation, not a platform bypass.
 
 ### App Check diagnostics and troubleshooting
 

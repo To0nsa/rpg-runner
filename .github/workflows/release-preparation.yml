@@ -50,6 +50,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.1"
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Exercise browser startup and local gameplay
+        run: >-
+          flutter test --no-pub --platform chrome
+          test/ui/state/platform_replay_adapters_browser_test.dart
+          test/ui/bootstrap/web_practice_startup_test.dart
+
   component:
     runs-on: windows-latest
     timeout-minutes: 30
@@ -154,7 +171,7 @@ jobs:
           retention-days: 14
 
   bundle:
-    needs: component
+    needs: [component, browser]
     runs-on: windows-latest
     timeout-minutes: 10
     steps:

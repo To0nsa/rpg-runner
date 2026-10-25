@@ -1,7 +1,7 @@
 // Public entrypoint ("barrel file") for embedding the runner in a host app.
 // Hosted runs wait for world and recorder readiness and expose loading recovery;
 // hosts provide a server-issued ticket and an exit path (see the widget/route).
-// Debug-only developer Practice uses an explicit local descriptor, requires
+// Web or native-debug Developer Practice uses an explicit local descriptor, requires
 // world readiness only and never records, submits or rewards a run.
 // Startup awaits the complete initial terrain window with bounded native
 // parallelism. Runtime readiness holds missing publications before simulation;

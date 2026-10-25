@@ -73,9 +73,14 @@ Initialize services through `AppBootstrapper`/`AppServices` behind the loader
 so initialization failures are visible and retryable. `AppServices` owns
 `AppState` disposal; the provider only subscribes after initialization. Keep
 production client construction and theme configuration out of `UiApp`.
-Debug-only Developer Practice checks the explicit `DEVELOPER_PRACTICE` launch
-flag and restores its local preference before online service initialization.
-The launch flag never writes the saved toggle and is ignored outside debug.
+Web always uses `AppServices.practiceOnly`, including release builds, and cannot
+switch to an online profile. `create_app_services.dart` selects web/native
+services at compile time. Native debug Developer Practice checks the explicit
+`DEVELOPER_PRACTICE` launch flag and restores its preference before online
+initialization. The native flag never writes the toggle and is ignored outside
+debug. Use `developerPracticeAllowed` for local profile/run guards. Keep native
+filesystem/HTTP adapters behind conditional imports; shared replay APIs expose
+opaque artifact IDs, not File handles. See `docs/tdd/platform_services.md`.
 `AppServices` owns profile replacement as well as
 disposal; the proxy provider owns only subscriptions. Keep developer selections
 in their separate preference namespace, preserve the real account's queues,

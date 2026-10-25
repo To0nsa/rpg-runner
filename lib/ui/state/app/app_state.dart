@@ -31,6 +31,7 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/run_ticket.dart';
 
 import '../../app/ui_routes.dart';
+import '../../app/app_runtime_policy.dart';
 import '../../run/run_startup_diagnostics.dart';
 import '../profile/account_deletion_api.dart';
 import '../auth/auth_api.dart';
@@ -125,10 +126,12 @@ class AppState extends ChangeNotifier {
   final LibraryProgressTracker libraryProgressTracker =
       LibraryProgressTracker();
 
-  /// Creates a debug-only local profile with no authentication or ownership API.
+  /// Creates a web/native-debug local profile with no auth or ownership API.
   /// The caller must bootstrap it before exposing it to menu routes.
   factory AppState.developer({required DeveloperProfileStore store}) {
-    if (!kDebugMode) throw StateError('Developer mode requires a debug build.');
+    if (!developerPracticeAllowed) {
+      throw StateError('Developer mode requires web or a native debug build.');
+    }
     return AppState._internal(
       authApi: null,
       loadoutOwnershipApi: null,
@@ -160,7 +163,8 @@ class AppState extends ChangeNotifier {
     final resolvedRunSessionApi = runSessionApi ?? const NoopRunSessionApi();
     final resolvedLeaderboardApi = leaderboardApi ?? const NoopLeaderboardApi();
     final resolvedGhostApi = ghostApi ?? const NoopGhostApi();
-    final resolvedGhostReplayCache = ghostReplayCache ?? createGhostReplayCache();
+    final resolvedGhostReplayCache =
+        ghostReplayCache ?? createGhostReplayCache();
     return AppState._internal(
       authApi: authApi,
       inboxApi: inboxApi,

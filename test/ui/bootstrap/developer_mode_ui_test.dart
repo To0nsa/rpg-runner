@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/ui/app/app_services.dart';
-import 'package:rpg_runner/ui/app/firebase_app_services.dart';
+import 'package:rpg_runner/ui/app/create_app_services.dart';
 import 'package:rpg_runner/ui/app/ui_app.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/pages/selectLevel/level_setup_page.dart';
@@ -125,7 +125,7 @@ void main() {
   testWidgets(
     'launch flag reaches the hub on a fresh install without Firebase',
     (tester) async {
-      final services = createFirebaseAppServices();
+      final services = createAppServices();
       await mount(tester, services);
       await tester.pumpAndSettle();
       expect(find.byType(PlayHubPage), findsOneWidget);

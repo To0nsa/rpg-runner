@@ -126,14 +126,20 @@ works for other debug targets. The flag does not change the saved Developer mode
 toggle; omit it to resume the saved startup choice. Developer loadouts still
 persist, and release/profile builds ignore the flag.
 
-Production web builds require the public, domain-restricted App Check key:
+All web builds currently open Developer Practice automatically, including
+optimized builds for hosting. They use local loadouts and skip Firebase,
+account sign-in, recording, rewards and leaderboards. Options cannot switch to
+an online profile. Android account startup and native release restrictions are
+unchanged.
 
 ```bash
-flutter build web --release --dart-define-from-file=web/production_defines.json
+flutter run -d chrome
+flutter build web --release --no-web-resources-cdn
 ```
 
-The [release workflow](docs/tdd/deployment_workflow.md) passes this configuration
-automatically and includes it in artifact-cache validation.
+No web App Check key is needed for this local host. The
+[release workflow](docs/tdd/deployment_workflow.md) builds this same artifact and
+checks startup and local gameplay in headless Chrome before caching it.
 
 Startup preserves the 1.8-second studio splash and a minimum two-second game
 loader. Initialization and player-data failures remain on the loader with an

@@ -17,13 +17,14 @@ import '../../game/replay/run_recorder.dart';
 import '../../game/runner_flame_game.dart';
 import '../../game/terrain/prepared_terrain_assets.dart';
 import '../app/ui_routes.dart';
+import '../app/app_runtime_policy.dart';
 import '../state/ownership/selection_state.dart';
 import 'run_startup_diagnostics.dart';
 
 /// The required dependency that prevented a run from becoming playable.
 enum RunStartupFailure { world, recorder }
 
-/// Owns one attempt for an online or debug developer Practice descriptor.
+/// Owns one attempt for an online or web/native-debug Practice descriptor.
 ///
 /// The controller stays paused until the host starts it. Readiness requires the
 /// initial rendered world and, for online runs, the recorder. Ghost failures are
@@ -35,13 +36,13 @@ class RunnerRunSession extends ChangeNotifier {
     @visibleForTesting Images? imageCache,
   }) {
     if (descriptor.isDeveloperPractice &&
-        (!kDebugMode ||
+        (!developerPracticeAllowed ||
             descriptor.runMode != RunMode.practice ||
             descriptor.boardId != null ||
             descriptor.boardKey != null ||
             descriptor.ghostReplayBootstrap != null)) {
       throw StateError(
-        'Developer sessions require debug, local Practice only.',
+        'Developer sessions require web or native debug, local Practice only.',
       );
     }
     final character = PlayerCharacterRegistry.resolve(
@@ -171,9 +172,7 @@ class RunnerRunSession extends ChangeNotifier {
   }
 
   static Future<RunRecorder> _createRecorder(RunRecorderHeader header) =>
-      RunRecorder.create(
-        header: header,
-      );
+      RunRecorder.create(header: header);
 
   /// Reports host mounting failures outside Flame's onLoad future.
   /// The widget forwards these after its build, never during notifier dispatch.

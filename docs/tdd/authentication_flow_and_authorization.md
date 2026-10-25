@@ -82,8 +82,10 @@ on a fresh Windows install. The launch override and saved preference are checked
 before Firebase initialization; the override does not change the saved toggle.
 The local profile has no auth/ownership clients and supports Practice only.
 Turning it off reloads the normal authenticated account without signing it out.
-Release/profile builds ignore the flag. This does not change callable
-authorization or introduce a public offline fallback.
+Native release/profile builds ignore the flag. Web instead always uses the
+local Practice host in every build mode; it never starts Firebase/auth services
+or offers account switching. This is an explicit platform mode, not a network
+failure fallback, and does not change callable authorization.
 
 Concurrent `AppState.bootstrap()` calls share one attempt. Forced refreshes
 finish the pending ownership flush before loading profile and canonical
@@ -221,7 +223,9 @@ So even if client sends a forged `userId`, the backend rejects on uid mismatch.
 App Check defaults to the explicit `monitor` rollout mode; only `monitor` and
 `enforce` are accepted, so a typo fails Functions initialization instead of
 silently relaxing the policy. Android and Apple release builds use platform
-attestation; release web requires a configured reCAPTCHA Enterprise site key;
+attestation; a web embedding host that explicitly initializes Firebase requires
+a reCAPTCHA Enterprise site key in release. The standalone web Practice host
+never initializes Firebase or App Check.
 Windows, Linux, and Fuchsia have no production attestation provider and their
 release bootstrap fails closed. `APP_CHECK_ROLLOUT_MODE=enforce` makes the
 callable runtime reject missing/invalid tokens before the handler, but Play

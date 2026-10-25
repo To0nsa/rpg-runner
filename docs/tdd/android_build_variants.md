@@ -53,7 +53,7 @@ selects the client whose package matches the application ID. Keep these files
 downloaded from Firebase; do not fabricate an app ID or change the package in a
 release client entry to make a dev build compile.
 
-`createFirebaseAppServices` initializes native Android Firebase without explicit
+The native `createAppServices` factory initializes native Android Firebase without explicit
 Dart options, letting the packaged native resources determine its registration.
 Web (including Android browsers), Apple and Windows still use
 `DefaultFirebaseOptions.currentPlatform`. The generated Dart file and

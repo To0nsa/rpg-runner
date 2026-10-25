@@ -9,6 +9,7 @@ $fixture = Join-Path $workspace ".tmp/release-tests/$([Guid]::NewGuid().ToString
 New-Item -ItemType Directory -Force -Path $fixture | Out-Null
 $global:cacheTrace = [Collections.Generic.List[string]]::new()
 $global:cacheFailTests = $false
+$global:cacheFailBrowserSmoke = $false
 $script:passed = 0
 
 function Assert-CacheTest {
@@ -31,7 +32,13 @@ function git {
     ForEach-Object { $_.FullName.Substring($fixture.Length + 1).Replace('\','/') } |
     Where-Object { $_ -notmatch '^(\.tmp/|build/|functions/lib/)' -and $_ -notmatch '/node_modules/' })
 }
-function node { $global:LASTEXITCODE = 0; return 'v24.16.0' }
+function node {
+  $global:LASTEXITCODE = 0; $command = $args -join ' '; $global:cacheTrace.Add("node $command")
+  if ($command -eq 'tools/release/web_smoke.mjs build/web' -and $global:cacheFailBrowserSmoke) {
+    $global:LASTEXITCODE = 5; return 'browser failed'
+  }
+  return 'v24.16.0'
+}
 function corepack {
   $global:LASTEXITCODE = 0; $command = $args -join ' '; $global:cacheTrace.Add($command)
   if ($command -eq 'pnpm --version') { return '11.22.0' }
@@ -50,7 +57,7 @@ function flutter {
     New-Item -ItemType Directory -Force -Path (Join-Path $PWD 'build/web') | Out-Null
     'compiled web' | Set-Content -LiteralPath (Join-Path $PWD 'build/web/main.dart.js')
   }
-  if ($command -like 'test *') {
+  if ($command -like 'test *' -and @($args | Where-Object { $_ -like '--file-reporter=json:*' }).Count -gt 0) {
     $report = @($args | Where-Object { $_ -like '--file-reporter=json:*' })[0].Substring('--file-reporter=json:'.Length)
     @('{"type":"testStart","time":20,"test":{"id":1,"name":"slow case"}}', '{"type":"testDone","time":120,"testID":1,"result":"success"}') | Set-Content -LiteralPath $report
   }
@@ -81,29 +88,23 @@ function gh {
 try {
   foreach ($relative in @('lib/ui/menu.dart','web/index.html','assets/images/icon.txt','packages/runner_core/lib/core.dart','packages/run_protocol/lib/protocol.dart',
     'functions/src/profiles/profile.ts','functions/test/profile.test.ts','test/ui_test.dart','pubspec.yaml','pubspec.lock', 'services/replay_validator/lib/server.dart',
-    'services/replay_validator/pubspec.lock','tools/release/release_support.ps1','tools/release/release_cache.ps1','tools/release/prepare_release.ps1','tools/release/profile_tests.ps1')) {
+    'services/replay_validator/pubspec.lock','tools/release/release_support.ps1','tools/release/release_cache.ps1','tools/release/prepare_release.ps1','tools/release/profile_tests.ps1','tools/release/web_smoke.mjs')) {
     $path = Join-Path $fixture $relative
     New-Item -ItemType Directory -Force -Path (Split-Path $path) | Out-Null
     'input' | Set-Content -LiteralPath $path
   }
   $cache = Join-Path $fixture '.tmp/cache'
   $logs = Join-Path $fixture '.tmp/logs'
-  $webDefinesPath = Join-Path $fixture 'web/production_defines.json'
-  $webDefines = '{"FIREBASE_APP_CHECK_WEB_SITE_KEY":"public-test-key"}'
-  $webDefines | Set-Content -LiteralPath $webDefinesPath
   $components = @('functions-checks','functions-build','client-checks','client-build')
   $items = @(Invoke-ReleasePreparation $fixture $cache $components $logs)
-  Assert-CacheTest ($items.Count -eq 4 -and @($global:cacheTrace | Where-Object { $_ -like 'flutter test *' }).Count -eq 1) 'first preparation runs real recipes once'
-  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -like 'flutter build web*--dart-define-from-file=web/production_defines.json' }).Count -eq 1) 'release web build includes its public App Check configuration'
+  Assert-CacheTest ($items.Count -eq 4 -and @($global:cacheTrace | Where-Object { $_ -like 'flutter test --no-pub --exclude-tags*' }).Count -eq 1) 'first preparation runs native recipes once'
+  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart analyze lib' }).Count -eq 1) 'native shard zero still analyzes client code'
+  $browserWidgetCalls = @($global:cacheTrace | Where-Object { $_ -like 'flutter test *--platform chrome*' }).Count
+  $expectedBrowserWidgetCalls = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) { 0 } else { 1 }
+  Assert-CacheTest ($browserWidgetCalls -eq $expectedBrowserWidgetCalls) 'widget browser gate runs only on a supported test-harness host'
+  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'flutter build web --release --no-pub --no-web-resources-cdn' }).Count -eq 1) 'release web build is self-contained Practice without Firebase configuration'
+  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'node tools/release/web_smoke.mjs build/web' }).Count -eq 1) 'release artifact must pass browser smoke'
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart run packages/runner_core/tool/prepare_navigation.dart --client' }).Count -eq 1) 'release web build prepares trusted navigation assets'
-  $webInput = Get-ReleaseComponentInputs $fixture 'client-build'
-  '{"FIREBASE_APP_CHECK_WEB_SITE_KEY":"rotated-public-test-key"}' | Set-Content -LiteralPath $webDefinesPath
-  Assert-CacheTest ((Get-ReleaseComponentInputs $fixture 'client-build') -ne $webInput) 'App Check key changes invalidate cached web builds'
-  foreach ($invalidDefines in @('{}', '{"FIREBASE_APP_CHECK_WEB_SITE_KEY":" "}')) {
-    $invalidDefines | Set-Content -LiteralPath $webDefinesPath
-    Assert-CacheThrows { Invoke-ReleaseComponent $fixture 'client-build' $logs } 'requires FIREBASE_APP_CHECK_WEB_SITE_KEY' 'missing or empty App Check configuration blocks the web build'
-  }
-  $webDefines | Set-Content -LiteralPath $webDefinesPath
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart pub get --enforce-lockfile' }).Count -eq 1) 'client checks resolve independent worker fixtures without validator checks'
   $global:cacheTrace.Clear()
   # These absolute paths are both verified beneath the isolated fixture.
@@ -158,6 +159,15 @@ try {
   $key = Get-ReleaseComponentKey $input (Get-ReleaseToolchain $fixture 'node')
   Assert-CacheTest (-not (Test-Path (Join-Path $cache "components/functions-checks/$key/component.json"))) 'failed validation never publishes success evidence'
   $global:cacheFailTests = $false
+  $inputBeforeSmokeEdit = Get-ReleaseComponentInputs $fixture 'client-build'
+  'updated smoke' | Set-Content -LiteralPath (Join-Path $fixture 'tools/release/web_smoke.mjs')
+  $input = Get-ReleaseComponentInputs $fixture 'client-build'
+  Assert-CacheTest ($input -ne $inputBeforeSmokeEdit) 'browser smoke edits invalidate client build evidence'
+  $global:cacheFailBrowserSmoke = $true
+  Assert-CacheThrows { Invoke-ReleasePreparation $fixture $cache @('client-build') $logs } 'failed (5)' 'browser smoke failure blocks the release artifact'
+  $key = Get-ReleaseComponentKey $input (Get-ReleaseToolchain $fixture 'flutter')
+  Assert-CacheTest (-not (Test-Path (Join-Path $cache "components/client-build/$key/component.json"))) 'failed browser smoke cannot publish build success evidence'
+  $global:cacheFailBrowserSmoke = $false
   $clientItem = @($items | Where-Object component -eq 'client-build')[0]
   'tampered' | Set-Content -LiteralPath (Join-Path $cache "components/client-build/$($clientItem.key)/artifact/main.dart.js")
   Assert-CacheThrows { Get-ReleaseCachedComponent $cache 'client-build' $clientItem.key } 'modified' 'tampered cached artifacts cannot be reused'

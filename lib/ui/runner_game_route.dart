@@ -19,9 +19,10 @@ import 'state/ownership/selection_state.dart';
 /// Host apps can `Navigator.push(createRunnerGameRoute(...))` without depending
 /// on this package's development host app (`lib/main.dart`).
 ///
-/// Except for debug-only [isDeveloperPractice] runs, [runSessionId], [runId],
+/// Except for web or native-debug [isDeveloperPractice] runs, [runSessionId], [runId],
 /// [seed] and [tickHz] must come from a server-issued run session ticket.
 /// Developer Practice uses the same gameplay without replay or account writes.
+/// Web embeddings must use this local mode; browser online replays are unavailable.
 /// The hosted widget keeps its loading presentation visible while initial
 /// render assets, upcoming terrain, and the selected ghost playback buffer and
 /// outlines are prepared and any online replay recorder has opened its file. Required

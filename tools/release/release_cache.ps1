@@ -68,7 +68,7 @@ function Get-ReleaseComponentInputs {
   }
   $selected = @($paths | Where-Object { $_ -match $pattern })
   # Recipe changes invalidate evidence without invalidating it for prose edits.
-  $selected += @($paths | Where-Object { $_ -match '^(tools/release/(release_support|release_cache|prepare_release|profile_tests|validate_release|release_ci)\.ps1|\.github/workflows/release-preparation\.yml)$' })
+  $selected += @($paths | Where-Object { $_ -match '^(tools/release/((release_support|release_cache|prepare_release|profile_tests|validate_release|release_ci)\.ps1|web_smoke\.mjs)|\.github/workflows/release-preparation\.yml)$' })
   return Get-ReleaseFileDigest $Root $selected
 }
 

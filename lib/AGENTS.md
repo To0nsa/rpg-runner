@@ -12,8 +12,9 @@ Instructions for AI coding agents working in `lib/`.
 - `packages/run_protocol/lib/`: shared run/replay/leaderboard protocol values used by app state and validation
 - `lib/game/`: Flame renderer and fixed-tick bridge
 - `lib/ui/`: Flutter app shell, routes, pages, HUD, controls, state, and backend clients
-- Debug Developer Practice uses the same app/screens with an isolated local
-  profile; `AppServices` restores/switches it without exposing account APIs.
+- All web builds use Developer Practice with an isolated local profile and no
+  online services. Native debug builds can restore/switch the same local mode;
+  native release/profile builds require authenticated runs.
 
 The package must work in two modes:
 
@@ -63,7 +64,8 @@ Important existing flows and modules:
 
 - App shell and route orchestration: `lib/ui/app/`
 - Service initialization/lifetime and production dependency wiring:
-  `lib/ui/app/app_services.dart`, `lib/ui/app/firebase_app_services.dart`
+  `lib/ui/app/app_services.dart`, `lib/ui/app/create_app_services.dart`
+  (conditional native Firebase / web Practice wiring)
 - bootstrap, auth warmup, resume loader, profile onboarding: `lib/ui/bootstrap/`
 - menu/meta pages: `lib/ui/pages/`
 - shared components, text helpers, icons, theming: `lib/ui/components/`, `lib/ui/text/`, `lib/ui/theme/`

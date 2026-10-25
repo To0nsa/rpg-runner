@@ -108,12 +108,20 @@ separate task-specific gates. Production npm advisories are checked on every
 backend/coordinated preparation, including cache hits, because advisories can
 change without source changes.
 
-The web build passes `--dart-define-from-file=web/production_defines.json`.
-This tracked public configuration supplies the domain-restricted reCAPTCHA
-Enterprise App Check site key; missing or empty keys block the build. Its bytes
-participate in client source and component hashes, including CI reuse. Never
-put credentials or App Check debug tokens in this file. Release startup retains
-its required-key guard.
+Web builds are optimized local Developer Practice hosts. `client-build` uses
+`--no-web-resources-cdn` so CanvasKit is served with the artifact, requires no
+Firebase/App Check defines, and runs `node tools/release/web_smoke.mjs build/web`
+before publishing build evidence. The smoke test uses a fresh headless Chrome
+profile and a loopback server, rejects backend requests and browser exceptions,
+and checks the hub, Options, run readiness and start. Chrome (or
+`CHROME_EXECUTABLE`) and Node 24 are required for this component. Its script is
+included in component cache inputs.
+
+Linux CI also runs the Chrome widget tests for browser adapter selection and
+local runs; the artifact-bundle job requires that job. The pinned Flutter SDK's
+Windows widget-browser harness misroutes CanvasKit and escapes test paths, so
+Windows preparation uses the real-artifact smoke gate instead. Native account
+and coordinated backend release gates are unchanged.
 
 A coordinated preparation requires these components:
 

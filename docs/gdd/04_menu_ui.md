@@ -88,9 +88,9 @@ unread or any gift remains unclaimed. Selecting mail marks it read; Claim is a
 separate action. Newly reached levels deliver 25 gold without historical
 backfill. Live player conversations are future work and have no empty tab now.
 
-### Developer mode (implemented, debug builds only)
+### Developer Practice (web and native debug builds)
 
-Options contains a Developer mode toggle for local gameplay testing. It switches
+Native debug builds offer a Developer mode toggle in Options for local gameplay testing. It switches
 the existing menu screens to a visibly named Developer profile with all current
 playable equipment and abilities unlocked. Character compatibility, slot limits,
 and gameplay rules still apply. The profile remembers its own level, character,
@@ -106,8 +106,13 @@ score breakdown with restart/exit, without rewards or leaderboard entries.
 There is no separate developer economy. Turning the toggle off restores the
 real account after it loads successfully; developer choices never replace its
 inventory or equipment. Failed reconnection leaves Developer mode active.
-There is no automatic connection-based switching, and production builds do not
-expose this option. See [technical contract](../tdd/developer_practice.md).
+There is no automatic connection-based switching. Native profile/release builds
+do not expose this option.
+
+Every web build opens this local profile automatically, including the hosted
+release build. Browser Options displays the Practice-only limitation instead of
+a switch. Loadouts persist in the browser; account progression, ghosts and
+online run modes are unavailable. See [technical contract](../tdd/developer_practice.md).
 
 ### 3.1 Screens
 
@@ -563,7 +568,7 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 
 The header uses the shared compact selector, as on Leaderboards, with
 **Settings** and **Controls** tabs. Settings is the initial tab and contains
-the existing debug-only Developer mode switch. Controls is available in all
+the native debug Developer mode switch, or the Practice-only notice on web. Controls is available in all
 builds and offers **Arrows** (default), **Floating joystick** or **Fixed joystick**
 for backward/forward movement, with a short explanation of the selected mode.
 The floating base stays within the left 33% of the run screen; the fixed base

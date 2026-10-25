@@ -123,7 +123,12 @@ class _OptionsPageState extends State<OptionsPage> {
                     );
                   },
                 )
-              : services.developerModeAvailable
+              : services.isPracticeOnly
+              ? Text(
+                  'Developer Practice: local play with all equipment and abilities. Account features are unavailable in this build.',
+                  style: ui.text.body,
+                )
+              : services.canSwitchProfiles
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
