@@ -57,6 +57,17 @@ The benchmark subcommand uses the validator's production replay loop and
 normal generated terrain streams for every included level. It records and replays 36,000
 ticks per level, requires at least 2x real time and less than 300 seconds per
 level, verifies the final deterministic outcome, and emits a JSON report.
+The untimed recorder supplies normal movement, jump and swimming inputs for
+Field and Forest. Forest also checks upcoming obstacles with Core's landing
+predictor, waits for reachable pit landings at the current movement speed,
+and can jump backward onto a missed foothold. The fixture preserves
+the generated chunk sequence, terrain, sprites and traps while excluding
+ambient enemies, required encounters and boss objectives; it is not a combat
+or camera-pressure benchmark. Recorded inputs replay unchanged through Core.
+The v2 report includes the seed and longest interval without forward progress.
+Strict mode also fails if ten simulated seconds pass without four new world
+units of progress. Backtracking cannot reset that budget. Final distance and
+geometry version describe the measured horizon, not exhaustive route coverage.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 

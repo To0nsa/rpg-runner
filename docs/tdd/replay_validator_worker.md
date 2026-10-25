@@ -212,16 +212,45 @@ Previous gameplay versions,
 
 The server executable accepts a non-HTTP `benchmark` subcommand. It uses the
 same `runReplaySimulation` function as `DeterministicValidatorWorker`, records
-deterministic no-enemy command streams for every included generated level,
+deterministic no-combat command streams for every included generated level,
 then replays 36,000 ticks per level through fresh normal
 `GameCore` construction. Auto-scroll is disabled only for this bounded fixture
 so the simulation measures the complete ten-minute stream instead of ending at
 the normal runner pressure limit.
 
+The fixture copies authored pattern metadata without ambient spawn markers,
+required encounters or boss objectives. It preserves all chunk keys, pool order,
+assembly selection, sprites and traps; no terrain chunk is skipped. Boss entry
+requires camera framing independently of `noEnemyChunks`, so merely suppressing
+ambient spawns while disabling auto-scroll would deadlock the benchmark.
+Recording and measured replay use this same explicit fixture. Gameplay and
+uploaded-replay validation retain the normal encounter and arena contracts.
+
+Recording anticipates floor ledges by 30 world units, requests coyote-time jumps
+after walking off supports, jumps against grounded wall contacts, and strokes
+while descending in water. An uphill departure is distinguished from a prior
+jump press using input history, not vertical velocity. Descending slopes are
+not treated as cliffs. Forest additionally rehydrates published chunk
+occurrences with Core's generated catalog and geometry builder, including
+prefab collision, and uses Core's landing predictor for obstacle approaches
+and pit takeoffs. Pit jumps wait for a reachable foothold at the player's
+current speed, including exhaustion; the 30-unit lead is a search window.
+A stalled approach may recover an elevated foothold with an ordinary backward
+jump. No predicted state is applied to the player. All planning and snapshot
+work happens before timing; replay consumes only recorded protocol frames.
+
+The recorder tracks four new world units of player-X progress within a
+ten-second simulation budget. Retreats and small oscillations cannot reset
+that budget, and later progress cannot erase a recorded stall. Strict mode
+rejects a stalled recording even if replay determinism and throughput pass.
+Final distance and geometry version bound the measured horizon; this fixture
+does not establish combat, camera-pressure or exhaustive seeded traversal.
+
 The JSON report includes revision/dirty state, runtime/OS, tick and command
-counts, elapsed time, real-time multiple, final distance/geometry version, and
-deterministic-outcome gates. The local hard gates are at least 2x real time and
-less than 300 seconds for each 36,000-tick level. Phase 7 must rerun the same
+counts, seed, elapsed time, real-time multiple, final distance/geometry version,
+longest progress gap, and determinism/progress gates. The v2 local hard gates
+also require at least 2x real time and less than 300 seconds for each 36,000-tick
+level. Phase 7 must rerun the same
 compiled binary inside the release container with one CPU and 512 MiB before
 issuing compatible sessions; local results do not replace that deployment
 evidence.
