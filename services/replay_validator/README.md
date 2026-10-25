@@ -71,7 +71,7 @@ geometry version describe the measured horizon, not exhaustive route coverage.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The validator source accepts prepared game compatibility `2026.10.17`;
+The validator source accepts prepared game compatibility `2026.10.21`;
 replay/command format `1`, `rules-v2`, `score-v4`, and `ghost-v1` are the
 supported ranked tuple. This source includes mandatory boss arenas, whose
 entrance, defeat credit and excluded survival-score ticks are replayed through
@@ -82,8 +82,9 @@ It also retains player post-hit protection across expiry and resolves explicit
 combo strikes through Core: only later strikes from the same attacker and combo
 activation bypass protection granted by an accepted damaging combo hit.
 Previous gameplay tickets are rejected rather than replayed with the new tuning.
-The matching
-client/Functions/worker release is not deployed by this change.
+The matching client/Functions/worker release was deployed October 25, 2026 UTC;
+see the [production evidence](../../docs/verification/game-compat-2026.10.21-production.md).
+Matching Android Dev/release APKs are built and verified for owner installation.
 Rescue encounter outcomes and points are derived from
 replayed Core; provisional client rescue statistics are ignored. Living survivors
 continue fighting within their Flow section occurrence, with immutable rescue

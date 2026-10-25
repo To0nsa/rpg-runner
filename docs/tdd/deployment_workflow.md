@@ -9,23 +9,24 @@ project/site; replay bucket and queue location come from the existing Functions
 environment files. This workflow currently supports the configured environment,
 not arbitrary project overrides or native app-store distribution.
 
-The current production release is the October 18, 2026 UTC leaderboard level
-patch from frozen commit `1a8e899c`, based on the preceding
-[`2026.10.17` release](../verification/game-compat-2026.10.17-production.md).
-Its ranked tuple remains `2026.10.17` / `rules-v2` / `score-v4` /
-`ghost-v1`; replay and command formats remain 1. See the
-[patch evidence](../verification/leaderboard-level-2026-10-18-production.md)
-for the isolated source, preparation, immutable worker image, guarded
-cancellation of one unsubmitted ticket, coordinated cutover, live artifact
-checks, and remaining coverage limits. All 333 accepted validations and
-settled grants were preserved. Both queues and normal issuance are restored,
-with all six expected boards ready.
+The current production release is gameplay `2026.10.21`, deployed October 25,
+2026 UTC from frozen commit `a4f99b89`. Its ranked tuple is `2026.10.21` /
+`rules-v2` / `score-v4` / `ghost-v1`; replay and command formats remain 1.
+The [production evidence](../verification/game-compat-2026.10.21-production.md)
+records complete coordinated preparation, the 93,910-graph immutable worker
+and strict benchmark, both Android APKs, the guarded cutover and live artifact
+checks. All 469 accepted validations and settled grants were preserved without
+cancelling runs or resetting data. Both queues and normal issuance are restored,
+all six expected boards are ready, and all 30 Functions are ACTIVE.
 
 Controlled signed-in gameplay remains unverified. The
 [release checklist](../building/rescue_release_operations.md) retains linked
-Play Games smoke checks; no native package was built or installed. The previous
-[`2026.10.16` release](../verification/game-compat-2026.10.16-production.md)
-remains historical evidence.
+Play Games smoke checks. Matching universal Android Dev and release APKs were
+built and inspected; the owner will install them. No phone installation or
+device gameplay check was performed in this release. The
+[October 18 leaderboard patch](../verification/leaderboard-level-2026-10-18-production.md)
+and [`2026.10.16` release](../verification/game-compat-2026.10.16-production.md)
+remain historical evidence.
 
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under gameplay `2026.10.3` and installed a rebuilt debug

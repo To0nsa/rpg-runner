@@ -4,6 +4,10 @@ A Flutter + Flame action runner focused on deterministic gameplay architecture.
 
 This is a portfolio-style game project designed to demonstrate production-minded engineering for mobile games: clean layering, testable simulation, and systems ready for replay/online expansion.
 
+The [current deployed release](docs/verification/game-compat-2026.10.21-production.md)
+uses gameplay `2026.10.21`. Matching Android Dev and release APKs are prepared
+for manual installation.
+
 ## Why It Stands Out
 
 - Deterministic ECS simulation loop in pure Dart (`packages/runner_core/lib/`)

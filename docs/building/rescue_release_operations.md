@@ -1,9 +1,11 @@
 # Rescue release operations
 
-Status: the leaderboard level patch was deployed October 18, 2026 UTC from
-frozen commit `1a8e899c` under gameplay `2026.10.17`; see
-[current production evidence](../verification/leaderboard-level-2026-10-18-production.md).
-Linked Play Games production smoke remains outstanding. Earlier releases:
+Status: gameplay `2026.10.21` was deployed October 25, 2026 UTC from frozen
+commit `a4f99b89`; see
+[current production evidence](../verification/game-compat-2026.10.21-production.md).
+Both Android APKs are prepared for owner installation. Linked Play Games and
+device production smoke remain outstanding. Earlier releases:
+[October 18 leaderboard patch](../verification/leaderboard-level-2026-10-18-production.md),
 [2026.10.17 base release](../verification/game-compat-2026.10.17-production.md),
 [2026.10.16](../verification/game-compat-2026.10.16-production.md),
 [2026.10.12](../verification/game-compat-2026.10.12-production.md),
@@ -20,6 +22,27 @@ Linked Play Games production smoke remains outstanding. Earlier releases:
 [2026.09.10](../verification/game-compat-2026.09.10-production.md),
 [initial rescue deployment](../archive/2026-09-25/verification/game-compat-2026.09.8-production.md)
 and [Forest spawn release](../archive/2026-09-25/verification/game-compat-2026.09.9-production.md).
+
+## Deployed release: 2026.10.21
+
+- [x] Freeze `a4f99b89`, including the dependency security fix, current/next
+  weekly navigation routes and Core ownership of benchmark terrain lookahead.
+- [x] Pass all ten coordinated preparation components, current production
+  dependency audits and generated-content freshness, with no release waiver.
+- [x] Build the 93,910-graph worker image and pass all eight strict exact-image
+  36,000-tick gates at one CPU / 512 MiB.
+- [x] Build and inspect universal Android Dev/release APKs, preserving their
+  package/Firebase identities, signing certificate and prepared navigation.
+- [x] Pause issuance through the documented missing-image rebuild, verify zero
+  active runs, and preserve all 469 accepted validations and settled grants.
+  No cancellation or data reset was needed.
+- [x] Deploy 30 Functions, READY indexes, worker `replay-validator-00058-94k`,
+  six expected boards and Hosting; verify the live worker digest and web bytes.
+- [x] Restore both queues and normal issuance; verify healthy worker and issuer
+  revisions serving 100%, no pause gate and no pending/quarantined settlement.
+- [ ] Owner installs both APKs and completes controlled signed-in Play Games,
+  accepted replay, once-only settlement, wallet, leaderboard, ghost and
+  target-device performance checks.
 
 ## Deployed leaderboard level patch: 2026.10.17
 

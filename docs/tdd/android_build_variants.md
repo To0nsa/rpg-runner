@@ -21,11 +21,20 @@ From the repository root:
 ```bash
 flutter run -d <device-id>
 flutter build apk --debug
+flutter build apk --release
 ```
 
 The APK is `build/app/outputs/flutter-apk/app-debug.apk`. Release commands
 remain unchanged. Follow the existing prepared-navigation requirements before
 building a mobile release.
+
+Keep the normal pub step when switching build modes. Flutter 3.47.1 regenerates
+the native plugin registration for the selected mode there, excluding
+development-only plugins from release. A release build with `--no-pub` after a
+debug build can retain `IntegrationTestPlugin` in `GeneratedPluginRegistrant`
+while Gradle correctly excludes that plugin from the release classpath. Rebuild
+with `flutter build apk --release` to regenerate it; do not edit the generated
+Java registration or add testing plugins to production dependencies.
 
 Android isolates each package's private storage, including Firebase sessions,
 control preferences, Developer Practice selections, ownership outbox and replay
@@ -118,6 +127,15 @@ existing shared web client. Normal startup remains fail-closed until Play Games
 sign-in succeeds; this setup does not add an auth bypass.
 
 ## Validation
+
+On October 25, 2026 UTC, universal debug and release APKs built from frozen
+`a4f99b89`. Static inspection verified both package IDs, launcher names,
+debuggable flags, Firebase app IDs, API 36 targets, the existing signing
+certificate and the matching prepared-navigation manifest. The source stayed
+clean. The [release evidence](../verification/game-compat-2026.10.21-production.md)
+records the artifact hashes and build-mode regeneration repair. The owner will
+install both APKs; device startup and signed-in gameplay remain unverified for
+these artifacts.
 
 Verified locally on 2026-10-21: the debug APK builds and its packaged identity,
 Firebase app ID, server OAuth client and signing certificate match the dev
