@@ -1,20 +1,20 @@
-import 'package:runner_core/collision/terrain/terrain_edge_index.dart';
-import 'package:runner_core/collision/terrain/terrain_geometry.dart';
-import 'package:runner_core/collision/terrain/terrain_numeric.dart';
-import 'package:runner_core/game_core.dart';
-import 'package:runner_core/levels/level_registry.dart';
-import 'package:runner_core/navigation/terrain_placement_query.dart';
-import 'package:runner_core/navigation/terrain_surface_extractor.dart';
-import 'package:runner_core/navigation/terrain_surface_spatial_index.dart';
-import 'package:runner_core/navigation/terrain_trajectory_predictor.dart';
-import 'package:runner_core/players/player_catalog.dart';
-import 'package:runner_core/players/player_character_registry.dart';
-import 'package:runner_core/players/player_tuning.dart';
-import 'package:runner_core/snapshots/staged_terrain_render_snapshot.dart';
-import 'package:runner_core/snapshots/terrain_player_debug_snapshot.dart';
-import 'package:runner_core/track/staged_authored_terrain.dart';
-import 'package:runner_core/track/staged_terrain_catalog.dart';
-import 'package:runner_core/track/staged_terrain_world_geometry.dart';
+import '../collision/terrain/terrain_edge_index.dart';
+import '../collision/terrain/terrain_geometry.dart';
+import '../collision/terrain/terrain_numeric.dart';
+import '../game_core.dart';
+import '../levels/level_registry.dart';
+import '../navigation/terrain_placement_query.dart';
+import '../navigation/terrain_surface_extractor.dart';
+import '../navigation/terrain_surface_spatial_index.dart';
+import '../navigation/terrain_trajectory_predictor.dart';
+import '../players/player_catalog.dart';
+import '../players/player_character_registry.dart';
+import '../players/player_tuning.dart';
+import '../snapshots/staged_terrain_render_snapshot.dart';
+import '../snapshots/terrain_player_debug_snapshot.dart';
+import '../track/staged_authored_terrain.dart';
+import '../track/staged_terrain_catalog.dart';
+import '../track/staged_terrain_world_geometry.dart';
 
 /// Read-only obstacle lookahead for the untimed Éloïse recording fixture.
 ///

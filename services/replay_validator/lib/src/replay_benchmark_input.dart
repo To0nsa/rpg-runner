@@ -2,9 +2,8 @@ import 'package:run_protocol/replay_blob.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/playtest/replay_benchmark_terrain.dart';
 import 'package:runner_core/snapshots/enums.dart';
-
-import 'replay_benchmark_terrain.dart';
 
 /// Records fixture inputs from read-only Core state; never changes movement rules.
 ///

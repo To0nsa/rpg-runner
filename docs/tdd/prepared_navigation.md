@@ -96,6 +96,12 @@ It checks equal termination, distance, collectibles, kills, rescues and terrain
 version. Captured graphs measure codec performance, not route coverage or server
 acceptance. The existing strict 36,000-tick benchmark uses the worker materializer.
 
+The benchmark recorder's read-only terrain lookahead lives in Core's
+`playtest/replay_benchmark_terrain.dart`. It rehydrates published occurrences
+through Core's generated catalog and geometry builder, and asks Core's landing
+predictor about candidate inputs. The service consumes that helper without
+importing generated terrain records or applying predicted movement results.
+
 See [reward settlement operations](reward_settlement_operations.md) for durable
 foreground completion and the [rollout plan](../building/reward_verification_latency.md)
 for remaining live measurements.
