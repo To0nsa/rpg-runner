@@ -57,7 +57,7 @@ void main() {
       await app.submitRunReplay(
         runSessionId: 'receipt',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/receipt.json',
+        replayArtifactId: '/tmp/receipt.json',
         canonicalSha256: 'a' * 64,
         contentLengthBytes: 256,
       );
@@ -96,7 +96,7 @@ void main() {
       await app.submitRunReplay(
         runSessionId: 'old',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/old.json',
+        replayArtifactId: '/tmp/old.json',
         canonicalSha256: 'a' * 64,
         contentLengthBytes: 256,
       );
@@ -174,7 +174,7 @@ void main() {
       await app.journalRunReplay(
         runSessionId: 'background',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/background.json',
+        replayArtifactId: '/tmp/background.json',
         canonicalSha256: 'a' * 64,
         contentLengthBytes: 256,
       );
@@ -237,7 +237,7 @@ void main() {
       final journaled = await appState.journalRunReplay(
         runSessionId: 'run_journaled',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/replay_journaled.json',
+        replayArtifactId: '/tmp/replay_journaled.json',
         canonicalSha256:
             'abababababababababababababababababababababababababababababababab',
         contentLengthBytes: 256,
@@ -288,7 +288,7 @@ void main() {
     final status = await appState.submitRunReplay(
       runSessionId: 'run_reward',
       runMode: RunMode.practice,
-      replayFilePath: '/tmp/replay_reward.json',
+      replayArtifactId: '/tmp/replay_reward.json',
       canonicalSha256:
           'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
       contentLengthBytes: 1024,
@@ -332,7 +332,7 @@ void main() {
       final status = await appState.submitRunReplay(
         runSessionId: 'run_pending_reward',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/replay_pending_reward.json',
+        replayArtifactId: '/tmp/replay_pending_reward.json',
         canonicalSha256:
             'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
         contentLengthBytes: 1024,
@@ -370,7 +370,7 @@ void main() {
     final status = await appState.submitRunReplay(
       runSessionId: 'run_submit',
       runMode: RunMode.practice,
-      replayFilePath: '/tmp/replay.json',
+      replayArtifactId: '/tmp/replay.json',
       canonicalSha256:
           'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       contentLengthBytes: 1024,
@@ -410,7 +410,7 @@ void main() {
     final submitFuture = appState.submitRunReplay(
       runSessionId: 'run_immediate_gold',
       runMode: RunMode.practice,
-      replayFilePath: '/tmp/replay_immediate_gold.json',
+      replayArtifactId: '/tmp/replay_immediate_gold.json',
       canonicalSha256:
           'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
       contentLengthBytes: 1024,
@@ -462,7 +462,7 @@ void main() {
       final status = await appState.submitRunReplay(
         runSessionId: 'run_final_reward',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/replay_final_reward.json',
+        replayArtifactId: '/tmp/replay_final_reward.json',
         canonicalSha256:
             'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
         contentLengthBytes: 1024,
@@ -502,7 +502,7 @@ void main() {
       await appState.submitRunReplay(
         runSessionId: 'run_refresh_final',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/replay_refresh_final.json',
+        replayArtifactId: '/tmp/replay_refresh_final.json',
         canonicalSha256:
             '9999999999999999999999999999999999999999999999999999999999999999',
         contentLengthBytes: 1024,
@@ -574,7 +574,7 @@ void main() {
         ownerUserId: 'u1',
         runSessionId: 'run_pending',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/replay_pending.json',
+        replayArtifactId: '/tmp/replay_pending.json',
         canonicalSha256:
             'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
         contentLengthBytes: 512,
@@ -606,7 +606,7 @@ class _NoopReplayUploader implements RunReplayUploader {
   @override
   Future<void> uploadReplay({
     required RunUploadGrant uploadGrant,
-    required String replayFilePath,
+    required String replayArtifactId,
     required int contentLengthBytes,
     required String contentType,
   }) async {}

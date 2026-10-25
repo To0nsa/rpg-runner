@@ -31,7 +31,7 @@ final class PendingRunSubmission {
     required this.ownerUserId,
     required this.runSessionId,
     required this.runMode,
-    required this.replayFilePath,
+    required this.replayArtifactId,
     required this.canonicalSha256,
     required this.contentLengthBytes,
     required this.createdAtMs,
@@ -48,7 +48,7 @@ final class PendingRunSubmission {
     this.provisionalSummary,
   }) : assert(ownerUserId != ''),
        assert(runSessionId != ''),
-       assert(replayFilePath != ''),
+       assert(replayArtifactId != ''),
        assert(contentLengthBytes > 0),
        assert(createdAtMs >= 0),
        assert(updatedAtMs >= 0),
@@ -59,7 +59,10 @@ final class PendingRunSubmission {
   final String ownerUserId;
   final String runSessionId;
   final RunMode runMode;
-  final String replayFilePath;
+
+  /// Opaque platform artifact ID. The persisted key retains its original name
+  /// so existing native submission queues remain readable.
+  final String replayArtifactId;
   final String canonicalSha256;
   final int contentLengthBytes;
   final String contentType;
@@ -82,7 +85,7 @@ final class PendingRunSubmission {
     String? ownerUserId,
     String? runSessionId,
     RunMode? runMode,
-    String? replayFilePath,
+    String? replayArtifactId,
     String? canonicalSha256,
     int? contentLengthBytes,
     String? contentType,
@@ -102,7 +105,7 @@ final class PendingRunSubmission {
       ownerUserId: ownerUserId ?? this.ownerUserId,
       runSessionId: runSessionId ?? this.runSessionId,
       runMode: runMode ?? this.runMode,
-      replayFilePath: replayFilePath ?? this.replayFilePath,
+      replayArtifactId: replayArtifactId ?? this.replayArtifactId,
       canonicalSha256: canonicalSha256 ?? this.canonicalSha256,
       contentLengthBytes: contentLengthBytes ?? this.contentLengthBytes,
       contentType: contentType ?? this.contentType,
@@ -137,7 +140,7 @@ final class PendingRunSubmission {
       'ownerUserId': ownerUserId,
       'runSessionId': runSessionId,
       'runMode': runMode.name,
-      'replayFilePath': replayFilePath,
+      'replayFilePath': replayArtifactId,
       'canonicalSha256': canonicalSha256,
       'contentLengthBytes': contentLengthBytes,
       'contentType': contentType,
@@ -162,7 +165,7 @@ final class PendingRunSubmission {
     final json = Map<Object?, Object?>.from(raw);
     final ownerUserId = _readRequiredString(json, 'ownerUserId');
     final runSessionId = _readRequiredString(json, 'runSessionId');
-    final replayFilePath = _readRequiredString(json, 'replayFilePath');
+    final replayArtifactId = _readRequiredString(json, 'replayFilePath');
     final canonicalSha256 = _readRequiredString(json, 'canonicalSha256');
     final contentLengthBytes = _readRequiredInt(json, 'contentLengthBytes');
     final contentType = _readRequiredString(json, 'contentType');
@@ -175,7 +178,7 @@ final class PendingRunSubmission {
       ownerUserId: ownerUserId,
       runSessionId: runSessionId,
       runMode: RunMode.parse(json['runMode'], fieldName: 'runMode'),
-      replayFilePath: replayFilePath,
+      replayArtifactId: replayArtifactId,
       canonicalSha256: canonicalSha256,
       contentLengthBytes: contentLengthBytes,
       contentType: contentType,

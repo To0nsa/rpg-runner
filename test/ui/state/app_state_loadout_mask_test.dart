@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -977,7 +976,7 @@ class _RecordingGhostReplayCacheForMaskTests implements GhostReplayCache {
     return GhostReplayBootstrap(
       manifest: manifest,
       replayBlob: replayBlob,
-      cachedFile: File('ghost.recording.replay.json'),
+      cacheKey: 'ghost.recording.replay.json',
       cachedAtMs: 1,
     );
   }

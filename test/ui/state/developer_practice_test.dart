@@ -156,7 +156,7 @@ void main() {
       state.journalRunReplay(
         runSessionId: 'dev',
         runMode: RunMode.practice,
-        replayFilePath: 'unused',
+        replayArtifactId: 'unused',
         canonicalSha256: 'unused',
         contentLengthBytes: 1,
       ),

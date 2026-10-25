@@ -10,7 +10,7 @@ import 'package:rpg_runner/game/runner_flame_game.dart';
 import 'package:rpg_runner/ui/runner_game_widget.dart';
 import 'package:rpg_runner/ui/state/boards/ghost_api.dart';
 import 'package:rpg_runner/ui/state/boards/ghost_replay_cache.dart';
-import 'package:rpg_runner/ui/state/run/local_replay_artifact_store.dart';
+import 'package:rpg_runner/game/replay/replay_spool_directory_io.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 import '../game/replay/support/ghost_replay_fixture.dart';
@@ -32,7 +32,7 @@ void main() {
             'ghost_route_test_${DateTime.now().microsecondsSinceEpoch}';
         final bootstrap = GhostReplayBootstrap(
           replayBlob: replay,
-          cachedFile: File('unused-test-ghost.json'),
+          cacheKey: 'unused-test-ghost.json',
           cachedAtMs: 1,
           manifest: GhostManifest(
             boardId: replay.boardId!,

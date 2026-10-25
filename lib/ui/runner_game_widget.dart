@@ -593,13 +593,12 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     try {
       final summary = _buildReplayProvisionalSummary(event);
       final finalized = await recorder.finalize(clientSummary: summary);
-      final replaySize = await finalized.replayBlobFile.length();
       final journaledStatus = await appState.journalRunReplay(
         runSessionId: _runSessionId,
         runMode: _runMode,
-        replayFilePath: finalized.replayBlobFile.path,
+        replayArtifactId: finalized.replayArtifactId,
         canonicalSha256: finalized.replayBlob.canonicalSha256,
-        contentLengthBytes: replaySize,
+        contentLengthBytes: finalized.contentLengthBytes,
         provisionalSummary: summary,
       );
       if (!mounted) return;

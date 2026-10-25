@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/ui/state/run/run_session_api.dart';
-import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
+import 'package:rpg_runner/ui/state/run/run_replay_uploader_io.dart';
 
 void main() {
   group('RunUploadGrant', () {
@@ -89,7 +89,7 @@ void main() {
                 maxBytes: 1024,
                 expiresAtMs: 1_800_000_000_000,
               ),
-              replayFilePath: replayFile.path,
+              replayArtifactId: replayFile.path,
               contentLengthBytes: contentLengthBytes,
               contentType: 'application/octet-stream',
             );

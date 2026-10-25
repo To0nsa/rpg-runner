@@ -41,7 +41,7 @@ void main() {
         userId: 'u1',
         runSessionId: 'run_late_upload',
         runMode: RunMode.practice,
-        replayFilePath: 'replay.json',
+        replayArtifactId: 'replay.json',
         canonicalSha256: 'a' * 64,
         contentLengthBytes: 10,
         contentType: 'application/json',
@@ -72,7 +72,7 @@ void main() {
       userId: 'u1',
       runSessionId: 'run_discard',
       runMode: RunMode.practice,
-      replayFilePath: 'replay.json',
+      replayArtifactId: 'replay.json',
       canonicalSha256: 'a' * 64,
       contentLengthBytes: 10,
       contentType: 'application/json',
@@ -92,7 +92,7 @@ void main() {
         userId: 'u1',
         runSessionId: 'run_again',
         runMode: RunMode.practice,
-        replayFilePath: 'replay.json',
+        replayArtifactId: 'replay.json',
         canonicalSha256: 'a' * 64,
         contentLengthBytes: 10,
         contentType: 'application/json',
@@ -126,7 +126,7 @@ void main() {
         userId: 'uid_1',
         runSessionId: 'run_1',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/run_1.replay.json',
+        replayArtifactId: '/tmp/run_1.replay.json',
         canonicalSha256:
             'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
         contentLengthBytes: 2048,
@@ -162,7 +162,7 @@ void main() {
         userId: 'uid_restart',
         runSessionId: 'run_forced_close',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/run_forced_close.replay.json',
+        replayArtifactId: '/tmp/run_forced_close.replay.json',
         canonicalSha256:
             'abababababababababababababababababababababababababababababababab',
         contentLengthBytes: 1024,
@@ -202,7 +202,7 @@ void main() {
         userId: 'uid_a',
         runSessionId: 'run_owned_by_a',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/run_owned_by_a.replay.json',
+        replayArtifactId: '/tmp/run_owned_by_a.replay.json',
         canonicalSha256:
             'abababababababababababababababababababababababababababababababab',
         contentLengthBytes: 1024,
@@ -224,7 +224,7 @@ void main() {
         userId: 'uid_2',
         runSessionId: 'run_2',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/run_2.replay.json',
+        replayArtifactId: '/tmp/run_2.replay.json',
         canonicalSha256:
             'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
         contentLengthBytes: 1024,
@@ -251,7 +251,7 @@ void main() {
         userId: 'uid_3',
         runSessionId: 'run_3',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/run_3.replay.json',
+        replayArtifactId: '/tmp/run_3.replay.json',
         canonicalSha256:
             'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
         contentLengthBytes: 1024,
@@ -285,7 +285,7 @@ void main() {
         userId: 'uid_403',
         runSessionId: 'run_403',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/run_403.replay.json',
+        replayArtifactId: '/tmp/run_403.replay.json',
         canonicalSha256:
             'abababababababababababababababababababababababababababababababab',
         contentLengthBytes: 1024,
@@ -314,7 +314,7 @@ void main() {
         userId: 'uid_await',
         runSessionId: 'run_await',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/run_await.replay.json',
+        replayArtifactId: '/tmp/run_await.replay.json',
         canonicalSha256:
             '1212121212121212121212121212121212121212121212121212121212121212',
         contentLengthBytes: 1024,
@@ -345,7 +345,7 @@ void main() {
         userId: 'uid_retry',
         runSessionId: 'run_retry',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/run_retry.replay.json',
+        replayArtifactId: '/tmp/run_retry.replay.json',
         canonicalSha256:
             '3434343434343434343434343434343434343434343434343434343434343434',
         contentLengthBytes: 1024,
@@ -382,7 +382,7 @@ void main() {
         userId: 'uid_4',
         runSessionId: 'run_4',
         runMode: RunMode.practice,
-        replayFilePath: '/tmp/run_4.replay.json',
+        replayArtifactId: '/tmp/run_4.replay.json',
         canonicalSha256:
             'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
         contentLengthBytes: 1024,
@@ -426,7 +426,7 @@ class _FakeReplayUploader implements RunReplayUploader {
   @override
   Future<void> uploadReplay({
     required RunUploadGrant uploadGrant,
-    required String replayFilePath,
+    required String replayArtifactId,
     required int contentLengthBytes,
     required String contentType,
   }) async {

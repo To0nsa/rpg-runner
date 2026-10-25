@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:runner_core/meta/meta_service.dart';
@@ -275,7 +273,7 @@ class _RecordingGhostReplayCache implements GhostReplayCache {
     return GhostReplayBootstrap(
       manifest: manifest,
       replayBlob: replayBlob,
-      cachedFile: File('ghost.replay.json'),
+      cacheKey: 'ghost.replay.json',
       cachedAtMs: 1,
     );
   }

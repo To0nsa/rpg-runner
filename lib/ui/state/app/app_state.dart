@@ -135,7 +135,7 @@ class AppState extends ChangeNotifier {
       runSessionApi: const NoopRunSessionApi(),
       leaderboardApi: const NoopLeaderboardApi(),
       ghostApi: const NoopGhostApi(),
-      ghostReplayCache: FileGhostReplayCache(),
+      ghostReplayCache: const UnavailableGhostReplayCache(),
       runSubmissionCoordinator: null,
       developerStore: store,
     );
@@ -160,7 +160,7 @@ class AppState extends ChangeNotifier {
     final resolvedRunSessionApi = runSessionApi ?? const NoopRunSessionApi();
     final resolvedLeaderboardApi = leaderboardApi ?? const NoopLeaderboardApi();
     final resolvedGhostApi = ghostApi ?? const NoopGhostApi();
-    final resolvedGhostReplayCache = ghostReplayCache ?? FileGhostReplayCache();
+    final resolvedGhostReplayCache = ghostReplayCache ?? createGhostReplayCache();
     return AppState._internal(
       authApi: authApi,
       inboxApi: inboxApi,
@@ -434,7 +434,7 @@ class AppState extends ChangeNotifier {
   Future<RunSubmissionStatus> submitRunReplay({
     required String runSessionId,
     required RunMode runMode,
-    required String replayFilePath,
+    required String replayArtifactId,
     required String canonicalSha256,
     required int contentLengthBytes,
     String contentType = 'application/octet-stream',
@@ -442,7 +442,7 @@ class AppState extends ChangeNotifier {
   }) => _runSubmissionController.submitRunReplay(
     runSessionId: runSessionId,
     runMode: runMode,
-    replayFilePath: replayFilePath,
+    replayArtifactId: replayArtifactId,
     canonicalSha256: canonicalSha256,
     contentLengthBytes: contentLengthBytes,
     contentType: contentType,
@@ -456,7 +456,7 @@ class AppState extends ChangeNotifier {
   Future<RunSubmissionStatus> journalRunReplay({
     required String runSessionId,
     required RunMode runMode,
-    required String replayFilePath,
+    required String replayArtifactId,
     required String canonicalSha256,
     required int contentLengthBytes,
     String contentType = 'application/octet-stream',
@@ -464,7 +464,7 @@ class AppState extends ChangeNotifier {
   }) => _runSubmissionController.journalRunReplay(
     runSessionId: runSessionId,
     runMode: runMode,
-    replayFilePath: replayFilePath,
+    replayArtifactId: replayArtifactId,
     canonicalSha256: canonicalSha256,
     contentLengthBytes: contentLengthBytes,
     contentType: contentType,

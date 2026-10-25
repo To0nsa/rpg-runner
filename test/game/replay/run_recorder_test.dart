@@ -14,6 +14,7 @@ import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 import 'package:rpg_runner/game/replay/replay_command_codec.dart';
 import 'package:rpg_runner/game/replay/run_recorder.dart';
+import 'package:rpg_runner/game/replay/run_recorder_io.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 class _RecordedScenario {
@@ -50,7 +51,7 @@ Future<_RecordedScenario> _recordDeterministicScenario({
     ),
   );
 
-  final recorder = await RunRecorder.create(
+  final recorder = await FileRunRecorder.create(
     header: RunRecorderHeader(
       runSessionId: runSessionId,
       tickHz: controller.tickHz,
@@ -194,7 +195,7 @@ void main() {
       await Directory.fromUri(dir.uri.resolve('blocked.frames.ndjson'))
           .create();
       await expectLater(
-        RunRecorder.create(
+        FileRunRecorder.create(
           header: const RunRecorderHeader(
             runSessionId: 'blocked',
             tickHz: 60,
@@ -244,8 +245,8 @@ void main() {
       },
     );
 
-    final bytesA = await a.finalizeResult.replayBlobFile.readAsBytes();
-    final bytesB = await b.finalizeResult.replayBlobFile.readAsBytes();
+    final bytesA = await File(a.finalizeResult.replayArtifactId).readAsBytes();
+    final bytesB = await File(b.finalizeResult.replayArtifactId).readAsBytes();
     expect(bytesA, bytesB);
 
     expect(

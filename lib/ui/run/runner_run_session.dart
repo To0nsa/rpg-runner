@@ -18,7 +18,6 @@ import '../../game/runner_flame_game.dart';
 import '../../game/terrain/prepared_terrain_assets.dart';
 import '../app/ui_routes.dart';
 import '../state/ownership/selection_state.dart';
-import '../state/run/local_replay_artifact_store.dart';
 import 'run_startup_diagnostics.dart';
 
 /// The required dependency that prevented a run from becoming playable.
@@ -174,8 +173,6 @@ class RunnerRunSession extends ChangeNotifier {
   static Future<RunRecorder> _createRecorder(RunRecorderHeader header) =>
       RunRecorder.create(
         header: header,
-        spoolDirectory: defaultReplaySpoolDirectory(),
-        fileStem: header.runSessionId,
       );
 
   /// Reports host mounting failures outside Flame's onLoad future.
