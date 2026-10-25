@@ -9,14 +9,22 @@ were deployed in `2026.10.9`; see the
 [latest release evidence](../verification/ancient-god-bosses-2026-10-07.md#production-release).
 The full victory restoration below is a local source change, not yet deployed.
 
-Current `2026.10.11` source schedules single-candidate Bringer, Shoggoth and
+Current source schedules single-candidate Bringer, Shoggoth and
 Goddess groups at the easy, normal and hard milestones, separated by ordinary
 sections. Voidcaller's room remains authored but is not scheduled. The final
-Goddess section repeats after the first complete assembly. Boss behavior depends
-on actor identity and arena bounds, not a particular chunk key. The seeded
+hard Rocky Grove section repeats after the first complete assembly. Boss behavior
+depends on actor identity and arena bounds, not a particular chunk key. The seeded
 sequence test verifies this production ordering; its separate compressed combat
 fixture preserves continuous player state across the three actual rooms but
 does not claim player traversal of the intervening ordinary sections.
+
+Both default character loadouts must defeat all three bosses, receive the three
+victory blessings and cross the 1,800-unit exit. The fixture commits movement
+across Goddess's 48-unit pit until the capsule lands clear on the opposite bank,
+waits for approach momentum before jumping, and retries after knockback returns
+it to the original bank. It uses the normal single jump, suppresses conflicting
+evasion inputs during crossings and verifies successful crossings in both
+directions; boss damage, player resources and terrain remain authoritative.
 
 ## Ownership and authored contract
 

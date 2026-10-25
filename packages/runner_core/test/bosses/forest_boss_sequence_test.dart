@@ -107,6 +107,9 @@ void main() {
       final introductions = <EnemyId>{};
       final blessings = <int>{};
       final trace = <String>[];
+      var crossingDirection = 0.0;
+      var crossingWasAirborne = false;
+      final completedCrossings = <double>{};
       for (var n = 0; n < core.tickHz * 300 && !core.gameOver; n++) {
         final snapshot = core.buildSnapshot();
         final arena = snapshot.bossArena;
@@ -147,20 +150,46 @@ void main() {
             : localX > 530
             ? -1.0
             : -dx.sign;
-        final axis = avoidHands
+        var axis = avoidHands
             ? ((handGapX - localX).abs() > 2 ? (handGapX - localX).sign : 0.0)
             : evadeCombo
             ? escapeDirection
             : fighting
             ? (dx.abs() > 20 ? dx.sign : 0.0)
             : 1.0;
-        final crossGap =
-            core.playerPosX >= 1200 &&
-            core.playerPosX < 1800 &&
+        // The default loadout has one jump. Commit across the authored 222..270
+        // pit until the whole capsule reaches the opposite bank; combat target
+        // changes must not reverse flight or launch against existing momentum.
+        if (crossingDirection != 0) {
+          crossingWasAirborne |= !core.playerGrounded;
+          final landedAcross = crossingDirection > 0
+              ? localX >= 280
+              : localX <= 212;
+          if (crossingWasAirborne && core.playerGrounded && landedAcross) {
+            completedCrossings.add(crossingDirection);
+            crossingDirection = 0;
+          } else if (core.playerGrounded) {
+            // A real boss hit can return the player to the takeoff bank.
+            crossingWasAirborne = false;
+          }
+        }
+        if (goddess &&
+            crossingDirection == 0 &&
             (axis > 0 && localX > 190 && localX < 222 ||
-                axis < 0 && localX > 270 && localX < 302);
-        // Jump from the lip and reserve the airborne jump for a descending
-        // crossing; an orb shove can consume the first jump before the gap.
+                axis < 0 && localX > 270 && localX < 302)) {
+          crossingDirection = axis.sign;
+          crossingWasAirborne = !core.playerGrounded;
+        }
+        if (crossingDirection != 0) axis = crossingDirection;
+        // A 100-unit/s approach clears the 48-unit pit with the normal jump;
+        // wait for the turn to build momentum before spending that jump.
+        final crossGap =
+            crossingDirection != 0 &&
+            !crossingWasAirborne &&
+            core.playerGrounded &&
+            core.playerVelX * crossingDirection >= 100 &&
+            (crossingDirection > 0 && localX > 190 && localX < 222 ||
+                crossingDirection < 0 && localX > 270 && localX < 302);
         if (core.playerPosX > 1200 && core.tick % 10 == 0) {
           trace.add(
             '${core.tick} pos=${core.playerPosX},${core.playerPosY} grounded=${core.playerGrounded} axis=$axis jump=$crossGap arena=${arena?.enemyId}/${arena?.phase}',
@@ -170,17 +199,18 @@ void main() {
         core.applyCommands([
           MoveAxisCommand(tick: tick, axis: axis),
           AimDirCommand(tick: tick, x: dx >= 0 ? 1 : -1, y: 0),
-          if (core.playerGrounded && crossGap ||
-              goddess && localX > 200 && localX < 292 && core.playerVelY > 0 ||
-              goddess && actor?.anim == AnimKey.strike && dx.abs() < 90 ||
-              goddess &&
-                  actor?.anim == AnimKey.cast &&
-                  (actor?.animFrame ?? 0) >= 48 ||
-              arena?.enemyId == EnemyId.shoggoth &&
-                  actor?.anim == AnimKey.strike2 &&
-                  dx.abs() < 180)
+          if (crossGap ||
+              crossingDirection == 0 &&
+                  (goddess && actor?.anim == AnimKey.strike && dx.abs() < 90 ||
+                      goddess &&
+                          actor?.anim == AnimKey.cast &&
+                          (actor?.animFrame ?? 0) >= 48 ||
+                      arena?.enemyId == EnemyId.shoggoth &&
+                          actor?.anim == AnimKey.strike2 &&
+                          dx.abs() < 180))
             JumpPressedCommand(tick: tick),
-          if (evadeCombo && dx.abs() < 55) DashPressedCommand(tick: tick),
+          if (crossingDirection == 0 && evadeCombo && dx.abs() < 55)
+            DashPressedCommand(tick: tick),
           if (fighting && !evadeCombo && !avoidHands && tick % 20 == 0)
             StrikePressedCommand(tick: tick),
           if (fighting && !evadeCombo && !avoidHands && tick % 45 == 0)
@@ -198,6 +228,7 @@ void main() {
       expect(introductions, _bosses.toSet());
       expect(blessings, hasLength(3));
       expect(core.playerPosX, greaterThan(1800));
+      expect(completedCrossings, containsAll([-1.0, 1.0]));
     });
   }
 }
