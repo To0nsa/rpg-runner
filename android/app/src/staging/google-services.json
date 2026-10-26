@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "943085064373",
+    "project_id": "lothringen-long-run-staging",
+    "storage_bucket": "lothringen-long-run-staging.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:943085064373:android:548cbac00c4b2653572efc",
+        "android_client_info": {
+          "package_name": "com.example.rpg_runner.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVOm5ucODF2RUAUHh4NicS9lkTMtLPM0Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:943085064373:android:51c288ba51386d01572efc",
+        "android_client_info": {
+          "package_name": "com.lothringen.longrun.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVOm5ucODF2RUAUHh4NicS9lkTMtLPM0Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

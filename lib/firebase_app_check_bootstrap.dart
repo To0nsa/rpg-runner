@@ -1,7 +1,9 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import 'firebase_app_check_diagnostics.dart';
+import 'firebase_environment.dart';
 
 const String _webSiteKey = String.fromEnvironment(
   'FIREBASE_APP_CHECK_WEB_SITE_KEY',
@@ -60,8 +62,12 @@ Future<AppCheckActivationOutcome> _activateFirebaseAppCheck() async {
 
   switch (defaultTargetPlatform) {
     case TargetPlatform.android:
+      final environment = FirebaseEnvironment.fromAndroidFlavor(appFlavor);
+      if (!environment.usesDebugAppCheck && _debugToken.trim().isNotEmpty) {
+        throw StateError('App Check debug tokens are restricted to dev.');
+      }
       await FirebaseAppCheck.instance.activate(
-        providerAndroid: kDebugMode
+        providerAndroid: environment.usesDebugAppCheck
             ? AndroidDebugProvider(
                 debugToken: _debugToken.trim().isEmpty
                     ? null

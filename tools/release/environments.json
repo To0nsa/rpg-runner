@@ -27,7 +27,7 @@
       "workerUrl": "https://replay-validator-943085064373.europe-west1.run.app",
       "validationQueue": "replay-validation",
       "projectionQueue": "replay-projection",
-      "androidPackage": "com.example.rpg_runner.staging"
+      "androidPackage": "com.lothringen.longrun.staging"
     },
     "prod": {
       "projectId": "lothringen-long-run-prod",

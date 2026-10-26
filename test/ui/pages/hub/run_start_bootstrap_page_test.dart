@@ -17,6 +17,32 @@ import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
+  testWidgets(
+    'obsolete client remains outside gameplay and can exit to account navigation',
+    (tester) async {
+      final api = _ThrowingRunSessionApi(
+        code: 'failed-precondition',
+        details: const {'reason': 'update-required'},
+      );
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: api,
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap(force: true);
+      await tester.pumpWidget(_TestApp(appState: app));
+      await tester.pumpAndSettle();
+      expect(find.text('Update required'), findsOneWidget);
+      expect(find.text('Run Route Placeholder'), findsNothing);
+      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Contact support'), findsOneWidget);
+      await tester.tap(find.text('Exit'));
+      await tester.pumpAndSettle();
+      expect(find.text('Update required'), findsNothing);
+      expect(api.createRunSessionCalls, 1);
+    },
+  );
   testWidgets('route construction failure remains recoverable', (tester) async {
     final appState = AppState(
       authApi: _StaticAuthApi.authenticated(),
@@ -219,8 +245,9 @@ class _SuccessRunSessionApi implements RunSessionApi {
 }
 
 class _ThrowingRunSessionApi implements RunSessionApi {
-  _ThrowingRunSessionApi({this.code = 'unavailable'});
+  _ThrowingRunSessionApi({this.code = 'unavailable', this.details});
   final String code;
+  final Object? details;
   int createRunSessionCalls = 0;
 
   @override
@@ -232,7 +259,11 @@ class _ThrowingRunSessionApi implements RunSessionApi {
     required String gameCompatVersion,
   }) async {
     createRunSessionCalls += 1;
-    throw RunStartRemoteException(code: code, message: 'network unavailable');
+    throw RunStartRemoteException(
+      code: code,
+      message: 'network unavailable',
+      details: details,
+    );
   }
 
   @override

@@ -12,6 +12,13 @@ The app uses Firebase Authentication with this runtime policy:
   Firebase `uid` and a linked Google Play Games identity.
 - Firestore client writes/reads for authoritative game data are denied by rules.
 
+Android selects an isolated Firebase project through its explicit dev/staging/prod
+flavor and verifies that project before initializing app services. Native resources
+own Play Games credentials; the same Google account has independent Firebase state
+in each project. Dev uses its own App Check debug provider; staging/prod require
+real Play Integrity. See [Android identities](android_build_variants.md) for the
+implemented configuration and still-pending Play/OAuth acceptance.
+
 Authoritative data access (profile, ownership, runs, boards, ghosts, account delete) goes through callables, not direct Firestore from the app.
 
 ## 2) Ownership by layer

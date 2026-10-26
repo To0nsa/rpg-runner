@@ -1,9 +1,12 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../../firebase_app_check_bootstrap.dart';
 import '../../firebase_options.dart';
+import '../../firebase_environment.dart';
+import '../../firebase_crash_reporting.dart';
 import '../state/app/app_state.dart';
 import '../state/inbox/firebase_inbox_api.dart';
 import '../state/settings/control_settings.dart';
@@ -37,6 +40,11 @@ AppServices createAppServices() => AppServices(
             ? null
             : DefaultFirebaseOptions.currentPlatform,
       );
+    }
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      final environment = FirebaseEnvironment.fromAndroidFlavor(appFlavor);
+      environment.verifyProject(Firebase.app().options.projectId);
+      await initializeAndroidCrashReporting(environment);
     }
     await activateFirebaseAppCheck();
   },

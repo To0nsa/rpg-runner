@@ -6,6 +6,10 @@
         android:allowBackup="false"
         android:isGame="true"
         android:appCategory="game">
+        <!-- Enable only after the Android flavor/Firebase project pair is verified. -->
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
         <meta-data
             android:name="com.google.android.gms.games.APP_ID"
             android:value="@string/game_services_project_id" />

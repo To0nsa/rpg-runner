@@ -54,8 +54,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Developer Practice](tdd/developer_practice.md): debug launch flag and Options
   toggle, persistent fully unlocked local profile, and Practice without backend
   sessions or rewards.
-- [Android build identities](tdd/android_build_variants.md): separate dev/release
-  installations, Firebase selection and package-specific Play Games setup.
+- [Android build identities](tdd/android_build_variants.md): dev/staging/prod
+  flavors, isolated Firebase projects, signing and pending Play acceptance.
 - [Forest boss arenas](tdd/boss_arenas.md) and [Bringer gameplay](gdd/bringer_of_death.md):
   deterministic full-screen entrance, confined combat, editor authoring and replay
   scoring deployed in `2026.10.8` / `score-v4`; see

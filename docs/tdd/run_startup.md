@@ -44,6 +44,24 @@ branding durations are unchanged; run loading has no artificial minimum.
 
 ## Readiness and failures
 
+New-run and leaderboard compatibility rejection uses structured callable error
+details. `failed-precondition` with `reason: update-required` identifies an
+obsolete client; `unavailable` with `reason: release-maintenance` identifies a
+paused issuer or a newer date-version candidate waiting for backend cutover.
+The `release-paused` sentinel rejects all new versions, even if the allowlist
+accidentally also contains the current version. The active gameplay tuple remains
+the source of authority; there is no client-side override or update service.
+
+Hub/leaderboard preflight presents `RunReleaseGate`; in-place restart presents
+the same gate in a dismissible dialog without replacing the current run. The
+update action opens the selected staging/prod package's HTTPS Play link. Dev
+and non-Android hosts instead ask for the current build. Failed/canceled store
+launches retain the gate, and maintenance retry must ask the server again.
+Exit/account navigation and the support mail link stay available. Existing
+submission recovery, already-issued tickets and account deletion do not acquire
+this new-run guard. Release drain still waits for outstanding tickets; a cached
+valid ticket is not invalidated merely because new issuance is paused.
+
 The controller begins paused at tick zero. World loading starts player images,
 render registries, terrain preparation, background loading, and optional ghost
 preparation concurrently. Player and static-prefab mounting overlap registry

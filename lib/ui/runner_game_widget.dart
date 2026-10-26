@@ -37,6 +37,7 @@ import 'haptics/boss_entrance_haptics_binding.dart';
 import 'runner_game_ui_state.dart';
 import 'run/runner_run_session.dart';
 import 'run/run_start_preparation.dart';
+import 'run/run_release_gate.dart';
 import 'state/app/app_state.dart';
 import 'state/run/run_start_remote_exception.dart';
 import 'state/ownership/selection_state.dart';
@@ -73,6 +74,8 @@ import 'viewport/viewport_metrics.dart';
 /// while desktop controls are mounted, then restored to their prior setting.
 /// Reward completion belongs to AppState and continues after this widget closes;
 /// embedding hosts must forward app foreground state to AppState.
+/// A restart rejected for maintenance or an obsolete client shows a release
+/// dialog while retaining the current session and its submission recovery.
 /// Boss entrances hold controls within the active Core run; the replay clock
 /// continues, and defeating the boss restores ordinary route progression.
 ///
@@ -714,6 +717,32 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _showRestartFailure(Object error) {
+    if (error is RunStartRemoteException &&
+        (error.isUpdateRequired || error.isReleaseMaintenance)) {
+      unawaited(
+        showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            content: SingleChildScrollView(
+              child: RunReleaseGate(
+                error: error,
+                onRetry: () {
+                  Navigator.of(dialogContext).pop();
+                  _onRestartPressed();
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
     final message = RunStartPreparation.messageFor(error);
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;

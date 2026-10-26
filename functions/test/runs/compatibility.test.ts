@@ -1,8 +1,43 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { HttpsError } from "firebase-functions/v2/https";
 import { assertSupportedGameCompatVersion, currentGameCompatVersion,
   resolveSupportedGameCompatVersions } from "../../src/runs/compatibility.js";
+
+test("release pause rejects every new client, including a mistakenly allowed version", () => {
+  for (const client of [currentGameCompatVersion, "2026.10.20", "2026.10.22"]) {
+    assert.throws(() => assertSupportedGameCompatVersion(client,
+      new Set(["release-paused", currentGameCompatVersion])), (error: unknown) => {
+      assert.ok(error instanceof HttpsError);
+      assert.equal(error.code, "unavailable");
+      assert.deepEqual(error.details, { reason: "release-maintenance" });
+      return true;
+    });
+  }
+});
+
+test("newer candidates wait for cutover; obsolete or unknown clients require an update", () => {
+  for (const client of ["2026.10.22", "2026.10.21.1", "2026.11.1", "2027.1.1"]) {
+    assert.throws(() => assertSupportedGameCompatVersion(client), (error: unknown) => {
+      assert.ok(error instanceof HttpsError);
+      assert.equal(error.code, "unavailable");
+      assert.deepEqual(error.details, { reason: "release-maintenance" });
+      return true;
+    });
+  }
+  for (const client of ["2026.10.20", "2026.9.30", "unknown"]) {
+    assert.throws(() => assertSupportedGameCompatVersion(client), (error: unknown) => {
+      assert.ok(error instanceof HttpsError);
+      assert.equal(error.code, "failed-precondition");
+      assert.deepEqual(error.details, {
+        reason: "update-required", gameCompatVersion: currentGameCompatVersion,
+      });
+      return true;
+    });
+  }
+  assert.doesNotThrow(() => assertSupportedGameCompatVersion(currentGameCompatVersion));
+});
 
 test("gameplay release client, board default and worker share one compatibility", () => {
   assert.equal(currentGameCompatVersion, "2026.10.21");

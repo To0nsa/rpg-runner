@@ -4,9 +4,10 @@ A Flutter + Flame action runner focused on deterministic gameplay architecture.
 
 This is a portfolio-style game project designed to demonstrate production-minded engineering for mobile games: clean layering, testable simulation, and systems ready for replay/online expansion.
 
-The [current deployed release](docs/verification/game-compat-2026.10.21-production.md)
-uses gameplay `2026.10.21`. Matching Android Dev and release APKs are prepared
-for manual installation.
+The existing backend, now development, uses gameplay `2026.10.21` from the
+[October 25 release](docs/verification/game-compat-2026.10.21-production.md).
+The [Android beta workstream](docs/building/android_beta_release.md) adds isolated
+dev, staging and production apps. Its final candidate and Play release are pending.
 
 ## Why It Stands Out
 
@@ -96,14 +97,14 @@ flutter pub get
 flutter run
 ```
 
-On Android, debug builds install as **rpg_runner Dev**
-(`com.example.rpg_runner.dev`) alongside **rpg_runner**
-(`com.example.rpg_runner`). `flutter run --release` and `--profile` still use
-the existing release app identity. Each installation has separate local data;
-the first online dev launch needs its own sign-in setup. Both
-connect to the same Firebase backend, so the same Play Games account shares
-online progression. See [Android build identities](docs/tdd/android_build_variants.md)
-for build commands and the dev package's Firebase/Play Games setup.
+Android defaults to the `dev` flavor in every build mode, including
+`flutter run --release`. It installs as `com.example.rpg_runner.dev` against
+`rpg-runner-d7add`. Explicit `staging` and `prod` release flavors use independent
+Firebase projects and local app storage. Staging uses
+`com.lothringen.longrun.staging`; the production package is still provisional.
+The new environments' OAuth/Play acceptance is pending. See
+[Android build identities](docs/tdd/android_build_variants.md) for the current
+mapping, protected signing and canonical frozen-candidate build command.
 
 For gameplay iteration on a connected phone, use a debug launch
 (`flutter run -d <device-id>`), sign in, and enable **Options > Settings > Developer mode**.
@@ -157,9 +158,9 @@ has a different SHA-1. See
 [local Android sign-in troubleshooting](docs/tdd/authentication_flow_and_authorization.md#local-android-sign-in-troubleshooting)
 for credential and tester setup checks.
 
-Android App Check is separate from Play Games sign-in: debug installations need
-their debug token registered in Firebase App Check; release/profile builds use
-Play Integrity and require the signing certificate's **SHA-256** in Firebase
+Android App Check is separate from Play Games sign-in: the dev flavor needs its
+debug token registered in the dev Firebase project in every build mode. Staging
+and prod use Play Integrity and require the installed distribution certificate's **SHA-256** in Firebase
 (SHA-1 alone is insufficient). Startup emits a privacy-safe `app_check_startup`
 record, and callable requests carry that startup diagnostic context. See
 [App Check troubleshooting](docs/tdd/callable_abuse_controls.md#app-check-diagnostics-and-troubleshooting)
