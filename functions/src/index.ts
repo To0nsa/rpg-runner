@@ -74,6 +74,7 @@ import {
 } from "./leaderboards/callable_handlers.js";
 import { handleGhostLoadManifest } from "./ghosts/callable_handlers.js";
 import { handleInboxRequest } from "./inbox/callable_handlers.js";
+import { readDeploymentIdentity } from "./deployment_identity.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -81,10 +82,11 @@ if (getApps().length === 0) {
 
 const defaultFunctionsRegion =
   process.env.FUNCTIONS_REGION?.trim() || "europe-west1";
+const deploymentIdentity = readDeploymentIdentity();
 
 setGlobalOptions({
   region: defaultFunctionsRegion,
-  serviceAccount: "sa-run-control@rpg-runner-d7add.iam.gserviceaccount.com",
+  serviceAccount: deploymentIdentity.runControlServiceAccount,
 });
 
 const db = getFirestore();
@@ -129,8 +131,7 @@ const projectionReconciliationBatchSize = parseProjectionReconciliationBatchSize
   process.env.RUN_PROJECTION_RECONCILIATION_BATCH_SIZE,
 );
 const replayValidatorServiceAccount =
-  process.env.REPLAY_VALIDATOR_SERVICE_ACCOUNT?.trim() ||
-  "sa-replay-validator@rpg-runner-d7add.iam.gserviceaccount.com";
+  deploymentIdentity.replayValidatorServiceAccount;
 const profileConsistencyRepairBatchSize =
   readPositiveInt(process.env.PROFILE_CONSISTENCY_REPAIR_BATCH_SIZE) ?? 64;
 

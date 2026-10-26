@@ -6,6 +6,10 @@ and the checklist matching the user's release in
 Do not assume a previously used release checklist is the current target.
 
 - release.ps1 is the canonical entry point; keep its default action offline Plan.
+- Select dev/staging/prod through environments.json. Cloud mutations require
+  explicit -Environment. Reject conflicting project, bucket, queue, endpoint and
+  service-account values before mutation; never inherit dev configuration for a
+  missing project file. Only dev currently publishes Hosting.
 - Preserve the independent Flutter workspace and Dart validator lockfiles.
 - Reuse configure_cloud.ps1 and retention/monitoring scripts rather than
   duplicating their deployment policy.
@@ -34,5 +38,7 @@ Do not assume a previously used release checklist is the current target.
 - Test helpers and the actual entry-point sequence with test_release.ps1 and
   test_release_integration.ps1, plus cache/CI checks in test_release_cache.ps1,
   under Windows PowerShell and PowerShell 7.
+- Also run test_release_environments.ps1 and integration cases with
+  -TestEnvironment staging and prod for environment-routing changes.
 - Report live checks, mocked checks and unrun gates separately. Never relabel
   a prior release's owner-requested test omission as a passing current gate.

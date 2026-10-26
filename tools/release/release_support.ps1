@@ -47,6 +47,9 @@ function Invoke-ReleaseCommand {
 function Read-ReleaseEnvironment {
   param([string]$Root, [string]$ProjectId)
   $values = @{}
+  # Firebase also reads .env. An explicit project file must exist before those
+  # shared values can be used; a new environment must never inherit dev alone.
+  if (-not (Test-Path -LiteralPath (Join-Path $Root "functions/.env.$ProjectId"))) { return $values }
   foreach ($relative in @("functions/.env", "functions/.env.$ProjectId")) {
     $path = Join-Path $Root $relative
     if (-not (Test-Path -LiteralPath $path)) { continue }
@@ -128,10 +131,10 @@ function Get-ReleaseFileDigest {
 
 function Get-ReleaseSourceDigest {
   param([string]$Root, [string]$ProjectId)
-  $listing = Invoke-ReleaseCommand git @("ls-files", "--cached", "--others", "--exclude-standard") $Root
+  $listing = Invoke-ReleaseCommand git @("-c", "core.quotepath=false", "ls-files", "--cached", "--others", "--exclude-standard") $Root
   $paths = @($listing -split '\r?\n' | Where-Object {
-    $_ -match '^(assets|lib|web|test|test_driver|packages|functions|services/replay_validator|tool|tools/cloud|tools/release|\.github/workflows)/' -or
-    $_ -match '^(\.dockerignore|\.gcloudignore|\.firebaserc|firebase\.json|firestore\..+|pubspec\..+|package\.json|pnpm-.+\.yaml|analysis_options\.yaml)$'
+    $_ -match '^(android|assets|lib|web|test|test_driver|packages|functions|services/replay_validator|tool|tools/cloud|tools/release|\.github/workflows)/' -or
+    $_ -match '^(\.dockerignore|\.gcloudignore|\.firebaserc|firebase(?:\.(?:staging|prod))?\.json|firestore\..+|pubspec\..+|package\.json|pnpm-.+\.yaml|analysis_options\.yaml)$'
   } | Where-Object { $_ -notmatch '^functions/(lib|lib_test|node_modules)/' -and (Test-Path -LiteralPath (Join-Path $Root $_) -PathType Leaf) })
   foreach ($relative in @("functions/.env", "functions/.env.$ProjectId")) {
     if (Test-Path -LiteralPath (Join-Path $Root $relative)) { $paths += $relative }

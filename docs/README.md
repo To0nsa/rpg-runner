@@ -15,8 +15,13 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Prepared navigation and reward completion](tdd/prepared_navigation.md): trusted
   graph packs, curated Practice routes, on-demand verification and app-owned
   wallet catch-up; [remaining rollout gates](building/reward_verification_latency.md).
-- [Current implementation plans](building/README.md): reward verification latency
-  and NPC rescue production smoke.
+- [Current implementation plans](building/README.md): Android beta/backend
+  isolation, reward verification latency and NPC rescue production smoke.
+- [Android beta release plan](building/android_beta_release.md): existing project
+  reused for dev, new staging/production projects, separate staging app for team
+  acceptance, required updates and Play testing; execution underway with
+  environment routing and isolation checks. One shared deployment workflow and
+  no player-data migration.
 - [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
   lifecycle/input fixes, event-retention cleanup, full local checks and 18
   mixed-input replay cases pass. Finalized authoring is deployed in `2026.10.7`;

@@ -3,13 +3,29 @@
 ## Scope and release authority
 
 The canonical entry point is [release.ps1](../../tools/release/release.ps1).
-It coordinates the configured Firebase project, web Hosting site and
-Cloud Run replay worker. The root .firebaserc and firebase.json identify the
-project/site; replay bucket and queue location come from the existing Functions
-environment files. This workflow currently supports the configured environment,
-not arbitrary project overrides or native app-store distribution.
+It selects `dev`, `staging` or `prod` from
+[environments.json](../../tools/release/environments.json). The registry owns the
+project, region, Firebase config, replay bucket, worker endpoint, queue names and
+Android package. `.firebaserc` aliases must agree; its default stays dev.
+`ProjectId`/`Region` can assert the selected identity but cannot redirect it.
+Cloud mutations require explicit `-Environment`; offline Plan defaults to dev.
+Staging/prod IDs are reserved in source but are not provisioned yet; their worker
+URLs remain empty and block mutations until actual resource discovery.
 
-The current production release is gameplay `2026.10.21`, deployed October 25,
+Only dev has a Hosting site. Staging/prod configuration deliberately has no
+Hosting target; their coordinated backend releases do not publish a website.
+The local web build remains preparation evidence, not proof of an Android build.
+Native artifact preparation and empty-project bootstrap are still pending in the
+[Android beta workstream](../building/android_beta_release.md).
+
+Functions derive their runtime and private validator-invoker service accounts
+from the SDK deployment project, rejecting contradictory project variables or a
+foreign validator override. Release checks validate replay bucket, region,
+queues, dispatch identity and endpoint before a mutation. A project-specific
+Functions environment file is required; shared `.env` values alone cannot
+configure a new environment. Secrets remain outside source and evidence.
+
+The existing project's deployed release is gameplay `2026.10.21`, deployed October 25,
 2026 UTC from frozen commit `a4f99b89`. Its ranked tuple is `2026.10.21` /
 `rules-v2` / `score-v4` / `ghost-v1`; replay and command formats remain 1.
 The [production evidence](../verification/game-compat-2026.10.21-production.md)
@@ -38,11 +54,11 @@ ghost launch, cache reuse, and rendering were subsequently verified on Android.
 Run from the repository root in Windows PowerShell 5.1 or PowerShell 7:
 
 ~~~powershell
-.\tools\release\release.ps1 -Action Plan
-.\tools\release\release.ps1 -Action Prepare
-.\tools\release\release.ps1 -Action Inspect
-.\tools\release\release.ps1 -Action BuildImage
-.\tools\release\release.ps1 -Action ImageStatus
+.\tools\release\release.ps1 -Environment dev -Action Plan
+.\tools\release\release.ps1 -Environment dev -Action Prepare
+.\tools\release\release.ps1 -Environment dev -Action Inspect
+.\tools\release\release.ps1 -Environment dev -Action BuildImage
+.\tools\release\release.ps1 -Environment dev -Action ImageStatus
 ~~~
 
 The optional root package aliases are corepack pnpm release -Action Plan and
@@ -60,11 +76,11 @@ Only after the release is explicitly authorized and the immutable image is
 ready, perform the cutover:
 
 ~~~powershell
-.\tools\release\release.ps1 -Action PauseIssuance
-.\tools\release\release.ps1 -Action Inspect
-.\tools\release\release.ps1 -Action Deploy -CutoverReady
-.\tools\release\release.ps1 -Action Inspect
-.\tools\release\release.ps1 -Action ResumeIssuance -CutoverReady
+.\tools\release\release.ps1 -Environment dev -Action PauseIssuance
+.\tools\release\release.ps1 -Environment dev -Action Inspect
+.\tools\release\release.ps1 -Environment dev -Action Deploy -CutoverReady
+.\tools\release\release.ps1 -Environment dev -Action Inspect
+.\tools\release\release.ps1 -Environment dev -Action ResumeIssuance -CutoverReady
 ~~~
 
 CutoverReady records the operator's completed drain/cancellation review; it
@@ -86,7 +102,7 @@ use a new frozen checkout instead of rewriting those records.
 Create that checkout from the authorized commit with:
 
 ~~~powershell
-.\tools\release\release.ps1 -Action Checkout -Commit <release-commit>
+.\tools\release\release.ps1 -Environment dev -Action Checkout -Commit <release-commit>
 ~~~
 
 Checkout creates/reuses .tmp/release-checkouts/<commit> with LF source bytes,
@@ -158,8 +174,8 @@ a reusable bundle requires matching SDK revisions/versions locally.
 To reuse a successful CI bundle on the exact clean release commit:
 
 ~~~powershell
-.\tools\release\release.ps1 -Action ImportCI -RunId <successful-run-id>
-.\tools\release\release.ps1 -Action Prepare
+.\tools\release\release.ps1 -Environment dev -Action ImportCI -RunId <successful-run-id>
+.\tools\release\release.ps1 -Environment dev -Action Prepare
 ~~~
 
 ImportCI uses gh to verify the origin repository, exact commit, workflow path,
@@ -347,6 +363,9 @@ tag later.
 .\tools\release\test_release.ps1
 .\tools\release\test_release_integration.ps1
 .\tools\release\test_release_cache.ps1
+.\tools\release\test_release_environments.ps1
+.\tools\release\test_release_integration.ps1 -TestEnvironment staging
+.\tools\release\test_release_integration.ps1 -TestEnvironment prod
 ~~~
 
 The helper suite covers source/version/environment drift, artifact tampering,

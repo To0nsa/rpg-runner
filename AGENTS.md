@@ -126,6 +126,9 @@ Use [the release workflow](.agent/workflows/deploy-release.md) and
 [deployment contract](docs/tdd/deployment_workflow.md).
 `tools/release/release.ps1` is the entry point; default `Plan` is offline.
 Read [release instructions](tools/release/AGENTS.md) before changing tooling.
+Select `-Environment dev|staging|prod` for releases; cloud mutations require it.
+Keep project baselines, checkpoints, runtime identities and Android configuration
+isolated. Only dev has a Hosting target in the current registry.
 
 Prepare source/artifacts before cutover. BuildImage uploads source and starts
 Cloud Build; PauseIssuance, Deploy and ResumeIssuance mutate production and

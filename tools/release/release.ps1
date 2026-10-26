@@ -14,8 +14,10 @@ No data is cancelled or deleted. Issuance pauses and resumes explicitly.
 param(
   [ValidateSet("Plan", "Checkout", "ImportCI", "Prepare", "Inspect", "BuildImage", "ImageStatus", "PauseIssuance", "Deploy", "ResumeIssuance")]
   [string]$Action = "Plan",
+  [ValidateSet("dev", "staging", "prod")]
+  [string]$Environment = "dev",
   [string]$ProjectId = "",
-  [string]$Region = "europe-west1",
+  [string]$Region = "",
   [ValidateSet("Auto", "Hosting", "Backend", "Coordinated")]
   [string]$Scope = "Auto",
   [string]$CacheDirectory = "",
@@ -26,24 +28,25 @@ param(
 )
 
 . (Join-Path $PSScriptRoot "release_support.ps1")
+. (Join-Path $PSScriptRoot "release_environments.ps1")
 . (Join-Path $PSScriptRoot "release_cache.ps1")
 . (Join-Path $PSScriptRoot "prepare_release.ps1")
 . (Join-Path $PSScriptRoot "release_ci.ps1")
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
+if ($Action -in @("BuildImage", "PauseIssuance", "Deploy", "ResumeIssuance") -and
+    -not $PSBoundParameters.ContainsKey("Environment")) { throw "Cloud mutations require explicit -Environment dev, staging or prod." }
+$definition = Get-ReleaseEnvironmentDefinition $root $Environment $ProjectId $Region
+$ProjectId = $definition.projectId
+$Region = $definition.region
+$firebaseConfigPath = Join-Path $root $definition.firebaseConfig
 $cacheRoot = Get-ReleaseCacheRoot $root $CacheDirectory
 if ($Action -eq "Checkout") {
-  New-ReleaseCheckout $root $Commit
+  New-ReleaseCheckout $root $Commit $ProjectId
   return
 }
 if ($Action -eq "ImportCI") {
   Import-ReleaseCI $root $cacheRoot $RunId
   return
-}
-$firebase = Get-Content -Raw -LiteralPath (Join-Path $root "firebase.json") | ConvertFrom-Json
-$defaultProject = (Get-Content -Raw -LiteralPath (Join-Path $root ".firebaserc") | ConvertFrom-Json).projects.default
-if (-not $ProjectId) { $ProjectId = $defaultProject }
-if ($ProjectId -ne $defaultProject -or $firebase.hosting.site -ne $ProjectId) {
-  throw "This workflow targets the configured project and Hosting site only. Configure a separate environment before deploying elsewhere."
 }
 $contract = Get-ReleaseContract $root $ProjectId
 $inputs = Get-ReleaseInputHashes $root $ProjectId
@@ -52,7 +55,8 @@ $resolvedScope = Resolve-ReleaseScope $inputs $contract $baseline $Scope
 $sourceDigest = Get-ReleaseSourceDigest $root $ProjectId
 $evidenceDirectory = Join-Path $root ".tmp/releases/$ProjectId/$sourceDigest"
 $statePath = Join-Path $evidenceDirectory "release.json"
-$environment = Read-ReleaseEnvironment $root $ProjectId
+$environmentValues = Read-ReleaseEnvironment $root $ProjectId
+Assert-ReleaseEnvironmentValues $definition $environmentValues -RequireConfiguration:($Action -notin @("Plan", "Inspect", "ImageStatus"))
 
 function Save-ReleaseState {
   $script:state | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $statePath -Encoding utf8
@@ -67,7 +71,7 @@ function Invoke-ReleaseGcloud {
 function Invoke-ReleaseFirebase {
   param([string]$Targets)
   $commandArgs = @("--dir", "functions", "exec", "firebase", "deploy",
-    "--config", (Join-Path $root "firebase.json"), "--project", $ProjectId,
+    "--config", $firebaseConfigPath, "--project", $ProjectId,
     "--only", $Targets, "--non-interactive")
   Write-Host "Deploying $Targets"
   $savedDebug = $env:DEBUG
@@ -193,6 +197,7 @@ function Assert-LiveWorker {
 
 function Assert-LiveHosting {
   param([string]$ExpectedHash)
+  if (-not $definition.hostingSite) { return }
   $download = Join-Path $evidenceDirectory "hosting-main.dart.js"
   Invoke-WebRequest -UseBasicParsing -Uri "https://$ProjectId.web.app/main.dart.js?release=$sourceDigest" -Headers @{ "Cache-Control" = "no-cache" } -OutFile $download
   if ((Get-FileHash -LiteralPath $download).Hash -ne $ExpectedHash) {
@@ -272,8 +277,13 @@ function Confirm-ReleaseQueues {
 
 if ($Action -eq "Plan") {
   [ordered]@{
+    environment = $Environment
     projectId = $ProjectId
     region = $Region
+    firebaseConfig = $definition.firebaseConfig
+    hostingSite = $definition.hostingSite
+    androidPackage = $definition.androidPackage
+    configurationPresent = (Test-Path -LiteralPath (Join-Path $root "functions/.env.$ProjectId"))
     contract = $contract
     sourceDigest = $sourceDigest
     evidenceDirectory = $evidenceDirectory
@@ -357,6 +367,7 @@ if ($state.scope -in @("Hosting", "Backend", "None")) {
   Assert-ScopedBaseline
   if ($state.scope -eq "None") { Write-Host "No runtime changes to deploy."; return }
   if ($state.scope -eq "Hosting") {
+    if (-not $definition.hostingSite) { throw "This environment has no Hosting deployment. Prepare and distribute its Android artifact." }
     if (-not $state.hostingDeployedAt) {
       Invoke-ReleaseFirebase "hosting"
       $state.hostingDeployedAt = [DateTime]::UtcNow.ToString("o")
@@ -453,8 +464,8 @@ Assert-ReleaseImage $state $ProjectId $Region
 Assert-IssuancePaused
 $inventory = Get-ReleaseInventory
 Assert-ReleaseDrained $inventory
-if (-not $environment.REPLAY_STORAGE_BUCKET -or
-    $environment.REPLAY_VALIDATION_QUEUE_LOCATION -ne $Region) {
+if (-not $environmentValues.REPLAY_STORAGE_BUCKET -or
+    $environmentValues.REPLAY_VALIDATION_QUEUE_LOCATION -ne $Region) {
   throw "Functions replay bucket/region configuration is missing or inconsistent."
 }
 
@@ -497,7 +508,7 @@ $cloudScript = Join-Path $root "services/replay_validator/configure_cloud.ps1"
 if (-not $state.workerDeployedAt) {
   $cloudArguments = @{
     ProjectId = $ProjectId; Region = $Region
-    ReplayStorageBucket = $environment.REPLAY_STORAGE_BUCKET; ImageUri = $state.imageUri
+    ReplayStorageBucket = $environmentValues.REPLAY_STORAGE_BUCKET; ImageUri = $state.imageUri
     SettlementDispatchUrl = "https://$Region-$ProjectId.cloudfunctions.net/runSettlementImmediate"
   }
   & $cloudScript @cloudArguments
@@ -507,7 +518,7 @@ if (-not $state.workerDeployedAt) {
 Assert-IssuancePaused
 Invoke-ReleaseGcloud @("scheduler", "jobs", "run", "firebase-schedule-leaderboardBoardMaintenance-$Region",
   "--project=$ProjectId", "--location=$Region", "--quiet") "boards" | Out-Null
-if (-not $state.hostingDeployedAt) {
+if ($definition.hostingSite -and -not $state.hostingDeployedAt) {
   Invoke-ReleaseFirebase "hosting"
   $state.hostingDeployedAt = [DateTime]::UtcNow.ToString("o")
   Save-ReleaseState

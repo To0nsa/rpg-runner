@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "rpg-runner-d7add"
+    "default": "rpg-runner-d7add",
+    "dev": "rpg-runner-d7add",
+    "staging": "lothringen-long-run-staging",
+    "prod": "lothringen-long-run-prod"
   }
 }

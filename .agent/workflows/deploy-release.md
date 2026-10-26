@@ -10,9 +10,13 @@ the requested release in [current plans](../../docs/building/README.md).
 Verify its source, environment, scope and outstanding gates against the user's
 request; an older release plan is not a default target or authorization.
 Use `tools/release/release.ps1` as the entry point. Its default action is Plan.
+Select `-Environment dev|staging|prod` explicitly throughout a release. The
+registry and Firebase aliases must agree. Only dev has Hosting; a prepared web
+artifact never proves Android packaging or Play acceptance. Project-scoped
+baselines/checkpoints cannot establish readiness in a different environment.
 
 1. Inspect source/worktree and run Plan. Resolve tuple or Functions environment
-   drift before preparing. Use Checkout -Commit <authorized-commit> to create
+   drift before preparing. Use Checkout -Environment <environment> -Commit <authorized-commit> to create
    the isolated LF checkout and copy only application environment files. Run
    every stage there; exclude later edits. Plan reports Auto scope. No verified
    baseline means coordinated cutover; previously excluded deterministic changes

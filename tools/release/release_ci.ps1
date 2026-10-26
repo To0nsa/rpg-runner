@@ -2,7 +2,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 function New-ReleaseCheckout {
-  param([string]$Root, [string]$Commit)
+  param([string]$Root, [string]$Commit, [string]$ProjectId = "")
+  if (-not $ProjectId) { $ProjectId = (Get-Content -Raw (Join-Path $Root '.firebaserc') | ConvertFrom-Json).projects.default }
   $sha = Invoke-ReleaseCommand git @("rev-parse", "--verify", "$Commit^{commit}") $Root
   if ($sha -notmatch '^[a-f0-9]{40}$') { throw "Invalid release commit." }
   $directory = Join-Path (Get-ReleaseCommonRoot $Root) ".tmp/release-checkouts/$sha"
@@ -14,7 +15,7 @@ function New-ReleaseCheckout {
     Invoke-ReleaseCommand git @("-c", "core.autocrlf=false", "worktree", "add", "--detach", $directory, $sha) $Root | Write-Host
   }
   foreach ($file in Get-ChildItem -LiteralPath (Join-Path $Root "functions") -Filter ".env*" -File) {
-    if ($file.Name -eq ".env" -or $file.Name -eq ".env.$((Get-Content -Raw (Join-Path $Root '.firebaserc') | ConvertFrom-Json).projects.default)") {
+    if ($file.Name -eq ".env" -or $file.Name -eq ".env.$ProjectId") {
       Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $directory "functions/$($file.Name)") -Force
     }
   }

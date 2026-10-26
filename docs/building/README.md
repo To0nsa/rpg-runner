@@ -1,5 +1,12 @@
 # Current Implementation Plans
 
+- [Android beta release with dev, staging and production](android_beta_release.md):
+  executing; reuse the existing project/owner account for dev and create named staging
+  and production projects now. Team acceptance uses a separate staging app/backend;
+  promote its frozen candidate to prod. One gameplay version per environment and
+  required updates. Environment routing/isolation is being validated; bootstrap,
+  provisioning, Android signing and Play acceptance remain pending.
+
 - [Completed system inbox and reusable attention marker](../archive/2026-10-21/building/system_inbox.md):
   manually claimed 25-gold gifts for newly reached levels, game messages and a
   shared notification dot. Locally validated; not deployed.

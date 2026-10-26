@@ -32,6 +32,7 @@ coverage/
 # Android (Gradle)
 # =========================
 android/.gradle/
+android/.kotlin/
 android/**/build/
 android/local.properties
 android/key.properties

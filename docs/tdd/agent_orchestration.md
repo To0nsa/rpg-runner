@@ -57,6 +57,10 @@ state. Reuse checks only for unchanged inputs. Complete producer/consumer change
 together using the [cross-layer workflow](../../.agent/workflows/change-cross-layer-contract.md).
 Record release prerequisites separately from local implementation completion;
 cloud cutover requires the user's release authorization.
+Release orchestration selects an explicit dev/staging/prod environment through
+the canonical entry point. A successful check or deployment in one project does
+not establish another project's live state. Preserve the selected candidate,
+per-project evidence and outstanding Play/device checks across interruptions.
 
 ## Offline guidance check
 

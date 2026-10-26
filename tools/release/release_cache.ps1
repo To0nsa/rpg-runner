@@ -15,7 +15,7 @@ function Get-ReleaseCacheRoot {
 
 function Get-ReleaseInputPaths {
   param([string]$Root)
-  $listing = Invoke-ReleaseCommand git @("ls-files", "--cached", "--others", "--exclude-standard") $Root
+  $listing = Invoke-ReleaseCommand git @("-c", "core.quotepath=false", "ls-files", "--cached", "--others", "--exclude-standard") $Root
   return @($listing -split '\r?\n' | Where-Object {
     $_ -and $_ -notmatch '(^|/)(node_modules|\.dart_tool|build|coverage)/' -and
     $_ -notmatch '^functions/(lib|lib_test)/' -and $_ -notmatch '\.md$' -and (Test-Path -LiteralPath (Join-Path $Root $_) -PathType Leaf)
@@ -32,7 +32,7 @@ function Get-ReleaseInputHashes {
     client = '^(functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|lib/|web/|assets/|packages/[^/]+/(lib/|pubspec\.yaml$)|pubspec\.(yaml|lock)$)'
     functions = '^(functions/(src/|package\.json$|tsconfig\.json$)|firestore\.|firebase\.json$|package\.json$|pnpm-[^/]+\.yaml$)'
     worker = '^(functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|services/replay_validator/(lib/|bin/|pubspec\.(yaml|lock)$|Dockerfile$|cloudbuild\.yaml$)|packages/(runner_core|run_protocol)/(lib/|pubspec\.yaml$)|\.dockerignore$|\.gcloudignore$)'
-    infrastructure = '^(firebase\.json$|\.firebaserc$|tools/cloud/|services/replay_validator/configure_cloud\.ps1$)'
+    infrastructure = '^(firebase(?:\.(?:staging|prod))?\.json$|\.firebaserc$|tools/release/(environments\.json|release_environments\.ps1)$|tools/cloud/|services/replay_validator/configure_cloud\.ps1$)'
   }
   $result = [ordered]@{}
   foreach ($name in $groups.Keys) {
