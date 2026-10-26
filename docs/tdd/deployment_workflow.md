@@ -9,14 +9,25 @@ project, region, Firebase config, replay bucket, worker endpoint, queue names an
 Android package. `.firebaserc` aliases must agree; its default stays dev.
 `ProjectId`/`Region` can assert the selected identity but cannot redirect it.
 Cloud mutations require explicit `-Environment`; offline Plan defaults to dev.
-Staging/prod projects have been created; their worker URLs remain empty and block
-release mutations until provisioning and endpoint configuration are complete.
+Staging/prod use their project-number-based Cloud Run worker URLs. Those URLs
+can be configured before service creation; deployment must still verify the
+actual service, image and traffic before issuance resumes.
 
 Only dev has a Hosting site. Staging/prod configuration deliberately has no
 Hosting target; their coordinated backend releases do not publish a website.
 The local web build remains preparation evidence, not proof of an Android build.
-Native artifact preparation and project provisioning are still pending in the
+Native artifact preparation and service deployment remain in progress in the
 [Android beta workstream](../building/android_beta_release.md).
+
+`Provision -Environment <name> -BillingAccount <id> -BudgetAmount <amountEUR>`
+creates or verifies foundations without deploying gameplay. It requires explicit
+billing and a positive monthly alert budget, rejects conflicting existing billing,
+budget, database or bucket identities, batches API enablement, and initializes
+Firebase Auth without configuring OAuth credentials. It creates project-local
+service accounts, build resources and initially paused replay queues, and applies
+the existing retention helper. Retries preserve existing queue state. Budgets
+notify billing IAM recipients; they do not cap spending. OAuth linkage, managed
+recovery, monitoring and image-dependent bootstrap remain separate release steps.
 
 For a newly provisioned, unused project, `Bootstrap -Environment <name>
 -CutoverReady` replaces the first `PauseIssuance`. It requires the same prepared
@@ -375,6 +386,7 @@ tag later.
 .\tools\release\test_release_integration.ps1
 .\tools\release\test_release_cache.ps1
 .\tools\release\test_release_environments.ps1
+.\tools\release\test_provision_environment.ps1
 .\tools\release\test_release_integration.ps1 -TestEnvironment staging
 .\tools\release\test_release_integration.ps1 -TestEnvironment prod
 ~~~
@@ -391,7 +403,9 @@ Cache/CI checks exercise the preparation recipes, component invalidation,
 artifact restoration/tampering, current advisory audit, failed-marker rejection,
 scope/version selection, exact-run provenance, complete client-shard assembly,
 bundle import and slow-test timing. The entry-point fixtures also exercise
-Hosting-only deployment and backend retries while indexes build. Run all three
+Hosting-only deployment and backend retries while indexes build. Foundation
+checks cover isolated provisioning, idempotent Auth setup, paused new queues,
+preserved existing queues and conflicting billing/budgets. Run these
 suites under Windows PowerShell 5.1 and PowerShell 7.
 Mocks never establish live IAM, successful Firebase publication, actual container
 throughput or signed-in gameplay acceptance.

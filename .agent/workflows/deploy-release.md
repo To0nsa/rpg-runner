@@ -14,6 +14,9 @@ Select `-Environment dev|staging|prod` explicitly throughout a release. The
 registry and Firebase aliases must agree. Only dev has Hosting; a prepared web
 artifact never proves Android packaging or Play acceptance. Project-scoped
 baselines/checkpoints cannot establish readiness in a different environment.
+For authorized foundation setup, use Provision with explicit environment,
+billing account and monthly budget. Verify its live readback; it does not deploy
+the game or establish Android/Play readiness. Existing queues retain their state.
 
 1. Inspect source/worktree and run Plan. Resolve tuple or Functions environment
    drift before preparing. Use Checkout -Environment <environment> -Commit <authorized-commit> to create

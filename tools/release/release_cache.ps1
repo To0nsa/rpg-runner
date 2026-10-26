@@ -32,7 +32,7 @@ function Get-ReleaseInputHashes {
     client = '^(functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|lib/|web/|assets/|packages/[^/]+/(lib/|pubspec\.yaml$)|pubspec\.(yaml|lock)$)'
     functions = '^(functions/(src/|package\.json$|tsconfig\.json$)|firestore\.|firebase\.json$|package\.json$|pnpm-[^/]+\.yaml$)'
     worker = '^(functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|services/replay_validator/(lib/|bin/|pubspec\.(yaml|lock)$|Dockerfile$|cloudbuild\.yaml$)|packages/(runner_core|run_protocol)/(lib/|pubspec\.yaml$)|\.dockerignore$|\.gcloudignore$)'
-    infrastructure = '^(firebase(?:\.(?:staging|prod))?\.json$|\.firebaserc$|tools/release/(environments\.json|release_environments\.ps1)$|tools/cloud/|services/replay_validator/configure_cloud\.ps1$)'
+    infrastructure = '^(firebase(?:\.(?:staging|prod))?\.json$|\.firebaserc$|tools/release/(environments\.json|release_environments\.ps1|provision_environment\.ps1)$|tools/cloud/|services/replay_validator/configure_cloud\.ps1$)'
   }
   $result = [ordered]@{}
   foreach ($name in $groups.Keys) {

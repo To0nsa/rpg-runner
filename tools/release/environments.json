@@ -24,7 +24,7 @@
       "hostingSite": "",
       "replayBucket": "lothringen-long-run-staging-replays",
       "workerService": "replay-validator",
-      "workerUrl": "",
+      "workerUrl": "https://replay-validator-943085064373.europe-west1.run.app",
       "validationQueue": "replay-validation",
       "projectionQueue": "replay-projection",
       "androidPackage": "com.example.rpg_runner.staging"
@@ -38,7 +38,7 @@
       "hostingSite": "",
       "replayBucket": "lothringen-long-run-prod-replays",
       "workerService": "replay-validator",
-      "workerUrl": "",
+      "workerUrl": "https://replay-validator-696550437718.europe-west1.run.app",
       "validationQueue": "replay-validation",
       "projectionQueue": "replay-projection",
       "androidPackage": "com.example.rpg_runner"

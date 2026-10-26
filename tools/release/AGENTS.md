@@ -13,6 +13,10 @@ Do not assume a previously used release checklist is the current target.
 - Preserve the independent Flutter workspace and Dart validator lockfiles.
 - Reuse configure_cloud.ps1 and retention/monitoring scripts rather than
   duplicating their deployment policy.
+- Provision requires explicit billing and budget inputs. Keep retry-safe
+  foundations separate from image-dependent bootstrap, preserve existing queue
+  state, and never treat alert budgets as spending caps. Run
+  test_provision_environment.ps1 on both PowerShell versions when changing it.
 - Keep ticket issuance paused across coordinated Functions/worker/Hosting
   cutover. Exclude runSessionCreate from that backend phase; it belongs to
   ResumeIssuance. Verified Backend scope may redeploy it under the unchanged

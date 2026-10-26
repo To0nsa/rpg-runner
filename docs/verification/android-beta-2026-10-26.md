@@ -130,6 +130,64 @@ public access. Internal testing is available; closed testing still needs app
 setup. Signing certificates and Play Games configuration remain to be inspected.
 The owner explicitly reconfirmed three environments after discussing overhead.
 
+## Foundation provisioning and Android preparation
+
+Bootstrap implementation is committed as `91dd4978`. Subsequent source includes
+the independent sign-in/deletion fix `f5075eed`; no final candidate is frozen.
+
+`release.ps1 -Action Provision -Environment <staging|prod> -BillingAccount
+<existing-account> -BudgetAmount <25EUR|50EUR>` completed with live readback on
+October 26. Staging completed at 21:32:05Z and prod at 21:35:57Z after Auth
+initialization was added. Local logs are `.tmp/beta-checks/provision-*-auth.log`.
+Neither environment has game Functions or a worker service yet.
+
+- Native Firestore in `europe-west1`, deletion protection enabled.
+- Project-specific replay and Cloud Build buckets, uniform access, public
+  access prevention, seven-day soft deletion; existing retention helper applied.
+- Project-local replay registry, run-control/validator/task-dispatch identities,
+  scoped runtime roles and queue enqueuer grants. No new owner/editor grant.
+- Both queues initially PAUSED at five concurrent dispatches/five per second;
+  retries preserve existing queue state.
+- EUR25/month staging and EUR50/month prod budgets, actual 50/90/100% and
+  forecast 100% alerts. Default billing IAM recipients; these are not cost caps.
+- Firebase/Identity Toolkit Auth initialized. The first existence-only check
+  failed with `auth/configuration-not-found`; initialization resolved it.
+- Live `node functions/tool/bootstrap_inventory.mjs --project <project>` passed:
+  staging 21:35:13Z and prod 21:36:52Z, both `hasAuthUsers=false` and
+  `hasFirestoreCollections=false`. These are inventories, not bootstrap runs.
+- Environment `.env` files are ignored, explicit and isolated. Staging/prod
+  select abuse and App Check enforcement; no auth/attestation bypass is enabled.
+
+`test_provision_environment.ps1` passes 30 mocked checks on PowerShell 5.1 and
+7, covering all environments, retries, Auth initialization, foreign billing/
+budget rejection, API batch limit and identity isolation. An initial scalar
+`.Count` test bug was corrected; logs `provision-test-<powershell|pwsh>.log`.
+The full required release regression matrix also passes on both shells: 40
+helper/syntax checks, 48 cache checks, 29 isolation checks, and 93 dev / 88
+staging / 88 prod entry-point checks. Logs use the `foundations-` prefix.
+Agent guidance and diff checks pass. CI now runs the same environment/provisioning
+checks; its hosted execution has not yet been triggered for this milestone.
+
+Android worktree validation from the repository root:
+
+- `flutter test test/firebase_environment_test.dart
+  test/ui/bootstrap/app_services_test.dart test/ui/bootstrap/ui_app_startup_test.dart`:
+  19 passed; `.tmp/beta-checks/android-environments.log`.
+- Targeted Dart analysis: no issues; `android-environments-analysis.log`.
+- Gradle `:app:processDevDebugGoogleServices :app:processDevReleaseGoogleServices
+  :app:processStagingReleaseGoogleServices :app:processProdReleaseGoogleServices`:
+  BUILD SUCCESSFUL; `android-flavor-resources.log`. This verifies configuration
+  selection, not signed APKs or online authentication.
+
+Play Console rejected `com.example.rpg_runner.staging` as already in use and
+reported `com.lothringen.longrun.staging` available. The initial new Firebase
+registration used the rejected package and must be superseded before build.
+Created the separate Long Run Staging draft listing, app ID
+`4975698862921375548`, with package `com.lothringen.longrun.staging`, English
+(United Kingdom), Game, Free. No bundle uploaded or release published.
+Owner supplied Finland, ages 16+, `lothringen.rpg@gmail.com` support/deletion
+contact. Age audience does not establish the IARC rating.
+
 ## Remaining acceptance
 
 Environment service provisioning, Android identities, signing, freeze/build/deployment hashes,

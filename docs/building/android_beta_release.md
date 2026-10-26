@@ -46,16 +46,35 @@ reviewable preparation and retain all non-waived acceptance gates.
 - Created `lothringen-long-run-staging` (943085064373) and
   `lothringen-long-run-prod` (696550437718), linked both to the existing Firebase
   Payment billing account, and renamed the existing project's display name to
-  `Lothringen Long Run - Dev`. Firebase is enabled on both new projects; remaining
-  provisioning is pending. No new game backend or Android artifact is deployed.
+  `Lothringen Long Run - Dev`. Firebase and Auth are initialized on both new
+  projects, with isolated Firestore, replay/build buckets, registry, service
+  accounts and paused task queues. Monthly alert budgets are EUR25 staging and
+  EUR50 prod; these are notifications, not spending caps. No new game backend
+  or Android artifact is deployed.
 - Play account is Personal. Existing Long Run app ID 4975420968170292531 has an
   inactive internal track, empty draft and no bundles in its library. Internal
   testing is available. Public access requires 12 testers for 14 continuous days;
   Console currently reports zero opted-in testers. Closed-track setup is pending.
 - Owner reconsidered the overhead and explicitly reconfirmed all three
   environments for independent candidate testing during execution.
-- Next: provisioning, Android isolation/signing and release acceptance. Final
-  source is not frozen and no app upload occurred.
+- Store audience confirmed by owner: Finland, ages 16+, public support and
+  account-deletion contact `lothringen.rpg@gmail.com`; initial internal tester is
+  the existing owner account. This audience choice does not replace IARC ratings.
+- Provisioning is repeatable through `release.ps1 -Action Provision`; 30 mocked
+  checks pass on PowerShell 5.1 and 7. Live existence-only Auth/Firestore checks
+  confirm both new environments are empty. Worker URLs use the documented
+  project-number format; actual service readback awaits deployment.
+- Android flavor/resource generation passes for dev debug/release and staging/
+  prod release. Nineteen focused environment/startup tests and targeted analysis
+  pass. Signing, Play Games linkage and device acceptance remain pending.
+- Play rejects `com.example.rpg_runner.staging` as already in use. It confirms
+  `com.lothringen.longrun.staging` is available; created its separate Long Run
+  Staging listing, app ID `4975698862921375548`. Update the new Firebase/native
+  registration before uploading. Preserve the existing working dev identity.
+- The previously staged auth/account-deletion work is now commit `f5075eed`.
+  Preserve it as intended source and revalidate integration before freezing.
+- Next: Android identity/signing, Play Games linkage and remaining release
+  acceptance. Final source is not frozen and no app upload occurred.
 - Durable evidence: [Android beta execution](../verification/android-beta-2026-10-26.md).
 
 ## Outcome and environment decisions
@@ -233,7 +252,7 @@ under `.tmp/`. Distinguish repository inspection, mocked checks and live results
 
 Execution: agent via read-only CLI and connected Chrome; user for missing decisions.
 
-- [ ] Restore/verify Chrome browser-control access to the intended signed-in
+- [x] Restore/verify Chrome browser-control access to the intended signed-in
   profile, then inspect Firebase, Google Cloud and Play Console without changes.
 - [ ] Inventory existing resources, serving versions, active sessions, pending rewards,
   boards, buckets, queues, scheduler, IAM, billing, alerts and retention policies.
@@ -280,7 +299,7 @@ Execution: agent, repository and CLI. Prepare locally before cloud changes.
 - [ ] Extend the existing release entry point and provisioning helpers to select
   an environment. Preserve offline default `Plan`; require explicit environment
   selection for mutations and reject contradictory project/resource identities.
-- [ ] Remove hard-coded project service-account addresses from Functions source.
+- [x] Remove hard-coded project service-account addresses from Functions source.
   Derive/validate identity against the selected deployment project. Audit task
   dispatch, settlement URLs, token audiences, scheduled work and monitoring for
   cross-project defaults; make missing environment values fail clearly.
@@ -288,7 +307,7 @@ Execution: agent, repository and CLI. Prepare locally before cloud changes.
   environment/project. Share source-only evidence/artifacts only when inputs
   genuinely match. Historical old-project production evidence belongs to that
   project; it cannot establish a baseline for the new production project.
-- [ ] Add a first-deployment bootstrap path for empty staging/production, without
+- [x] Add a first-deployment bootstrap path for empty staging/production, without
   requiring resources or paused/drained sessions in another project. Retain
   readiness checks and coordinated cutover rules for established environments.
   Bootstrap must verify the target is empty rather than trust an environment name.
@@ -313,7 +332,7 @@ cutover tests pass. No direct package-deploy workaround becomes a parallel path.
 
 Execution: agent via CLI; Chrome for billing/console-only setup; user where required.
 
-- [ ] Label the existing project as development and reuse its account, data and
+- [x] Label the existing project as development and reuse its account, data and
   services. Keep credentials needed for dev sign-in. Only clean up obsolete
   owner fixtures when necessary; no data preservation or import task is required.
 - [ ] Create the new staging and production Firebase/Cloud projects with their
