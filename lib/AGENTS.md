@@ -132,7 +132,8 @@ This repo already has patterns for:
 
 Match verification to the layer you touched:
 
-- Core behavior: `test/core/**`
+- Portable Core behavior: `packages/runner_core/test/**` (Dart package runner)
+- Flutter-hosted Core integration: root `test/core/**`
 - Flame/render/controller behavior: `test/game/**`
 - widgets, routes, and state orchestration: `test/ui/**`
 - integration/benchmark coverage: `test/integration_test/**`

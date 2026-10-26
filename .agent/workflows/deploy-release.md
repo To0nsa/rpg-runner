@@ -1,8 +1,15 @@
+---
+description: Prepare evidence and execute a user-authorized scoped or coordinated release
+---
+
 # Deploy a release
 
-Read [deployment_workflow.md](../../docs/tdd/deployment_workflow.md) and the
-[current release checklist](../../docs/building/rescue_release_operations.md).
-Use tools/release/release.ps1 as the entry point. Its default action is Plan.
+Read [deployment_workflow.md](../../docs/tdd/deployment_workflow.md),
+[release instructions](../../tools/release/AGENTS.md), and the checklist matching
+the requested release in [current plans](../../docs/building/README.md).
+Verify its source, environment, scope and outstanding gates against the user's
+request; an older release plan is not a default target or authorization.
+Use `tools/release/release.ps1` as the entry point. Its default action is Plan.
 
 1. Inspect source/worktree and run Plan. Resolve tuple or Functions environment
    drift before preparing. Use Checkout -Commit <authorized-commit> to create

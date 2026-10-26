@@ -36,6 +36,10 @@ Read first:
 
 ## Validation
 
+First select affected package tests (`dart test <target>` from
+`packages/runner_core`) and root consumer test files (`flutter test <target>`).
+The complete slice commands below are for shared output changes with broad impact.
+
 ```powershell
 dart analyze packages/runner_core
 flutter test test/core

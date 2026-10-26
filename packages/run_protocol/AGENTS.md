@@ -112,10 +112,10 @@ callable contracts in the same repo change.
 
 ## Testing Expectations
 
-Minimum checks for protocol changes:
+Select affected tests, using the full package for broad contract changes:
 
 - `dart analyze packages/run_protocol`
-- `dart test packages/run_protocol/test`
+- `dart test <target>` from `packages/run_protocol` (or `dart test` for the package)
 
 Add focused tests for:
 

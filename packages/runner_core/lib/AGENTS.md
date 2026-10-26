@@ -148,7 +148,9 @@ Do not stop after the first compile error. Finish the content path end to end.
 
 Core changes usually need tests. Target the most relevant slice:
 
-- `test/core/**` for gameplay rules and deterministic behavior
+- `packages/runner_core/test/**` for portable gameplay, ECS, navigation and
+  deterministic behavior (run `dart test` from the package)
+- root `test/core/**` for Flutter-hosted gameplay/integration coverage
 - integration tests when a feature spans multiple systems or run flow
 - `services/replay_validator/test/**` when replay validation assumptions or
   accepted run outputs change

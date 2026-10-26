@@ -1,7 +1,9 @@
 # AGENTS.md - release tooling
 
-Read the root AGENTS.md, docs/tdd/deployment_workflow.md and the current release
-checklist before changing this workflow.
+Read the root AGENTS.md, [deployment contract](../../docs/tdd/deployment_workflow.md)
+and the checklist matching the user's release in
+[current plans](../../docs/building/README.md) before changing this workflow.
+Do not assume a previously used release checklist is the current target.
 
 - release.ps1 is the canonical entry point; keep its default action offline Plan.
 - Preserve the independent Flutter workspace and Dart validator lockfiles.

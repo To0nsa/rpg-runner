@@ -6,7 +6,8 @@ description: Add a new Core system to the deterministic game loop
 
 Use this workflow when adding or reordering logic under
 `packages/runner_core/lib/ecs/systems/**`. Read
-`packages/runner_core/lib/AGENTS.md` first.
+[Core package](../../packages/runner_core/AGENTS.md) and
+[Core source](../../packages/runner_core/lib/AGENTS.md) instructions first.
 
 ## Current Source Of Truth
 
@@ -54,6 +55,10 @@ Do not use the obsolete `lib/core/**` paths.
    `lib/ui/**`, and tests in the same change.
 
 ## Suggested Validation
+
+Select affected package tests from `packages/runner_core` with `dart test <target>`
+and root integration tests with `flutter test <target>`. The broader commands
+below apply when the system/order change spans these suites.
 
 ```bash
 dart analyze packages/runner_core

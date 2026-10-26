@@ -12,7 +12,7 @@ It must not import Flutter or Flame, use wall-clock time as gameplay
 authority, or duplicate replay/board wire contracts owned by
 `packages/run_protocol/`.
 
-Read `lib/AGENTS.md` before changing production Core source. It adds
+Read [Core source instructions](lib/AGENTS.md) before changing production Core source. It adds
 implementation-specific deterministic, ECS, and system-ordering rules.
 
 ## Package map
@@ -66,7 +66,8 @@ matching game-compatibility release and worker drain policy.
 
 ## Validation
 
-Minimum Core checks:
+Select affected package test files first; the full package commands below are
+for broad Core impact or required gates, following root validation scope:
 
 ```powershell
 dart analyze packages/runner_core
@@ -76,9 +77,9 @@ dart test
 Pop-Location
 ```
 
-Use `flutter test test/core` for gameplay, content, snapshot, or determinism
-changes. Add the relevant Game, UI, protocol, validator, or editor checks for
-cross-layer work.
+Select relevant root `test/core/` targets with `flutter test` for gameplay,
+content, snapshot or determinism changes. Use the full slice for broad simulation
+impact. Add Game, UI, protocol, validator or editor checks at affected boundaries.
 
 For level geometry/assembly or enemy navigation/movement changes, also run:
 

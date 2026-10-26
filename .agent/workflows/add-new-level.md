@@ -5,9 +5,10 @@ description: Add a new playable level to the current generated level pipeline
 # Add New Level Workflow
 
 Use this workflow when adding a playable level to the current data-first
-pipeline. Read `AGENTS.md`, `lib/AGENTS.md`,
-`packages/runner_core/lib/AGENTS.md`, `lib/game/AGENTS.md`,
-`lib/ui/AGENTS.md`, and `tools/editor/AGENTS.md` before editing.
+pipeline. Start with [authoring instructions](../../assets/authoring/AGENTS.md)
+and [Core package rules](../../packages/runner_core/AGENTS.md). Read the owning
+instructions for generator, editor, Game or UI implementation only when those
+areas change; generated output alone does not require reading every UI workflow.
 
 ## Current Source Of Truth
 
@@ -32,7 +33,8 @@ Do not hand-edit generated runtime files.
    Prefer the Level Creator in `tools/editor` when practical. If editing JSON
    directly, preserve canonical field order, stable `levelId`, stable
    `enumOrdinal`, deterministic chunk theme groups, camera/ground values, and
-   explicit `status` and schema-v2 `includeInBuild`. New/Copy start excluded;
+   explicit `status` and schema-v3 `includeInBuild` and `terrainHeightStepPx`.
+   New/Copy start excluded;
    identity ordinals persist regardless of inclusion or deprecation. Use the
    offline `tool/migrate_level_build_inclusion.dart --apply` only when upgrading
    an older source file, never as a normal editor load fallback.
@@ -101,12 +103,12 @@ dart analyze packages/runner_core lib/ui lib/game
 flutter test test/core test/ui test/game
 ```
 
-For editor changes, also run:
+For editor changes, select affected targets from `tools/editor`:
 
 ```bash
 cd tools/editor
 dart analyze
-flutter test
+flutter test <target>
 ```
 
 ## Manual Verification

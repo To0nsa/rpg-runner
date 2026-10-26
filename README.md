@@ -255,6 +255,14 @@ worker and board versions.
 
 ## Documentation And Planning
 
+For coding-agent work, start with [AGENTS.md](AGENTS.md) and the
+[agent routing index](.agent/README.md). Guidance is scoped by source ownership;
+workflows cover cross-layer changes, validation, releases and session handoffs.
+Check the instruction graph offline with `node tools/agents/check.mjs`; checker
+regressions use `node --test tools/agents/check.test.mjs`. No Flutter or cloud
+setup is needed for these checks. See the
+[orchestration contract](docs/tdd/agent_orchestration.md) for coverage and limits.
+
 The [documentation index](docs/README.md) links current audits, implementation
 plans, technical contracts, and game design documents. Previous audit and
 planning documents are retained in a dated archive after the September 15,
