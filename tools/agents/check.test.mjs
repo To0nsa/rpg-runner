@@ -12,6 +12,9 @@ function fixture(t) {
   t.after(() => rmSync(root, { recursive: true, force: true }));
   execFileSync('git', ['init', '--quiet', root]);
   execFileSync('git', ['-C', root, 'config', 'core.autocrlf', 'false']);
+  const hooks = path.join(root, '.git', 'fixture-hooks');
+  mkdirSync(hooks);
+  execFileSync('git', ['-C', root, 'config', 'core.hooksPath', hooks]);
   const write = (name, text) => {
     const target = path.join(root, name);
     mkdirSync(path.dirname(target), { recursive: true });
@@ -79,6 +82,83 @@ test('reference labels containing inline code still have their targets checked',
   assert.ok(f.audit().errors.some((error) => error.includes('missing link target: missing.dart')));
 });
 
+test('commented links cannot satisfy routing or cause false missing-target errors', (t) => {
+  const f = fixture(t);
+  f.write('AGENTS.md', '# Root\n<!-- [Routing](.agent/README.md) -->\n'
+    + '<!--\n[Old](removed.md)\n-->\n');
+  assert.deepEqual(f.audit().errors, ['AGENTS.md: must link to .agent/README.md']);
+});
+
+test('unused reference definitions do not make an instruction discoverable', (t) => {
+  const f = fixture(t);
+  f.write('lib/AGENTS.md', '# App\n');
+  f.append('.agent/README.md', '\n[app]: ../lib/AGENTS.md\n');
+  assert.ok(f.audit().errors.some((error) => error.includes('missing index entry for lib/AGENTS.md')));
+  f.append('.agent/README.md', '[App instructions][APP]\n');
+  assert.deepEqual(f.audit().errors, []);
+});
+
+test('undefined explicit references fail and collapsed/shortcut references resolve', (t) => {
+  const f = fixture(t);
+  f.append('AGENTS.md', '[Lost][missing]\n');
+  assert.ok(f.audit().errors.some((error) => error.includes('undefined reference: missing')));
+  f.write('AGENTS.md', '# Root\n[Routing][]\n[Contract]\n'
+    + '[routing]: .agent/README.md\n[contract]: docs/tdd/agent_orchestration.md\n');
+  assert.deepEqual(f.audit().errors, []);
+});
+
+test('percent-encoded hash characters belong to the path until a literal fragment separator', (t) => {
+  const f = fixture(t);
+  f.write('docs/name#part.md', '# Target\n');
+  f.append('AGENTS.md', '[Target](docs/name%23part.md#target)\n');
+  assert.deepEqual(f.audit().errors, []);
+});
+
+test('blank or non-string workflow descriptions fail', (t) => {
+  const f = fixture(t);
+  for (const description of [
+    '""', "''", 'null', '~', '|', '>', '# comment', '123', 'true',
+    '[]', '{}', '1e3', '0x12', '"broken" "quotes"',
+  ]) {
+    f.write('.agent/workflows/change.md', `---\ndescription: ${description}\n---\n# Change\n`);
+    assert.ok(f.audit().errors.some((error) => error.includes('description front matter')), description);
+  }
+  for (const description of [
+    '"Read the code"', "'Read the code'", 'Read the code # note',
+    '"Read the code" # note', "'Read the code' # note",
+  ]) {
+    f.write('.agent/workflows/change.md', `---\ndescription: ${description}\n---\n# Change\n`);
+    assert.deepEqual(f.audit().errors, []);
+  }
+});
+
+test('links with balanced parentheses and single-quoted titles resolve', (t) => {
+  const f = fixture(t);
+  f.write('docs/guide(current(v2)).md', '# Guide\n');
+  f.append('AGENTS.md', "[Guide](docs/guide(current(v2)).md 'Current guide')\n"
+    + '[Escaped](docs/guide\\(current\\(v2\\)\\).md)\n');
+  assert.deepEqual(f.audit().errors, []);
+});
+
+test('malformed inline destinations report an error instead of disappearing', (t) => {
+  const f = fixture(t);
+  f.append('AGENTS.md', '[Broken](docs/(unfinished.md)\n');
+  assert.ok(f.audit().errors.some((error) => error.includes('invalid inline link destination')));
+});
+
+test('an image pointing at instructions is not a navigation link', (t) => {
+  const f = fixture(t);
+  f.write('AGENTS.md', '# Root\n![Routing](.agent/README.md)\n');
+  assert.deepEqual(f.audit().errors, ['AGENTS.md: must link to .agent/README.md']);
+});
+
+test('commented headings cannot satisfy an anchor', (t) => {
+  const f = fixture(t);
+  f.write('docs/guide.md', '# Guide\n<!--\n## Removed\n-->\n');
+  f.append('AGENTS.md', '[Removed](docs/guide.md#removed)\n');
+  assert.ok(f.audit().errors.some((error) => error.includes('missing heading anchor')));
+});
+
 test('symlinked Markdown cannot make the checker read outside its repository', (t) => {
   const f = fixture(t);
   const external = fixture(t);
@@ -90,6 +170,20 @@ test('symlinked Markdown cannot make the checker read outside its repository', (
   }
   f.append('AGENTS.md', '[Outside](external.md)\n');
   assert.ok(f.audit().errors.some((error) => error.includes('outside repository')));
+});
+
+test('symlink aliases cannot make the checker read ignored files inside the repository', (t) => {
+  const f = fixture(t);
+  f.write('.gitignore', 'build/\n');
+  f.write('build/private.md', '# Private\n');
+  try { symlinkSync(path.join(f.root, 'build/private.md'), path.join(f.root, 'alias.md')); } catch (error) {
+    if (error.code === 'EPERM') return t.skip('Host does not allow unprivileged file symlinks');
+    throw error;
+  }
+  f.append('AGENTS.md', '[Alias](alias.md)\n');
+  assert.ok(f.audit().errors.some((error) => error.includes('ignored')));
+  f.write('.gitignore', '');
+  assert.deepEqual(f.audit().errors, []);
 });
 
 test('required root, index, contract and root-to-index route are enforced', (t) => {

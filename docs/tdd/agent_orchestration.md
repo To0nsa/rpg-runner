@@ -71,27 +71,40 @@ The checker also runs by absolute script path from another directory; it derives
 the repository root from its own location. It uses Node built-ins and Git,
 without dependency installation, Flutter, network, credentials or cloud calls.
 Git's tracked and nonignored untracked file inventory works in normal checkouts
-and linked worktrees. Ignored build/dependency trees are excluded; deleted tracked
-targets are still reported as failures until references are repaired.
+and linked worktrees. Ignored build/dependency trees are excluded, including when
+a symlink alias points into one. Resolved targets must remain inside the repository
+and its Git inventory. Deleted tracked targets are still reported as failures
+until references are repaired.
 
 Checks cover:
 
 - required root/index/contract and root-to-index navigation
 - complete index entries for all `AGENTS.md`, `AGENTS.override.md`, workflows and
   other Markdown references under `.agent/`
-- nonempty guidance, workflow description front matter and shadowing overrides
+- nonempty guidance, single-line string workflow descriptions and shadowing overrides
 - local Markdown link existence, repository containment and Markdown heading anchors
 - root and ancestor-chain UTF-8 byte budgets
 
 Link checks apply to instruction files, `.agent/**/*.md`, and this contract.
 Linked documents are read to resolve heading anchors, but their outbound links
-are not recursively crawled. Supported link syntax is inline Markdown links
-(including angle-bracket destinations and optional double-quoted titles) and
-reference definitions. Heading checks support ATX `#` headings and duplicate
-heading suffixes. Fenced/inline code examples are excluded. Use relative,
-forward-slash links and ATX headings in maintained guidance; external links are
-not fetched. Inline backtick paths, shell-command correctness, arbitrary HTML
-anchors and whole-repository prose semantics are outside this checker.
+are not recursively crawled. Supported syntax includes inline Markdown links
+with angle-bracket destinations, balanced/escaped parentheses and optional quoted
+titles, plus full, collapsed and defined shortcut reference links. Explicit
+references without definitions and malformed inline destinations fail. Labels
+resolve without case sensitivity; the first definition wins. Definitions are
+checked, but unused definitions and images cannot satisfy navigation/index entries.
+Literal fragment separators are split before URL decoding, preserving encoded
+characters in filenames. Heading checks support ATX `#` headings and duplicate
+heading suffixes. Fenced/inline code examples and HTML comments are excluded from
+link discovery; commented headings cannot satisfy anchors. Use relative,
+forward-slash links and ATX headings in maintained guidance. Labels and reference
+definitions must be on one line. External links are not fetched. Inline backtick
+paths, shell-command correctness, arbitrary HTML anchors, complex nested Markdown
+labels and whole-repository prose semantics are outside this checker.
+
+Workflow front matter requires a nonempty single-line description, plain or
+quoted. Empty strings, null/boolean/numeric scalars and block/collection forms
+are rejected; this intentionally does not implement a general YAML parser.
 
 Failures produce deterministic file-specific diagnostics and exit status 1.
 The checker does not execute referenced workflows or mutate files. Its fixtures

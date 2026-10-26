@@ -2,7 +2,8 @@
 
 - [Resolved agent orchestration audit](../archive/2026-10-26/audit/agent_orchestration.md):
   scoped guidance and workflow routing consolidated, oversized instruction chains
-  reduced, and offline structural checks added with 19 regression tests and CI.
+  reduced, and offline structural checks added with CI. Follow-up review fixed
+  parser and path-boundary gaps; all 29 regression tests pass locally.
   See the [current orchestration contract](../tdd/agent_orchestration.md).
 
 - [Resolved Forest authored-content drift](../archive/2026-10-02/audit/forest_content_drift_2026-10-02.md):

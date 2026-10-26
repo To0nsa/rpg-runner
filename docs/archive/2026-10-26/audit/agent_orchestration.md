@@ -1,6 +1,8 @@
 # Agent orchestration audit — October 26, 2026
 
-Status: repository findings resolved in `8056f116`. This is a closed audit of
+Status: initial repository findings resolved in `8056f116`; additional checker
+fixes and evidence are recorded in the [follow-up review](#follow-up-review).
+This is a closed audit of
 coding-agent guidance and coordination, not a gameplay-AI or production audit.
 Current behavior is documented in the
 [orchestration contract](../../../tdd/agent_orchestration.md) and
@@ -115,5 +117,44 @@ required for future changes that affect those invariants.
   repository byte check. Report host-specific loading failures when observed;
   do not treat the budget as a universal runtime guarantee.
 
-There are no deferred repository fixes from this audit. The limits above are
-evidence boundaries and operating choices, not passing claims about unrun work.
+No findings were deferred from the initial audit. The limits above are evidence
+boundaries and operating choices, not passing claims about unrun work.
+
+## Follow-up review
+
+The user's requested verification started from `3eb58336`. The original 19 tests
+still passed, but seven newly added regressions failed against that implementation.
+The review repaired these concrete gaps:
+
+| Finding | Correction |
+| --- | --- |
+| HTML-comment links could satisfy required navigation; stale commented links generated false failures. | Ignore HTML comments for links and headings. Commented headings cannot satisfy anchors. |
+| Unused reference definitions counted as index entries, while undefined explicit references were not checked. | Resolve actual full/collapsed/shortcut reference use, reject undefined explicit references, and require a visible navigation link. Images also cannot substitute for navigation. |
+| URL decoding happened before fragment splitting, so a valid `%23` in a filename became a fragment separator. | Split literal separators before decoding the path and fragment independently. |
+| The link regex truncated parenthesized filenames and mishandled single-quoted titles. | Parse balanced/escaped destination parentheses and quoted titles; diagnose malformed destinations. |
+| Empty quoted or non-string workflow descriptions passed the presence check. | Require a nonempty single-line string description; reject common non-string scalar, block and collection forms. |
+| A symlink to an ignored file inside the repository bypassed the ignored-tree boundary. | Require the resolved target to belong to the repository's Git inventory as well as remain physically inside the repository. |
+| The level workflow invoked `dart analyze` with three positional directories. | Use one invocation per directory, matching the [official Dart command syntax](https://github.com/dart-lang/site-www/blob/main/src/content/tools/dart-analyze.md) fetched through Context7 and the installed CLI's usage output. |
+
+Regression coverage now includes 29 tests, all passing locally on Windows with
+Node `v24.22.1`: zero failures or skips. The fixture repositories use a private
+empty hooks directory so fixture commits cannot execute a user's global hooks.
+Size-report ordering is ordinal rather than locale-dependent. The command
+`node tools/agents/check.mjs` still passes for 32 guidance files; the largest
+instruction chain remains 26,773 bytes. `git diff --check` passes. Maintained
+guidance source paths were reviewed again, with package/domain-relative and
+external brand references distinguished from missing files.
+
+Current parser scope and limitations are updated in the
+[orchestration contract](../../../tdd/agent_orchestration.md). The added tests
+include both valid syntax and negative controls; the checker remains offline
+and does not claim to implement all Markdown or YAML syntax.
+
+The existing Ubuntu WSL environment was inspected for an independent Linux run.
+Git was available, but Node was absent from its executable path. No runtime was
+installed and no Linux pass is claimed. Hosted CI remains unrun locally. The
+installed Dart usage text confirmed the analysis syntax, but its telemetry write
+was denied by the sandbox; official documentation independently established the
+same syntax. No application suites or production operations were needed for
+these checker/documentation changes. Unrelated Android planning edits remain
+outside this task.

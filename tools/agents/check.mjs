@@ -30,19 +30,93 @@ function prose(markdown) {
   }).join('\n');
 }
 
+function inlineDestination(text, start) {
+  let cursor = start;
+  while (/[ \t]/.test(text[cursor] ?? '')) cursor++;
+  let href = '';
+  if (text[cursor] === '<') {
+    const end = text.indexOf('>', cursor);
+    if (end < 0 || text.slice(cursor, end).includes('\n')) return null;
+    href = text.slice(cursor + 1, end);
+    cursor = end + 1;
+  } else {
+    let depth = 0;
+    while (cursor < text.length) {
+      const character = text[cursor];
+      if (/\s/.test(character) || (character === ')' && depth === 0)) break;
+      if (character === '\\' && /[\\()]/.test(text[cursor + 1] ?? '')) {
+        href += text[++cursor];
+      } else {
+        if (character === '(') depth++;
+        if (character === ')') depth--;
+        href += character;
+      }
+      cursor++;
+    }
+    if (depth !== 0) return null;
+  }
+  const tail = /^(?:[ \t]+(?:"[^"\n]*"|'[^'\n]*'|\([^\n)]*\)))?[ \t]*\)/.exec(text.slice(cursor));
+  return tail ? { href, end: cursor + tail[0].length } : null;
+}
+
 function links(markdown) {
-  const text = prose(markdown).replace(/(`+)[^\n]*?\1/g, '');
-  const inline = [...text.matchAll(/\[[^\]\n]*\]\(\s*(<[^>\n]+>|[^\s)]+)(?:\s+"[^"\n]*")?\s*\)/g)]
-    .map((match) => match[1].replace(/^<|>$/g, ''));
-  const references = [...text.matchAll(/^\s{0,3}\[[^\]\n]+\]:\s*(<[^>\n]+>|\S+)/gm)]
-    .map((match) => match[1].replace(/^<|>$/g, ''));
-  return [...inline, ...references];
+  const normalizeLabel = (label) => label.trim().replace(/\s+/g, ' ').toLowerCase();
+  const definitions = new Map();
+  const links = [];
+  const errors = [];
+  const text = prose(markdown).replace(/(`+)[^\n]*?\1/g, '')
+    .replace(/<!--[\s\S]*?(?:-->|$)/g, '')
+    .replace(/^ {0,3}\[([^\]\n]+)\]:[ \t]*(<[^>\n]+>|\S+)[^\n]*$/gm, (_, label, href) => {
+      const id = normalizeLabel(label);
+      if (!definitions.has(id)) {
+        const destination = href.replace(/^<|>$/g, '');
+        definitions.set(id, destination);
+        links.push({ href: destination, navigable: false });
+      }
+      return '';
+    });
+  const pattern = /(!?)\[([^\[\]\n]*)\](\(|\[([^\[\]\n]*)\])?/g;
+  let match;
+  while ((match = pattern.exec(text))) {
+    const navigable = match[1] !== '!';
+    if (match[3] === '(') {
+      const destination = inlineDestination(text, pattern.lastIndex);
+      if (!destination) {
+        errors.push(`invalid inline link destination after [${match[2]}]`);
+      } else {
+        links.push({ href: destination.href, navigable });
+        pattern.lastIndex = destination.end;
+      }
+    } else {
+      const label = normalizeLabel(match[4] || match[2]);
+      if (definitions.has(label)) {
+        links.push({ href: definitions.get(label), navigable });
+      } else if (match[3]) {
+        errors.push(`undefined reference: ${label}`);
+      }
+    }
+  }
+  return { links, errors };
+}
+
+function hasDescription(markdown) {
+  const front = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(markdown)?.[1];
+  const value = /^description:[ \t]*([^\r\n]*)/m.exec(front ?? '')?.[1].trim() ?? '';
+  if (/^["']/.test(value)) {
+    const quoted = /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^']|'')*)')(?:[ \t]+#.*)?$/.exec(value);
+    return quoted !== null && (quoted[1] ?? quoted[2]).trim().length > 0;
+  }
+  const plain = value.replace(/[ \t]+#.*$/, '').trim();
+  const scalar = /^(?:null|true|false|~|[-+]?(?:0x[\da-f]+|0o[0-7]+|0b[01]+|(?:\d[\d_]*\.?[\d_]*|\.\d[\d_]*)(?:e[-+]?\d+)?|\.inf|\.nan))$/i;
+  return plain.length > 0 && !/^[#>|[\]{}&*!]/.test(plain)
+    && !scalar.test(plain);
 }
 
 function anchors(markdown) {
   const found = new Set();
   const counts = new Map();
-  for (const match of prose(markdown).matchAll(/^ {0,3}#{1,6}\s+(.+?)\s*#*\s*$/gm)) {
+  const text = prose(markdown).replace(/<!--[\s\S]*?(?:-->|$)/g, '');
+  for (const match of text.matchAll(/^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*$/gm)) {
     const base = match[1].toLowerCase()
       .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
       .replace(/[^\p{L}\p{N}_\-\s]/gu, '').replace(/\s/g, '-');
@@ -82,6 +156,10 @@ export function auditRepository(root) {
     if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
       throw new Error('Reference resolves outside the repository');
     }
+    const canonical = relative.split(path.sep).join('/') || '.';
+    if (!inventory.has(canonical) && !directories.has(canonical)) {
+      throw new Error('Reference resolves to an ignored or unlisted path');
+    }
     return resolved;
   };
   const read = (file) => {
@@ -89,7 +167,7 @@ export function auditRepository(root) {
       try {
         contents.set(file, readFileSync(localPath(file), 'utf8'));
       } catch {
-        errors.push(`${file}: cannot read referenced file (deleted, inaccessible or outside repository)`);
+        errors.push(`${file}: cannot read referenced file (deleted, inaccessible, ignored or outside repository)`);
         contents.set(file, null);
       }
     }
@@ -107,11 +185,8 @@ export function auditRepository(root) {
     const text = read(file);
     if (text === null) continue;
     if (!text.trim()) errors.push(`${file}: guidance must not be empty`);
-    if (file.startsWith('.agent/workflows/')) {
-      const front = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text)?.[1];
-      if (!front || !/^description:[ \t]*\S[^\r\n]*$/m.test(front)) {
-        errors.push(`${file}: workflow needs description front matter`);
-      }
+    if (file.startsWith('.agent/workflows/') && !hasDescription(text)) {
+      errors.push(`${file}: workflow needs nonempty single-line string description front matter`);
     }
     if (file.endsWith('AGENTS.override.md')) {
       const canonical = file.replace('AGENTS.override.md', 'AGENTS.md');
@@ -119,16 +194,20 @@ export function auditRepository(root) {
     }
     const targets = new Set();
     localTargets.set(file, targets);
-    for (const href of links(text)) {
+    const parsed = links(text);
+    errors.push(...parsed.errors.map((error) => `${file}: ${error}`));
+    for (const { href, navigable } of parsed.links) {
       if (/^[a-z][a-z\d+.-]*:/i.test(href) || href.startsWith('//')) continue;
-      let decoded;
-      try { decoded = decodeURIComponent(href); } catch {
+      const hash = href.indexOf('#');
+      let destination;
+      let fragment;
+      try {
+        destination = decodeURIComponent(hash < 0 ? href : href.slice(0, hash));
+        fragment = hash < 0 ? '' : decodeURIComponent(href.slice(hash + 1));
+      } catch {
         errors.push(`${file}: invalid link encoding: ${href}`);
         continue;
       }
-      const hash = decoded.indexOf('#');
-      const destination = hash < 0 ? decoded : decoded.slice(0, hash);
-      const fragment = hash < 0 ? '' : decoded.slice(hash + 1);
       if (destination.includes('\\') || destination.startsWith('/')) {
         errors.push(`${file}: use a relative forward-slash link: ${href}`);
         continue;
@@ -141,8 +220,10 @@ export function auditRepository(root) {
         errors.push(`${file}: link leaves repository: ${href}`);
         continue;
       }
-      targets.add(target);
-      if (file === indexPath) indexTargets.add(target);
+      if (navigable) {
+        targets.add(target);
+        if (file === indexPath) indexTargets.add(target);
+      }
       if (!inventory.has(target) && !directories.has(target)) {
         errors.push(`${file}: missing link target: ${href}`);
       } else if (directories.has(target)) {
@@ -190,7 +271,7 @@ export function auditRepository(root) {
       + Math.max(0, members.length - 1) * 2;
     if (bytes > chainBudget) errors.push(`${leaf}: instruction chain is ${bytes} bytes; budget ${chainBudget}`);
     return { leaf, bytes };
-  }).sort((a, b) => b.bytes - a.bytes || a.leaf.localeCompare(b.leaf));
+  }).sort((a, b) => b.bytes - a.bytes || (a.leaf < b.leaf ? -1 : a.leaf > b.leaf ? 1 : 0));
 
   return { errors: [...new Set(errors)].sort(), guidanceCount: guidance.length, chains };
 }
