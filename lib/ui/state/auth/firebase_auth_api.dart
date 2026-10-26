@@ -16,6 +16,15 @@ class PlayGamesAuthRequiredException implements Exception {
   String toString() => message;
 }
 
+/// Firebase disabled the game account; the cause is not exposed to the client.
+/// Account deletion keeps this state until background erasure finishes.
+class GameAccountDisabledException implements Exception {
+  const GameAccountDisabledException();
+
+  @override
+  String toString() => 'The game account is disabled.';
+}
+
 /// Firebase-backed [AuthApi] adapter used by production UI composition.
 class FirebaseAuthApi implements AuthApi {
   FirebaseAuthApi({
@@ -241,6 +250,9 @@ class FirebaseAuthApi implements AuthApi {
     try {
       return await _source.readCurrent(forceRefresh: forceRefresh);
     } on FirebaseAuthException catch (error) {
+      if (error.code == 'user-disabled') {
+        throw const GameAccountDisabledException();
+      }
       final fallback = await _cachedFallbackForNetworkError(
         code: error.code,
         message: error.message,
@@ -585,6 +597,9 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
       debugPrint(
         'Play Games restore FirebaseAuthException: ${error.code} ${error.message}',
       );
+      if (error.code == 'user-disabled') {
+        throw const GameAccountDisabledException();
+      }
       return null;
     } catch (error) {
       debugPrint('Play Games restore failed: $error');

@@ -64,6 +64,14 @@ cold bootstrap replaces the loader with required name setup or the hub. Back
 cannot reveal an uninitialized hub or skip onboarding. Unknown routes and
 invalid run arguments display explicit errors rather than routing to the hub.
 
+Firebase `user-disabled` during Play Games restore or current-session token
+reads is preserved as `GameAccountDisabledException`. The loader shows **Game
+account unavailable**, explains the waiting period after a recent deletion,
+and offers **Try again**. It does not reuse cached credentials after this error.
+Firebase does not expose the disable reason, so the message describes deletion
+conditionally rather than treating all disabled accounts as deletion requests.
+A later successful retry follows normal onboarding or hub routing.
+
 `FirebaseAuthApi.ensureAuthenticatedSession()` behavior:
 
 - Try current Firebase user (`readCurrent(forceRefresh: false)`).

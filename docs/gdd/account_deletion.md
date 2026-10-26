@@ -4,6 +4,15 @@ The profile page offers account deletion through two confirmations. Backend
 deletion requires a linked Play Games identity and recent authentication;
 Flutter reauthenticates before sending the request.
 
+The first confirmation explains that deletion can take several hours and that
+the same Play Games profile cannot create a fresh game account until it finishes.
+Reopening during deletion shows **Game account unavailable**, with the waiting
+period and **Try again**, instead of asking the player to sign in to Play Games
+again. This message also covers other disabled accounts; because the app cannot
+read the disable reason, the deletion guidance starts with **If you recently
+deleted it**. After deletion finishes, sign-in can create a fresh account with
+reset progress.
+
 An accepted request transfers deletion to the server. Firestore/Storage cleanup
 continues asynchronously and does not require the player to remain signed in.
 The app immediately clears its in-memory profile, progression, ownership, and

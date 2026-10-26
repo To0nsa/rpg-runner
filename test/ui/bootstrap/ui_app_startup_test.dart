@@ -111,6 +111,39 @@ void main() {
   );
 
   testWidgets(
+    'disabled account explains deletion wait and can retry into onboarding',
+    (tester) async {
+      final fixture = StartupFixture();
+      fixture.auth.error = const GameAccountDisabledException();
+      await mount(tester, fixture);
+      await finishBranding(tester);
+
+      expect(find.text('Game account unavailable'), findsOneWidget);
+      expect(
+        find.textContaining('please wait for deletion to finish'),
+        findsOneWidget,
+      );
+      expect(find.text('Play Games sign-in required'), findsNothing);
+      expect(fixture.services.appState.isBootstrapped, isFalse);
+      expect(fixture.profile.calls, 0);
+      expect(fixture.ownership.calls, 0);
+      expect(find.byType(PlayHubPage, skipOffstage: false), findsNothing);
+
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(find.text('Game account unavailable'), findsOneWidget);
+      expect(fixture.auth.calls, 2);
+
+      fixture.auth.error = null;
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(fixture.services.appState.isBootstrapped, isTrue);
+      expect(find.byType(ProfileNameSetupPage), findsOneWidget);
+      expect(fixture.initializationCalls, 1);
+    },
+  );
+
+  testWidgets(
     'resume is a single gate and returns to the prior page after retry',
     (tester) async {
       final fixture = StartupFixture();

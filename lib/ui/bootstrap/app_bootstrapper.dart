@@ -39,13 +39,20 @@ class BootstrapResult {
 
   String get errorTitle => switch (stage) {
     BootstrapStage.services => 'Unable to start the game',
-    BootstrapStage.playerData =>
-      _needsSignIn
-          ? 'Play Games sign-in required'
-          : 'Unable to load player data',
+    BootstrapStage.playerData => switch (error) {
+      GameAccountDisabledException() => 'Game account unavailable',
+      PlayGamesAuthRequiredException() => 'Play Games sign-in required',
+      _ => 'Unable to load player data',
+    },
   };
 
   String get errorMessage {
+    if (error is GameAccountDisabledException) {
+      return 'This game account is disabled. If you recently deleted it, '
+          'please wait for deletion to finish before signing in again. '
+          'This can take several hours. You can then use the same Play Games '
+          'account to start fresh.';
+    }
     if (_needsSignIn) return (error as PlayGamesAuthRequiredException).message;
     if (error is UnsupportedError) {
       return 'This platform does not support the services required by the game.';
@@ -55,7 +62,11 @@ class BootstrapResult {
         : 'Your player data could not be loaded. Check your connection and try again.';
   }
 
-  String get retryLabel => _needsSignIn ? 'Retry Play Games sign-in' : 'Retry';
+  String get retryLabel => switch (error) {
+    GameAccountDisabledException() => 'Try again',
+    PlayGamesAuthRequiredException() => 'Retry Play Games sign-in',
+    _ => 'Retry',
+  };
 }
 
 /// Initializes services before authenticating and loading player data.
