@@ -12,7 +12,7 @@ No data is cancelled or deleted. Issuance pauses and resumes explicitly.
 #>
 [CmdletBinding()]
 param(
-  [ValidateSet("Plan", "Provision", "SigningSetup", "Checkout", "ImportCI", "Prepare", "Inspect", "BuildImage", "ImageStatus", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance")]
+  [ValidateSet("Plan", "Provision", "SigningSetup", "RecoverySetup", "MonitoringSetup", "Checkout", "ImportCI", "Prepare", "BuildAndroid", "Inspect", "BuildImage", "ImageStatus", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance")]
   [string]$Action = "Plan",
   [ValidateSet("dev", "staging", "prod")]
   [string]$Environment = "dev",
@@ -25,6 +25,8 @@ param(
   [long]$RunId = 0,
   [string]$BillingAccount = "",
   [string]$BudgetAmount = "",
+  [string]$NotificationEmail = "",
+  [int]$AndroidVersionCode = 0,
   [switch]$Rebuild,
   [switch]$CutoverReady
 )
@@ -34,8 +36,9 @@ param(
 . (Join-Path $PSScriptRoot "release_cache.ps1")
 . (Join-Path $PSScriptRoot "prepare_release.ps1")
 . (Join-Path $PSScriptRoot "release_ci.ps1")
+. (Join-Path $PSScriptRoot "release_lock.ps1")
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
-if ($Action -in @("Provision", "SigningSetup", "BuildImage", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance") -and
+if ($Action -in @("Provision", "SigningSetup", "RecoverySetup", "MonitoringSetup", "BuildAndroid", "BuildImage", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance") -and
     -not $PSBoundParameters.ContainsKey("Environment")) { throw "Cloud mutations require explicit -Environment dev, staging or prod." }
 $definition = Get-ReleaseEnvironmentDefinition $root $Environment $ProjectId $Region
 $ProjectId = $definition.projectId
@@ -45,9 +48,24 @@ if ($Action -eq 'Provision') {
   Initialize-ReleaseEnvironment $root $Environment $BillingAccount $BudgetAmount
   return
 }
+$mutationLock = $null
+try {
 if ($Action -eq 'SigningSetup') {
+  $mutationLock = Enter-ReleaseMutationLock $root $definition $Action
   . (Join-Path $PSScriptRoot 'android_signing.ps1')
   Initialize-AndroidUploadSigning $root $definition $Environment
+  return
+}
+if ($Action -eq 'RecoverySetup') {
+  $mutationLock = Enter-ReleaseMutationLock $root $definition $Action
+  . (Join-Path $PSScriptRoot 'database_recovery.ps1')
+  Set-ReleaseDatabaseRecovery $root $definition $Environment
+  return
+}
+if ($Action -eq 'MonitoringSetup') {
+  $mutationLock = Enter-ReleaseMutationLock $root $definition $Action
+  . (Join-Path $PSScriptRoot 'monitoring_environment.ps1')
+  Set-ReleaseMonitoring $root $definition $NotificationEmail
   return
 }
 $firebaseConfigPath = Join-Path $root $definition.firebaseConfig
@@ -374,6 +392,18 @@ if ($Action -eq "Inspect") {
 
 Assert-ReleasePrepared $state $sourceDigest $ProjectId $Region $root
 
+if ($Action -in @('BuildAndroid', 'BuildImage', 'Bootstrap', 'PauseIssuance', 'Deploy', 'ResumeIssuance')) {
+  $mutationLock = Enter-ReleaseMutationLock $root $definition $Action
+}
+
+if ($Action -eq 'BuildAndroid') {
+  if (-not $PSBoundParameters.ContainsKey('Environment')) { throw 'BuildAndroid requires explicit -Environment.' }
+  . (Join-Path $PSScriptRoot 'android_signing.ps1')
+  . (Join-Path $PSScriptRoot 'android_artifacts.ps1')
+  Invoke-AndroidReleaseBuild $root $definition $Environment $AndroidVersionCode $evidenceDirectory $contract $sourceDigest
+  return
+}
+
 if ($state.scope -in @("Hosting", "Backend", "None")) {
   if ($Action -ne "Deploy") { throw "$Action is only needed for coordinated releases. Use Deploy for $($state.scope)." }
   if ($resolvedScope -ne $state.scope) { throw "Deployment scope changed since preparation. Run Prepare again." }
@@ -446,6 +476,7 @@ if ($Action -eq "Bootstrap") {
   $existingFunctions = Invoke-ReleaseGcloud @("functions", "list", "--project=$ProjectId", "--format=json") | ConvertFrom-Json
   $existingServices = Invoke-ReleaseGcloud @("run", "services", "list", "--project=$ProjectId", "--platform=managed", "--format=json") | ConvertFrom-Json
   Assert-ReleaseBootstrapEmpty $emptyInventory $ProjectId $existingFunctions $existingServices
+  Assert-ReleaseCutoverOwner $root $definition $sourceDigest -Claim | Out-Null
   $emptyInventory | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDirectory "bootstrap-empty.json") -Encoding utf8
   # Creating only the paused issuer establishes the same fence used by normal
   # cutover. Every subsequent deployment/readiness/drain step remains unchanged.
@@ -473,11 +504,13 @@ if ($Action -eq "PauseIssuance") {
     $imageExists = $false
   }
   if ($imageExists) {
+    Assert-ReleaseCutoverOwner $root $definition $sourceDigest -Claim | Out-Null
     Invoke-ReleaseGcloud @("run", "services", "update", "runsessioncreate",
       "--project=$ProjectId", "--region=$Region", "--image=$issuerImage",
       "--update-env-vars=RUN_SUPPORTED_GAME_COMPAT_VERSIONS=release-paused", "--quiet") "issuance" | Out-Null
   } else {
     Write-Host "Previous issuer image was removed. Rebuilding prepared issuer with the explicit pause gate."
+    Assert-ReleaseCutoverOwner $root $definition $sourceDigest -Claim | Out-Null
     Invoke-PausedIssuerRebuild
   }
   Assert-IssuancePaused
@@ -493,6 +526,7 @@ if (-not $CutoverReady) {
 if (-not (Get-ImageStatus)) { throw "Cloud Build is still running; no production changes made." }
 Assert-ReleaseImage $state $ProjectId $Region
 Assert-IssuancePaused
+$cutoverOwner = Assert-ReleaseCutoverOwner $root $definition $sourceDigest
 $inventory = Get-ReleaseInventory
 Assert-ReleaseDrained $inventory
 if (-not $environmentValues.REPLAY_STORAGE_BUCKET -or
@@ -515,6 +549,7 @@ if ($Action -eq "ResumeIssuance") {
   $state.issuanceResumedAt = [DateTime]::UtcNow.ToString("o")
   Save-ReleaseState
   Save-ProductionBaseline $state.imageUri (Get-FileHash -LiteralPath (Join-Path $root "build/web/main.dart.js")).Hash
+  Complete-ReleaseCutover $root $definition $cutoverOwner
   Write-Host "Ticket issuance restored. Linked Play Games end-to-end smoke remains required."
   return
 }
@@ -557,4 +592,7 @@ if ($definition.hostingSite -and -not $state.hostingDeployedAt) {
 $state.deployedAt = [DateTime]::UtcNow.ToString("o")
 Save-ReleaseState
 Write-Host "Artifacts deployed. Issuance and both queues remain paused. Verify board maintenance, then run ResumeIssuance -CutoverReady and linked Play Games smoke checks."
+} finally {
+  Exit-ReleaseMutationLock $root $definition $mutationLock
+}
 Write-Host "Release evidence: $statePath"

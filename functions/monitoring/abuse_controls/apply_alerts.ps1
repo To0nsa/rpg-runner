@@ -51,7 +51,7 @@ function Assert-NotificationChannelReady {
   }
   if (
     $channel.PSObject.Properties.Name -contains "verificationStatus" -and
-    $channel.verificationStatus -ne "VERIFIED"
+    $channel.verificationStatus -notin @('VERIFIED', 'VERIFICATION_STATUS_UNSPECIFIED')
   ) {
     throw "Notification channel $NotificationChannel is not verified."
   }

@@ -194,6 +194,120 @@ Android identities, Play distribution signing, freeze/build/deployment hashes,
 real Play auth/attestation, device acceptance, recovery rehearsal, capacity and
 store review/publication are pending. Do not infer completion from authorization.
 
+## Native artifact and managed recovery checkpoint
+
+Signing milestone is `f3d1c471`. The native build/inspection and recovery helpers
+are still uncommitted. Required mocked matrix passes on PowerShell 5.1/7: 46
+syntax/helper checks, 48 cache checks, 29 environment checks, 11 artifact checks,
+nine managed recovery checks and 93/88/88 dev/staging/prod entry-point checks.
+Logs use `.tmp/beta-checks/android-pipeline-*`. Hosted CI is not yet run.
+
+The first `flutter build apk --flavor dev --release --no-pub` failed after 606s
+because GeneratedPluginRegistrant referenced excluded `integration_test` Java.
+The installed Flutter 3.47.1 source confirms `--no-pub` skips release-mode plugin
+regeneration. Retrying `flutter build apk --flavor dev --release` succeeded after
+754s. The native release recipe now permits regeneration and rejects source/lock
+drift after the build. Flutter's already-ignored machine-specific plugin metadata
+is removed from the index; the local generated file is retained.
+
+`Test-AndroidArtifact` inspected this uncommitted-source APK (before Crashlytics
+was added), not a final frozen build:
+
+- Package `com.example.rpg_runner.dev`, version `1.0.0-dev` / code 1, API 36,
+  min API 24, non-debuggable release mode.
+- Firebase app `1:964001571974:android:1a4b98db937af313d81d07` and existing dev
+  Play Games server client match compiled resources.
+- All 3,750 navigation graphs match the prepared manifest's byte lengths/hashes;
+  manifest SHA-256 `24529810f7d414c9e0e1047e28c24fb443ad02048634a8e0cc98ee5bd84359f8`.
+- ARM32/ARM64/x86_64 present, nine native libraries, ELF64 and APK ZIP alignment
+  pass 16 KB checks. Signature verified. APK size 188,445,473 bytes, SHA-256
+  `83dac2d4efeb26a3fdf56d985d57f66ce0d315949e261a192cddad4069db9bb2`.
+- Initial inspection falsely treated case-distinct optimized resource names as
+  duplicates; ZIP comparison now respects case. Full inspection passes in
+  `.tmp/beta-checks/android-dev-inspection/inspection.json`.
+
+`release.ps1 -Action RecoverySetup -Environment <staging|prod>` completed live:
+staging `2026-10-26T22:26:02.7798762Z`, prod `22:26:55.0468881Z`. Both report PITR
+enabled, deletion protection and daily backups retained 604800 seconds. Schedule
+IDs: staging `81659924-f26a-43fe-b285-9704c055a957`; prod
+`55808bbe-c641-43f6-bdcc-851524241e63`. Logs `recovery-setup-*.log`. This proves
+configuration only; history is accumulating and no scheduled backup completion
+has yet been checked.
+
+Created isolated dev database `beta-recovery-20261027-source` in europe-west1,
+with PITR enabled, for a synthetic reward/deletion restore. Creation operation
+completed. Initial ADC access was denied; the CLI-token adapter then needed the
+Firestore transport's matching Google Auth version. No existing player data or
+Auth records were modified. Seed succeeded at `2026-10-26T22:41:23.024Z` using
+the real compiled settlement and deletion guard. Managed PITR clone of the
+`22:42:00Z` snapshot to `beta-recovery-20261027-restored` ran from
+`22:43:03.869808Z` to `22:54:13.001927Z` (11m09s, SUCCESSFUL). At `22:59:07.820Z`,
+the restored wallet retained 75 gold/revision 1 and one applied grant; another
+settlement returned `already_settled` without changing state. The restored
+deletion tombstone rejected account access and no deleted-user ownership existed.
+Logs: `recovery-rehearsal-seed-final.log`, `recovery-rehearsal-clone-status.log`,
+`recovery-rehearsal-verify.log` under `.tmp/beta-checks/`.
+
+Both synthetic databases were deleted after verification. Live database-list
+readback in `recovery-rehearsal-final-databases.json` shows only `(default)` in
+eur3; that database was untouched. Deletion operations and their retained PITR
+metadata are recorded in `recovery-delete-*.log`. This rehearsal proves database
+restore, duplicate-settlement safety and the deletion barrier for the fixtures;
+it does not restore Auth, Storage objects, queues or measure full-service RTO.
+
+The subsequent dev AAB probe with Crashlytics failed after 1058s: the Gradle
+daemon could not allocate native memory. Its former limits allowed an 8 GB heap
+and 4 GB metaspace on a 16 GB workstation. The build now uses 4 GB heap, 1 GB
+metaspace and two workers. Retry succeeded after 939s. The task's orphaned,
+idle Kotlin compiler daemon was identified by its crashed Gradle parent and
+stopped to release memory; unrelated processes were preserved. After successful
+completion the task's idle Gradle daemon was also stopped.
+
+`Test-AndroidArtifact` then passed on the dev AAB with Crashlytics included:
+bundletool validation, complete upload-key signature, 16 KB bundle/ELF/derived
+APK alignment, all navigation assets and actual Firebase/Play resources. The
+174,472,156-byte AAB SHA-256 is
+`4aa75501015de4be475506394fafc8cdd45664ac46a3e6da58a5225caeb37e1f`;
+package/code/API/certificate match the earlier dev probe. Evidence is
+`android-dev-bundle-retry.log` and
+`android-dev-bundle-inspection/inspection.json`. This is still unfrozen source,
+not a candidate or Play publication. The first direct inspection invocation
+omitted `release_cache.ps1`; loading that required helper resolved the invocation
+error without changing the artifact.
+
+Environment locking passes 13 focused checks and 97/92/92 entry-point checks on
+PowerShell 5.1 and 7 (`cutover-*` logs). Concurrent actions cannot acquire another
+operator's lock; the source-bound maintenance record prevents interleaving
+candidates across commands and survives failure until verified resume. Initial
+staging monitoring exercised live acquisition/finally cleanup. Agent guidance
+and diff checks pass; native CI has not yet run remotely.
+
+Monitoring is incomplete. Both projects have 15 enabled validator/settlement
+policies at `2026-10-26T23:32Z` and enabled project-local owner email channels:
+staging `5051742138447933000`, prod `16298104619394512183`. Their verification
+status is omitted, not `UNVERIFIED`. The new wrapper initially misclassified
+that response and stopped before abuse/deletion setup. Google's
+[NotificationChannel contract](https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.notificationChannels)
+treats omitted/unspecified status as usable without verification; the wrapper
+now preserves that state honestly and still rejects explicit `UNVERIFIED`.
+Eight focused monitoring tests pass on PowerShell 5.1/7, including the omitted
+field, foreign channels and disabled/duplicate policies. Final reconciliation is
+running. Fixed empty-API handling and selected-project dashboard queries in the
+existing helpers. Automatic
+approval review rejected copying dev's verified email status across projects;
+that operation was not executed and its temporary script was removed. The
+initial request for project-specific email verification was withdrawn after
+checking the API contract. No verification code was requested/copied, no channel
+verification state was changed, and no verified alert delivery is claimed.
+First backup inventory reports zero backups in both
+new projects (`backups-*.json`).
+
+Android/runtime implementation milestone committed as
+`aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor
+configs, project/App Check guards, maintenance/update UI, Crashlytics handlers,
+dependencies and Android memory fix. The native probes used these runtime bytes
+before the commit; artifact source is still not the final release candidate.
+
 ## Upload signing and release gate checkpoint (October 27 local time)
 
 Foundation source is committed as `2e272c40`. Staging's corrected Firebase app is

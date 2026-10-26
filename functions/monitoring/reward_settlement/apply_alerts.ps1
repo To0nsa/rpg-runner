@@ -35,7 +35,8 @@ function Get-OrCreateEmailChannel {
     -Method Get `
     -Uri "https://monitoring.googleapis.com/v3/projects/$ProjectId/notificationChannels" `
     -Headers $headers
-  $existing = @($channels.notificationChannels | Where-Object {
+  $available = if ($channels.PSObject.Properties['notificationChannels']) { @($channels.notificationChannels) } else { @() }
+  $existing = @($available | Where-Object {
     $_.type -eq "email" -and $_.labels.email_address -eq $NotificationEmail
   } | Select-Object -First 1)
   if ($existing.Count -gt 0) {
@@ -119,7 +120,10 @@ function Ensure-AlertPolicy {
 function Ensure-Dashboard {
   param([Parameter(Mandatory = $true)][string]$ConfigPath)
 
-  $dashboard = Get-Content -Raw $ConfigPath | ConvertFrom-Json -AsHashtable
+  $dashboardJson = (Get-Content -Raw $ConfigPath).Replace(
+    'projects/rpg-runner-d7add', "projects/$ProjectId"
+  )
+  $dashboard = $dashboardJson | ConvertFrom-Json -AsHashtable
   $dashboardsJson = @(& gcloud monitoring dashboards list `
     "--project=$ProjectId" "--format=json")
   if ($LASTEXITCODE -ne 0) {

@@ -49,6 +49,10 @@ jobs:
           .\tools\release\test_release_environments.ps1
           .\tools\release\test_provision_environment.ps1
           .\tools\release\test_android_signing.ps1
+          .\tools\release\test_android_artifacts.ps1
+          .\tools\release\test_database_recovery.ps1
+          .\tools\release\test_release_lock.ps1
+          .\tools\release\test_monitoring_environment.ps1
       - name: Resolve offline release plan
         shell: pwsh
         run: .\tools\release\release.ps1 -Action Plan
@@ -73,6 +77,10 @@ jobs:
           .\tools\release\test_release_environments.ps1
           .\tools\release\test_provision_environment.ps1
           .\tools\release\test_android_signing.ps1
+          .\tools\release\test_android_artifacts.ps1
+          .\tools\release\test_database_recovery.ps1
+          .\tools\release\test_release_lock.ps1
+          .\tools\release\test_monitoring_environment.ps1
       - name: Resolve offline release plan
         shell: powershell
         run: .\tools\release\release.ps1 -Action Plan

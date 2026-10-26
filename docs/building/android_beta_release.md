@@ -80,9 +80,36 @@ reviewable preparation and retain all non-waived acceptance gates.
 - Separate staging/prod upload keys are backed up in each project's Secret
   Manager. Readback and repeated setup preserve the same certificates. Google
   Play distribution signing remains pending; upload keys are not that identity.
+- Signing milestone committed as `f3d1c471`. Android artifact inspection is
+  implemented and passes on a real dev APK (API 36, all 3,750 navigation graphs,
+  expected Firebase/Play IDs, three ABIs and 16 KB alignment). This is an
+  uncommitted-source probe, not the frozen release candidate. The initial native
+  build failed because `--no-pub` retained a test-only plugin registrant;
+  enabling Flutter's normal release regeneration resolved it.
+- Managed PITR and daily seven-day backup schedules are configured/read back in
+  staging/prod. First scheduled backup completion is not yet verified. An isolated
+  synthetic dev database restore completed in 11m09s and passed duplicate-reward
+  and deletion-barrier checks. Both rehearsal databases were cleaned up and live
+  inventory shows only the untouched default dev database. Full-service recovery
+  and the first scheduled backup remain separate, unverified checks.
+- Crashlytics dependency/handlers pass 21 focused startup/diagnostic tests and
+  targeted analysis. Native AAB integration hit Gradle native-memory exhaustion;
+  retry with bounded memory/workers passed, as did full AAB inspection. No live diagnostic event or
+  readable release report is verified yet.
 - Structured maintenance/update responses and the client release gate pass 25
   focused tests, 35 startup/recovery tests and all 259 Functions emulator tests.
   These are local checks, not Play/device acceptance or a deployed change.
+- Operation locks and source-bound maintenance ownership pass 13 focused checks
+  and 97/92/92 dev/staging/prod entry-point checks on PowerShell 5.1/7. Monitoring
+  setup is partial and final reconciliation is running. The new channels omit
+  verification status, which the documented API treats as usable; an unnecessary
+  verification request was withdrawn. Approval review
+  rejected cross-project verification copying; it was not executed. The owner
+  was also asked for the legal operator name/country needed for public privacy
+  information. OAuth/Chrome resumption remains pending.
+- Android/runtime milestone committed as `aac4d7f6`. Required final tooling
+  matrix passes (50 syntax, 50 cache, 29 isolation, 11 artifact, nine recovery,
+  13 lock checks on both shells); eight focused monitoring checks also pass.
 - Next: finish OAuth/Play identity, canonical Android build evidence, diagnostics,
   recovery and remaining release
   acceptance. Final source is not frozen and no app upload occurred.
@@ -302,19 +329,19 @@ optional store-copy choices.
 
 Execution: agent, repository and CLI. Prepare locally before cloud changes.
 
-- [ ] Read the closest AGENTS files, then add one explicit validated environment
+- [x] Read the closest AGENTS files, then add one explicit validated environment
   definition for project, region, Firebase configuration/Hosting target, bucket,
   worker, queues, identities and required secrets. Map dev to the existing project
   and staging/prod to their new projects. Keep one deployment workflow and shared
   provisioning recipe; environment definitions supply resource differences.
-- [ ] Extend the existing release entry point and provisioning helpers to select
+- [x] Extend the existing release entry point and provisioning helpers to select
   an environment. Preserve offline default `Plan`; require explicit environment
   selection for mutations and reject contradictory project/resource identities.
 - [x] Remove hard-coded project service-account addresses from Functions source.
   Derive/validate identity against the selected deployment project. Audit task
   dispatch, settlement URLs, token audiences, scheduled work and monitoring for
   cross-project defaults; make missing environment values fail clearly.
-- [ ] Separate manifests, baselines, checkpoints, config files and cache keys by
+- [x] Separate manifests, baselines, checkpoints, config files and cache keys by
   environment/project. Share source-only evidence/artifacts only when inputs
   genuinely match. Historical old-project production evidence belongs to that
   project; it cannot establish a baseline for the new production project.
@@ -328,7 +355,7 @@ Execution: agent, repository and CLI. Prepare locally before cloud changes.
   The owner's existing operator identity can administer all projects. Serialize
   mutations per environment so two teammates cannot cut over it concurrently.
   Do not replace the existing tooling with a new infrastructure framework.
-- [ ] Add meaningful mocked tests for all three environments: an operation must
+- [x] Add meaningful mocked tests for all three environments: an operation must
   not target another project's buckets, service accounts, queues, Hosting or
   release checkpoints. Mismatched configuration blocks before mutation; preserve
   scoped-release protections and environment-specific cache/evidence validation.

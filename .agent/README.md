@@ -28,6 +28,7 @@ links are relative to their containing file.
 | Replay validation and projection | [Worker](../services/replay_validator/AGENTS.md) |
 | Content editor | [Editor](../tools/editor/AGENTS.md); [domain details](references/editor-authoring.md) |
 | Release scripts and deployment configuration | [Release](../tools/release/AGENTS.md) |
+| Android flavors, signing and artifact evidence | [Release](../tools/release/AGENTS.md); [Android identities](../docs/tdd/android_build_variants.md) |
 | Root test suites; integration drivers | [Tests](../test/AGENTS.md) |
 | Root generators and probes | [Tooling](../tool/AGENTS.md) |
 | Authored source assets | [Authoring](../assets/authoring/AGENTS.md) |

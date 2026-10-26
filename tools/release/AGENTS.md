@@ -21,6 +21,10 @@ Do not assume a previously used release checklist is the current target.
   Manager and a Windows DPAPI recovery copy. Never print/export plaintext secret
   payloads. Build credentials exist only for the build scope and are restored in
   finally. Google Play distribution certificates are separate from upload keys.
+- BuildAndroid requires prepared source in a clean frozen checkout and an explicit
+  environment/version code. Verify actual native resources, signing, assets and
+  page alignment; web/CI dev evidence cannot replace signed staging/prod evidence.
+  Run test_android_artifacts.ps1 on both PowerShell versions when changing checks.
 - Keep ticket issuance paused across coordinated Functions/worker/Hosting
   cutover. Exclude runSessionCreate from that backend phase; it belongs to
   ResumeIssuance. Verified Backend scope may redeploy it under the unchanged
@@ -46,6 +50,13 @@ Do not assume a previously used release checklist is the current target.
   cutover. Keep the exact final-image benchmark and readiness/drain gates.
 - Keep cloud mutations sequential and explicit. Tests use mocked commands and
   isolated .tmp fixtures; never run a production cutover to test the scripts.
+- Environment mutation locks live in the selected project's build bucket. Keep
+  generation preconditions, finally cleanup and fail-closed conflict handling;
+  never expire or delete another operator's lock automatically. Initial Provision
+  precedes bucket availability and remains an operator-serialized foundation step.
+  Preserve the source-bound cutover record across pause/deploy/resume commands;
+  only verified resume clears it. Candidate replacement requires recorded recovery
+  inspection, not automatic lock takeover.
 - Test helpers and the actual entry-point sequence with test_release.ps1 and
   test_release_integration.ps1, plus cache/CI checks in test_release_cache.ps1,
   under Windows PowerShell and PowerShell 7.

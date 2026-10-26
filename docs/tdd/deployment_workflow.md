@@ -9,6 +9,22 @@ project, region, Firebase config, replay bucket, worker endpoint, queue names an
 Android package. `.firebaserc` aliases must agree; its default stays dev.
 `ProjectId`/`Region` can assert the selected identity but cannot redirect it.
 Cloud mutations require explicit `-Environment`; offline Plan defaults to dev.
+After initial Provision creates the build bucket, cloud-mutating release actions
+acquire `_release/mutation-lock.json` in that project's `<project>_cloudbuild`
+bucket. Conditional generation-zero creation admits one operator across machines
+and checkouts. Finally deletes only the acquired generation. A held lock blocks
+before release mutations; it never expires while an operator may still work.
+After a crashed operator, inspect its recorded action/machine/process and actual
+cloud job state before removing that exact abandoned generation. Never clear a
+lock merely because another release is waiting. Initial Provision itself needs
+operator coordination because the bucket may not yet exist.
+PauseIssuance/Bootstrap also claim `_release/cutover.json` for the prepared source
+digest. This record survives command boundaries and failures. Deploy and resume
+require the same digest; successful resume clears only its verified generation.
+Thus a second candidate cannot interleave between another operator's commands.
+If a candidate must be abandoned, inspect jobs, serving revisions, issuance and
+queues, record the recovery decision, then remove only that exact ownership
+generation before claiming replacement source. The tool never steals ownership.
 Staging/prod use their project-number-based Cloud Run worker URLs. Those URLs
 can be configured before service creation; deployment must still verify the
 actual service, image and traffic before issuance resumes.
@@ -19,6 +35,41 @@ The local web build remains preparation evidence, not proof of an Android build.
 Native artifact preparation and service deployment remain in progress in the
 [Android beta workstream](../building/android_beta_release.md).
 
+`SigningSetup -Environment staging|prod` creates a separate upload key in that
+project's `android-upload-signing` Secret Manager secret. The initial Windows
+operator retains a DPAPI recovery copy under ignored `.tmp/release-signing/`.
+Retries restore and verify the existing key rather than rotating it. Only the
+build scope receives a temporary keystore/password environment; finally removes
+the file and restores prior process variables. Google Play's distribution
+certificate must be registered separately after Play App Signing enrollment.
+
+After Prepare, `BuildAndroid -Environment <name> -AndroidVersionCode <integer>`
+requires a clean frozen checkout and builds a dev APK or signed staging/prod AAB.
+The Android component input hash includes native sources/configuration, shared
+app/content inputs and signing/inspection recipes. Evidence records commit,
+source/input hashes, tuple, Flutter/JDK/Gradle identity, version, artifact hash,
+native manifest/resources, permissions, ABIs and navigation graph integrity.
+Dart symbols and available R8 mapping stay beside the artifact. Staging/prod
+symbol upload targets the packaged Firebase app and must succeed before build
+evidence is recorded. Dev collection/upload stays disabled. Existing
+successful version evidence cannot be overwritten. Allocate codes from live Play
+history; tooling cannot infer a reserved draft version from the repository.
+
+Inspection uses pinned, hash-checked bundletool 1.18.3 and Android SDK build-tools
+36.0.0. It rejects mismatched Firebase/Play Games resources, debug/test builds,
+target API below 36, missing/corrupt navigation, credential files, invalid
+signatures and insufficient ELF64/ZIP page alignment. A derived universal APK
+is inspection-only: distribute the original AAB, never the inspection APK.
+These checks follow [APK Analyzer](https://developer.android.com/tools/apkanalyzer)
+and [16 KB support](https://developer.android.com/guide/practices/page-sizes).
+Play-delivered auth, attestation and device/runtime checks remain separate gates.
+
+Release-preparation CI now requires a native dev build/inspection alongside the
+existing browser/component checks; Android source changes trigger it. CI receives
+no staging/prod upload secrets. The authorized operator builds signed candidates
+through BuildAndroid using project-local Secret Manager. CI dev evidence is not
+a publishable staging/prod artifact or a production deployment authorization.
+
 `Provision -Environment <name> -BillingAccount <id> -BudgetAmount <amountEUR>`
 creates or verifies foundations without deploying gameplay. It requires explicit
 billing and a positive monthly alert budget, rejects conflicting existing billing,
@@ -28,6 +79,36 @@ service accounts, build resources and initially paused replay queues, and applie
 the existing retention helper. Retries preserve existing queue state. Budgets
 notify billing IAM recipients; they do not cap spending. OAuth linkage, managed
 recovery, monitoring and image-dependent bootstrap remain separate release steps.
+
+`MonitoringSetup -Environment <name> -NotificationEmail <owner>` reapplies the
+existing validator, reward-settlement, abuse-control and account-deletion bundles
+under the environment lock. It requires a usable project-local email channel
+and reads back all 31 enabled policies. Saved configuration evidence does not
+prove email delivery or deployed service health. Explicit `UNVERIFIED` blocks;
+Google's omitted/unspecified state means verification is not required and is
+recorded honestly, without claiming verified delivery. No verification code is
+copied between projects.
+
+`RecoverySetup -Environment staging|prod` enables Firestore PITR and deletion
+protection and creates/verifies a daily managed backup schedule with seven-day
+retention. It never restores or changes player documents. Existing different
+retention blocks rather than being shortened. PITR history accumulates after
+enablement; a configured schedule is not evidence that its first backup exists.
+The small beta recovery targets are at most one minute of database loss for a
+retained PITR point and four hours for operator-led service restoration; daily
+backups provide a fallback with up to 24 hours of database loss. These are targets,
+not a measured full-service recovery guarantee.
+
+Rehearse on named synthetic databases in dev. Before any real recovery, pause
+issuance, preserve accepted-run/reward and deletion evidence after the chosen
+snapshot, restore into a new database, reconcile grants against wallet revisions
+and reapply later deletions before serving players. Auth accounts, replay objects,
+queues and derived leaderboard/ghost views are outside a Firestore snapshot;
+verify or rebuild them from authoritative evidence before reopening. Never replay
+reward grants blindly or restore an account that has since requested deletion.
+Managed backups/PITR can retain deleted records for up to seven days and must be
+covered by privacy disclosures. See [managed PITR](https://firebase.google.com/docs/firestore/use-pitr)
+and [backup schedules](https://docs.cloud.google.com/sdk/gcloud/reference/firestore/backups/schedules/create).
 
 For a newly provisioned, unused project, `Bootstrap -Environment <name>
 -CutoverReady` replaces the first `PauseIssuance`. It requires the same prepared
@@ -282,6 +363,9 @@ no consent. Linked Play Games smoke remains a live gate after either path.
 PauseIssuance temporarily sets the deployed runsessioncreate Cloud Run service's
 RUN_SUPPORTED_GAME_COMPAT_VERSIONS to release-paused. This uses the existing
 compatibility allowlist: normal client versions fail before a ticket is issued.
+The callable returns structured `release-maintenance` details. Obsolete clients
+receive `update-required` after cutover; newer date-version clients arriving
+before their backend also receive maintenance. See [run startup](run_startup.md).
 It is a temporary compatibility gate, not an authorization or abuse-control
 replacement. The pause pins the serving revision's immutable image when that
 image still exists in Artifact Registry. Firebase's managed image cleanup can

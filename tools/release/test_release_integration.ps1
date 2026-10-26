@@ -21,11 +21,15 @@ $global:fakeIndexesReady = $true
 $global:fakeFunctionsVersion = '2026-10-01T00:00:00Z'
 $global:fakeBootstrapEmpty = $false
 $global:fakeBootstrapUsers = $false
+$global:fakeReleaseLock = $false
+$global:fakeLockGeneration = 100
+$global:fakeCutover = $null
 $script:passed = 0
 $global:mockFiles = @(
   "tools/release/release.ps1", "tools/release/release_support.ps1", "tools/release/release_cache.ps1",
   "tools/release/prepare_release.ps1", "tools/release/profile_tests.ps1", "tools/release/release_ci.ps1",
   "tools/release/release_environments.ps1", "tools/release/environments.json",
+  "tools/release/release_lock.ps1",
   "firebase.staging.json", "firebase.prod.json",
   "functions/src/index.ts", "functions/src/runs/compatibility.ts",
   "functions/src/boards/provisioning.ts", "lib/ui/state/app/app_state.dart",
@@ -70,6 +74,7 @@ function node {
 function gcloud {
   $global:LASTEXITCODE = 0
   $command = $args -join " "
+  if ($command -eq 'auth print-access-token') { return 'mock-token' }
   $global:releaseTrace.Add($command)
   if ($command.StartsWith("builds submit")) {
     $global:fakeImageTag = ($args | Where-Object { $_ -like "--substitutions=*" }).Substring("--substitutions=_IMAGE_URI=".Length)
@@ -129,6 +134,36 @@ function gcloud {
   if ($command.StartsWith('run services list')) { return '[]' }
   return "{}"
 }
+
+function Invoke-RestMethod {
+  param($Method, $Uri, $Headers, $Body, $ContentType, $ErrorAction, $Verbose, $Debug)
+  if ($Uri -notmatch '/b/test-project_cloudbuild/o') { throw 'Wrong release-lock project' }
+  if ($Uri -match 'cutover') {
+    if ($Method -eq 'Get') {
+      if (-not $global:fakeCutover) { return $null }
+      if ($Uri -match 'alt=media') { return $global:fakeCutover.content }
+      return $global:fakeCutover
+    }
+    if ($Method -eq 'Post') {
+      if ($global:fakeCutover -or -not $Uri.EndsWith('&ifGenerationMatch=0')) { throw 'Cutover conflict' }
+      $global:fakeCutover = [pscustomobject]@{bucket='test-project_cloudbuild';name='_release/cutover.json';generation='50';
+        content=([Text.Encoding]::UTF8.GetString($Body) | ConvertFrom-Json)}
+      return $global:fakeCutover
+    }
+    if ($Method -ne 'Delete' -or -not $Uri.EndsWith('?ifGenerationMatch=50')) { throw 'Wrong cutover cleanup' }
+    $global:fakeCutover=$null
+    return
+  }
+  if ($Method -eq 'Post') {
+    if ($global:fakeReleaseLock -or -not $Uri.EndsWith('&ifGenerationMatch=0')) { throw 'Lock conflict' }
+    $global:fakeReleaseLock = $true
+    $global:fakeLockGeneration++
+    return [pscustomobject]@{bucket='test-project_cloudbuild';name='_release/mutation-lock.json';generation=[string]$global:fakeLockGeneration}
+  }
+  if ($Method -ne 'Delete' -or -not $global:fakeReleaseLock -or
+      -not $Uri.EndsWith("?ifGenerationMatch=$($global:fakeLockGeneration)")) { throw 'Wrong lock cleanup' }
+  $global:fakeReleaseLock = $false
+}
 function Invoke-WebRequest {
   param($Uri, $Headers, $OutFile, [switch]$UseBasicParsing)
   $global:releaseTrace.Add("hosting byte check")
@@ -186,12 +221,19 @@ try {
   $rejected = $false
   try { & $entry -Action Deploy } catch { $rejected = $_.Exception.Message -like '*explicit -Environment*' }
   Assert-Test ($rejected -and $global:releaseTrace.Count -eq 0) 'missing environment blocks before cloud commands'
+  $global:fakeReleaseLock = $true
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action BuildImage } catch { $rejected = $_.Exception.Message -like '*Release lock request failed*' }
+  Assert-Test ($rejected -and $global:releaseTrace.Count -eq 0 -and $global:fakeReleaseLock) 'held lock blocks cloud mutation without releasing its owner'
+  $global:fakeReleaseLock = $false
   & $entry -Environment $TestEnvironment -Action BuildImage
+  Assert-Test (-not $global:fakeReleaseLock) 'successful action releases its mutation lock'
   & $entry -Environment $TestEnvironment -Action ImageStatus
 
   $rejected = $false
   try { & $entry -Environment $TestEnvironment -Action Deploy } catch { $rejected = $_.Exception.Message -like "*requires -CutoverReady*" }
   Assert-Test $rejected "deployment requires explicit cutover review"
+  Assert-Test (-not $global:fakeReleaseLock) 'failed action releases its mutation lock'
 
   $rejected = $false
   try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady } catch {
@@ -289,6 +331,7 @@ try {
   Assert-Test ($issuer.Count -eq 1 -and
     $global:releaseTrace.IndexOf($artifactCheck) -lt $global:releaseTrace.IndexOf($issuer[0])) "live artifact verification precedes ticket issuer deployment"
   Assert-Test (-not $global:fakeIssuancePaused) "explicit ResumeIssuance removes temporary runtime gate"
+  Assert-Test (-not $global:fakeCutover) 'successful resume releases the candidate ownership record'
   foreach ($command in @($global:releaseTrace | Where-Object { $_ -ne 'configure matching worker' -and $_ -ne 'hosting byte check' })) {
     Assert-Test ($command -match '(--project=test-project|--project test-project)( |$)') "$TestEnvironment command stays in selected project"
   }

@@ -94,6 +94,12 @@ try {
     'input' | Set-Content -LiteralPath $path
   }
   $cache = Join-Path $fixture '.tmp/cache'
+  $androidBefore = Get-ReleaseComponentInputs $fixture 'android-build'
+  $webBeforeAndroid = Get-ReleaseComponentInputs $fixture 'client-build'
+  New-Item -ItemType Directory -Force -Path (Join-Path $fixture 'android/app') | Out-Null
+  'native manifest fixture' | Set-Content -LiteralPath (Join-Path $fixture 'android/app/AndroidManifest.xml')
+  Assert-CacheTest ((Get-ReleaseComponentInputs $fixture 'android-build') -ne $androidBefore) 'native configuration invalidates Android build evidence'
+  Assert-CacheTest ((Get-ReleaseComponentInputs $fixture 'client-build') -eq $webBeforeAndroid) 'native-only configuration does not masquerade as changed web input'
   $logs = Join-Path $fixture '.tmp/logs'
   $components = @('functions-checks','functions-build','client-checks','client-build')
   $items = @(Invoke-ReleasePreparation $fixture $cache $components $logs)

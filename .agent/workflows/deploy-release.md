@@ -17,6 +17,13 @@ baselines/checkpoints cannot establish readiness in a different environment.
 For authorized foundation setup, use Provision with explicit environment,
 billing account and monthly budget. Verify its live readback; it does not deploy
 the game or establish Android/Play readiness. Existing queues retain their state.
+Configure SigningSetup, RecoverySetup and MonitoringSetup in the selected project
+before candidate cutover. Mutation locks and the source-bound maintenance record
+must remain intact; inspect abandoned work before any manual lock recovery.
+Use BuildAndroid after Prepare with an explicit environment and version code.
+Check actual Play history before choosing codes and preserve the same accepted
+production AAB when promoting tracks. Native signing/resources/assets and
+Play-delivered authentication/attestation are separate acceptance gates.
 
 1. Inspect source/worktree and run Plan. Resolve tuple or Functions environment
    drift before preparing. Use Checkout -Environment <environment> -Commit <authorized-commit> to create

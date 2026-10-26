@@ -61,6 +61,12 @@ Release orchestration selects an explicit dev/staging/prod environment through
 the canonical entry point. A successful check or deployment in one project does
 not establish another project's live state. Preserve the selected candidate,
 per-project evidence and outstanding Play/device checks across interruptions.
+Environment operation locks serialize cloud mutations across checkouts and
+machines; source-bound maintenance ownership prevents different candidates from
+interleaving pause/deploy/resume. A failed command does not authorize replacing
+that ownership record. Android builds require frozen source and their own native
+evidence; browser/component CI and another environment's bundle do not establish
+Play-delivered authentication, attestation or device acceptance.
 
 ## Offline guidance check
 

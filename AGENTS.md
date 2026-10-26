@@ -124,6 +124,11 @@ Keep side effects out of widget builds and avoid deprecated Flutter APIs.
 
 Use [the release workflow](.agent/workflows/deploy-release.md) and
 [deployment contract](docs/tdd/deployment_workflow.md).
+Android defaults to dev in every build mode. Staging/prod require explicit
+release flavors, separate signing and Play-delivered acceptance. Freeze one
+candidate for staging and production; keep artifact identity and unavailable
+device/review checks explicit. Preserve per-environment mutation locks and the
+source-bound maintenance record across interrupted cutovers.
 `tools/release/release.ps1` is the entry point; default `Plan` is offline.
 Read [release instructions](tools/release/AGENTS.md) before changing tooling.
 Select `-Environment dev|staging|prod` for releases; cloud mutations require it.
