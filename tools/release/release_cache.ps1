@@ -58,7 +58,7 @@ function Get-ReleaseComponentInputs {
     "functions-checks" { '^(functions/(src/|test/|tool/|package\.json$|tsconfig.*\.json$)|firebase\.test\.json$|firestore\.|package\.json$|pnpm-[^/]+\.yaml$|packages/run_protocol/lib/)' }
     "client-build" { "^($workspace|lib/|web/|assets/|$runtime|functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$)" }
     "android-build" { "^($workspace|android/|lib/|assets/|$runtime|tools/release/(android_artifacts|android_signing)\.ps1$|tools/release/environments\.json$|functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$)" }
-    "client-checks" { "^($workspace|lib/|web/|assets/|test/|test_driver/|tool/|services/replay_validator/(lib/|bin/|test/|pubspec\.(yaml|lock)$)|$runtime)" }
+    "client-checks" { "^($workspace|lib/|web/|assets/|test/|test_driver/|tool/|services/replay_validator/(lib/|bin/|test/|pubspec\.(yaml|lock)$)|functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|$runtime)" }
     "core-checks" { "^($workspace|packages/runner_core/|assets/authoring/)" }
     "protocol-checks" { "^($workspace|packages/run_protocol/)" }
     "content-checks" { "^($workspace|packages/runner_content_pipeline/|packages/runner_core/lib/|assets/authoring/)" }

@@ -110,7 +110,7 @@ try {
   Assert-CacheTest ($browserWidgetCalls -eq $expectedBrowserWidgetCalls) 'widget browser gate runs only on a supported test-harness host'
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'flutter build web --release --no-pub --no-web-resources-cdn' }).Count -eq 1) 'release web build is self-contained Practice without Firebase configuration'
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'node tools/release/web_smoke.mjs build/web' }).Count -eq 1) 'release artifact must pass browser smoke'
-  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart run packages/runner_core/tool/prepare_navigation.dart --client' }).Count -eq 1) 'release web build prepares trusted navigation assets'
+  Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart run packages/runner_core/tool/prepare_navigation.dart --client' }).Count -eq (1 + $expectedBrowserWidgetCalls)) 'web build and browser tests prepare trusted navigation assets'
   Assert-CacheTest (@($global:cacheTrace | Where-Object { $_ -eq 'dart pub get --enforce-lockfile' }).Count -eq 1) 'client checks resolve independent worker fixtures without validator checks'
   $global:cacheTrace.Clear()
   # These absolute paths are both verified beneath the isolated fixture.
@@ -149,11 +149,13 @@ try {
   foreach ($relative in @('functions/src/runs/navigation_routes.json', 'packages/runner_core/tool/prepare_navigation.dart', 'packages/runner_core/tool/update_navigation_revision.dart')) {
     $before = Get-ReleaseInputHashes $fixture 'test-project'
     $clientBefore = Get-ReleaseComponentInputs $fixture 'client-build'
+    $checksBefore = Get-ReleaseComponentInputs $fixture 'client-checks'
     $path = Join-Path $fixture $relative
     New-Item -ItemType Directory -Force -Path (Split-Path $path) | Out-Null
     'navigation fixture' | Set-Content -LiteralPath $path
     $after = Get-ReleaseInputHashes $fixture 'test-project'
     Assert-CacheTest ($before.client -ne $after.client -and $before.worker -ne $after.worker -and (Get-ReleaseComponentInputs $fixture 'client-build') -ne $clientBefore) "navigation preparation invalidates both consumers: $relative"
+    Assert-CacheTest ((Get-ReleaseComponentInputs $fixture 'client-checks') -ne $checksBefore) "navigation preparation invalidates browser test evidence: $relative"
   }
   $keyA = Get-ReleaseComponentKey $clientBefore 'sdk-a'
   Assert-CacheTest ($keyA -ne (Get-ReleaseComponentKey $clientBefore 'sdk-b')) 'SDK changes invalidate cached evidence'

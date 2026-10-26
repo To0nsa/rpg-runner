@@ -291,8 +291,13 @@ that response and stopped before abuse/deletion setup. Google's
 treats omitted/unspecified status as usable without verification; the wrapper
 now preserves that state honestly and still rejects explicit `UNVERIFIED`.
 Eight focused monitoring tests pass on PowerShell 5.1/7, including the omitted
-field, foreign channels and disabled/duplicate policies. Final reconciliation is
-running. Fixed empty-API handling and selected-project dashboard queries in the
+field, foreign channels and disabled/duplicate policies. Final reconciliation
+completed with 31 enabled policies per project: staging at
+`2026-10-26T23:43:42.3232672Z`, prod at `2026-10-26T23:51:56.1608590Z`.
+Both project-local mutation locks were released successfully. Evidence is
+`.tmp/releases/<project>/monitoring/monitoring.json` and
+`.tmp/beta-checks/monitoring-final-<environment>.log`. Fixed empty-API handling
+and selected-project dashboard queries in the
 existing helpers. Automatic
 approval review rejected copying dev's verified email status across projects;
 that operation was not executed and its temporary script was removed. The
@@ -301,6 +306,47 @@ checking the API contract. No verification code was requested/copied, no channel
 verification state was changed, and no verified alert delivery is claimed.
 First backup inventory reports zero backups in both
 new projects (`backups-*.json`).
+
+Artifact/operations milestone is
+`d9909a3e4d7d6cbb56dd5b149166ca25728a7b45`. The moved repository's canonical
+remote is `https://github.com/To0nsa/rpg-runner.git`. Its `master` was 42 commits
+behind the current intended local source and not ahead. Automatic approval
+review rejected the direct default-branch push as broad publication of that
+history; it did not execute. The safe alternative published
+`release/android-beta-environments` and opened
+[draft PR #2](https://github.com/To0nsa/rpg-runner/pull/2), without merging.
+
+Hosted validation of PR merge source
+`e79860977206b7c42b29e833b12af340736dc1d2` (head `d9909a3e`) has passed all
+release-preparation components, including all four client-test shards and the
+real built-web smoke test. Separate guidance and PowerShell tooling workflows
+passed. The final validator-image job is still running at this checkpoint.
+These PR results are validation, not importable final release
+evidence or proof of deployment.
+
+The Linux browser job in
+[release-preparation run 40421473512](https://github.com/To0nsa/rpg-runner/actions/runs/40421473512)
+passed four tests and failed
+`web boots, opens options and plays a recorder-free local run`. Its default
+reporter omitted the underlying widget exception. The recipe lacked the ignored
+client navigation assets required to load a run; added preparation before the
+browser tests and expanded output for diagnosis on retry. The canonical Linux
+preparation recipe now does the same, and its cache key includes the navigation
+generator/route inputs. `test_release_cache.ps1` passes 53 mocked checks on
+PowerShell 5.1 and 7 (`browser-recipe-cache-ps*.log`). Hosted verification of the
+change is pending; the failure is not waived or reported as fixed yet. A local
+Windows browser-test attempt produced no diagnostic output and was interrupted;
+the pinned SDK's previously recorded Windows harness limitation still applies.
+
+The Android job failed after 7m14s of Gradle compilation in
+`:battery_plus:compileReleaseKotlin` and `:firebase_core:compileReleaseKotlin`.
+The complete artifact log identifies `IllegalArgumentException: this and base
+files have different roots`: the default Pub cache is on C:, checkout on D:.
+CI now uses the action's documented
+[`pub-cache-path` input](https://github.com/subosito/flutter-action/tree/v2#caching)
+to keep plugin sources on the checkout drive. Compiler checks and incremental
+compilation remain enabled. Full log:
+`.tmp/beta-checks/ci-40421473512-android/build.log`; retry is pending.
 
 Android/runtime implementation milestone committed as
 `aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor

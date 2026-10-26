@@ -22,8 +22,9 @@ reviewable preparation and retain all non-waived acceptance gates.
   its links in `docs/README.md` and `docs/building/README.md`. Preserve them as
   part of this workstream. No staged or unrelated source changes were present.
 - CLI access verified for the existing Lothringen operator and GitHub account.
-  Chrome extension inventory is empty, but Windows Computer Use now controls the
-  signed-in Chrome window. Play Console inventory is recorded below.
+  Windows Computer Use reached the signed-in Chrome window and Play Console.
+  It subsequently stopped because the OAuth tab URL could not be verified;
+  browser resumption is pending. Play Console inventory is recorded below.
 - Live inventory corrects the planning baseline: the existing project's worker
   is `replay-validator-00058-94k`, with both replay queues RUNNING. The latest
   documented deployment is gameplay `2026.10.21` on October 25. Historical
@@ -101,7 +102,9 @@ reviewable preparation and retain all non-waived acceptance gates.
   These are local checks, not Play/device acceptance or a deployed change.
 - Operation locks and source-bound maintenance ownership pass 13 focused checks
   and 97/92/92 dev/staging/prod entry-point checks on PowerShell 5.1/7. Monitoring
-  setup is partial and final reconciliation is running. The new channels omit
+  setup completed with 31 enabled policies in each new project, read back at
+  23:43:42Z staging and 23:51:56Z prod on October 26. Incident delivery remains
+  unverified. The new channels omit
   verification status, which the documented API treats as usable; an unnecessary
   verification request was withdrawn. Approval review
   rejected cross-project verification copying; it was not executed. The owner
@@ -110,6 +113,23 @@ reviewable preparation and retain all non-waived acceptance gates.
 - Android/runtime milestone committed as `aac4d7f6`. Required final tooling
   matrix passes (50 syntax, 50 cache, 29 isolation, 11 artifact, nine recovery,
   13 lock checks on both shells); eight focused monitoring checks also pass.
+- Artifact/operations milestone committed as `d9909a3e`. Updated the moved
+  repository remote to `To0nsa/rpg-runner`, published the current intended source
+  on `release/android-beta-environments`, and opened
+  [draft PR #2](https://github.com/To0nsa/rpg-runner/pull/2). Automatic approval
+  review rejected publishing the 42-commit history directly to default `master`;
+  no default-branch push or merge occurred. The separate review branch succeeded.
+- The first hosted release-preparation run passes all component checks, including
+  all four client shards and the built web smoke test. Guidance and release-tooling
+  workflows pass. The final validator-image job is still running. Android failed
+  because plugin sources in the default C: Pub cache could not be made relative
+  to the D: checkout by Kotlin's incremental compiler. CI now places the Pub
+  cache on the checkout drive; hosted verification is pending.
+  The browser widget job failed its local-run startup case; its recipe omitted
+  required generated navigation assets. The recipe now prepares those assets
+  and prints expanded diagnostics; hosted verification is pending. Cache input
+  coverage includes these generators, with 53 mocked checks passing on both
+  PowerShell versions. No traversal failure or other check is waived.
 - Next: finish OAuth/Play identity, canonical Android build evidence, diagnostics,
   recovery and remaining release
   acceptance. Final source is not frozen and no app upload occurred.

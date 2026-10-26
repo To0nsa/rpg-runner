@@ -63,9 +63,11 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
+      - name: Prepare required client navigation assets
+        run: dart run packages/runner_core/tool/prepare_navigation.dart --client
       - name: Exercise browser startup and local gameplay
         run: >-
-          flutter test --no-pub --platform chrome
+          flutter test --no-pub --platform chrome --reporter expanded
           test/ui/state/platform_replay_adapters_browser_test.dart
           test/ui/bootstrap/web_practice_startup_test.dart
 
@@ -189,6 +191,8 @@ jobs:
           flutter-version: "3.47.1"
           channel: stable
           cache: true
+          # Kotlin incremental paths cannot span the runner's C: and D: drives.
+          pub-cache-path: "${{ github.workspace }}/.tmp/pub-cache"
       - name: Build and inspect development Android artifact
         shell: pwsh
         run: |

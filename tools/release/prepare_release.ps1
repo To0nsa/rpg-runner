@@ -36,7 +36,8 @@ function Invoke-ReleaseComponent {
       # routes. Linux CI runs widget browser coverage; every client build also
       # runs the real release artifact in Chrome through web_smoke.mjs.
       if ($ShardIndex -eq 0 -and [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
-        Invoke-ReleaseCommand flutter @("test", "--no-pub", "--platform", "chrome",
+        Invoke-ReleaseCommand dart @("run", "packages/runner_core/tool/prepare_navigation.dart", "--client") $Root $log | Out-Null
+        Invoke-ReleaseCommand flutter @("test", "--no-pub", "--platform", "chrome", "--reporter", "expanded",
           "test/ui/state/platform_replay_adapters_browser_test.dart",
           "test/ui/bootstrap/web_practice_startup_test.dart") $Root $log | Out-Null
       }
