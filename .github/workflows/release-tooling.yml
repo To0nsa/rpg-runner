@@ -48,6 +48,7 @@ jobs:
           .\tools\release\test_release_cache.ps1
           .\tools\release\test_release_environments.ps1
           .\tools\release\test_provision_environment.ps1
+          .\tools\release\test_android_signing.ps1
       - name: Resolve offline release plan
         shell: pwsh
         run: .\tools\release\release.ps1 -Action Plan
@@ -71,6 +72,7 @@ jobs:
           .\tools\release\test_release_cache.ps1
           .\tools\release\test_release_environments.ps1
           .\tools\release\test_provision_environment.ps1
+          .\tools\release\test_android_signing.ps1
       - name: Resolve offline release plan
         shell: powershell
         run: .\tools\release\release.ps1 -Action Plan

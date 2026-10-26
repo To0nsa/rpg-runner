@@ -12,7 +12,7 @@ No data is cancelled or deleted. Issuance pauses and resumes explicitly.
 #>
 [CmdletBinding()]
 param(
-  [ValidateSet("Plan", "Provision", "Checkout", "ImportCI", "Prepare", "Inspect", "BuildImage", "ImageStatus", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance")]
+  [ValidateSet("Plan", "Provision", "SigningSetup", "Checkout", "ImportCI", "Prepare", "Inspect", "BuildImage", "ImageStatus", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance")]
   [string]$Action = "Plan",
   [ValidateSet("dev", "staging", "prod")]
   [string]$Environment = "dev",
@@ -35,7 +35,7 @@ param(
 . (Join-Path $PSScriptRoot "prepare_release.ps1")
 . (Join-Path $PSScriptRoot "release_ci.ps1")
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
-if ($Action -in @("Provision", "BuildImage", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance") -and
+if ($Action -in @("Provision", "SigningSetup", "BuildImage", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance") -and
     -not $PSBoundParameters.ContainsKey("Environment")) { throw "Cloud mutations require explicit -Environment dev, staging or prod." }
 $definition = Get-ReleaseEnvironmentDefinition $root $Environment $ProjectId $Region
 $ProjectId = $definition.projectId
@@ -43,6 +43,11 @@ $Region = $definition.region
 if ($Action -eq 'Provision') {
   . (Join-Path $PSScriptRoot 'provision_environment.ps1')
   Initialize-ReleaseEnvironment $root $Environment $BillingAccount $BudgetAmount
+  return
+}
+if ($Action -eq 'SigningSetup') {
+  . (Join-Path $PSScriptRoot 'android_signing.ps1')
+  Initialize-AndroidUploadSigning $root $definition $Environment
   return
 }
 $firebaseConfigPath = Join-Path $root $definition.firebaseConfig

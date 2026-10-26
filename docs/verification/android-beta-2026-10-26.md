@@ -190,6 +190,59 @@ contact. Age audience does not establish the IARC rating.
 
 ## Remaining acceptance
 
-Environment service provisioning, Android identities, signing, freeze/build/deployment hashes,
+Android identities, Play distribution signing, freeze/build/deployment hashes,
 real Play auth/attestation, device acceptance, recovery rehearsal, capacity and
 store review/publication are pending. Do not infer completion from authorization.
+
+## Upload signing and release gate checkpoint (October 27 local time)
+
+Foundation source is committed as `2e272c40`. Staging's corrected Firebase app is
+`1:943085064373:android:51c288ba51386d01572efc`, package
+`com.lothringen.longrun.staging`. Its genuine Google Services configuration is
+downloaded and its upload SHA-1/SHA-256 registered. The earlier unused registration
+was preserved. Staging Play Games is linked to project `943085064373`; consent,
+OAuth clients and Firebase provider linkage are still pending. Computer Use
+stopped when a newly opened Google OAuth tab's URL could not be verified; no
+subsequent browser input was sent.
+
+`release.ps1 -Action SigningSetup -Environment <staging|prod>` created separate
+4096-bit RSA upload keys, backed them up in project-local Secret Manager secret
+`android-upload-signing`, verified downloaded bytes, and retained Windows DPAPI
+recovery copies under ignored `.tmp/release-signing/<environment>/`. Plaintext
+passwords/payloads are absent from Git and logs. Owner recovery is through the
+project Secret Manager or the original Windows profile's DPAPI copy. Repeating
+setup restored the same certificate without rotation. These are upload keys;
+Google Play's installed-app certificates still require enrollment/readback.
+
+| Environment | Upload certificate SHA-256 |
+| --- | --- |
+| Staging | `AB46F14DC351DCCAFFA431F129BC95F2926C42AAC0DDD9BE5BF96F2BF84596C9` |
+| Prod | `6934F381B5CAB46CED0084CB4DD7E6691EE84A4BE98987FF09CE2882B36B67A4` |
+
+Live logs: `.tmp/beta-checks/signing-setup-*.log` and `signing-retry-*.log`.
+`test_android_signing.ps1` passes eight mocked checks on PowerShell 5.1/7:
+environment mismatch and byte tampering rejected; build failures preserve their
+error, restore process environment and remove temporary key material; dev does
+not request a cloud key. These tests use fake bytes, not live secrets.
+
+The uncommitted release policy work now distinguishes an obsolete client
+(`failed-precondition`, `update-required`) from paused issuance or an early future
+client (`unavailable`, `release-maintenance`). Update opens only that flavor's
+listing, keeps the server gate enforced, and leaves support/exit available.
+Existing run submission/recovery is retained. Repository-root local evidence:
+
+- `flutter test test/ui/run/run_release_gate_test.dart
+  test/ui/run/run_start_preparation_test.dart
+  test/ui/pages/hub/run_start_bootstrap_page_test.dart
+  test/ui/state/firebase_run_session_api_test.dart test/firebase_environment_test.dart`:
+  25 pass; `release-gate-client.log`.
+- `flutter test test/ui/runner_game_widget_startup_test.dart
+  test/ui/state/app_state_run_submission_test.dart
+  test/ui/state/run_submission_coordinator_test.dart`: 35 pass;
+  `release-gate-recovery.log`.
+- `corepack pnpm --dir functions build` and `build:test`, compatibility tests:
+  pass; full `corepack pnpm --dir functions test`: 259 pass;
+  `release-gate-functions-emulator.log`.
+- Targeted Dart analysis passes after fixing an initial style finding. A first
+  test fixture omitted the required Firebase exception message; corrected before
+  the successful rerun. No gameplay/traversal failure has been waived yet.

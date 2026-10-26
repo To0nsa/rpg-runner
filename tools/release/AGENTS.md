@@ -17,6 +17,10 @@ Do not assume a previously used release checklist is the current target.
   foundations separate from image-dependent bootstrap, preserve existing queue
   state, and never treat alert budgets as spending caps. Run
   test_provision_environment.ps1 on both PowerShell versions when changing it.
+- SigningSetup creates staging/prod upload keys backed by project-local Secret
+  Manager and a Windows DPAPI recovery copy. Never print/export plaintext secret
+  payloads. Build credentials exist only for the build scope and are restored in
+  finally. Google Play distribution certificates are separate from upload keys.
 - Keep ticket issuance paused across coordinated Functions/worker/Hosting
   cutover. Exclude runSessionCreate from that backend phase; it belongs to
   ResumeIssuance. Verified Backend scope may redeploy it under the unchanged

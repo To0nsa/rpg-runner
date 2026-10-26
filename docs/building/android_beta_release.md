@@ -16,7 +16,7 @@ setup, use of the existing billing account, deployments, maintenance/pause/resum
 and internal/closed Play publication. Public rollout remains excluded. Complete
 reviewable preparation and retain all non-waived acceptance gates.
 
-## Execution checkpoint - October 26, 2026
+## Execution checkpoint - October 27, 2026
 
 - Starting source: `f0aa66d8`; the only initial worktree edits are this plan and
   its links in `docs/README.md` and `docs/building/README.md`. Preserve them as
@@ -73,7 +73,18 @@ reviewable preparation and retain all non-waived acceptance gates.
   registration before uploading. Preserve the existing working dev identity.
 - The previously staged auth/account-deletion work is now commit `f5075eed`.
   Preserve it as intended source and revalidate integration before freezing.
-- Next: Android identity/signing, Play Games linkage and remaining release
+- Foundation milestone committed as `2e272c40`. Staging now uses the genuine
+  Firebase registration for `com.lothringen.longrun.staging`; its separate Play
+  Games project is linked to `lothringen-long-run-staging`. OAuth consent and
+  credentials remain pending after browser control lost URL verification.
+- Separate staging/prod upload keys are backed up in each project's Secret
+  Manager. Readback and repeated setup preserve the same certificates. Google
+  Play distribution signing remains pending; upload keys are not that identity.
+- Structured maintenance/update responses and the client release gate pass 25
+  focused tests, 35 startup/recovery tests and all 259 Functions emulator tests.
+  These are local checks, not Play/device acceptance or a deployed change.
+- Next: finish OAuth/Play identity, canonical Android build evidence, diagnostics,
+  recovery and remaining release
   acceptance. Final source is not frozen and no app upload occurred.
 - Durable evidence: [Android beta execution](../verification/android-beta-2026-10-26.md).
 
@@ -108,7 +119,7 @@ stage, not another backend environment.
 | --- | --- | --- | --- |
 | Development debug | `com.example.rpg_runner.dev` | Existing project, now development | Everyday work and device debugging |
 | Development release/profile | Same development package | Development project | Local release-mode debugging; a dev Play listing is optional |
-| Staging release, separate app's Play internal track | `com.example.rpg_runner.staging` | New staging project | Team acceptance, real Play authentication/attestation and release rehearsals |
+| Staging release, separate app's Play internal track | `com.lothringen.longrun.staging` | New staging project | Team acceptance, real Play authentication/attestation and release rehearsals |
 | Production release, Play internal track | `com.example.rpg_runner` | New production project | Final production-artifact smoke checks before promotion |
 | Production release, closed beta and later public release | Same production package | Production project | Player testing and eventual public release |
 
@@ -624,8 +635,8 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: Phase 1 read-only console/CLI inventory, staging/production-name
-availability and Play identity decisions. Reusing the old project as dev,
-creating staging and production now, and the sole-owner data exception are
-settled. No cloud provisioning, display-name change, data cleanup, credential
-relocation or release publication was performed while writing or revising this plan.
+Next action: resume the execution checkpoint above. Foundation provisioning and
+upload-key setup are complete; OAuth/Play configuration, remaining implementation,
+candidate freeze, builds, deployments and acceptance remain open. No app bundle
+has been uploaded or released. Do not repeat completed setup or treat local
+validation as live acceptance.
