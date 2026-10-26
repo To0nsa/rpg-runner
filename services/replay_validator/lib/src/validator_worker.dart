@@ -18,6 +18,7 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/codecs/canonical_json_codec.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/replay_digest.dart';
+import 'package:run_protocol/loadout_digest.dart';
 import 'package:run_protocol/run_duration.dart';
 import 'package:run_protocol/validated_run.dart';
 import 'package:run_protocol/codex_run_progress.dart';
@@ -606,7 +607,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         message: 'Run ticket game compatibility version is not supported.',
       );
     }
-    final computedLoadoutDigest = ReplayDigest.canonicalSha256ForMap(
+    final computedLoadoutDigest = LoadoutDigest.sha256ForMap(
       ticket.loadoutSnapshot,
     );
     if (ticket.loadoutDigest != computedLoadoutDigest) {

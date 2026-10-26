@@ -54,6 +54,8 @@ only invariant check: assertions are disabled in production/AOT builds.
 
 - direct construction must reject invalid values with runtime argument errors;
   malformed wire payloads must fail through the JSON decoder as format errors
+- typed integer fields must stay within the shared JavaScript-safe integer range
+  in constructors and readers; never rely on `num.toInt()` to reject overflow
 - preserve the replay command-frame constraints in both paths: positive,
   strictly ordered ticks, paired finite axes in range, and known command masks
 - ranked `RunTicket` and `ValidatedRun` board keys must match their mode and
@@ -79,6 +81,8 @@ invalidate an existing digest.
 - `lib/replay_blob.dart`: replay payload, command-frame encoding, and digest
   binding
 - `lib/replay_digest.dart`: canonical SHA-256 helpers
+- `lib/loadout_digest.dart`: cross-language ticket-loadout canonicalization;
+  migrate every loadout hash consumer together and preserve existing fixtures
 - `lib/run_ticket.dart`: server-issued run-start contract consumed by clients
   and validation
 - `lib/board_key.dart` and `lib/board_manifest.dart`: board identity and active

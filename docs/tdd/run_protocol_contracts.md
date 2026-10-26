@@ -56,12 +56,55 @@ contract is constructed:
 copies. Mutating a caller-owned input map or a returned serialization map must
 not change the retained contract value or a replay digest.
 
+## Canonical digest profiles
+
+Replay-v1 uses the existing native Dart canonical encoder. Integral doubles,
+signed zero and other finite double values retain their historical spelling.
+This encoding is not a general JavaScript canonical JSON format. The replay and
+command versions and all existing replay-v1 bytes/digests remain unchanged.
+
+Ticket loadouts use `LoadoutDigest` in Dart and `runs/loadout_digest.ts` in
+Functions. This shared profile permits JSON primitives, lists and string-keyed
+objects, with numbers restricted to safe integers. Integral doubles normalize
+to integer spelling and negative zero to zero; fractional and unsafe numbers
+are rejected. Strings and keys must be well-formed Unicode. Keys sort by UTF-16
+code units, including numeric-looking and `__proto__` keys, and lists retain
+order. Encoders write keys directly so JavaScript property enumeration cannot
+silently reorder them. Hashes are SHA-256 over the UTF-8 canonical text.
+
+The profile preserves digests for every currently authorized loadout (fixed
+named fields containing content IDs and an integer mask). It is used by client
+ticket prefetch, Functions issuance, and validator ticket verification. Ticket
+constructors also validate that their snapshots fit the profile. Ownership
+command idempotency retains its separate existing hash contract.
+
+Shared [loadout fixtures](../../packages/run_protocol/test/fixtures/loadout_digest_v1.json)
+are checked in Dart and TypeScript; they cover actual loadouts, numeric keys,
+integral doubles, Unicode, safe endpoints and rejection cases.
+[Replay-v1 fixtures](../../packages/run_protocol/test/fixtures/replay_v1.json)
+pin canonical text and digest for Practice and ranked replays at 30 Hz, including
+all command bits, signed zero, double axes and optional summary data. Tests
+check decoding, reconstruction and real JSON round trips against these fixed
+values. Do not regenerate fixture expectations without a compatibility review.
+
 ## Runtime validation
 
 Constructors validate public invariants at runtime and throw `ArgumentError`
 for invalid direct construction. `fromJson` uses the typed reader helpers and
 throws `FormatException` for malformed wire data. Assertions are supplemental
 developer checks only and are not an enforcement mechanism.
+
+Typed wire integers are restricted to `[-9007199254740991, 9007199254740991]`,
+the exact shared Dart/JavaScript range. Readers check the range before converting
+an integral JSON number to `int`; out-of-range values must never be saturated or
+rounded into another contract value. Constructors enforce the same upper/lower
+bounds in addition to their domain constraints. Positive Storage generations
+remain decimal strings and are not subject to numeric conversion.
+
+Factories translate constructor `ArgumentError`s to `FormatException`, including
+nested immutable JSON validation failures. Direct construction still reports
+`ArgumentError`, so callers can distinguish invalid local arguments from malformed
+remote data.
 
 Important enforced constraints include:
 
@@ -95,33 +138,16 @@ snapshot/digest, and compatibility tuple. The validator recomputes the loadout
 digest and compares canonical JSON snapshots rather than trusting client
 claims.
 
-Connection-aware terrain selection was introduced in game compatibility
-`2026.09.0`. The 128-world-unit camera fall-behind grace distance is issued as
-`2026.09.1`, and difficulty-paced camera targets are issued as `2026.09.2`.
-Current Functions defaults and the worker accept only `2026.10.6` with ranked
-`rules-v2`/`score-v3`/`ghost-v1`. The rescue release includes prior navigation and
-trap changes, followed by the Forest spawn revision in `2026.09.9` and the
-20% camera target reduction in `2026.09.10`. The `2026.10.1` release adds
-projectile auto aim and the latest Forest grove/terrain content. The
-`2026.10.2` source change adds Huntress ranged/stab/slash selection and
-per-enemy successful-stab history. It also tracks furthest accepted horizontal
-progress and uses 25 world units per metre throughout HUD, scoring and
-validated results.
-`2026.10.3` adds replay-sensitive top-contact regeneration shrines while
-retaining the `score-v3` distance rule and the same wire formats.
-`2026.10.4` retunes that blessing to +0.10 health, mana, and stamina per second;
-`2026.10.6` prevents coins and restoration gems from spawning across authored
-non-collidable terrain intervals and aligns combat geometry and damage windows
-with source poses. See [combat pose geometry](combat_pose_geometry.md). The
-worker rejects prior gameplay versions rather than replaying their different
-resource placement or combat outcomes with the current Core.
-`score-v3` retains 5 points per metre and isolates the changed distance points
-from historical boards. Wire fields are unchanged; saved results keep their
-original values. Compatibility labels do not select historical Core implementations.
-Replay and command encoding remain version 1. Follow the current
-[pre-live cancellation/reset procedure](../building/rescue_release_operations.md).
+Compatibility allowlists and issuance defaults are owned by
+[Functions run compatibility](../../functions/src/runs/compatibility.ts),
+[board provisioning](../../functions/src/boards/provisioning.ts), and the
+[validator's supported tuple](../../services/replay_validator/lib/src/validator_worker.dart).
+These source settings do not establish the live deployment configuration.
 Practice and ranked creation reject versions outside the backend allowlist before
-a run-session document is issued.
+a run-session document is issued. Compatibility labels do not select historical
+Core implementations; the worker rejects unsupported gameplay versions.
+Replay and command encoding remain version 1. Use the
+[coordinated deployment workflow](deployment_workflow.md) for cutovers.
 
 Managed ranked-board IDs bind mode, level, window, ruleset, score, game
 compatibility, and ghost version. This permits old and new compatibility
@@ -137,9 +163,8 @@ Rescue release summaries add `rescuedNpcs` and `rescuePoints` to the existing
 immutable JSON maps in `ReplayBlobV1.clientSummary` and `ValidatedRun.stats`.
 The former is untrusted; the worker derives the latter from terminal Core stats
 and shared scoring. No command fields, ordinals, canonicalization or settlement
-contracts change. The rescue release used `score-v2`. The current distance
-revision uses `score-v3` boards to partition its changed distance points from
-historical results.
+contracts change. Changed scoring rules are partitioned by the score version
+in the board identity; historical results retain their original metrics.
 
 Do not rename existing wire keys or change replay canonicalization without an
 explicit migration: replay digests, stored submissions, and ghost artifacts

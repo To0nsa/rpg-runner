@@ -78,7 +78,7 @@ void main() {
       final json = Map<String, Object?>.from(blob.toJson())..remove('boardKey');
       expect(
         () => ReplayBlobV1.fromJson(json, verifyDigest: false),
-        throwsArgumentError,
+        throwsFormatException,
       );
     });
 

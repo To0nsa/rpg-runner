@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/replay_digest.dart';
+import 'package:run_protocol/loadout_digest.dart';
 import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:run_protocol/validated_run.dart';
@@ -1799,7 +1800,7 @@ ValidatorRunSession _session({
       loadoutSnapshot: loadoutSnapshot ?? _defaultLoadoutSnapshot(),
       loadoutDigest:
           loadoutDigest ??
-          ReplayDigest.canonicalSha256ForMap(
+          LoadoutDigest.sha256ForMap(
             loadoutSnapshot ?? _defaultLoadoutSnapshot(),
           ),
       issuedAtMs: issuedAtMs,

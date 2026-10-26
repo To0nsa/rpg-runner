@@ -1,0 +1,88 @@
+{
+  "valid": [
+    {
+      "name": "authorized_loadout",
+      "input": {
+        "mask": 0,
+        "mainWeaponId": "plainsteel",
+        "offhandWeaponId": "roadguard",
+        "spellBookId": "apprenticePrimer",
+        "projectileSlotSpellId": "iceBolt",
+        "accessoryId": "strengthBelt",
+        "abilityPrimaryId": "eloise.seeker_slash",
+        "abilitySecondaryId": "eloise.shield_block",
+        "abilityProjectileId": "eloise.snap_shot",
+        "abilitySpellId": "eloise.arcane_haste",
+        "abilityMobilityId": "eloise.dash",
+        "abilityJumpId": "eloise.jump"
+      },
+      "canonicalJson": "{\"abilityJumpId\":\"eloise.jump\",\"abilityMobilityId\":\"eloise.dash\",\"abilityPrimaryId\":\"eloise.seeker_slash\",\"abilityProjectileId\":\"eloise.snap_shot\",\"abilitySecondaryId\":\"eloise.shield_block\",\"abilitySpellId\":\"eloise.arcane_haste\",\"accessoryId\":\"strengthBelt\",\"mainWeaponId\":\"plainsteel\",\"mask\":0,\"offhandWeaponId\":\"roadguard\",\"projectileSlotSpellId\":\"iceBolt\",\"spellBookId\":\"apprenticePrimer\"}",
+      "sha256": "140ce4429229b63173bda54ea34f829b3e3a273818f387886018b211ec6fadf6"
+    },
+    {
+      "name": "numeric_keys_and_integral_doubles",
+      "input": {
+        "2": "two",
+        "10": "ten",
+        "__proto__": {
+          "x": 1.0
+        },
+        "values": [
+          1.0,
+          -0.0,
+          true,
+          false,
+          null
+        ]
+      },
+      "canonicalJson": "{\"10\":\"ten\",\"2\":\"two\",\"__proto__\":{\"x\":1},\"values\":[1,0,true,false,null]}",
+      "sha256": "d9a2fcc581733a4a4e6c3f31a5579cff248bd44ebd3b9658e4c7c27ca0551cd2"
+    },
+    {
+      "name": "unicode_and_safe_endpoints",
+      "input": {
+        "\ue000": "private",
+        "\ud83d\ude00": "emoji",
+        "text": "\u00c9lo\u00efse\n\t\b\f\r\"\\\u2028\u2029",
+        "bounds": [
+          -9007199254740991,
+          9007199254740991
+        ]
+      },
+      "canonicalJson": "{\"bounds\":[-9007199254740991,9007199254740991],\"text\":\"\u00c9lo\u00efse\\n\\t\\b\\f\\r\\\"\\\\\u2028\u2029\",\"\ud83d\ude00\":\"emoji\",\"\ue000\":\"private\"}",
+      "sha256": "95aed208c2a9e6013dd6565ac5ad065295fac365959856b0805e5f521c10c1ec"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "fraction",
+      "input": {
+        "x": 1.5
+      }
+    },
+    {
+      "name": "overflow",
+      "input": {
+        "x": 1e+100
+      }
+    },
+    {
+      "name": "unsafe_integer",
+      "input": {
+        "x": 9007199254740992
+      }
+    },
+    {
+      "name": "lone_high_surrogate",
+      "input": {
+        "x": "\ud800"
+      }
+    },
+    {
+      "name": "lone_low_surrogate_key",
+      "input": {
+        "\udc00": 1
+      }
+    }
+  ]
+}

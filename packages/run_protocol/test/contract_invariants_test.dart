@@ -195,7 +195,7 @@ void main() {
           levelId: 'field',
           playerCharacterId: 'eloise',
           loadoutSnapshot: snapshot,
-          loadoutDigest: ReplayDigest.canonicalSha256ForMap(snapshot),
+          loadoutDigest: LoadoutDigest.sha256ForMap(snapshot),
           issuedAtMs: 1,
           expiresAtMs: 2,
           singleUseNonce: 'nonce_1',

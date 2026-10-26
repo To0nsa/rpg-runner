@@ -29,6 +29,7 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/run_ticket.dart';
+import 'package:run_protocol/loadout_digest.dart';
 
 import '../../app/ui_routes.dart';
 import '../../app/app_runtime_policy.dart';

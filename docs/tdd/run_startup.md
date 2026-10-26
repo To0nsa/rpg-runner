@@ -19,7 +19,9 @@ and submission, and requires only world readiness. Restarts remain local.
   ticket prefetch/consumption, ticket issuance, and ghost artifact retrieval.
   A start joins an in-flight prefetch for the exact authenticated user, ownership
   revision, mode, level, character, loadout and compatibility key before consuming
-  its ticket once. Failed, expired or mismatched prefetch falls back to foreground
+  its ticket once. The loadout key uses `run_protocol.LoadoutDigest` over the same
+  snapshot fields as Functions issuance and worker validation. A matching digest
+  permits reuse. Failed, expired or mismatched prefetch falls back to foreground
   issuance. Canonical/auth invalidation fences late results even if the eventual
   key compares equal. Selection/session changes during the wait reject the start.
   A still-valid cached ticket suppresses redundant warmup requests.

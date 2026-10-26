@@ -1,3 +1,4 @@
+import 'codecs/json_integer.dart';
 import 'board_key.dart';
 import 'codecs/json_value_copy.dart';
 import 'codecs/json_value_reader.dart';
@@ -16,6 +17,16 @@ final class ReplayCommandFrameV1 {
     this.abilitySlotHeldChangedMask = 0,
     this.abilitySlotHeldValueMask = 0,
   }) {
+    requireJsonSafeInteger(tick, 'tick');
+    requireJsonSafeInteger(pressedMask, 'pressedMask');
+    requireJsonSafeInteger(
+      abilitySlotHeldChangedMask,
+      'abilitySlotHeldChangedMask',
+    );
+    requireJsonSafeInteger(
+      abilitySlotHeldValueMask,
+      'abilitySlotHeldValueMask',
+    );
     if (tick <= 0) {
       throw ArgumentError.value(tick, 'tick', 'must be positive');
     }
@@ -98,64 +109,27 @@ final class ReplayCommandFrameV1 {
   }
 
   factory ReplayCommandFrameV1.fromJson(Object? raw) {
-    final json = asObjectMap(raw, fieldName: 'commandStream.frame');
-    final tick = readRequiredInt(json, 't');
-    final moveAxis = readOptionalDouble(json, 'mx');
-    final aimDirX = readOptionalDouble(json, 'ax');
-    final aimDirY = readOptionalDouble(json, 'ay');
-    final pressedMask = readOptionalInt(json, 'pm') ?? 0;
-    final abilitySlotHeldChangedMask = readOptionalInt(json, 'hm') ?? 0;
-    final abilitySlotHeldValueMask = readOptionalInt(json, 'hv') ?? 0;
-    if (tick <= 0) {
-      throw const FormatException('commandStream.frame.t must be positive.');
-    }
-    if ((aimDirX == null) != (aimDirY == null)) {
-      throw const FormatException(
-        'commandStream.frame aim axes must both be set or both be absent.',
+    try {
+      final json = asObjectMap(raw, fieldName: 'commandStream.frame');
+      final tick = readRequiredInt(json, 't');
+      final moveAxis = readOptionalDouble(json, 'mx');
+      final aimDirX = readOptionalDouble(json, 'ax');
+      final aimDirY = readOptionalDouble(json, 'ay');
+      final pressedMask = readOptionalInt(json, 'pm') ?? 0;
+      final abilitySlotHeldChangedMask = readOptionalInt(json, 'hm') ?? 0;
+      final abilitySlotHeldValueMask = readOptionalInt(json, 'hv') ?? 0;
+      return ReplayCommandFrameV1(
+        tick: tick,
+        moveAxis: moveAxis,
+        aimDirX: aimDirX,
+        aimDirY: aimDirY,
+        pressedMask: pressedMask,
+        abilitySlotHeldChangedMask: abilitySlotHeldChangedMask,
+        abilitySlotHeldValueMask: abilitySlotHeldValueMask,
       );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
     }
-    if (moveAxis != null && (moveAxis < -1 || moveAxis > 1)) {
-      throw const FormatException(
-        'commandStream.frame.mx must be within [-1, 1].',
-      );
-    }
-    if (aimDirX != null && (aimDirX < -1 || aimDirX > 1)) {
-      throw const FormatException(
-        'commandStream.frame.ax must be within [-1, 1].',
-      );
-    }
-    if (aimDirY != null && (aimDirY < -1 || aimDirY > 1)) {
-      throw const FormatException(
-        'commandStream.frame.ay must be within [-1, 1].',
-      );
-    }
-    if (pressedMask < 0 || (pressedMask & ~knownPressedMask) != 0) {
-      throw const FormatException(
-        'commandStream.frame.pm contains unsupported command bits.',
-      );
-    }
-    if (abilitySlotHeldChangedMask < 0 ||
-        (abilitySlotHeldChangedMask & ~knownAbilitySlotMask) != 0) {
-      throw const FormatException(
-        'commandStream.frame.hm contains unsupported ability-slot bits.',
-      );
-    }
-    if (abilitySlotHeldValueMask < 0 ||
-        (abilitySlotHeldValueMask & ~knownAbilitySlotMask) != 0 ||
-        (abilitySlotHeldValueMask & ~abilitySlotHeldChangedMask) != 0) {
-      throw const FormatException(
-        'commandStream.frame.hv must be a subset of hm.',
-      );
-    }
-    return ReplayCommandFrameV1(
-      tick: tick,
-      moveAxis: moveAxis,
-      aimDirX: aimDirX,
-      aimDirY: aimDirY,
-      pressedMask: pressedMask,
-      abilitySlotHeldChangedMask: abilitySlotHeldChangedMask,
-      abilitySlotHeldValueMask: abilitySlotHeldValueMask,
-    );
   }
 
   static void _validateAxis(double? value, String name) {
@@ -194,6 +168,9 @@ final class ReplayBlobV1 {
            ? null
            : immutableJsonObject(clientSummary, fieldName: 'clientSummary'),
        commandStream = List<ReplayCommandFrameV1>.unmodifiable(commandStream) {
+    requireJsonSafeInteger(tickHz, 'tickHz');
+    requireJsonSafeInteger(seed, 'seed');
+    requireJsonSafeInteger(totalTicks, 'totalTicks');
     if (replayVersion != kReplayBlobVersion1) {
       throw ArgumentError.value(
         replayVersion,
@@ -314,68 +291,44 @@ final class ReplayBlobV1 {
   }
 
   factory ReplayBlobV1.fromJson(Object? raw, {bool verifyDigest = true}) {
-    final json = asObjectMap(raw, fieldName: 'replayBlob');
-    final replayVersion = readRequiredInt(json, 'replayVersion');
-    final commandEncodingVersion = readRequiredInt(
-      json,
-      'commandEncodingVersion',
-    );
-    final tickHz = readRequiredInt(json, 'tickHz');
-    final totalTicks = readRequiredInt(json, 'totalTicks');
-    if (replayVersion != kReplayBlobVersion1) {
-      throw FormatException('Unsupported replayVersion $replayVersion.');
-    }
-    if (commandEncodingVersion != kCommandEncodingVersion1) {
-      throw FormatException(
-        'Unsupported commandEncodingVersion $commandEncodingVersion.',
+    try {
+      final json = asObjectMap(raw, fieldName: 'replayBlob');
+      final replayVersion = readRequiredInt(json, 'replayVersion');
+      final commandEncodingVersion = readRequiredInt(
+        json,
+        'commandEncodingVersion',
       );
-    }
-    if (tickHz <= 0) {
-      throw const FormatException('tickHz must be positive.');
-    }
-    if (totalTicks < 0) {
-      throw const FormatException('totalTicks must be non-negative.');
-    }
-    final commandStream = readRequiredList(
-      json,
-      'commandStream',
-    ).map(ReplayCommandFrameV1.fromJson).toList(growable: false);
-    var previousTick = 0;
-    for (final frame in commandStream) {
-      if (frame.tick <= previousTick) {
-        throw const FormatException(
-          'commandStream ticks must be strictly increasing.',
-        );
+      final tickHz = readRequiredInt(json, 'tickHz');
+      final totalTicks = readRequiredInt(json, 'totalTicks');
+      final commandStream = readRequiredList(
+        json,
+        'commandStream',
+      ).map(ReplayCommandFrameV1.fromJson).toList(growable: false);
+      final blob = ReplayBlobV1(
+        replayVersion: replayVersion,
+        runSessionId: readRequiredString(json, 'runSessionId'),
+        boardId: readOptionalString(json, 'boardId'),
+        boardKey: json['boardKey'] == null
+            ? null
+            : BoardKey.fromJson(json['boardKey']),
+        tickHz: tickHz,
+        seed: readRequiredInt(json, 'seed'),
+        levelId: readRequiredString(json, 'levelId'),
+        playerCharacterId: readRequiredString(json, 'playerCharacterId'),
+        loadoutSnapshot: readRequiredObject(json, 'loadoutSnapshot'),
+        commandEncodingVersion: commandEncodingVersion,
+        totalTicks: totalTicks,
+        commandStream: commandStream,
+        canonicalSha256: readRequiredString(json, 'canonicalSha256'),
+        clientSummary: readOptionalObject(json, 'clientSummary'),
+      );
+      if (verifyDigest && !blob.hasValidDigest) {
+        throw FormatException('canonicalSha256 does not match replay payload.');
       }
-      if (frame.tick > totalTicks) {
-        throw const FormatException(
-          'commandStream frame tick exceeds totalTicks.',
-        );
-      }
-      previousTick = frame.tick;
+      return blob;
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
     }
-    final blob = ReplayBlobV1(
-      replayVersion: replayVersion,
-      runSessionId: readRequiredString(json, 'runSessionId'),
-      boardId: readOptionalString(json, 'boardId'),
-      boardKey: json['boardKey'] == null
-          ? null
-          : BoardKey.fromJson(json['boardKey']),
-      tickHz: tickHz,
-      seed: readRequiredInt(json, 'seed'),
-      levelId: readRequiredString(json, 'levelId'),
-      playerCharacterId: readRequiredString(json, 'playerCharacterId'),
-      loadoutSnapshot: readRequiredObject(json, 'loadoutSnapshot'),
-      commandEncodingVersion: commandEncodingVersion,
-      totalTicks: totalTicks,
-      commandStream: commandStream,
-      canonicalSha256: readRequiredString(json, 'canonicalSha256'),
-      clientSummary: readOptionalObject(json, 'clientSummary'),
-    );
-    if (verifyDigest && !blob.hasValidDigest) {
-      throw FormatException('canonicalSha256 does not match replay payload.');
-    }
-    return blob;
   }
 
   Map<String, Object?> toCanonicalPayloadJson() {

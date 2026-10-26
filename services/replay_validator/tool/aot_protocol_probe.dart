@@ -1,6 +1,31 @@
 import 'package:run_protocol/run_protocol.dart';
+import 'package:run_protocol/codecs/json_integer.dart';
+import 'package:run_protocol/codecs/json_value_reader.dart';
 
 void main() {
+  _expectFormatException(() => readRequiredInt({'value': 1e100}, 'value'));
+  _expectFormatException(() => readOptionalInt({'value': -1e100}, 'value'));
+  _expectArgumentError(() => LoadoutDigest.sha256ForMap({'mask': 0.5}));
+  _expectArgumentError(() => LoadoutDigest.sha256ForMap({'mask': 1e100}));
+  _expectArgumentError(
+    () => ReplayCommandFrameV1(tick: maxJsonSafeInteger + 1),
+  );
+  _expectArgumentError(
+    () => SubmissionReward(
+      status: SubmissionRewardStatus.finalReward,
+      provisionalGold: 0,
+      effectiveGoldDelta: maxJsonSafeInteger + 1,
+      spendableGoldDelta: 0,
+      updatedAtMs: 0,
+    ),
+  );
+  _expectFormatException(
+    () => SubmissionStatus.fromJson({
+      'runSessionId': 'run',
+      'state': 'issued',
+      'updatedAtMs': -1,
+    }),
+  );
   _expectArgumentError(
     () => CodexRunProgress(levelId: 'forest', enemyKills: {'grojib': -1}),
   );
@@ -19,6 +44,9 @@ void main() {
   ).toJson();
 
   _expectRejected(<String, Object?>{...valid, 'replayVersion': 999});
+  _expectRejected(<String, Object?>{...valid, 'seed': 1e100});
+  _expectRejected(<String, Object?>{...valid, 'canonicalSha256': 'bad'});
+  _expectRejected(<String, Object?>{...valid, 'boardId': 'unpaired'});
   _expectRejected(<String, Object?>{...valid, 'commandEncodingVersion': 999});
   _expectRejected(<String, Object?>{
     ...valid,
@@ -167,4 +195,13 @@ void _expectArgumentError(Object? Function() build) {
   throw StateError(
     'Invalid protocol construction was accepted by the AOT probe.',
   );
+}
+
+void _expectFormatException(Object? Function() decode) {
+  try {
+    decode();
+  } on FormatException {
+    return;
+  }
+  throw StateError('Malformed wire input was accepted by the AOT probe.');
 }
