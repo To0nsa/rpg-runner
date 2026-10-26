@@ -3,7 +3,7 @@
 Checks, prepares, inspects, builds and deploys the configured Firebase release.
 .DESCRIPTION
 Plan is offline. Prepare changes only local build output. Inspect is read-only.
-BuildImage uploads source and starts Cloud Build; PauseIssuance, Deploy and
+BuildImage uploads source and starts Cloud Build; Bootstrap, PauseIssuance, Deploy and
 ResumeIssuance change production.
 Deploy requires successful unchanged preparation. Coordinated releases also
 require a benchmarked image, fresh drain evidence and CutoverReady. Scoped
@@ -12,7 +12,7 @@ No data is cancelled or deleted. Issuance pauses and resumes explicitly.
 #>
 [CmdletBinding()]
 param(
-  [ValidateSet("Plan", "Checkout", "ImportCI", "Prepare", "Inspect", "BuildImage", "ImageStatus", "PauseIssuance", "Deploy", "ResumeIssuance")]
+  [ValidateSet("Plan", "Checkout", "ImportCI", "Prepare", "Inspect", "BuildImage", "ImageStatus", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance")]
   [string]$Action = "Plan",
   [ValidateSet("dev", "staging", "prod")]
   [string]$Environment = "dev",
@@ -33,7 +33,7 @@ param(
 . (Join-Path $PSScriptRoot "prepare_release.ps1")
 . (Join-Path $PSScriptRoot "release_ci.ps1")
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
-if ($Action -in @("BuildImage", "PauseIssuance", "Deploy", "ResumeIssuance") -and
+if ($Action -in @("BuildImage", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance") -and
     -not $PSBoundParameters.ContainsKey("Environment")) { throw "Cloud mutations require explicit -Environment dev, staging or prod." }
 $definition = Get-ReleaseEnvironmentDefinition $root $Environment $ProjectId $Region
 $ProjectId = $definition.projectId
@@ -293,6 +293,7 @@ if ($Action -eq "Plan") {
     stages = if ($resolvedScope -ne "Coordinated") { @("Prepare: reuse/validate changed components", "Deploy: verify baseline and publish $resolvedScope") } else { @("Prepare: parallel local validation/build", "Inspect: live read-only snapshot",
       "BuildImage: asynchronous remote build and strict benchmark", "ImageStatus: immutable result",
       "PauseIssuance: temporary runtime compatibility gate",
+      "Bootstrap -CutoverReady: empty targets only, create a verified paused issuer",
       "Deploy -CutoverReady: Functions/indexes, IAM, worker/queues, boards, Hosting",
       "ResumeIssuance -CutoverReady: readiness checks, queues, ticket issuer") }
   } | ConvertTo-Json -Depth 10
@@ -423,6 +424,24 @@ if ($Action -eq "BuildImage") {
 }
 if ($Action -eq "ImageStatus") {
   Get-ImageStatus | Out-Null
+  return
+}
+if ($Action -eq "Bootstrap") {
+  if (-not $CutoverReady) { throw "Bootstrap requires -CutoverReady and release authorization." }
+  if (-not (Get-ImageStatus)) { throw "Image is still building; target remains unchanged." }
+  Assert-ReleaseImage $state $ProjectId $Region
+  $emptyInventory = Invoke-ReleaseCommand node @("functions/tool/bootstrap_inventory.mjs", "--project", $ProjectId) $root | ConvertFrom-Json
+  $existingFunctions = Invoke-ReleaseGcloud @("functions", "list", "--project=$ProjectId", "--format=json") | ConvertFrom-Json
+  $existingServices = Invoke-ReleaseGcloud @("run", "services", "list", "--project=$ProjectId", "--platform=managed", "--format=json") | ConvertFrom-Json
+  Assert-ReleaseBootstrapEmpty $emptyInventory $ProjectId $existingFunctions $existingServices
+  $emptyInventory | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDirectory "bootstrap-empty.json") -Encoding utf8
+  # Creating only the paused issuer establishes the same fence used by normal
+  # cutover. Every subsequent deployment/readiness/drain step remains unchanged.
+  Invoke-PausedIssuerRebuild
+  Assert-IssuancePaused
+  $state.issuancePausedAt = [DateTime]::UtcNow.ToString("o")
+  Save-ReleaseState
+  Write-Host "Empty environment bootstrapped with issuance paused. Continue Deploy -CutoverReady, then ResumeIssuance only after readiness and acceptance."
   return
 }
 if ($Action -eq "PauseIssuance") {

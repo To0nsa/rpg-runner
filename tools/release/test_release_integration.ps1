@@ -19,6 +19,8 @@ $global:fakeArtifactLookupDenied = $false
 $global:fakeFirebaseDebug = $false
 $global:fakeIndexesReady = $true
 $global:fakeFunctionsVersion = '2026-10-01T00:00:00Z'
+$global:fakeBootstrapEmpty = $false
+$global:fakeBootstrapUsers = $false
 $script:passed = 0
 $global:mockFiles = @(
   "tools/release/release.ps1", "tools/release/release_support.ps1", "tools/release/release_cache.ps1",
@@ -52,6 +54,9 @@ function corepack {
 }
 function node {
   $global:LASTEXITCODE = 0
+  if (($args -join ' ') -like '*bootstrap_inventory.mjs*') {
+    return (@{projectId='test-project';readOnly=$true;hasAuthUsers=$global:fakeBootstrapUsers;hasFirestoreCollections=$false} | ConvertTo-Json)
+  }
   return ([ordered]@{
     readOnly = $true; projectId = "test-project"
     runs = @{
@@ -117,9 +122,11 @@ function gcloud {
   if ($command.StartsWith("firestore indexes")) { if ($global:fakeIndexesReady) { return "[]" }; return '[{"state":"CREATING"}]' }
   if ($command.StartsWith("tasks queues describe")) { return 'RUNNING' }
   if ($command.StartsWith("functions list")) {
+    if ($global:fakeBootstrapEmpty) { return '[]' }
     $exports = [regex]::Matches((Get-Content -Raw (Join-Path $fixture 'functions/src/index.ts')), 'export const ([A-Za-z][A-Za-z0-9_]*)\s*=')
     return (@($exports | ForEach-Object { @{ name = "projects/test-project/locations/europe-west1/functions/$($_.Groups[1].Value)"; state = "ACTIVE"; updateTime = $global:fakeFunctionsVersion } }) | ConvertTo-Json -Depth 5)
   }
+  if ($command.StartsWith('run services list')) { return '[]' }
   return "{}"
 }
 function Invoke-WebRequest {
@@ -204,6 +211,29 @@ try {
   try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Issuer traffic*" }
   Assert-Test $rejected "split issuer traffic blocks cutover"
   $global:fakeIssuerSplitTraffic = $false
+
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action Bootstrap } catch { $rejected = $_.Exception.Message -like '*requires -CutoverReady*' }
+  Assert-Test $rejected 'bootstrap requires explicit cutover acknowledgement'
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action Bootstrap -CutoverReady } catch { $rejected = $_.Exception.Message -like '*verified empty target*' }
+  Assert-Test $rejected 'bootstrap refuses an existing backend'
+  $global:fakeBootstrapEmpty = $true
+  $global:fakeBootstrapUsers = $true
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action Bootstrap -CutoverReady } catch { $rejected = $_.Exception.Message -like '*verified empty target*' }
+  Assert-Test ($rejected -and @($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 0) 'bootstrap refuses existing accounts before creating services'
+  $global:fakeBootstrapUsers = $false
+  $bootstrapEnv = Join-Path $fixture 'functions/.env.test-project'
+  $bootstrapEnvHash = (Get-FileHash -LiteralPath $bootstrapEnv).Hash
+  & $entry -Environment $TestEnvironment -Action Bootstrap -CutoverReady
+  Assert-Test ($global:fakeIssuancePaused -and (Test-Path -LiteralPath (Join-Path $evidence 'bootstrap-empty.json'))) 'empty bootstrap creates a verified paused issuer with inventory evidence'
+  Assert-Test ((Get-FileHash -LiteralPath $bootstrapEnv).Hash -eq $bootstrapEnvHash) 'bootstrap restores environment bytes after deployment'
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 1 -and
+    @($global:releaseTrace | Where-Object { $_ -match 'tasks queues resume|configure matching worker|--only hosting' }).Count -eq 0) 'bootstrap deploys only the paused issuer'
+  $global:fakeBootstrapEmpty = $false
+  $global:fakeIssuancePaused = $false
+  $global:releaseTrace.Clear()
 
   $global:fakeArtifactLookupDenied = $true
   $rejected = $false
@@ -320,7 +350,7 @@ try {
   }
   Remove-Item -LiteralPath $resolvedFixture -Recurse -Force
   foreach ($name in @("releaseTrace", "fakeIssuancePaused", "fakeActiveRuns", "fakeBuildStatus", "fakeImageTag", "fakeImageUri", "mockFiles",
-    "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug", "fakeIndexesReady", "fakeFunctionsVersion")) {
+    "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug", "fakeIndexesReady", "fakeFunctionsVersion", "fakeBootstrapEmpty", "fakeBootstrapUsers")) {
     Remove-Variable -Name $name -Scope Global -ErrorAction SilentlyContinue
   }
 }

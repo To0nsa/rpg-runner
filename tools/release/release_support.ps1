@@ -196,3 +196,13 @@ function Assert-ReleaseImage {
     throw "No matching benchmarked immutable image. Run BuildImage."
   }
 }
+
+function Assert-ReleaseBootstrapEmpty {
+  param([object]$Inventory, [string]$ProjectId, [object[]]$Functions, [object[]]$Services)
+  if ($Inventory.projectId -ne $ProjectId -or $Inventory.readOnly -ne $true -or
+      $Inventory.hasAuthUsers -ne $false -or $Inventory.hasFirestoreCollections -ne $false -or
+      ($null -ne $Functions -and $Functions.Count -ne 0) -or
+      ($null -ne $Services -and $Services.Count -ne 0)) {
+    throw "Bootstrap requires a verified empty target: no Auth users, Firestore collections, Functions or Cloud Run services. Use normal cutover for established environments."
+  }
+}

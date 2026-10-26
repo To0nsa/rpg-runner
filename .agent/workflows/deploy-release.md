@@ -37,7 +37,11 @@ baselines/checkpoints cannot establish readiness in a different environment.
    For Coordinated scope, once image upload/build is authorized, run BuildImage
    and poll ImageStatus.
    Preparation can be reused while the source and artifact hashes match.
-5. Once production cutover is authorized, run PauseIssuance. Keep queues running
+5. Once production cutover is authorized, run PauseIssuance. A newly provisioned
+   target uses Bootstrap -CutoverReady first: it verifies no Auth users, Firestore
+   collections, Functions or Cloud Run services and creates only the paused
+   issuer. A partially bootstrapped target recovers through normal pause/deploy,
+   never by deleting resources to make the empty check pass. Keep queues running
    while validation and settlement drain. Any cancellation/reset needs its own
    authorization and is not performed by this workflow. The action pins the live
    issuer image or, when it was deleted by managed cleanup, rebuilds the prepared

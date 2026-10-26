@@ -9,14 +9,25 @@ project, region, Firebase config, replay bucket, worker endpoint, queue names an
 Android package. `.firebaserc` aliases must agree; its default stays dev.
 `ProjectId`/`Region` can assert the selected identity but cannot redirect it.
 Cloud mutations require explicit `-Environment`; offline Plan defaults to dev.
-Staging/prod IDs are reserved in source but are not provisioned yet; their worker
-URLs remain empty and block mutations until actual resource discovery.
+Staging/prod projects have been created; their worker URLs remain empty and block
+release mutations until provisioning and endpoint configuration are complete.
 
 Only dev has a Hosting site. Staging/prod configuration deliberately has no
 Hosting target; their coordinated backend releases do not publish a website.
 The local web build remains preparation evidence, not proof of an Android build.
-Native artifact preparation and empty-project bootstrap are still pending in the
+Native artifact preparation and project provisioning are still pending in the
 [Android beta workstream](../building/android_beta_release.md).
+
+For a newly provisioned, unused project, `Bootstrap -Environment <name>
+-CutoverReady` replaces the first `PauseIssuance`. It requires the same prepared
+source and successful benchmarked immutable image. A live read-only inventory
+must show no Auth users, Firestore collections, Functions or Cloud Run services.
+The action records that inventory, deploys only the issuer with the explicit
+`release-paused` gate, restores local environment bytes and verifies the healthy
+serving revision. Continue with normal `Deploy` and `ResumeIssuance`; all drain,
+artifact and readiness gates still apply. Bootstrap never imports or resets data.
+If bootstrap creates the issuer before a later failure, inspect it and recover
+with normal `PauseIssuance`/`Deploy`; do not erase resources to rerun bootstrap.
 
 Functions derive their runtime and private validator-invoker service accounts
 from the SDK deployment project, rejecting contradictory project variables or a

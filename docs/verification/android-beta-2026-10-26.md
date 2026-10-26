@@ -28,7 +28,8 @@ the closed billing account are outside this workstream.
 
 `gh auth status` verifies repository access. Browser inventory via the Chrome
 control integration returned no connected browsers; setup instructions supplied
-to the owner. No Play account/listing/signing facts are verified yet.
+to the owner. The subsequent Windows Computer Use retry succeeded; see the
+console and project foundation evidence below.
 
 ## Authorization and waiver
 
@@ -38,8 +39,8 @@ publication. It excludes general public distribution and unrelated deletion.
 Only the owner's existing development game data may be discarded if necessary.
 
 Traversal/navigation/content-quality failures are non-blocking for this initial
-release, with exact failure evidence required. No tests have yet failed in this
-execution; no waiver has been consumed. Replay integrity/determinism, missing
+release, with exact failure evidence required. No gameplay failure waiver has
+been consumed. Replay integrity/determinism, missing
 assets, authentication, isolation, builds and deployments remain blocking.
 
 ## Environment-routing milestone
@@ -47,11 +48,12 @@ assets, authentication, isolation, builds and deployments remain blocking.
 Implemented registry and explicit mutation selection, Firebase aliases and
 separate configs, environment resource validation, project-specific configuration
 requirement, project-derived Functions runtime/private-invoker identities, and
-dev-only Hosting. Staging/prod IDs remain proposed until actual creation succeeds.
+dev-only Hosting. Staging/prod IDs were initially proposed and later created below.
 Release input hashing includes Android and environment definitions. Git file
 enumeration disables pathname quoting so accented asset paths remain usable.
 
-Validation from the repository root on the uncommitted milestone:
+Validation from the repository root on the milestone subsequently committed as
+`c1d11dbd07803e2545683221fac15f76a917b69a`:
 
 - `corepack pnpm --dir functions build` and `build:test`: pass.
 - `node --test functions/lib_test/test/deployment_identity.test.js`: 5 pass.
@@ -85,8 +87,51 @@ cache; the actual release must use the canonical LF frozen checkout and verified
 baseline. No gameplay-version bump or weakening of the simulation fence was made
 to hide line-ending differences.
 
+## Empty-target bootstrap and live foundation work
+
+Added `release.ps1 -Action Bootstrap -Environment <name> -CutoverReady`.
+It requires prepared artifacts and a successfully benchmarked immutable worker
+image, verifies no Auth users/Firestore collections/Functions/Cloud Run services,
+and creates only a verified paused issuer. Normal Deploy/ResumeIssuance gates
+still apply. No destructive reset or cross-project import is implemented.
+
+Local validation of the uncommitted bootstrap milestone, repository root:
+
+- `test_release.ps1`: 38 checks pass on PowerShell 5.1 and 7.
+- `test_release_cache.ps1`: 48 pass on both shells.
+- `test_release_environments.ps1`: 29 pass on both shells.
+- `test_release_integration.ps1 -TestEnvironment <dev|staging|prod>`: all six
+  runs pass, 93 dev and 88 each staging/prod. An initial empty-array handling
+  difference between PowerShell versions was corrected and both retested.
+- `node functions/tool/bootstrap_inventory.mjs --project rpg-runner-d7add`:
+  live read-only success at `2026-10-26T20:57:46.706Z`, both existence flags true.
+  This verifies dev is rejected as an empty bootstrap target. Initial end-user
+  credential quota-project error was resolved with the explicit matching header.
+- `node tools/agents/check.mjs` and `git diff --check`: pass.
+
+Live project operations completed October 26:
+
+| Environment | Project / number | Observed result |
+| --- | --- | --- |
+| Dev | `rpg-runner-d7add` / `964001571974` | Display name updated to Lothringen Long Run - Dev; existing services/data retained |
+| Staging | `lothringen-long-run-staging` / `943085064373` | Created, existing billing linked, Firebase enabled |
+| Prod | `lothringen-long-run-prod` / `696550437718` | Created, existing billing linked, Firebase enabled |
+
+Billing readback is enabled on both new projects. No project-ID suffix was
+needed. API enablement requires batches of at most 20; the initial larger batch
+was rejected before enablement and is being retried in smaller batches.
+
+Windows Computer Use successfully inspected signed-in Chrome. Personal Play
+developer account `8150014461378797161` has the Long Run draft app
+`4975420968170292531`; its internal track is inactive and draft bundle library
+is empty. No artifact/version code was uploaded or released. Console reports
+zero opted-in closed testers and requires 12 testers for 14 continuous days for
+public access. Internal testing is available; closed testing still needs app
+setup. Signing certificates and Play Games configuration remain to be inspected.
+The owner explicitly reconfirmed three environments after discussing overhead.
+
 ## Remaining acceptance
 
-Environment creation, Android identities, signing, freeze/build/deployment hashes,
+Environment service provisioning, Android identities, signing, freeze/build/deployment hashes,
 real Play auth/attestation, device acceptance, recovery rehearsal, capacity and
 store review/publication are pending. Do not infer completion from authorization.

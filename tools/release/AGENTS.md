@@ -20,6 +20,9 @@ Do not assume a previously used release checklist is the current target.
 - PauseIssuance may rebuild a missing issuer image only with the explicit
   release-paused environment gate. Restore local environment bytes in finally.
   Verify the healthy revision serving all traffic, not the desired template.
+- Bootstrap requires a fresh empty-project inventory and the same prepared
+  source/benchmarked image. Create only a paused issuer, then use normal cutover.
+  Never clear an established environment to satisfy bootstrap emptiness.
 - Keep successful preparation bound to source/toolchain/artifact evidence.
   Production stage checkpoints must never outlive their matching artifacts.
 - Web builds are optimized local Practice hosts with no Firebase configuration.

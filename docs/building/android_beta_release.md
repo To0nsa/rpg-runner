@@ -22,9 +22,8 @@ reviewable preparation and retain all non-waived acceptance gates.
   its links in `docs/README.md` and `docs/building/README.md`. Preserve them as
   part of this workstream. No staged or unrelated source changes were present.
 - CLI access verified for the existing Lothringen operator and GitHub account.
-  Chrome extension inventory is empty. Windows Computer Use can list Chrome,
-  but the initial capture was stopped because it could not identify the URL.
-  Owner was asked to select Play Console for a retry; CLI work continues.
+  Chrome extension inventory is empty, but Windows Computer Use now controls the
+  signed-in Chrome window. Play Console inventory is recorded below.
 - Live inventory corrects the planning baseline: the existing project's worker
   is `replay-validator-00058-94k`, with both replay queues RUNNING. The latest
   documented deployment is gameplay `2026.10.21` on October 25. Historical
@@ -42,9 +41,21 @@ reviewable preparation and retain all non-waived acceptance gates.
   validations and 469 settled grants, zero pending/quarantined settlement.
   Preserve the recorded historical orphan/ghost findings; they are not new
   environment state or permission for an unrelated cleanup.
-- Next: finish routing milestone validation/commit, then bootstrap/provisioning,
-  Android isolation/signing and release acceptance. Final source
-  is not frozen and no cloud mutation or app upload has occurred yet.
+- Routing milestone committed as `c1d11dbd07803e2545683221fac15f76a917b69a`.
+  Empty-target bootstrap is implemented and validated on PowerShell 5.1 and 7.
+- Created `lothringen-long-run-staging` (943085064373) and
+  `lothringen-long-run-prod` (696550437718), linked both to the existing Firebase
+  Payment billing account, and renamed the existing project's display name to
+  `Lothringen Long Run - Dev`. Firebase is enabled on both new projects; remaining
+  provisioning is pending. No new game backend or Android artifact is deployed.
+- Play account is Personal. Existing Long Run app ID 4975420968170292531 has an
+  inactive internal track, empty draft and no bundles in its library. Internal
+  testing is available. Public access requires 12 testers for 14 continuous days;
+  Console currently reports zero opted-in testers. Closed-track setup is pending.
+- Owner reconsidered the overhead and explicitly reconfirmed all three
+  environments for independent candidate testing during execution.
+- Next: provisioning, Android isolation/signing and release acceptance. Final
+  source is not frozen and no app upload occurred.
 - Durable evidence: [Android beta execution](../verification/android-beta-2026-10-26.md).
 
 ## Outcome and environment decisions
@@ -58,14 +69,14 @@ beta-player data or authorize unrelated credential/resource deletion.
 
 Use three complete environments from one codebase and deployment workflow:
 
-| Environment | Firebase / Google Cloud project ID | Proposed display name | Initial data |
+| Environment | Firebase / Google Cloud project ID | Display name | Initial data |
 | --- | --- | --- | --- |
 | Development | Existing `rpg-runner-d7add` | `Lothringen Long Run - Dev` | Reuse the owner's existing account; add synthetic fixtures as needed |
-| Staging | New `lothringen-long-run-staging`, subject to availability | `Lothringen Long Run - Staging` | Synthetic fixtures and internal tester accounts |
-| Production | New `lothringen-long-run-prod`, subject to availability | `Lothringen Long Run - Prod` | Start fresh; no account, progression or replay import |
+| Staging | `lothringen-long-run-staging` | `Lothringen Long Run - Staging` | Synthetic fixtures and internal tester accounts |
+| Production | `lothringen-long-run-prod` | `Lothringen Long Run - Prod` | Start fresh; no account, progression or replay import |
 
-The staging/production IDs are proposed resource names, not provisioned projects.
-Check global availability before creation and record any required suffixes.
+Both staging/production project IDs were created unchanged on October 26.
+Their backend services and application configuration are still being provisioned.
 Project display names can change; project IDs are permanent. Keep the existing
 development ID to avoid resource recreation. These infrastructure labels use
 the game's Lothringen identity; they do not rename the public game title.
