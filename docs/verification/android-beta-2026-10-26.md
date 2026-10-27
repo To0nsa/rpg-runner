@@ -1108,3 +1108,82 @@ and browser control inventory returns no connected browser. Console work is
 pending restoration; CLI work remains available. The phone reports Android API 35.
 Production PITR and delete protection are enabled with 604800s retention; its
 scheduled-backup list is still empty (do not call this a completed backup).
+
+Image reuse was committed as `f44ab755bd173b352be5f5d9c63c293b911def64` and pushed
+to `release/android-beta-browser-check`. It is the new frozen candidate.
+Checkout created the matching LF directory and copied all three environment
+configuration files. Both sets of 29 isolation checks also pass, with
+`git diff --check` and the agent-guidance check passing. Compared all ten release
+component fingerprints and the worker fingerprint between d83a690c and f44ab755:
+all match. No application, Core, Functions or worker runtime source changed.
+Worker fingerprint is
+`e0555a9542aee0128c854e251f4e3e158554d40bfb1740bb16d6cefcbc473b0b`.
+Locked pnpm and Flutter setup passed in the new checkout, the Gradle wrapper was
+initialized through Flutter, and the existing navigation directory was copied
+for validation/reuse. Tracked source remained clean. Prepare is running for all
+three environments; logs `.tmp/beta-checks/candidate-f44-prepare-<env>.log`.
+
+The preceding d83a690c dev APK completed canonical inspection at 19:17 UTC:
+184126366 bytes, SHA-256
+`b0807f4804fe669abe68dc3f8328dc04d632873b7e65ae604b4991525e27fdc4`.
+Package `com.example.rpg_runner.dev`, version `1.0.0-dev`/1, min SDK 24,
+target SDK 36; all three required ABIs, 9 native libraries, 16 KB ELF/ZIP checks
+and all 3750 navigation graphs passed. Navigation manifest SHA-256 is
+`6f65c41f501cc9618ecefd8ae3349d037656aacb567935ab81268f8639a812bd`;
+APK signing certificate SHA-256 is
+`001f8fe8d465d47b2aa1264fd8a00ac2221875aeef17ce1bfad5d1bf6d91f061`.
+No advertising-ID permission appears. Canonical evidence is in that checkout's
+`android/dev/1/android.json`; its lock was released. This is a genuine installable
+earlier-candidate APK, not evidence that f44ab755 Android builds are complete.
+
+Both redundant Cloud Builds read back CANCELLED. The retained dev build reached
+69460 graphs and remains WORKING. Its unchanged worker inputs permit reuse after
+successful image publication/benchmark; no pending job has been marked passing.
+
+Fresh Prepare passed for f44ab755 in all three environments at 19:28:10 UTC
+(dev), 19:30:49 (staging) and 19:36:27 (prod), reusing the ten matching component
+records and passing current dependency audits. New source digests:
+
+| Environment | Source digest |
+| --- | --- |
+| Dev | `863755afe6412f9819a90a501148b7a38a7593310f72fa069ae659920b328228` |
+| Staging | `5467c26ac1dde5608a06f80031e29dfaed25e7726f2a61924a7d24dcbb4934cc` |
+| Prod | `399ba7b2c981e8eeb3e4304f05d32e6d71f0895b68e6367f29af869526f722d2` |
+
+The new dev sequential AOT invocation has produced all three native outputs;
+canonical Android packaging/inspection remains pending. The retained remote
+worker build has reached 84,170 graphs and remains in progress.
+
+Retained dev Cloud Build `9a8b0932-3a0a-48b6-a275-f3256c232c2f` completed SUCCESS
+at 19:47:52 UTC. Its immutable image digest is
+`sha256:fb6a16cbee611183462938e19deb9aeaf79c283eadff475e4ab029a4e2a3c331`.
+Canonical ImageStatus in the original checkout saved its successful build
+evidence and worker-input cache record. The frozen candidate is adopting that
+matching image before copying it to staging. No image is deployed yet.
+
+The f44ab755 dev sequential AOT preparation passed with all three architectures.
+Its canonical navigation check reused all 3750 graphs (built=0). Android Gradle
+packaging then failed `:app:copyFlutterAssetsDevRelease` with Windows disk full
+(`java.io.IOException: Espace insuffisant sur le disque`), after 6m13s. This is
+a blocking build failure, not a waiver. Preserved the full failed build log as
+`.tmp/beta-checks/candidate-f44-android-dev-disk-full.log`; mutation lock
+generation `1793129935501164` was released. Reclaimed redundant Android generated
+outputs from the preceding d83a690c checkout, retaining its web artifact, APK and
+release evidence. Main-checkout Android intermediate caches are also being
+cleared; source, APK/AAB outputs and all recorded evidence are retained.
+
+Cleanup completed with approximately 6.3 GB free. The old generated Gradle
+problems report was locked and left in place. Canonical dev BuildAndroid version
+1 is retrying, with `.tmp/beta-checks/candidate-f44-android-dev-retry.log`.
+The frozen candidate's BuildImage dev action verified/adopted the retained image
+and released its lock. Staging BuildImage -ReuseImageFrom dev submitted
+`fe7f9df1-ab0f-43e7-aa24-02f1c7b13880`, then released its project lock. This job
+copies immutable bytes and benchmarks them; it does not upload source or
+regenerate graphs. Completion/digest verification is still pending.
+
+Staging copy `fe7f9df1-ab0f-43e7-aa24-02f1c7b13880` completed SUCCESS at
+19:57:05 UTC. Canonical ImageStatus verified the strict benchmark and identical
+digest `sha256:fb6a16cbee611183462938e19deb9aeaf79c283eadff475e4ab029a4e2a3c331`,
+and recorded provenance/cache evidence. Log:
+`.tmp/beta-checks/candidate-f44-image-staging-complete.log`. This is live proof of
+image reuse across isolated registries; runtime deployment remains pending.

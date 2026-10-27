@@ -18,9 +18,18 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 27, 2026
 
-Frozen candidate: `d83a690cd4ad82a5427a522a0646027e75d0ad19`, including completed
+Frozen candidate: `f44ab755bd173b352be5f5d9c63c293b911def64`, including completed
 board retention/account erasure, Unicode release fingerprints, production Play
-identities/App Check, current-board readiness and cold Android asset preparation.
+identities/App Check, current-board readiness, cold Android asset preparation and
+verified cross-environment worker-image reuse. Its isolated LF checkout is
+`.tmp/release-checkouts/f44ab755bd173b352be5f5d9c63c293b911def64`, with all three
+environment files copied by Checkout. The continuation branch is pushed.
+All ten application-validation component fingerprints and the worker image
+fingerprint match preceding candidate `d83a690c`; only operational tooling and
+documentation changed. The reuse tooling has its own passing focused/matrix
+checks. Fresh Prepare passed for all three environments, reusing verified
+component evidence and passing current dependency advisory checks. Dev/staging/
+prod source digests are recorded in the verification evidence.
 The preceding candidate `ad759adb`'s
 [CI preparation](https://github.com/To0nsa/rpg-runner/actions/runs/40550912893)
 completed with 14 passing jobs and a Chrome-startup failure in the compiled-web
@@ -36,21 +45,28 @@ tests and four inventory regressions passing. The patched candidate's
 [CI 40555415832 passed all 16 jobs](https://github.com/To0nsa/rpg-runner/actions/runs/40555415832),
 including Android packaging/inspection, all client shards and the final evidence
 bundle. Exact-source ImportCI and Prepare for all three environments passed.
-Dev validator Cloud Build `9a8b0932-3a0a-48b6-a275-f3256c232c2f` is WORKING,
-started at 18:22:11 UTC. The advisory and final-image benchmark gates remain strict.
+Dev validator Cloud Build `9a8b0932-3a0a-48b6-a275-f3256c232c2f` completed SUCCESS
+at 19:47:52 UTC, including the strict 1-CPU/512-MB/36,000-tick benchmark. Image
+digest: `sha256:fb6a16cbee611183462938e19deb9aeaf79c283eadff475e4ab029a4e2a3c331`.
+The frozen candidate adopted this matching image through verified cache evidence.
+Staging copy build `fe7f9df1-ab0f-43e7-aa24-02f1c7b13880` completed SUCCESS
+at 19:57:05 UTC. Canonical ImageStatus verified its strict benchmark and exact
+digest equality; no graphs were regenerated. Production copy remains pending.
+The advisory and benchmark gates remain strict.
 At the owner's request to avoid duplicate navigation generation, staging build
 `d3015999-a988-4416-8144-0a0a05af5021` and production build
 `dbc42520-375f-483e-a547-bba48b4d0218` were cancelled around 19:00 UTC.
-Dev's build continues. A narrow release-tooling change now copies a verified
+A narrow release-tooling change now copies a verified
 environment-neutral image into each destination registry, with matching worker
 inputs, live source evidence, exact destination digest and a strict benchmark.
-Its mocked checks pass on both PowerShell versions; live copies are not yet run.
-Freeze the validated tooling milestone before the next preparation/cutover.
-The isolated LF checkout is `.tmp/release-checkouts/d83a690cd4ad82a5427a522a0646027e75d0ad19`,
-with each environment's application configuration copied by `Checkout`.
-The isolated remote branch `release/android-beta-browser-check` carries this
-commit; draft PR #2's head has not been advanced. Earlier CI/cache evidence is
-historical until the candidate's checks finish. No new backend, Play bundle or
+Its mocked checks pass on both PowerShell versions and the live dev-to-staging
+copy passes. No backend has yet been deployed from this candidate.
+The validated tooling milestone is frozen in the candidate above.
+The preceding LF checkout `.tmp/release-checkouts/d83a690cd4ad82a5427a522a0646027e75d0ad19`
+retains its build evidence. Draft PR #2's head has not been advanced. Earlier
+component evidence is reused only after exact fingerprint/toolchain/artifact
+verification; no full CI run is claimed for the new tooling-only commit.
+No new backend, Play bundle or
 public policy has been deployed. The owner confirmed Nicolas Louis, based in
 Finland, with resolved support correspondence retained for 90 days. Those details
 are incorporated in the prepared policy. Chrome's native control pipe is now
@@ -61,17 +77,23 @@ not run. The owner reconfirmed all three environments and chose to keep both new
 Play Games configurations tester-only. A dedicated review account is still to be
 created by the owner; never submit owner credentials for reviewer access.
 
-Canonical dev BuildAndroid version 1 remains incomplete. Its initial missing
+Preceding-candidate dev BuildAndroid version 1 passed at 19:17 UTC. Its initial missing
 ignored Gradle wrapper was resolved with the pinned SDK's configuration-only
 build, leaving the frozen tracked tree clean. The next attempt generated all
 3,750 client navigation graphs, then failed AOT compilation for android-arm64
 with an out-of-memory error (exit -1073740791). ARM32/x64 outputs and symbols
-exist; no complete APK/evidence was recorded. The project mutation lock was
-released. The owner needs the other apps open. A sequential Flutter assemble
+existed after that failed attempt; the project mutation lock was released.
+The owner needs the other apps open. A sequential Flutter assemble
 retry (`--resource-pool-size=1`) succeeded with all three architectures/symbols;
-canonical packaging/inspection is now running. Its navigation preparation
+canonical packaging/inspection then succeeded. Its navigation preparation
 validated and reused all 3,750 graphs, building zero. Details are in the linked
-evidence; no final APK is yet recorded.
+evidence. The new frozen candidate still needs its environment-specific Android
+build records; the earlier dev APK is not relabeled as a new-commit build.
+The new candidate's sequential AOT step also passed all three architectures.
+Its first packaging attempt failed on disk space after reusing all 3750 graphs.
+Redundant generated Android caches were cleared, preserving source and recorded
+artifacts; 6.3 GB was available before the canonical dev retry. That retry is
+running. Failure details and retained logs are in the verification evidence.
 
 The owner explicitly requested inclusion of the completed board lifecycle/account-
 deletion work tracked in `docs/building/board_lifecycle_cleanup.md`. Runtime work
