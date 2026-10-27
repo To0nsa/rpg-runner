@@ -130,6 +130,16 @@ reviewable preparation and retain all non-waived acceptance gates.
   and prints expanded diagnostics; hosted verification is pending. Cache input
   coverage includes these generators, with 53 mocked checks passing on both
   PowerShell versions. No traversal failure or other check is waived.
+- CI recipe correction committed as `a492f1ef`. The browser retry still fails
+  its startup case after asset preparation; expanded output alone still omits
+  the framework exception. Adding test-attached exception/loading diagnostics
+  before another retry. The built-web runtime smoke already passes.
+- External deletion-page source is prepared at `web/account-deletion.html` with
+  the confirmed support email, environment-specific request scope, in-app steps
+  and actual retention limits. It is not yet published. Live log-bucket readback
+  confirms 30-day operational and 400-day required audit retention in both new
+  projects. Public privacy identity and support-correspondence policy remain
+  dependent on operator input; no placeholder privacy policy is published.
 - Next: finish OAuth/Play identity, canonical Android build evidence, diagnostics,
   recovery and remaining release
   acceptance. Final source is not frozen and no app upload occurred.

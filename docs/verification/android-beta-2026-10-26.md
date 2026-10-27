@@ -348,6 +348,31 @@ to keep plugin sources on the checkout drive. Compiler checks and incremental
 compilation remain enabled. Full log:
 `.tmp/beta-checks/ci-40421473512-android/build.log`; retry is pending.
 
+Recipe changes committed as `a492f1efdd3dc87b4553eeba54b3e67349a458d9`.
+Both PowerShell versions also pass 50 release checks and 97 mocked entry-point
+checks (`browser-recipe-release-ps*.log`, `browser-recipe-entry-ps*.log`).
+The browser job in retry run `40423207090` still fails the same startup case
+after successful navigation preparation. Expanded reporting still lacks the
+underlying framework exception, so the test now forwards full exception details
+through `printOnFailure` while preserving the original failure reporter, and
+attaches loading state/error/stack if readiness is not reached. Targeted
+`dart analyze test/ui/bootstrap/web_practice_startup_test.dart` passes. This
+diagnostic change does not remove assertions, extend the wait or waive the gate.
+
+External account-deletion page source is prepared at
+`web/account-deletion.html`; it is not published or registered in Play Console.
+It uses the owner's confirmed support/deletion email, describes the existing
+double-confirmation in-app flow, keeps requests scoped to the chosen environment,
+and discloses primary deletion versus recovery/log/diagnostic retention. The
+public privacy policy still needs the legal operator identity/country and the
+support-correspondence policy. No privacy placeholder is deployed.
+
+Read-only `gcloud logging buckets list --location=global --project=<project>
+--format=json(name,retentionDays,locked,lifecycleState)` confirms `_Default`
+retention 30 days and locked `_Required` retention 400 days in both new projects;
+all buckets are ACTIVE. Evidence: `.tmp/beta-checks/log-retention-*.json`.
+No retention was changed by that inspection.
+
 Android/runtime implementation milestone committed as
 `aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor
 configs, project/App Check guards, maintenance/update UI, Crashlytics handlers,

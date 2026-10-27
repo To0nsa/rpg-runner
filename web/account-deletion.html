@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Request deletion of your Long Run account and associated game data.">
+  <title>Long Run — account deletion</title>
+  <style>
+    :root { color-scheme: light dark; font: 100%/1.6 system-ui, sans-serif; }
+    body { max-width: 46rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    h1, h2 { line-height: 1.25; }
+    h1 { font-size: 2rem; }
+    h2 { margin-top: 2rem; font-size: 1.3rem; }
+    a { color: light-dark(#174c97, #9ac5ff); overflow-wrap: anywhere; }
+    a:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
+    li + li { margin-top: .6rem; }
+    footer { margin-top: 3rem; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Delete your Long Run account</h1>
+    <p>You can request deletion of your account and associated data for
+      <strong>Lothringen: The Long Run</strong>, listed as <strong>Long Run</strong>
+      on Google Play. You do not need to reinstall the app to make a request.</p>
+
+    <h2>Request deletion by email</h2>
+    <p>Email <a href="mailto:lothringen.rpg@gmail.com?subject=Long%20Run%20account%20deletion">lothringen.rpg@gmail.com</a>
+      with the subject “Long Run account deletion”. Include:</p>
+    <ul>
+      <li>Your in-game profile name and the Play Games profile you used.</li>
+      <li>Which app you used: Long Run, Long Run Staging, or Long Run Dev.
+        Each has a separate account and progress.</li>
+      <li>A clear request to delete that account and its associated game data.</li>
+    </ul>
+    <p>We may ask you to verify that you control the account before processing
+      the request. Never send your password, sign-in codes, or authentication
+      tokens. If you cannot identify the account, explain that in your email
+      so we can help you locate it.</p>
+
+    <h2>Delete from the app</h2>
+    <p>Open your profile, choose <strong>Delete account</strong>, and complete both
+      confirmation steps. Once the request is accepted, access is blocked while
+      deletion runs. This can take several hours. You cannot create a new game
+      account with the same Play Games profile until deletion finishes.</p>
+
+    <h2>What is removed</h2>
+    <p>Deletion removes the selected app's sign-in account, profile, cloud
+      progression, owned items and wallet, inbox data, run and reward records,
+      leaderboard entries, replays and associated ghost data. It is permanent
+      and does not delete your Google account or your Play Games profile.</p>
+    <p>Uninstalling the app alone does not delete its cloud account. Deleting
+      one environment's account does not delete accounts in the other apps.</p>
+
+    <h2>What can remain temporarily</h2>
+    <ul>
+      <li>A minimal account-keyed deletion record prevents late work from
+        restoring erased data. It contains the deletion state and request,
+        completion and expiry times. It expires 30 days after completion and
+        is removed by scheduled cleanup; a backlog or service outage can delay
+        physical removal.</li>
+      <li>Restricted database recovery copies and deleted replay/ghost objects
+        can remain for up to seven days under the configured recovery policies.
+        They are not available for ordinary gameplay.</li>
+      <li>Crash reports are processed separately by Firebase Crashlytics.
+        Firebase retains them for 90 days before beginning removal from live
+        and backup systems. Reports are not tagged with your game account ID.
+        See <a href="https://firebase.google.com/support/privacy">Firebase's
+        privacy and retention information</a>.</li>
+      <li>Operational service logs are retained for 30 days. Google Cloud's
+        required administrative and system audit logs are retained for 400 days.
+        These restricted logs support security and service operation and are
+        separate from your playable account.</li>
+    </ul>
+    <p>For questions about a pending deletion or other data rights, contact
+      <a href="mailto:lothringen.rpg@gmail.com">lothringen.rpg@gmail.com</a>.</p>
+  </main>
+  <footer>Long Run · Account deletion information · Updated 27 October 2026</footer>
+</body>
+</html>
