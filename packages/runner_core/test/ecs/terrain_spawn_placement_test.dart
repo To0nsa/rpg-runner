@@ -12,6 +12,7 @@ import 'package:runner_core/ecs/systems/world_motion_authority.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/levels/level_assembly.dart';
 import 'package:runner_core/navigation/terrain_placement_query.dart';
 import 'package:runner_core/navigation/terrain_spawn_placement.dart';
 import 'package:runner_core/navigation/terrain_surface_extractor.dart';
@@ -26,6 +27,7 @@ import 'package:runner_core/spawn_service.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/track_streamer.dart';
+import 'package:runner_core/track_manager.dart';
 import 'package:runner_core/tuning/collectible_tuning.dart';
 import 'package:runner_core/tuning/flying_enemy_tuning.dart';
 import 'package:runner_core/tuning/restoration_item_tuning.dart';
@@ -508,6 +510,7 @@ void main() {
       harness.service.spawnRestorationItemForChunk(
         chunkIndex: 0,
         chunkStartX: 0,
+        difficulty: ChunkPatternTier.normal,
         lowestResourceStat: () => RestorationStat.health,
       );
 
@@ -515,6 +518,170 @@ void main() {
       final item = harness.world.restorationItem.denseEntities.single;
       final transform = harness.world.transform.indexOf(item);
       expect(harness.world.transform.posY[transform], 282);
+    });
+
+    test(
+      'easy chunks earn six gems over the distance normally earning five',
+      () {
+        for (final seed in [0, 1, 42, 77, 871]) {
+          for (final tier in ChunkPatternTier.values) {
+            final gems = _restorationRun(seed: seed, sections: [(tier, 80)]);
+            expect(
+              gems,
+              hasLength(tier == ChunkPatternTier.easy ? 6 : 5),
+              reason: 'seed $seed, ${tier.name}',
+            );
+            expect(
+              gems.map((gem) => gem.stat),
+              everyElement(RestorationStat.mana),
+            );
+            final intervals = [
+              for (var i = 1; i < gems.length; i++)
+                gems[i].chunk - gems[i - 1].chunk,
+            ];
+            expect(
+              intervals,
+              everyElement(tier == ChunkPatternTier.easy ? isIn([13, 14]) : 16),
+            );
+          }
+        }
+      },
+    );
+
+    test(
+      'consecutive easy sections and stream batches retain the same cadence',
+      () {
+        final continuous = _restorationRun(
+          seed: 42,
+          sections: [(ChunkPatternTier.easy, 80)],
+        );
+        final split = _restorationRun(
+          seed: 42,
+          sections: [
+            (ChunkPatternTier.easy, 5),
+            (ChunkPatternTier.easy, 7),
+            (ChunkPatternTier.easy, 19),
+            (ChunkPatternTier.easy, 49),
+          ],
+        );
+        expect(split, continuous);
+        expect(
+          _restorationRun(seed: 42, sections: [(ChunkPatternTier.easy, 80)]),
+          continuous,
+        );
+      },
+    );
+
+    test('normal and hard sections return to the base spawn rate', () {
+      final gems = _restorationRun(
+        seed: 77,
+        sections: [
+          (ChunkPatternTier.early, 80),
+          (ChunkPatternTier.easy, 80),
+          (ChunkPatternTier.normal, 80),
+          (ChunkPatternTier.hard, 80),
+          (ChunkPatternTier.easy, 80),
+        ],
+      );
+      expect(
+        [
+          for (var section = 0; section < 5; section++)
+            gems.where((gem) => gem.chunk ~/ 80 == section).length,
+        ],
+        [5, 6, 5, 5, 6],
+      );
+    });
+
+    test(
+      'opening exclusion earns no bonus and non-easy cadence stays seeded',
+      () {
+        const tuning = RestorationItemTuning();
+        final earlyOpening = _restorationRun(
+          seed: 77,
+          tuning: tuning,
+          sections: [(ChunkPatternTier.early, 2), (ChunkPatternTier.easy, 80)],
+        );
+        final easyOpening = _restorationRun(
+          seed: 77,
+          tuning: tuning,
+          sections: [(ChunkPatternTier.easy, 82)],
+        );
+        expect(easyOpening, earlyOpening);
+        expect(easyOpening.every((gem) => gem.chunk >= 2), isTrue);
+
+        final normal = _restorationRun(
+          seed: 77,
+          tuning: tuning,
+          sections: [(ChunkPatternTier.normal, 82)],
+        );
+        final phase = seedFrom(77, 0xA17E5A7) % 16;
+        expect(normal.map((gem) => gem.chunk), [
+          for (var chunk = 2; chunk < 82; chunk++)
+            if ((chunk - phase) % 16 == 0) chunk,
+        ]);
+      },
+    );
+
+    test(
+      'blocked placement consumes opportunities without shifting later gems',
+      () {
+        final clear = _restorationRun(
+          seed: 42,
+          sections: [(ChunkPatternTier.easy, 80)],
+        );
+        final blocked = _restorationRun(
+          seed: 42,
+          unsupportedChunks: 40,
+          sections: [(ChunkPatternTier.easy, 80)],
+        );
+        expect(blocked, clear.where((gem) => gem.chunk >= 40).toList());
+      },
+    );
+
+    test(
+      'disabled spawning, zero interval and zero bonus retain tuning semantics',
+      () {
+        for (final tuning in [
+          const RestorationItemTuning(enabled: false),
+          const RestorationItemTuning(spawnEveryChunks: 0),
+        ]) {
+          expect(
+            _restorationRun(
+              seed: 42,
+              tuning: tuning,
+              sections: [(ChunkPatternTier.easy, 80)],
+            ),
+            isEmpty,
+          );
+        }
+        final noBonus = _restorationRun(
+          seed: 42,
+          tuning: const RestorationItemTuning(
+            spawnStartChunkIndex: 0,
+            easySpawnRateBonusBp: 0,
+          ),
+          sections: [(ChunkPatternTier.easy, 80)],
+        );
+        expect(
+          noBonus,
+          _restorationRun(seed: 42, sections: [(ChunkPatternTier.normal, 80)]),
+        );
+      },
+    );
+
+    test('short intervals place multiple earned gems without overlap', () {
+      final gems = _restorationRun(
+        seed: 42,
+        tuning: const RestorationItemTuning(
+          spawnStartChunkIndex: 0,
+          spawnEveryChunks: 1,
+        ),
+        sections: [(ChunkPatternTier.easy, 5)],
+      );
+      expect(gems, hasLength(6));
+      final lastChunk = gems.where((gem) => gem.chunk == 4).toList();
+      expect(lastChunk, hasLength(2));
+      expect((lastChunk[0].x - lastChunk[1].x).abs(), greaterThanOrEqualTo(18));
     });
 
     for (final itemKind in TerrainSpawnItemKind.values) {
@@ -677,6 +844,99 @@ TerrainItemSpawnPlacementProfile _itemProfile({
   noSpawnMargin: 2,
   traversalProfile: _playerArchetype().terrainTraversalProfile,
 );
+
+typedef _SpawnedGem = ({int chunk, double x, double y, RestorationStat stat});
+
+List<_SpawnedGem> _restorationRun({
+  required int seed,
+  required List<(ChunkPatternTier, int)> sections,
+  RestorationItemTuning tuning = const RestorationItemTuning(
+    spawnStartChunkIndex: 0,
+  ),
+  int unsupportedChunks = 0,
+}) {
+  const width = 2048.0;
+  const track = TrackTuning(chunkWidth: width, spawnAheadMargin: 0);
+  const collectibles = CollectibleTuning(enabled: false);
+  final count = sections.fold(0, (sum, section) => sum + section.$2);
+  final harness = _spawnHarness(
+    seed: seed,
+    geometry: _compile([
+      _rectangle('floor', unsupportedChunks * width, 300, count * width, 500),
+    ]),
+    collectibleTuning: collectibles,
+    restorationTuning: tuning,
+  );
+  const pattern = ChunkPattern(name: 'flat');
+  final source = AssembledChunkPatternSource(
+    baseSource: const ChunkPatternListSource(
+      earlyPatterns: [pattern],
+      easyPatterns: [pattern],
+      normalPatterns: [pattern],
+      hardPatterns: [pattern],
+    ),
+    assembly: LevelAssemblyDefinition(
+      segments: [
+        for (var i = 0; i < sections.length; i++)
+          LevelAssemblySegment(
+            segmentId: 'section_$i',
+            groupId: 'default',
+            difficulty: sections[i].$1,
+            minChunkCount: sections[i].$2,
+            maxChunkCount: sections[i].$2,
+            requireDistinctChunks: false,
+          ),
+      ],
+    ),
+  );
+  final manager = TrackManager(
+    seed: seed,
+    trackTuning: track,
+    collectibleTuning: collectibles,
+    restorationItemTuning: tuning,
+    spawnService: harness.service,
+    groundTopY: 300,
+    chunkPatternSource: source,
+    // Explicit sections override this deliberately different global schedule.
+    earlyPatternChunks: count,
+    noEnemyChunks: count,
+  );
+  var endChunk = 0;
+  for (final section in sections) {
+    endChunk += section.$2;
+    final step = manager.step(
+      cameraLeft: 0,
+      cameraRight: endChunk * width - 1,
+      spawnEnemy: (_) {},
+    );
+    manager.spawnItemsForChunks(
+      chunks: step.spawnedChunks,
+      lowestResourceStat: () => RestorationStat.mana,
+    );
+  }
+  return [
+    for (final entity in harness.world.restorationItem.denseEntities)
+      (
+        chunk:
+            harness.world.transform.posX[harness.world.transform.indexOf(
+              entity,
+            )] ~/
+            width,
+        x: harness
+            .world
+            .transform
+            .posX[harness.world.transform.indexOf(entity)],
+        y: harness
+            .world
+            .transform
+            .posY[harness.world.transform.indexOf(entity)],
+        stat: harness
+            .world
+            .restorationItem
+            .stat[harness.world.restorationItem.indexOf(entity)],
+      ),
+  ];
+}
 
 _SpawnHarness _spawnHarness({
   required int seed,

@@ -19,21 +19,64 @@
 
 ## 2. Input schema overview
 
+### Desktop keyboard and mouse
+
+The main game automatically uses desktop controls on Windows, macOS and Linux,
+including desktop browsers. Mobile keeps the touch scheme below. Embedded hosts
+can explicitly select either scheme; the current device movement preference
+only selects the touch movement widget.
+
+| Action | Fixed bindings |
+| --- | --- |
+| Move | A/D or Left/Right arrows |
+| Jump | Space, W or Up arrow |
+| Mobility | Either Shift |
+| Primary | Left mouse button or J |
+| Projectile | Right mouse button or K |
+| Secondary | Q |
+| Spell | E or L |
+| Start / resume | Enter |
+| Pause / resume | Escape or P |
+
+Bindings use physical key positions. The cursor aims relative to the player
+inside the game view; letterbox space does not supply aim. Aimed and charged
+abilities use the equipped ability's press/hold/release behavior. Escape pauses
+and cancels pending actions without firing them. Alternate bindings for one
+action share a hold; opposing movement keys produce neutral movement.
+
+Windows mouse aiming does not show an aim ray. Touch aiming keeps its preview.
+
+The bottom ability bar shows bindings, availability, cooldowns, resource
+shortfalls, mobility follow-ups and charge progress. Its clicks and the HUD's
+pause/exit buttons never fire attacks. Right click works without a browser menu
+while the desktop run is mounted.
+
+Losing gameplay focus or switching away pauses and clears held inputs. Returning
+requires explicit resume and fresh presses, preventing stuck movement or a cast
+from an old release. Switching the host's control scheme also pauses and clears
+input while preserving the same run. Keys are fixed; remapping and gamepads are
+not implemented.
+
 ### Left thumb: Movement
 
-- **Arrows or floating horizontal joystick**, selected in Options → Controls.
-- Both emit only `-1`, `0`, or `1`: backward, neutral, or forward. The choice
+- **Arrows, Floating joystick or Fixed joystick**, selected in Options → Controls.
+- All emit only `-1`, `0`, or `1`: backward, neutral, or forward. The choice
   changes touch presentation, never movement speed, acceleration or abilities.
 - Movement is allowed unless a **hard lock** exists (e.g., stun).
 
 **Current implementation**
 - Default is **Arrows**. Holding both arrows or neither produces neutral input;
   sliding between them changes direction without lifting.
-- Touch anywhere in the lower-left quarter of the gameplay area to place the
-  joystick under your finger. Touch-down is neutral; drag left or right to move.
-  Its whole base follows when horizontal drag exceeds the thumb's reach, and
-  follows vertical finger movement without changing movement direction. This
-  lets you reverse relative to the nearby base instead of the original touch.
+- **Floating joystick:** touch within the left 33% of the gameplay area's lower
+  half to place the joystick under your finger. Touch-down is neutral; drag left
+  or right to move. Its base follows horizontal overdrag and vertical finger
+  movement, but its center stays between the left edge and 33% of the screen
+  width. Dragging beyond that limit keeps forward movement active; reverse by
+  moving left past the base's deadzone.
+- **Fixed joystick:** the base stays at its lower-left resting position. Touch
+  the stick and drag left or right to move; touching off-center immediately
+  selects that direction. Overdrag never moves the base. Vertical movement does
+  not change direction in either joystick mode.
 - Horizontal displacement within 8 logical pixels of the current base is
   neutral; beyond that it produces the same full-strength direction as an arrow.
 - On release/cancel the joystick returns to its resting lower-left position.
@@ -44,6 +87,14 @@
 - Pausing, backgrounding, input cancellation or switching presentation clears
   held movement; resuming requires a new movement touch.
 - Continuous axis is scheduled ahead with a small input lead/buffer (see §7).
+
+**Movement feel**
+
+Both selectable characters share a base running speed of 200 world units/second.
+Neutral input brakes at 1200 world units/second², stopping from base speed in
+about 0.17 seconds to keep release drift short. Starting and reversing direction
+use 600 world units/second². The same horizontal control applies in the air;
+[swimming](swimming.md) retains its slower movement multipliers.
 
 ### Right thumb: Actions
 
@@ -251,6 +302,10 @@ Solid obstacle corners allow the player to slide around the exposed corner
 instead of becoming pinned by simultaneous floor and wall contacts. Ordinary
 grounded movement still uses the four-pixel automatic step limit; taller
 obstacles require a jump. These rules apply in normal runs and editor Play.
+
+Walking downhill into a solid rock keeps the actor above the supporting slope.
+The contact blocks forward motion while allowing the player to jump away;
+it must not push the actor into the floor and freeze movement.
 
 Solid obstacles overlapping each other or solid terrain behave as one occupied
 shape. Players and enemies collide with its exposed outline; buried sides and tops provide

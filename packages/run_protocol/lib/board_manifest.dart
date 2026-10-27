@@ -1,3 +1,4 @@
+import 'codecs/json_integer.dart';
 import 'board_key.dart';
 import 'codecs/json_value_reader.dart';
 
@@ -36,6 +37,10 @@ final class BoardManifest {
     required this.status,
     this.minClientBuild,
   }) {
+    requireJsonSafeInteger(tickHz, 'tickHz');
+    requireJsonSafeInteger(seed, 'seed');
+    requireJsonSafeInteger(opensAtMs, 'opensAtMs');
+    requireJsonSafeInteger(closesAtMs, 'closesAtMs');
     _requireNonEmpty(boardId, 'boardId');
     _requireNonEmpty(gameCompatVersion, 'gameCompatVersion');
     _requireNonEmpty(ghostVersion, 'ghostVersion');
@@ -85,19 +90,23 @@ final class BoardManifest {
   }
 
   factory BoardManifest.fromJson(Object? raw) {
-    final json = asObjectMap(raw, fieldName: 'boardManifest');
-    return BoardManifest(
-      boardId: readRequiredString(json, 'boardId'),
-      boardKey: BoardKey.fromJson(json['boardKey']),
-      gameCompatVersion: readRequiredString(json, 'gameCompatVersion'),
-      ghostVersion: readRequiredString(json, 'ghostVersion'),
-      tickHz: readRequiredInt(json, 'tickHz'),
-      seed: readRequiredInt(json, 'seed'),
-      opensAtMs: readRequiredInt(json, 'opensAtMs'),
-      closesAtMs: readRequiredInt(json, 'closesAtMs'),
-      minClientBuild: readOptionalString(json, 'minClientBuild'),
-      status: BoardStatus.parse(json['status']),
-    );
+    try {
+      final json = asObjectMap(raw, fieldName: 'boardManifest');
+      return BoardManifest(
+        boardId: readRequiredString(json, 'boardId'),
+        boardKey: BoardKey.fromJson(json['boardKey']),
+        gameCompatVersion: readRequiredString(json, 'gameCompatVersion'),
+        ghostVersion: readRequiredString(json, 'ghostVersion'),
+        tickHz: readRequiredInt(json, 'tickHz'),
+        seed: readRequiredInt(json, 'seed'),
+        opensAtMs: readRequiredInt(json, 'opensAtMs'),
+        closesAtMs: readRequiredInt(json, 'closesAtMs'),
+        minClientBuild: readOptionalString(json, 'minClientBuild'),
+        status: BoardStatus.parse(json['status']),
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
+    }
   }
 
   static void _requireNonEmpty(String value, String name) {

@@ -1,6 +1,10 @@
 import 'dart:convert';
 
 /// Encodes [value] to deterministic JSON by recursively sorting object keys.
+///
+/// This freezes the native Dart replay-v1 encoding, including double spelling.
+/// Cross-language ticket loadouts use LoadoutDigest instead; changing this
+/// encoder would invalidate existing replay digests.
 String canonicalJsonEncode(Object? value) {
   return jsonEncode(_normalize(value));
 }

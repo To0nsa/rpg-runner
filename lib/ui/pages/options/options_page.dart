@@ -102,19 +102,33 @@ class _OptionsPageState extends State<OptionsPage> {
                           onChanged: (mode) => _setMovementMode(settings, mode),
                           labelBuilder: (_, mode) => Text(switch (mode) {
                             MovementControlMode.arrows => 'Arrows',
-                            MovementControlMode.joystick => 'Joystick',
+                            MovementControlMode.joystick => 'Floating joystick',
+                            MovementControlMode.fixedJoystick =>
+                              'Fixed joystick',
                           }),
                         ),
                         SizedBox(height: ui.space.md),
                         Text(
-                          'Choose how to move backward and forward. Both controls use the same movement speed.',
+                          'Choose how to move backward and forward. All controls use the same movement speed.',
                           style: ui.text.body,
                         ),
+                        SizedBox(height: ui.space.sm),
+                        Text(switch (settings.movementMode) {
+                          MovementControlMode.arrows =>
+                            'Hold an arrow to move in that direction.',
+                          MovementControlMode.joystick => 'The joystick follows your touch within the left third of the screen.',
+                          MovementControlMode.fixedJoystick => 'The joystick stays in the lower-left corner. Drag its thumb left or right to move.',
+                        }, style: ui.text.body),
                       ],
                     );
                   },
                 )
-              : services.developerModeAvailable
+              : services.isPracticeOnly
+              ? Text(
+                  'Developer Practice: local play with all equipment and abilities. Account features are unavailable in this build.',
+                  style: ui.text.body,
+                )
+              : services.canSwitchProfiles
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

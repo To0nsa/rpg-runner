@@ -169,7 +169,9 @@ class _ProfilePageState extends State<ProfilePage> {
         title: 'Delete account and data?',
         message:
             'This will permanently delete your account, profile, and cloud '
-            'progress for this user.',
+            'progress for this user.\n\n'
+            'Deletion can take several hours. You cannot start a new account '
+            'with the same Play Games profile until it finishes.',
         cancelLabel: 'Cancel',
         confirmLabel: 'Continue',
         confirmVariant: AppButtonVariant.secondary,

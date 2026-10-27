@@ -8,6 +8,7 @@ import 'package:run_protocol/board_key.dart';
 
 import 'runner_game_widget.dart';
 import 'controls/movement_control_mode.dart';
+import 'input/runner_control_scheme.dart';
 import 'scoped/scoped_preferred_orientations.dart';
 import 'scoped/scoped_system_ui_mode.dart';
 import 'state/boards/ghost_replay_cache.dart';
@@ -18,9 +19,10 @@ import 'state/ownership/selection_state.dart';
 /// Host apps can `Navigator.push(createRunnerGameRoute(...))` without depending
 /// on this package's development host app (`lib/main.dart`).
 ///
-/// Except for debug-only [isDeveloperPractice] runs, [runSessionId], [runId],
+/// Except for web or native-debug [isDeveloperPractice] runs, [runSessionId], [runId],
 /// [seed] and [tickHz] must come from a server-issued run session ticket.
 /// Developer Practice uses the same gameplay without replay or account writes.
+/// Web embeddings must use this local mode; browser online replays are unavailable.
 /// The hosted widget keeps its loading presentation visible while initial
 /// render assets, upcoming terrain, and the selected ghost playback buffer and
 /// outlines are prepared and any online replay recorder has opened its file. Required
@@ -37,8 +39,13 @@ import 'state/ownership/selection_state.dart';
 /// reward verification can finish and refresh ownership on subsequent screens.
 /// Mandatory boss arenas keep this route and its run session alive while Core
 /// holds entrance controls and later resumes normal running after the fight.
-/// [movementControlMode] selects touch presentation; both modes emit the same
-/// full-strength movement commands. The host owns persistence of this choice.
+/// [controlScheme] defaults to automatic desktop keyboard/mouse or mobile touch.
+/// Explicit overrides support hybrid hosts. Desktop focus loss pauses until
+/// Enter, Escape/P or Play resumes; browser right-click menus are scoped to the run.
+/// [movementControlMode] selects touch arrows, floating joystick, or fixed joystick;
+/// all emit the same full-strength movement commands. The host owns persistence.
+/// Running HUD includes left/top off-screen actor markers with distance back
+/// to the visible game area; these indicators do not intercept controls.
 Route<void> createRunnerGameRoute({
   required String runSessionId,
   required int runId,
@@ -53,6 +60,7 @@ Route<void> createRunnerGameRoute({
   GhostReplayBootstrap? ghostReplayBootstrap,
   bool isDeveloperPractice = false,
   MovementControlMode movementControlMode = MovementControlMode.arrows,
+  RunnerControlScheme controlScheme = RunnerControlScheme.automatic,
   bool lockLandscape = true,
   List<DeviceOrientation>? restoreOrientations,
   SystemUiMode restoreSystemUiMode = SystemUiMode.edgeToEdge,
@@ -79,6 +87,7 @@ Route<void> createRunnerGameRoute({
     builder: (context) {
       Widget child = RunnerGameWidget(
         movementControlMode: movementControlMode,
+        controlScheme: controlScheme,
         runSessionId: runSessionId,
         runId: runId,
         seed: seed,

@@ -3,29 +3,149 @@
 ## Scope and release authority
 
 The canonical entry point is [release.ps1](../../tools/release/release.ps1).
-It coordinates the configured Firebase project, web Hosting site and
-Cloud Run replay worker. The root .firebaserc and firebase.json identify the
-project/site; replay bucket and queue location come from the existing Functions
-environment files. This workflow currently supports the configured environment,
-not arbitrary project overrides or native app-store distribution.
+It selects `dev`, `staging` or `prod` from
+[environments.json](../../tools/release/environments.json). The registry owns the
+project, region, Firebase config, replay bucket, worker endpoint, queue names and
+Android package. `.firebaserc` aliases must agree; its default stays dev.
+`ProjectId`/`Region` can assert the selected identity but cannot redirect it.
+Cloud mutations require explicit `-Environment`; offline Plan defaults to dev.
+After initial Provision creates the build bucket, cloud-mutating release actions
+acquire `_release/mutation-lock.json` in that project's `<project>_cloudbuild`
+bucket. Conditional generation-zero creation admits one operator across machines
+and checkouts. Finally deletes only the acquired generation. A held lock blocks
+before release mutations; it never expires while an operator may still work.
+After a crashed operator, inspect its recorded action/machine/process and actual
+cloud job state before removing that exact abandoned generation. Never clear a
+lock merely because another release is waiting. Initial Provision itself needs
+operator coordination because the bucket may not yet exist.
+PauseIssuance/Bootstrap also claim `_release/cutover.json` for the prepared source
+digest. This record survives command boundaries and failures. Deploy and resume
+require the same digest; successful resume clears only its verified generation.
+Thus a second candidate cannot interleave between another operator's commands.
+If a candidate must be abandoned, inspect jobs, serving revisions, issuance and
+queues, record the recovery decision, then remove only that exact ownership
+generation before claiming replacement source. The tool never steals ownership.
+Staging/prod use their project-number-based Cloud Run worker URLs. Those URLs
+can be configured before service creation; deployment must still verify the
+actual service, image and traffic before issuance resumes.
 
-The current production release is the October 18, 2026 UTC leaderboard level
-patch from frozen commit `1a8e899c`, based on the preceding
-[`2026.10.17` release](../verification/game-compat-2026.10.17-production.md).
-Its ranked tuple remains `2026.10.17` / `rules-v2` / `score-v4` /
-`ghost-v1`; replay and command formats remain 1. See the
-[patch evidence](../verification/leaderboard-level-2026-10-18-production.md)
-for the isolated source, preparation, immutable worker image, guarded
-cancellation of one unsubmitted ticket, coordinated cutover, live artifact
-checks, and remaining coverage limits. All 333 accepted validations and
-settled grants were preserved. Both queues and normal issuance are restored,
-with all six expected boards ready.
+Only dev has a Hosting site. Staging/prod configuration deliberately has no
+Hosting target; their coordinated backend releases do not publish a website.
+The local web build remains preparation evidence, not proof of an Android build.
+Native artifact preparation and service deployment remain in progress in the
+[Android beta workstream](../building/android_beta_release.md).
+
+`SigningSetup -Environment staging|prod` creates a separate upload key in that
+project's `android-upload-signing` Secret Manager secret. The initial Windows
+operator retains a DPAPI recovery copy under ignored `.tmp/release-signing/`.
+Retries restore and verify the existing key rather than rotating it. Only the
+build scope receives a temporary keystore/password environment; finally removes
+the file and restores prior process variables. Google Play's distribution
+certificate must be registered separately after Play App Signing enrollment.
+
+After Prepare, `BuildAndroid -Environment <name> -AndroidVersionCode <integer>`
+requires a clean frozen checkout and builds a dev APK or signed staging/prod AAB.
+The Android component input hash includes native sources/configuration, shared
+app/content inputs and signing/inspection recipes. Evidence records commit,
+source/input hashes, tuple, Flutter/JDK/Gradle identity, version, artifact hash,
+native manifest/resources, permissions, ABIs and navigation graph integrity.
+Dart symbols and available R8 mapping stay beside the artifact. Staging/prod
+symbol upload targets the packaged Firebase app and must succeed before build
+evidence is recorded. Dev collection/upload stays disabled. Existing
+successful version evidence cannot be overwritten. Allocate codes from live Play
+history; tooling cannot infer a reserved draft version from the repository.
+
+Inspection uses pinned, hash-checked bundletool 1.18.3 and Android SDK build-tools
+36.0.0. It rejects mismatched Firebase/Play Games resources, debug/test builds,
+target API below 36, missing/corrupt navigation, credential files, invalid
+signatures and insufficient ELF64/ZIP page alignment. A derived universal APK
+is inspection-only: distribute the original AAB, never the inspection APK.
+These checks follow [APK Analyzer](https://developer.android.com/tools/apkanalyzer)
+and [16 KB support](https://developer.android.com/guide/practices/page-sizes).
+Play-delivered auth, attestation and device/runtime checks remain separate gates.
+
+Release-preparation CI now requires a native dev build/inspection alongside the
+existing browser/component checks; Android source changes trigger it. CI receives
+no staging/prod upload secrets. The authorized operator builds signed candidates
+through BuildAndroid using project-local Secret Manager. CI dev evidence is not
+a publishable staging/prod artifact or a production deployment authorization.
+
+`Provision -Environment <name> -BillingAccount <id> -BudgetAmount <amountEUR>`
+creates or verifies foundations without deploying gameplay. It requires explicit
+billing and a positive monthly alert budget, rejects conflicting existing billing,
+budget, database or bucket identities, batches API enablement, and initializes
+Firebase Auth without configuring OAuth credentials. It creates project-local
+service accounts, build resources and initially paused replay queues, and applies
+the existing retention helper. Retries preserve existing queue state. Budgets
+notify billing IAM recipients; they do not cap spending. OAuth linkage, managed
+recovery, monitoring and image-dependent bootstrap remain separate release steps.
+
+`MonitoringSetup -Environment <name> -NotificationEmail <owner>` reapplies the
+existing validator, reward-settlement, abuse-control and account-deletion bundles
+under the environment lock. It requires a usable project-local email channel
+and reads back all 31 enabled policies. Saved configuration evidence does not
+prove email delivery or deployed service health. Explicit `UNVERIFIED` blocks;
+Google's omitted/unspecified state means verification is not required and is
+recorded honestly, without claiming verified delivery. No verification code is
+copied between projects.
+
+`RecoverySetup -Environment staging|prod` enables Firestore PITR and deletion
+protection and creates/verifies a daily managed backup schedule with seven-day
+retention. It never restores or changes player documents. Existing different
+retention blocks rather than being shortened. PITR history accumulates after
+enablement; a configured schedule is not evidence that its first backup exists.
+The small beta recovery targets are at most one minute of database loss for a
+retained PITR point and four hours for operator-led service restoration; daily
+backups provide a fallback with up to 24 hours of database loss. These are targets,
+not a measured full-service recovery guarantee.
+
+Rehearse on named synthetic databases in dev. Before any real recovery, pause
+issuance, preserve accepted-run/reward and deletion evidence after the chosen
+snapshot, restore into a new database, reconcile grants against wallet revisions
+and reapply later deletions before serving players. Auth accounts, replay objects,
+queues and derived leaderboard/ghost views are outside a Firestore snapshot;
+verify or rebuild them from authoritative evidence before reopening. Never replay
+reward grants blindly or restore an account that has since requested deletion.
+Managed backups/PITR can retain deleted records for up to seven days and must be
+covered by privacy disclosures. See [managed PITR](https://firebase.google.com/docs/firestore/use-pitr)
+and [backup schedules](https://docs.cloud.google.com/sdk/gcloud/reference/firestore/backups/schedules/create).
+
+For a newly provisioned, unused project, `Bootstrap -Environment <name>
+-CutoverReady` replaces the first `PauseIssuance`. It requires the same prepared
+source and successful benchmarked immutable image. A live read-only inventory
+must show no Auth users, Firestore collections, Functions or Cloud Run services.
+The action records that inventory, deploys only the issuer with the explicit
+`release-paused` gate, restores local environment bytes and verifies the healthy
+serving revision. Continue with normal `Deploy` and `ResumeIssuance`; all drain,
+artifact and readiness gates still apply. Bootstrap never imports or resets data.
+If bootstrap creates the issuer before a later failure, inspect it and recover
+with normal `PauseIssuance`/`Deploy`; do not erase resources to rerun bootstrap.
+
+Functions derive their runtime and private validator-invoker service accounts
+from the SDK deployment project, rejecting contradictory project variables or a
+foreign validator override. Release checks validate replay bucket, region,
+queues, dispatch identity and endpoint before a mutation. A project-specific
+Functions environment file is required; shared `.env` values alone cannot
+configure a new environment. Secrets remain outside source and evidence.
+
+The existing project's deployed release is gameplay `2026.10.21`, deployed October 25,
+2026 UTC from frozen commit `a4f99b89`. Its ranked tuple is `2026.10.21` /
+`rules-v2` / `score-v4` / `ghost-v1`; replay and command formats remain 1.
+The [production evidence](../verification/game-compat-2026.10.21-production.md)
+records complete coordinated preparation, the 93,910-graph immutable worker
+and strict benchmark, both Android APKs, the guarded cutover and live artifact
+checks. All 469 accepted validations and settled grants were preserved without
+cancelling runs or resetting data. Both queues and normal issuance are restored,
+all six expected boards are ready, and all 30 Functions are ACTIVE.
 
 Controlled signed-in gameplay remains unverified. The
 [release checklist](../building/rescue_release_operations.md) retains linked
-Play Games smoke checks; no native package was built or installed. The previous
-[`2026.10.16` release](../verification/game-compat-2026.10.16-production.md)
-remains historical evidence.
+Play Games smoke checks. Matching universal Android Dev and release APKs were
+built and inspected; the owner will install them. No phone installation or
+device gameplay check was performed in this release. The
+[October 18 leaderboard patch](../verification/leaderboard-level-2026-10-18-production.md)
+and [`2026.10.16` release](../verification/game-compat-2026.10.16-production.md)
+remain historical evidence.
 
 The earlier [October 3 ghost cache client release](../verification/ghost-cache-client-2026-10-03.md)
 published `8d7d9bdc` to Hosting under gameplay `2026.10.3` and installed a rebuilt debug
@@ -37,11 +157,11 @@ ghost launch, cache reuse, and rendering were subsequently verified on Android.
 Run from the repository root in Windows PowerShell 5.1 or PowerShell 7:
 
 ~~~powershell
-.\tools\release\release.ps1 -Action Plan
-.\tools\release\release.ps1 -Action Prepare
-.\tools\release\release.ps1 -Action Inspect
-.\tools\release\release.ps1 -Action BuildImage
-.\tools\release\release.ps1 -Action ImageStatus
+.\tools\release\release.ps1 -Environment dev -Action Plan
+.\tools\release\release.ps1 -Environment dev -Action Prepare
+.\tools\release\release.ps1 -Environment dev -Action Inspect
+.\tools\release\release.ps1 -Environment dev -Action BuildImage
+.\tools\release\release.ps1 -Environment dev -Action ImageStatus
 ~~~
 
 The optional root package aliases are corepack pnpm release -Action Plan and
@@ -59,11 +179,11 @@ Only after the release is explicitly authorized and the immutable image is
 ready, perform the cutover:
 
 ~~~powershell
-.\tools\release\release.ps1 -Action PauseIssuance
-.\tools\release\release.ps1 -Action Inspect
-.\tools\release\release.ps1 -Action Deploy -CutoverReady
-.\tools\release\release.ps1 -Action Inspect
-.\tools\release\release.ps1 -Action ResumeIssuance -CutoverReady
+.\tools\release\release.ps1 -Environment dev -Action PauseIssuance
+.\tools\release\release.ps1 -Environment dev -Action Inspect
+.\tools\release\release.ps1 -Environment dev -Action Deploy -CutoverReady
+.\tools\release\release.ps1 -Environment dev -Action Inspect
+.\tools\release\release.ps1 -Environment dev -Action ResumeIssuance -CutoverReady
 ~~~
 
 CutoverReady records the operator's completed drain/cancellation review; it
@@ -85,7 +205,7 @@ use a new frozen checkout instead of rewriting those records.
 Create that checkout from the authorized commit with:
 
 ~~~powershell
-.\tools\release\release.ps1 -Action Checkout -Commit <release-commit>
+.\tools\release\release.ps1 -Environment dev -Action Checkout -Commit <release-commit>
 ~~~
 
 Checkout creates/reuses .tmp/release-checkouts/<commit> with LF source bytes,
@@ -108,12 +228,27 @@ separate task-specific gates. Production npm advisories are checked on every
 backend/coordinated preparation, including cache hits, because advisories can
 change without source changes.
 
-The web build passes `--dart-define-from-file=web/production_defines.json`.
-This tracked public configuration supplies the domain-restricted reCAPTCHA
-Enterprise App Check site key; missing or empty keys block the build. Its bytes
-participate in client source and component hashes, including CI reuse. Never
-put credentials or App Check debug tokens in this file. Release startup retains
-its required-key guard.
+Runtime security overrides are mirrored in root `pnpm-workspace.yaml` and
+`functions/package.json`: Firebase uploads only `functions/` and resolves its
+production dependencies with npm. Both pin body-parser 1.x to 1.20.9 and 2.x
+to 2.4.0 for [GHSA-27r3-jxmh-p828](https://github.com/advisories/GHSA-27r3-jxmh-p828).
+Validate override changes with both the workspace production audit and an
+isolated production npm resolution/audit outside the pnpm workspace.
+
+Web builds are optimized local Developer Practice hosts. `client-build` uses
+`--no-web-resources-cdn` so CanvasKit is served with the artifact, requires no
+Firebase/App Check defines, and runs `node tools/release/web_smoke.mjs build/web`
+before publishing build evidence. The smoke test uses a fresh headless Chrome
+profile and a loopback server, rejects backend requests and browser exceptions,
+and checks the hub, Options, run readiness and start. Chrome (or
+`CHROME_EXECUTABLE`) and Node 24 are required for this component. Its script is
+included in component cache inputs.
+
+Linux CI also runs the Chrome widget tests for browser adapter selection and
+local runs; the artifact-bundle job requires that job. The pinned Flutter SDK's
+Windows widget-browser harness misroutes CanvasKit and escapes test paths, so
+Windows preparation uses the real-artifact smoke gate instead. Native account
+and coordinated backend release gates are unchanged.
 
 A coordinated preparation requires these components:
 
@@ -142,8 +277,8 @@ a reusable bundle requires matching SDK revisions/versions locally.
 To reuse a successful CI bundle on the exact clean release commit:
 
 ~~~powershell
-.\tools\release\release.ps1 -Action ImportCI -RunId <successful-run-id>
-.\tools\release\release.ps1 -Action Prepare
+.\tools\release\release.ps1 -Environment dev -Action ImportCI -RunId <successful-run-id>
+.\tools\release\release.ps1 -Environment dev -Action Prepare
 ~~~
 
 ImportCI uses gh to verify the origin repository, exact commit, workflow path,
@@ -228,6 +363,9 @@ no consent. Linked Play Games smoke remains a live gate after either path.
 PauseIssuance temporarily sets the deployed runsessioncreate Cloud Run service's
 RUN_SUPPORTED_GAME_COMPAT_VERSIONS to release-paused. This uses the existing
 compatibility allowlist: normal client versions fail before a ticket is issued.
+The callable returns structured `release-maintenance` details. Obsolete clients
+receive `update-required` after cutover; newer date-version clients arriving
+before their backend also receive maintenance. See [run startup](run_startup.md).
 It is a temporary compatibility gate, not an authorization or abuse-control
 replacement. The pause pins the serving revision's immutable image when that
 image still exists in Artifact Registry. Firebase's managed image cleanup can
@@ -331,6 +469,10 @@ tag later.
 .\tools\release\test_release.ps1
 .\tools\release\test_release_integration.ps1
 .\tools\release\test_release_cache.ps1
+.\tools\release\test_release_environments.ps1
+.\tools\release\test_provision_environment.ps1
+.\tools\release\test_release_integration.ps1 -TestEnvironment staging
+.\tools\release\test_release_integration.ps1 -TestEnvironment prod
 ~~~
 
 The helper suite covers source/version/environment drift, artifact tampering,
@@ -345,7 +487,9 @@ Cache/CI checks exercise the preparation recipes, component invalidation,
 artifact restoration/tampering, current advisory audit, failed-marker rejection,
 scope/version selection, exact-run provenance, complete client-shard assembly,
 bundle import and slow-test timing. The entry-point fixtures also exercise
-Hosting-only deployment and backend retries while indexes build. Run all three
+Hosting-only deployment and backend retries while indexes build. Foundation
+checks cover isolated provisioning, idempotent Auth setup, paused new queues,
+preserved existing queues and conflicting billing/budgets. Run these
 suites under Windows PowerShell 5.1 and PowerShell 7.
 Mocks never establish live IAM, successful Firebase publication, actual container
 throughput or signed-in gameplay acceptance.

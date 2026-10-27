@@ -1,12 +1,30 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rpg_runner/ui/app/app_services.dart';
 import 'package:rpg_runner/ui/bootstrap/app_bootstrapper.dart';
 import 'package:rpg_runner/ui/state/auth/firebase_auth_api.dart';
+import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test_support/app_startup_fakes.dart';
 
 void main() {
+  test('Practice-only services cannot switch into an online profile', () async {
+    SharedPreferences.setMockInitialValues({});
+    final services = AppServices.practiceOnly(
+      developerProfileStore: SharedPrefsDeveloperProfileStore(),
+    );
+    addTearDown(services.dispose);
+    final state = await services.initialize();
+    await state.bootstrap();
+    expect(services.isPracticeOnly, isTrue);
+    expect(services.canSwitchProfiles, isFalse);
+    await expectLater(services.setDeveloperMode(false), throwsStateError);
+    expect(services.appState, same(state));
+    expect(state.isDeveloperMode, isTrue);
+  });
+
   test(
     'initialization is shared and state is constructed only after success',
     () async {

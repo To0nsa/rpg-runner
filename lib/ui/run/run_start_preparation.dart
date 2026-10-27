@@ -72,6 +72,12 @@ class RunStartPreparation extends ChangeNotifier {
   }
 
   static String messageFor(Object error) {
+    if (error is RunStartRemoteException && error.isUpdateRequired) {
+      return 'Update the game before starting another run. Your account and pending rewards remain available.';
+    }
+    if (error is RunStartRemoteException && error.isReleaseMaintenance) {
+      return 'The game is undergoing maintenance. Please try again later. Your pending runs and rewards will be recovered.';
+    }
     if (error is RunStartRemoteException && error.code == 'invalid-loadout') {
       return error.message ??
           'Adjust your equipment and abilities before starting.';

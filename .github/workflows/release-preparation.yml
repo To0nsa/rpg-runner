@@ -8,6 +8,7 @@ on:
       - "test/**"
       - "test_driver/**"
       - "web/**"
+      - "android/**"
       - "assets/**"
       - "packages/**"
       - "functions/**"
@@ -28,6 +29,7 @@ on:
       - "test/**"
       - "test_driver/**"
       - "web/**"
+      - "android/**"
       - "assets/**"
       - "packages/**"
       - "functions/**"
@@ -50,6 +52,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.1"
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Prepare required client navigation assets
+        run: dart run packages/runner_core/tool/prepare_navigation.dart --client
+      - name: Exercise browser startup and local gameplay
+        run: >-
+          flutter test --no-pub --platform chrome --reporter expanded
+          test/ui/state/platform_replay_adapters_browser_test.dart
+          test/ui/bootstrap/web_practice_startup_test.dart
+
   component:
     runs-on: windows-latest
     timeout-minutes: 30
@@ -153,8 +174,59 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  android:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Keep checkout bytes portable
+        shell: pwsh
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.1"
+          channel: stable
+          cache: true
+          # Kotlin incremental paths cannot span the runner's C: and D: drives.
+          pub-cache-path: "${{ github.workspace }}/.tmp/pub-cache"
+      - name: Build and inspect development Android artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:DEBUG = ''
+          . ./tools/release/release_support.ps1
+          . ./tools/release/release_cache.ps1
+          . ./tools/release/release_environments.ps1
+          . ./tools/release/android_artifacts.ps1
+          $root = $PWD.Path
+          $sdkManager = Join-Path $env:ANDROID_HOME 'cmdline-tools/latest/bin/sdkmanager.bat'
+          Invoke-ReleaseCommand $sdkManager @('build-tools;36.0.0','platforms;android-36') $root | Write-Host
+          $evidence = Join-Path $root '.tmp/ci-android'
+          New-Item -ItemType Directory -Force -Path $evidence | Out-Null
+          Invoke-ReleaseCommand flutter @('pub','get','--enforce-lockfile') $root | Write-Host
+          Invoke-ReleaseCommand dart @('run','packages/runner_core/tool/prepare_navigation.dart','--client') $root | Write-Host
+          $inputDigest = Get-ReleaseComponentInputs $root 'android-build'
+          Invoke-ReleaseCommand flutter @('build','apk','--flavor','dev','--release','--build-number=1') $root (Join-Path $evidence 'build.log') | Write-Host
+          if ((Get-ReleaseComponentInputs $root 'android-build') -ne $inputDigest) { throw 'Android source/lockfile changed during CI build.' }
+          $definition = Get-ReleaseEnvironmentDefinition $root dev
+          $inspection = Test-AndroidArtifact $root $definition dev (Join-Path $root 'build/app/outputs/flutter-apk/app-dev-release.apk') 1 $evidence
+          @{sourceCommit='${{ github.sha }}';inputDigest=(Get-ReleaseComponentInputs $root 'android-build');flutter=(Get-ReleaseToolchain $root flutter);inspection=$inspection} |
+            ConvertTo-Json -Depth 12 | Set-Content (Join-Path $evidence 'android-ci.json')
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-validation
+          path: .tmp/ci-android
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
   bundle:
-    needs: component
+    needs: [component, browser, android]
     runs-on: windows-latest
     timeout-minutes: 10
     steps:

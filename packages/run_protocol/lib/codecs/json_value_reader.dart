@@ -1,3 +1,5 @@
+import 'json_integer.dart';
+
 Map<String, Object?> asObjectMap(Object? raw, {required String fieldName}) {
   if (raw is! Map) {
     throw FormatException('$fieldName must be a JSON object.');
@@ -35,8 +37,8 @@ int readRequiredInt(Map<String, Object?> json, String key) {
   if (raw is! num) {
     throw FormatException('$key must be a number.');
   }
-  if (!raw.toDouble().isFinite) {
-    throw FormatException('$key must be finite.');
+  if (!raw.isFinite || raw < -maxJsonSafeInteger || raw > maxJsonSafeInteger) {
+    throw FormatException('$key must be a JSON-safe integer.');
   }
   if (raw is! int && raw != raw.roundToDouble()) {
     throw FormatException('$key must be an integer.');
@@ -45,18 +47,7 @@ int readRequiredInt(Map<String, Object?> json, String key) {
 }
 
 int? readOptionalInt(Map<String, Object?> json, String key) {
-  final raw = json[key];
-  if (raw == null) return null;
-  if (raw is! num) {
-    throw FormatException('$key must be a number when set.');
-  }
-  if (!raw.toDouble().isFinite) {
-    throw FormatException('$key must be finite when set.');
-  }
-  if (raw is! int && raw != raw.roundToDouble()) {
-    throw FormatException('$key must be an integer when set.');
-  }
-  return raw.toInt();
+  return json[key] == null ? null : readRequiredInt(json, key);
 }
 
 double readRequiredDouble(Map<String, Object?> json, String key) {

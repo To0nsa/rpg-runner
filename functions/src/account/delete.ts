@@ -12,6 +12,7 @@ import { getStorage } from "firebase-admin/storage";
 import * as logger from "firebase-functions/logger";
 
 import { normalizeDisplayNameForPolicy } from "../profile/validators.js";
+import { inboxCollections } from "../inbox/contracts.js";
 import {
   accountDeletionRequestRef,
   accountDeletionRequestsCollection,
@@ -61,6 +62,9 @@ export const accountDeletionStages = [
   "run_sessions",
   "validated_runs",
   "reward_grants",
+  "system_messages",
+  "inbox_rewards",
+  "inbox_summaries",
   "ghost_runs_uid",
   "ghost_runs_user_id",
   "ghost_runs_owner_uid",
@@ -163,6 +167,7 @@ interface AccountDeletionCounters {
   runSessionDocs: number;
   validatedRunDocs: number;
   rewardGrantDocs: number;
+  inboxDocs: number;
   ghostDocs: number;
   leaderboardPlayerBestDocs: number;
   invalidatedTop10ViewDocs: number;
@@ -670,6 +675,13 @@ async function executeStage(args: {
         collection: rewardGrantsCollection,
         counter: "rewardGrantDocs",
       });
+    case "system_messages":
+    case "inbox_rewards":
+    case "inbox_summaries":
+      return deleteSimpleUidPage({ ...args,
+        collection: args.deletion.stage === "system_messages" ? inboxCollections.messages
+          : args.deletion.stage === "inbox_rewards" ? inboxCollections.rewards : inboxCollections.summaries,
+        counter: "inboxDocs" });
     case "board_ghosts":
       return deleteBoardGhostPage(args);
     case "board_player_bests":
@@ -1326,6 +1338,7 @@ function emptyCounters(): AccountDeletionCounters {
     runSessionDocs: 0,
     validatedRunDocs: 0,
     rewardGrantDocs: 0,
+    inboxDocs: 0,
     ghostDocs: 0,
     leaderboardPlayerBestDocs: 0,
     invalidatedTop10ViewDocs: 0,

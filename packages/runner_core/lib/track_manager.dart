@@ -193,6 +193,7 @@ class TrackManager {
         _spawnService.spawnRestorationItemForChunk(
           chunkIndex: chunk.index,
           chunkStartX: chunk.startX,
+          difficulty: chunk.tier,
           lowestResourceStat: lowestResourceStat,
         );
       }

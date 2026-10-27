@@ -8,7 +8,7 @@ import '../theme/ui_action_button_theme.dart';
 /// Circular tap action control used by the combat HUD.
 ///
 /// The button fires on pointer-down (`onTapDown`) for low-latency response and
-/// is interactable only when `affordable` and not on cooldown.
+/// is interactable when affordable and either ready or granted a Core recast.
 class ActionButton extends StatelessWidget {
   const ActionButton({
     super.key,
@@ -22,6 +22,7 @@ class ActionButton extends StatelessWidget {
     this.affordable = true,
     this.cooldownTicksLeft = 0,
     this.cooldownTicksTotal = 0,
+    this.recastAvailable = false,
   });
 
   final String label;
@@ -33,13 +34,18 @@ class ActionButton extends StatelessWidget {
   final bool affordable;
   final int cooldownTicksLeft;
   final int cooldownTicksTotal;
+
+  /// Core-authorized follow-up that can be used during the shared cooldown.
+  /// Affordability remains independent; this widget never tracks follow-up time.
+  final bool recastAvailable;
   final double size;
 
   @override
   Widget build(BuildContext context) {
+    final displayedCooldown = recastAvailable ? 0 : cooldownTicksLeft;
     final visual = ControlButtonVisualState.resolve(
       affordable: affordable,
-      cooldownTicksLeft: cooldownTicksLeft,
+      cooldownTicksLeft: displayedCooldown,
       backgroundColor: tuning.backgroundColor,
       foregroundColor: tuning.foregroundColor,
       resources: resources,
@@ -47,11 +53,11 @@ class ActionButton extends StatelessWidget {
     );
 
     return ControlButtonShell(
-      label: label,
+      label: recastAvailable ? '$label, follow-up available' : label,
       interactable: visual.interactable,
       onSemanticTap: onPressed,
       size: size,
-      cooldownTicksLeft: cooldownTicksLeft,
+      cooldownTicksLeft: displayedCooldown,
       cooldownTicksTotal: cooldownTicksTotal,
       cooldownRing: cooldownRing,
       child: ControlButtonSurface(
@@ -60,9 +66,29 @@ class ActionButton extends StatelessWidget {
           customBorder: const CircleBorder(),
           onTapDown: visual.interactable ? (_) => onPressed() : null,
           onTap: null,
-          child: ControlButtonContent(
-            icon: icon,
-            foregroundColor: visual.foregroundColor,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ControlButtonContent(
+                icon: icon,
+                foregroundColor: visual.foregroundColor,
+              ),
+              if (recastAvailable)
+                Positioned(
+                  right: size * 0.12,
+                  bottom: size * 0.08,
+                  child: IgnorePointer(
+                    child: Text(
+                      '+1',
+                      style: TextStyle(
+                        color: visual.foregroundColor,
+                        fontSize: size * 0.22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

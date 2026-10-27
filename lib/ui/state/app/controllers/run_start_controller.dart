@@ -454,20 +454,19 @@ final class _AppStateRunStartController extends _AppStateController {
   }
 
   String _loadoutDigest(EquippedLoadoutDef loadout) {
-    final canonical = <String>[
-      loadout.mask.toString(),
-      loadout.mainWeaponId.name,
-      loadout.offhandWeaponId.name,
-      loadout.spellBookId.name,
-      loadout.projectileSlotSpellId.name,
-      loadout.accessoryId.name,
-      loadout.abilityPrimaryId,
-      loadout.abilitySecondaryId,
-      loadout.abilityProjectileId,
-      loadout.abilitySpellId,
-      loadout.abilityMobilityId,
-      loadout.abilityJumpId,
-    ].join('|');
-    return crypto.sha256.convert(utf8.encode(canonical)).toString();
+    return LoadoutDigest.sha256ForMap({
+      'mask': loadout.mask,
+      'mainWeaponId': loadout.mainWeaponId.name,
+      'offhandWeaponId': loadout.offhandWeaponId.name,
+      'spellBookId': loadout.spellBookId.name,
+      'projectileSlotSpellId': loadout.projectileSlotSpellId.name,
+      'accessoryId': loadout.accessoryId.name,
+      'abilityPrimaryId': loadout.abilityPrimaryId,
+      'abilitySecondaryId': loadout.abilitySecondaryId,
+      'abilityProjectileId': loadout.abilityProjectileId,
+      'abilitySpellId': loadout.abilitySpellId,
+      'abilityMobilityId': loadout.abilityMobilityId,
+      'abilityJumpId': loadout.abilityJumpId,
+    });
   }
 }

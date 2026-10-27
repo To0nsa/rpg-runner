@@ -1,3 +1,4 @@
+import 'codecs/json_integer.dart';
 import 'codecs/json_value_reader.dart';
 
 /// Replay-derived combat totals for one accepted run, in hundredths of HP.
@@ -11,7 +12,7 @@ final class PlayerRunStats {
     }
   }
 
-  static const int maxCount = 9007199254740991;
+  static const int maxCount = maxJsonSafeInteger;
 
   final int damageDealt100;
   final int damageTaken100;

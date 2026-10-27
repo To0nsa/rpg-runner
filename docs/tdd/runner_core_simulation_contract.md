@@ -12,6 +12,7 @@ implementation. Those concerns are documented in:
 - [replay validator worker](replay_validator_worker.md)
 - [ghost run serialization](ghost_run_serialization_deserialization.md)
 - [animation data flow and timing](animation_data_flow_and_timing.md)
+- [mobility recasts and dash timing](mobility_recasts.md)
 - [terrain capsule controller](terrain_capsule_controller.md)
 - [sloped navigation and enemy terrain foundation](sloped_navigation_and_enemy_terrain.md)
 - [polygon terrain authoring foundation](polygon_terrain_authoring_foundation.md)
@@ -144,6 +145,25 @@ center until release. Both bosses preserve cast timing and released trajectories
 Shared projectile intents default body-relative X/Y offsets to zero, preserving
 other casters. See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
 
+## Player horizontal movement tuning
+
+`eloiseTuning.movement` in `players/characters/eloise.dart` supplies both
+registered player characters. Its base target speed is 200 world units/second,
+acceleration is 600 world units/second², and neutral-input deceleration is 1200
+world units/second². `PlayerMovementSystem` uses acceleration for every nonzero
+target, including reversal, and deceleration for a zero target. Neutral input
+snaps remaining speed at or below 5 world units/second to zero.
+
+Grounded and airborne horizontal control share these rates. Gear and status
+movement multipliers scale target speed and both rates; slope multipliers affect
+only target speed. Swimming additionally scales target speed by 0.8,
+acceleration by 0.5, and deceleration by 0.45. Active mobility actions retain
+their separate velocity handling.
+
+The increase from 400 to 1200 deceleration changes replayed trajectories and
+requires a coordinated gameplay compatibility release with matching client and
+worker Core builds. Command encoding and tick ordering are unchanged.
+
 ## Tick ordering
 
 `GameCore.stepOneTick` ordering is gameplay behavior, not an implementation
@@ -229,17 +249,42 @@ and representative-type rules; tick order and replay wire formats are unchanged.
 
 Player projectile auto aim resolves once when an ability commits. It scans live
 hostile health entities in stable store order, rejects targets beyond the
-equipped projectile's speed-times-lifetime reach, and predicts windup and
-flight using current velocities. The intercept equation includes the same
-directional cast offset used by projectile spawning. Feasible intercepts rank
-by flight time; remaining candidates rank by projected distance, with entity
-ID as the final tie-break. Only candidates that would improve the current
-choice query the published terrain edge index for an unobstructed sightline.
+equipped projectile's speed-times-lifetime reach, and forecasts source motion
+through windup and target motion through windup plus projectile flight.
+Activation runs before movement and execution runs after movement, so the
+forecast includes `windupTicks + 1` motion steps, including the commit tick.
+`AimMotionForecast` advances gravity before motion at the run's tick rate, with
+actor gravity scaling, suppression expiry, vertical speed caps, fixed-point
+gravity tuning and captured swimming state. Terrain forecasts use the actor's
+immutable world-contact capsule and traversal profile with a scratch
+`TerrainCapsuleController` bound to the current published geometry. They retain
+support and resolve landings, ceilings, walls, slopes, one-way platforms and
+finite edges without mutating live transforms, contacts or gravity timers.
+Current horizontal motion is retained; future input, AI decisions, ability
+transitions and changes in immersion are outside the forecast.
+
+Linear motion keeps the exact quadratic intercept solve. For accelerated or
+terrain-constrained motion, the solver scans fixed-tick segments in time order
+and solves an intercept along each segment, interpolating within that tick.
+Search work is bounded by windup and projectile lifetime. The intercept equation
+includes the same directional cast offset used by projectile spawning. Homing
+melee uses the same windup forecast without a flight or sightline search.
+Feasible projectile intercepts rank by flight time; remaining candidates rank
+by projected distance, with entity ID as the final tie-break. An unobstructed
+predicted sightline takes priority
+over a blocked one. If every predicted sightline is blocked, the best-ranked
+hostile still supplies the committed aim; only absence of an eligible hostile
+permits the manual-aim or movement/facing fallback. This avoids losing a rear
+target when no unobstructed predicted shot exists.
+After finding a clear candidate, only candidates that improve its intercept or
+distance rank query the published terrain edge index. Until then, any eligible
+candidate can win by having a clear sightline.
 The query reuses scratch storage until the terrain publication changes. Aim is
 stored in the committed intent and projectiles do not steer after launch.
-These rules affect replayed outcomes and require a coordinated client/worker
-game-compatibility release. The `2026.10.1` release also includes surviving
-NPC section combat, refreshed Forest generated content,
+The motion forecast and blocked-sightline fallback change replayed aim and
+require a new coordinated client/worker/issuer game-compatibility release before
+deployment; tick ordering and command/replay formats are unchanged. The `2026.10.1` release
+also includes surviving NPC section combat, refreshed Forest generated content,
 and the contiguous walkable-support placement correction. These changes affect
 replay outcomes and must ship with matching client, Functions and worker artifacts.
 They were excluded from the October 1 `2026.09.10` deployment at frozen `6bfda4c8`.
@@ -424,7 +469,7 @@ it never selects the opening chunks again. At startup and on later stream
 changes, marker requests are captured in authored order, the matching complete
 terrain candidate is built/published, then enemies are applied before
 collectibles/restoration items as before. Marker rolls remain keyed by seed,
-chunk, marker index, and salt. Collectible/restoration count draws, candidate
+chunk, marker index, and salt. Collectible count draws and per-chunk item candidate
 draws, salts, snapping, spacing, and attempt limits are unchanged. The terrain
 authority validates each already-created candidate through a mutation-free
 placement request that consumes no RNG. Terrain rejection consumes the existing
@@ -436,6 +481,36 @@ collision from attracting the pickup through a visual hole. This deterministic
 placement change is included in game compatibility `2026.10.6`;
 count/candidate RNG and attempt consumption remain unchanged. An invalid placement cannot
 shift any later marker roll or candidate sequence.
+
+### Ambient restoration gem cadence
+
+`TrackSpawnedChunk.tier` captures the scheduler's resolved selected difficulty,
+including explicit section overrides and automatic fallback. `TrackManager`
+passes this tier with each deferred item batch after terrain publication;
+camera/player position and later section selection do not determine the bonus.
+Item batches consume each streamed chunk exactly once in increasing index order.
+
+`SpawnService` owns a run-lifetime integer spawn accumulator. Each eligible chunk
+adds 10,000 units, plus `RestorationItemTuning.easySpawnRateBonusBp` (default
+2,000) for `easy`. Every `spawnEveryChunks * 10,000` units earns one placement
+attempt. The remainder survives section, difficulty and batch boundaries.
+The seeded phase initializes the first eligible chunk so routes with no easy
+bonus preserve the previous modulo cadence exactly. Disabled spawning, a
+nonpositive interval and chunks before `spawnStartChunkIndex` earn no credit.
+
+Placement consumes an earned opportunity even when all terrain candidates fail;
+failures never defer credit into later chunks. The first gem's candidate stream
+retains the existing seed/chunk salt. Custom intervals that earn multiple gems
+in one chunk use ordinal-derived independent candidate streams, and placement
+rejects overlap with both coins and existing gems. Resource selection, 30%
+restoration, collection ordering and boss-owned supply remain unchanged.
+
+This changes replayed resource outcomes and joins the prepared, undeployed
+`2026.10.21` gameplay compatibility release. Both client and worker consume the
+same Core implementation; wire/score versions and `stepOneTick` order do not
+change. The coordinated release must ship matching source and artifacts.
+
+### Terminal lifecycle
 
 Player death may enter a death-animation freeze: only animation advances until
 the terminal `RunEndedEvent` is emitted. Any terminal end freezes normal
@@ -621,6 +696,24 @@ When changing any invariant, add a deterministic regression test and update
 this document plus the relevant replay/consumer documentation.
 
 ## Authored content and generated outputs
+
+The undeployed `2026.10.21` preparation also includes the hard-camp clearance
+repair and stricter jump landing admission described in
+[sloped navigation](sloped_navigation_and_enemy_terrain.md#jump-and-drop-construction).
+All jump destinations require a grounded controller landing and revalidation
+at the published cruise speed; rounded-tip contacts additionally account for
+runtime collision skin. Early takeoff also requires enough horizontal reach
+at the unchanged speed cap to preserve the planned flight. The graph algorithm
+fingerprint and authored terrain are regenerated together. These changes alter
+deterministic enemy routes and require matching client, worker and issuer
+artifacts; tick ordering, movement limits, command encoding and replay wire
+formats are unchanged.
+
+The same preparation keeps the retained support normal in grounded wall-slide
+constraints. A downhill wall contact can no longer project motion into the
+floor and freeze subsequent ticks in overlap recovery. This shared controller
+fix changes player/enemy collision outcomes without changing their capabilities;
+see [terrain collision](terrain_capsule_controller.md).
 
 Gameplay compatibility `2026.10.12` regenerates Forest revision 389 with a
 nine-chunk distinct hard Rocky Grove section after Goddess. The existing final-

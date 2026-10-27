@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "environments": {
+    "dev": {
+      "projectId": "rpg-runner-d7add",
+      "displayName": "Lothringen Long Run - Dev",
+      "region": "europe-west1",
+      "firestoreLocation": "eur3",
+      "firebaseConfig": "firebase.json",
+      "hostingSite": "rpg-runner-d7add",
+      "replayBucket": "rpg-runner-replay-euw1-20260312-01",
+      "workerService": "replay-validator",
+      "workerUrl": "https://replay-validator-kifgpi76za-ew.a.run.app",
+      "validationQueue": "replay-validation",
+      "projectionQueue": "replay-projection",
+      "androidPackage": "com.example.rpg_runner.dev"
+    },
+    "staging": {
+      "projectId": "lothringen-long-run-staging",
+      "displayName": "Lothringen Long Run - Staging",
+      "region": "europe-west1",
+      "firestoreLocation": "europe-west1",
+      "firebaseConfig": "firebase.staging.json",
+      "hostingSite": "",
+      "replayBucket": "lothringen-long-run-staging-replays",
+      "workerService": "replay-validator",
+      "workerUrl": "https://replay-validator-943085064373.europe-west1.run.app",
+      "validationQueue": "replay-validation",
+      "projectionQueue": "replay-projection",
+      "androidPackage": "com.lothringen.longrun.staging"
+    },
+    "prod": {
+      "projectId": "lothringen-long-run-prod",
+      "displayName": "Lothringen Long Run - Prod",
+      "region": "europe-west1",
+      "firestoreLocation": "europe-west1",
+      "firebaseConfig": "firebase.prod.json",
+      "hostingSite": "",
+      "replayBucket": "lothringen-long-run-prod-replays",
+      "workerService": "replay-validator",
+      "workerUrl": "https://replay-validator-696550437718.europe-west1.run.app",
+      "validationQueue": "replay-validation",
+      "projectionQueue": "replay-projection",
+      "androidPackage": "com.example.rpg_runner"
+    }
+  }
+}

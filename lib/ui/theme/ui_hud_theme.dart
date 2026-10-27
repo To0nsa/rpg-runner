@@ -12,6 +12,7 @@ class UiHudTheme extends ThemeExtension<UiHudTheme> {
     this.highlight = UiWorldPalette.gold400,
     this.foreground = UiWorldPalette.mist200,
     this.wear = UiWorldPalette.ash500,
+    this.enemyIndicator = UiWorldPalette.rust500,
   });
 
   static const standard = UiHudTheme();
@@ -21,6 +22,7 @@ class UiHudTheme extends ThemeExtension<UiHudTheme> {
   final Color highlight;
   final Color foreground;
   final Color wear;
+  final Color enemyIndicator;
 
   @override
   UiHudTheme copyWith({
@@ -30,6 +32,7 @@ class UiHudTheme extends ThemeExtension<UiHudTheme> {
     Color? highlight,
     Color? foreground,
     Color? wear,
+    Color? enemyIndicator,
   }) => UiHudTheme(
     background: background ?? this.background,
     border: border ?? this.border,
@@ -37,6 +40,7 @@ class UiHudTheme extends ThemeExtension<UiHudTheme> {
     highlight: highlight ?? this.highlight,
     foreground: foreground ?? this.foreground,
     wear: wear ?? this.wear,
+    enemyIndicator: enemyIndicator ?? this.enemyIndicator,
   );
 
   @override
@@ -49,6 +53,7 @@ class UiHudTheme extends ThemeExtension<UiHudTheme> {
           highlight: Color.lerp(highlight, other.highlight, t)!,
           foreground: Color.lerp(foreground, other.foreground, t)!,
           wear: Color.lerp(wear, other.wear, t)!,
+          enemyIndicator: Color.lerp(enemyIndicator, other.enemyIndicator, t)!,
         );
 }
 

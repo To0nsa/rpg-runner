@@ -5,7 +5,9 @@ import '../../app/ui_routes.dart';
 import '../../bootstrap/loader_content.dart';
 import '../../components/loader_shell.dart';
 import '../../run/run_start_preparation.dart';
+import '../../run/run_release_gate.dart';
 import '../../state/app/app_state.dart';
+import '../../state/run/run_start_remote_exception.dart';
 
 class RunStartBootstrapPage extends StatefulWidget {
   const RunStartBootstrapPage({required this.args, super.key});
@@ -63,12 +65,16 @@ class _RunStartBootstrapPageState extends State<RunStartBootstrapPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          LoaderContent(
-            loadingMessage: 'Preparing run...',
-            errorMessage: _navigationError ?? _preparation.errorMessage,
-            onContinue: _preparation.inFlight ? null : _prepareAndNavigate,
-            continueLabel: _preparation.inFlight ? 'Retrying...' : 'Retry',
-          ),
+          if (_preparation.error case final RunStartRemoteException error
+              when error.isUpdateRequired || error.isReleaseMaintenance)
+            RunReleaseGate(error: error, onRetry: _prepareAndNavigate)
+          else
+            LoaderContent(
+              loadingMessage: 'Preparing run...',
+              errorMessage: _navigationError ?? _preparation.errorMessage,
+              onContinue: _preparation.inFlight ? null : _prepareAndNavigate,
+              continueLabel: _preparation.inFlight ? 'Retrying...' : 'Retry',
+            ),
           if (Navigator.of(context).canPop())
             TextButton(
               onPressed: () => Navigator.of(context).maybePop(),

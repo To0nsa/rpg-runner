@@ -21,20 +21,39 @@ void main() {
     },
   );
 
-  test('choice survives recreation and supports changing back', () async {
-    SharedPreferences.setMockInitialValues({});
-    final settings = ControlSettings(store: SharedPrefsControlSettingsStore());
-    addTearDown(settings.dispose);
-    await settings.load();
-    await settings.setMovementMode(MovementControlMode.joystick);
-    final restored = ControlSettings(store: SharedPrefsControlSettingsStore());
-    addTearDown(restored.dispose);
-    await restored.load();
-    expect(restored.movementMode, MovementControlMode.joystick);
-    await restored.setMovementMode(MovementControlMode.arrows);
+  for (final mode in [
+    MovementControlMode.joystick,
+    MovementControlMode.fixedJoystick,
+  ]) {
+    test('$mode survives recreation and supports changing back', () async {
+      SharedPreferences.setMockInitialValues({});
+      final settings = ControlSettings(
+        store: SharedPrefsControlSettingsStore(),
+      );
+      addTearDown(settings.dispose);
+      await settings.load();
+      await settings.setMovementMode(mode);
+      final restored = ControlSettings(
+        store: SharedPrefsControlSettingsStore(),
+      );
+      addTearDown(restored.dispose);
+      await restored.load();
+      expect(restored.movementMode, mode);
+      await restored.setMovementMode(MovementControlMode.arrows);
+      expect(
+        await SharedPrefsControlSettingsStore().loadMovementMode(),
+        MovementControlMode.arrows,
+      );
+    });
+  }
+
+  test('existing joystick preference still restores floating mode', () async {
+    SharedPreferences.setMockInitialValues({
+      'controls.movement_mode.v1': 'joystick',
+    });
     expect(
       await SharedPrefsControlSettingsStore().loadMovementMode(),
-      MovementControlMode.arrows,
+      MovementControlMode.joystick,
     );
   });
 

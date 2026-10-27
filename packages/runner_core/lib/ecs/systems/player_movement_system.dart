@@ -55,17 +55,11 @@ class PlayerMovementSystem {
       // If stunned, Zero horizontal velocity and skip input input processing.
       // Vertical velocity (gravity) continues to apply normally (falling).
       if (world.controlLock.isStunned(e, currentTick)) {
+        world.movement.clearRecast(e);
         // Cancel dash if active (so we don't float)
         if (world.movement.dashTicksLeft[mi] > 0) {
           world.movement.dashTicksLeft[mi] = 0;
-          // Restore gravity if it was suppressed by dash
-          if (world.gravityControl.suppressGravityTicksLeft[world.gravityControl
-                  .indexOf(e)] >
-              0) {
-            world.gravityControl.suppressGravityTicksLeft[world.gravityControl
-                    .indexOf(e)] =
-                0;
-          }
+          world.gravityControl.removeEntity(e);
         }
         world.transform.velX[ti] = 0;
         return;

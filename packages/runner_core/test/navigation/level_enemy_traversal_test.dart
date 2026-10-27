@@ -109,6 +109,18 @@ void main() {
   for (final regression in [
     (
       seed: 7,
+      name: 'hard ruin into grove gap',
+      keys: [
+        'forest_default_early_001',
+        'forest_ruin_hard_005',
+        'forest_ruin_hard_001',
+        'forest_rocky_grove_hard_002',
+        'forest_rocky_grove_hard_001',
+      ],
+      continuation: 'forest_rocky_grove_hard_007',
+    ),
+    (
+      seed: 7,
       name: 'normal camp crate approach after boss sequence',
       keys: [
         'forest_default_early_001',

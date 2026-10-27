@@ -1,0 +1,91 @@
+[
+  {
+    "name": "practice",
+    "replay": {
+      "replayVersion": 1,
+      "runSessionId": "practice_fixture",
+      "tickHz": 30,
+      "seed": 123,
+      "levelId": "field",
+      "playerCharacterId": "eloise",
+      "loadoutSnapshot": {
+        "mask": 7,
+        "mainWeaponId": "plainsteel"
+      },
+      "commandEncodingVersion": 1,
+      "totalTicks": 42,
+      "commandStream": [
+        {
+          "t": 1,
+          "mx": 1.0
+        },
+        {
+          "t": 2,
+          "mx": -0.0,
+          "ax": 0.5,
+          "ay": -1.0,
+          "pm": 63,
+          "hm": 63,
+          "hv": 21
+        }
+      ],
+      "canonicalSha256": "5eee89f53ab46124859a2322618769be6d5ed701bce12ef54153d5c8efd16302"
+    },
+    "canonicalJson": "{\"commandEncodingVersion\":1,\"commandStream\":[{\"mx\":1.0,\"t\":1},{\"ax\":0.5,\"ay\":-1.0,\"hm\":63,\"hv\":21,\"mx\":-0.0,\"pm\":63,\"t\":2}],\"levelId\":\"field\",\"loadoutSnapshot\":{\"mainWeaponId\":\"plainsteel\",\"mask\":7},\"playerCharacterId\":\"eloise\",\"replayVersion\":1,\"runSessionId\":\"practice_fixture\",\"seed\":123,\"tickHz\":30,\"totalTicks\":42}",
+    "sha256": "5eee89f53ab46124859a2322618769be6d5ed701bce12ef54153d5c8efd16302"
+  },
+  {
+    "name": "ranked_with_summary",
+    "replay": {
+      "replayVersion": 1,
+      "runSessionId": "ranked_fixture",
+      "boardId": "board_fixture",
+      "boardKey": {
+        "mode": "competitive",
+        "levelId": "field",
+        "windowId": "2026-10",
+        "rulesetVersion": "rules-v2",
+        "scoreVersion": "score-v4"
+      },
+      "tickHz": 30,
+      "seed": 123,
+      "levelId": "field",
+      "playerCharacterId": "eloise",
+      "loadoutSnapshot": {
+        "mask": 7,
+        "mainWeaponId": "plainsteel"
+      },
+      "commandEncodingVersion": 1,
+      "totalTicks": 42,
+      "commandStream": [
+        {
+          "t": 1,
+          "mx": 1.0
+        },
+        {
+          "t": 2,
+          "mx": -0.0,
+          "ax": 0.5,
+          "ay": -1.0,
+          "pm": 63,
+          "hm": 63,
+          "hv": 21
+        }
+      ],
+      "clientSummary": {
+        "goldEarned": 3,
+        "nested": {
+          "z": 1.0,
+          "a": [
+            null,
+            true,
+            0.000001
+          ]
+        }
+      },
+      "canonicalSha256": "ca6d1edbd96677435edafa57245fa389b48052ad3ba39465baa093798b5bd992"
+    },
+    "canonicalJson": "{\"boardId\":\"board_fixture\",\"boardKey\":{\"levelId\":\"field\",\"mode\":\"competitive\",\"rulesetVersion\":\"rules-v2\",\"scoreVersion\":\"score-v4\",\"windowId\":\"2026-10\"},\"clientSummary\":{\"goldEarned\":3,\"nested\":{\"a\":[null,true,0.000001],\"z\":1.0}},\"commandEncodingVersion\":1,\"commandStream\":[{\"mx\":1.0,\"t\":1},{\"ax\":0.5,\"ay\":-1.0,\"hm\":63,\"hv\":21,\"mx\":-0.0,\"pm\":63,\"t\":2}],\"levelId\":\"field\",\"loadoutSnapshot\":{\"mainWeaponId\":\"plainsteel\",\"mask\":7},\"playerCharacterId\":\"eloise\",\"replayVersion\":1,\"runSessionId\":\"ranked_fixture\",\"seed\":123,\"tickHz\":30,\"totalTicks\":42}",
+    "sha256": "ca6d1edbd96677435edafa57245fa389b48052ad3ba39465baa093798b5bd992"
+  }
+]

@@ -167,6 +167,19 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         return _skewerShotDescription(def, ctx);
       case 'eloise.dash':
         return _dashDescription(def);
+      case 'eloise.double_dash':
+        return _descriptionFromTemplate(
+          template:
+              'Dash a short distance. Tap again within {window} seconds '
+              'after the first burst to dash again in your chosen direction. '
+              'Each burst pays the listed cost; cooldown starts with the first.',
+          values: {
+            'window':
+                (def.mobilityRecast!.windowTicks / _authoredTicksPerSecond)
+                    .toStringAsFixed(1),
+          },
+          dynamicKeys: ['window'],
+        );
       case 'eloise.roll':
         return _concussiveRollDescription(def);
       case 'eloise.aegis_riposte':

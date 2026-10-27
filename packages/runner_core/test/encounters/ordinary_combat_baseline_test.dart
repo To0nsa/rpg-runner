@@ -143,11 +143,11 @@ void main() {
     expect(transformedDerfs, isNotEmpty);
     expect(sawDerfStrike, isTrue);
     expect(strikeTurns, greaterThan(0));
-    // Compatibility 2026.10.16 uses the current flat Field fixture while
-    // retaining post-hit eligibility after protection expires.
+    // Gravity/terrain-aware homing changes attack outcomes starting at tick 258.
+    // This reviewed 817-tick trace retains the roster and facing checks above.
     expect(
       digest,
-      'e921cbf21248b6010208cae0e311882463dcfd405adaf85ff09498fe1d7a2d40',
+      'e32f9e70696b32e86b4000a2a409a7effba5e9f1164020c66cfe4d6815094ecb',
       reason: 'ticks=${core.tick}, enemies=$seenEnemies',
     );
   });

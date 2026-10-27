@@ -32,18 +32,22 @@ function Invoke-ReleaseComponent {
       $report = Join-Path $LogDirectory "client-tests-$ShardIndex.jsonl"
       Invoke-ReleaseCommand flutter @("test", "--no-pub", "--exclude-tags=integration",
         "--total-shards=$ShardCount", "--shard-index=$ShardIndex", "--file-reporter=json:$report") $Root $log | Out-Null
+      # The pinned SDK's Windows web-test harness corrupts paths and CanvasKit
+      # routes. Linux CI runs widget browser coverage; every client build also
+      # runs the real release artifact in Chrome through web_smoke.mjs.
+      if ($ShardIndex -eq 0 -and [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
+        Invoke-ReleaseCommand dart @("run", "packages/runner_core/tool/prepare_navigation.dart", "--client") $Root $log | Out-Null
+        Invoke-ReleaseCommand flutter @("test", "--no-pub", "--platform", "chrome", "--reporter", "expanded",
+          "test/ui/state/platform_replay_adapters_browser_test.dart",
+          "test/ui/bootstrap/web_practice_startup_test.dart") $Root $log | Out-Null
+      }
       Get-ReleaseTestTimings @($report) | ConvertTo-Json -Depth 5 |
         Set-Content -LiteralPath (Join-Path $LogDirectory "slow-tests-$ShardIndex.json") -Encoding utf8
     }
     "client-build" {
-      $defines = Get-Content -Raw -LiteralPath (Join-Path $Root "web/production_defines.json") | ConvertFrom-Json
-      $siteKey = $defines.PSObject.Properties["FIREBASE_APP_CHECK_WEB_SITE_KEY"]
-      if (-not $siteKey -or $siteKey.Value -isnot [string] -or [string]::IsNullOrWhiteSpace($siteKey.Value)) {
-        throw "Production web configuration requires FIREBASE_APP_CHECK_WEB_SITE_KEY."
-      }
       Invoke-ReleaseCommand dart @("run", "packages/runner_core/tool/prepare_navigation.dart", "--client") $Root $log | Out-Null
-      Invoke-ReleaseCommand flutter @("build", "web", "--release", "--no-pub",
-        "--dart-define-from-file=web/production_defines.json") $Root $log | Out-Null
+      Invoke-ReleaseCommand flutter @("build", "web", "--release", "--no-pub", "--no-web-resources-cdn") $Root $log | Out-Null
+      Invoke-ReleaseCommand node @("tools/release/web_smoke.mjs", "build/web") $Root $log | Out-Null
     }
     "validator-checks" {
       $directory = Join-Path $Root "services/replay_validator"

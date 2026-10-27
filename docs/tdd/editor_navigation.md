@@ -83,6 +83,11 @@ cleared. Polygon selections use the interaction layer's shape/index validation
 before reaching its strict reducer. Explicit source-link targets and explicit
 Level returns still fail when their required saved owner is missing.
 
+Within Chunk Creator, switching Chunk owners retains the active authoring tab.
+Owner binding clears every domain's element selection and exits compiled-edge
+inspection to that tab. Explicit navigation locations still restore their saved
+tab and reconcile their own selections against the destination Chunk.
+
 Raw form input, unsaved geometry, drag operations, source bytes, scene/image
 caches, and content undo stacks are excluded. The departure guard resolves edits;
 a location must never become another content persistence authority.

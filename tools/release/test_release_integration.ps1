@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param()
+param([ValidateSet('dev', 'staging', 'prod')][string]$TestEnvironment = 'dev')
 . (Join-Path $PSScriptRoot "release_support.ps1")
 $workspaceRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
 $fixture = Join-Path $workspaceRoot ".tmp/release-tests/$([Guid]::NewGuid().ToString('N'))"
@@ -19,10 +19,18 @@ $global:fakeArtifactLookupDenied = $false
 $global:fakeFirebaseDebug = $false
 $global:fakeIndexesReady = $true
 $global:fakeFunctionsVersion = '2026-10-01T00:00:00Z'
+$global:fakeBootstrapEmpty = $false
+$global:fakeBootstrapUsers = $false
+$global:fakeReleaseLock = $false
+$global:fakeLockGeneration = 100
+$global:fakeCutover = $null
 $script:passed = 0
 $global:mockFiles = @(
   "tools/release/release.ps1", "tools/release/release_support.ps1", "tools/release/release_cache.ps1",
   "tools/release/prepare_release.ps1", "tools/release/profile_tests.ps1", "tools/release/release_ci.ps1",
+  "tools/release/release_environments.ps1", "tools/release/environments.json",
+  "tools/release/release_lock.ps1",
+  "firebase.staging.json", "firebase.prod.json",
   "functions/src/index.ts", "functions/src/runs/compatibility.ts",
   "functions/src/boards/provisioning.ts", "lib/ui/state/app/app_state.dart",
   "services/replay_validator/lib/src/validator_worker.dart", "firebase.json", ".firebaserc"
@@ -50,6 +58,9 @@ function corepack {
 }
 function node {
   $global:LASTEXITCODE = 0
+  if (($args -join ' ') -like '*bootstrap_inventory.mjs*') {
+    return (@{projectId='test-project';readOnly=$true;hasAuthUsers=$global:fakeBootstrapUsers;hasFirestoreCollections=$false} | ConvertTo-Json)
+  }
   return ([ordered]@{
     readOnly = $true; projectId = "test-project"
     runs = @{
@@ -63,6 +74,7 @@ function node {
 function gcloud {
   $global:LASTEXITCODE = 0
   $command = $args -join " "
+  if ($command -eq 'auth print-access-token') { return 'mock-token' }
   $global:releaseTrace.Add($command)
   if ($command.StartsWith("builds submit")) {
     $global:fakeImageTag = ($args | Where-Object { $_ -like "--substitutions=*" }).Substring("--substitutions=_IMAGE_URI=".Length)
@@ -115,10 +127,42 @@ function gcloud {
   if ($command.StartsWith("firestore indexes")) { if ($global:fakeIndexesReady) { return "[]" }; return '[{"state":"CREATING"}]' }
   if ($command.StartsWith("tasks queues describe")) { return 'RUNNING' }
   if ($command.StartsWith("functions list")) {
+    if ($global:fakeBootstrapEmpty) { return '[]' }
     $exports = [regex]::Matches((Get-Content -Raw (Join-Path $fixture 'functions/src/index.ts')), 'export const ([A-Za-z][A-Za-z0-9_]*)\s*=')
     return (@($exports | ForEach-Object { @{ name = "projects/test-project/locations/europe-west1/functions/$($_.Groups[1].Value)"; state = "ACTIVE"; updateTime = $global:fakeFunctionsVersion } }) | ConvertTo-Json -Depth 5)
   }
+  if ($command.StartsWith('run services list')) { return '[]' }
   return "{}"
+}
+
+function Invoke-RestMethod {
+  param($Method, $Uri, $Headers, $Body, $ContentType, $ErrorAction, $Verbose, $Debug)
+  if ($Uri -notmatch '/b/test-project_cloudbuild/o') { throw 'Wrong release-lock project' }
+  if ($Uri -match 'cutover') {
+    if ($Method -eq 'Get') {
+      if (-not $global:fakeCutover) { return $null }
+      if ($Uri -match 'alt=media') { return $global:fakeCutover.content }
+      return $global:fakeCutover
+    }
+    if ($Method -eq 'Post') {
+      if ($global:fakeCutover -or -not $Uri.EndsWith('&ifGenerationMatch=0')) { throw 'Cutover conflict' }
+      $global:fakeCutover = [pscustomobject]@{bucket='test-project_cloudbuild';name='_release/cutover.json';generation='50';
+        content=([Text.Encoding]::UTF8.GetString($Body) | ConvertFrom-Json)}
+      return $global:fakeCutover
+    }
+    if ($Method -ne 'Delete' -or -not $Uri.EndsWith('?ifGenerationMatch=50')) { throw 'Wrong cutover cleanup' }
+    $global:fakeCutover=$null
+    return
+  }
+  if ($Method -eq 'Post') {
+    if ($global:fakeReleaseLock -or -not $Uri.EndsWith('&ifGenerationMatch=0')) { throw 'Lock conflict' }
+    $global:fakeReleaseLock = $true
+    $global:fakeLockGeneration++
+    return [pscustomobject]@{bucket='test-project_cloudbuild';name='_release/mutation-lock.json';generation=[string]$global:fakeLockGeneration}
+  }
+  if ($Method -ne 'Delete' -or -not $global:fakeReleaseLock -or
+      -not $Uri.EndsWith("?ifGenerationMatch=$($global:fakeLockGeneration)")) { throw 'Wrong lock cleanup' }
+  $global:fakeReleaseLock = $false
 }
 function Invoke-WebRequest {
   param($Uri, $Headers, $OutFile, [switch]$UseBasicParsing)
@@ -138,9 +182,21 @@ try {
     New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
     Copy-Item -LiteralPath (Join-Path $workspaceRoot $relative) -Destination $target
   }
-  '{"projects":{"default":"test-project"}}' | Set-Content -LiteralPath (Join-Path $fixture ".firebaserc")
-  '{"hosting":{"site":"test-project"}}' | Set-Content -LiteralPath (Join-Path $fixture "firebase.json")
-  @("REPLAY_STORAGE_BUCKET=test-bucket", "REPLAY_VALIDATION_QUEUE_LOCATION=europe-west1") |
+  $aliases = Get-Content -Raw (Join-Path $fixture '.firebaserc') | ConvertFrom-Json
+  $aliases.projects.$TestEnvironment = 'test-project'
+  if ($TestEnvironment -eq 'dev') {
+    $aliases.projects.default = 'test-project'
+    '{"hosting":{"site":"test-project"}}' | Set-Content -LiteralPath (Join-Path $fixture "firebase.json")
+  }
+  $aliases | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $fixture '.firebaserc')
+  $registryPath = Join-Path $fixture "tools/release/environments.json"
+  $registry = Get-Content -Raw $registryPath | ConvertFrom-Json
+  $registry.environments.$TestEnvironment.projectId = 'test-project'
+  if ($TestEnvironment -eq 'dev') { $registry.environments.dev.hostingSite = 'test-project' }
+  $registry.environments.$TestEnvironment.replayBucket = 'test-bucket'
+  $registry.environments.$TestEnvironment.workerUrl = 'https://replay-validator-test.run.app'
+  $registry | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $registryPath
+  @("REPLAY_STORAGE_BUCKET=test-bucket", "REPLAY_VALIDATION_QUEUE_LOCATION=europe-west1", "REPLAY_VALIDATOR_URL=https://replay-validator-test.run.app") |
     Set-Content -LiteralPath (Join-Path $fixture "functions/.env.test-project")
   $cloudScript = Join-Path $fixture "services/replay_validator/configure_cloud.ps1"
   '$global:releaseTrace.Add("configure matching worker")' | Set-Content -LiteralPath $cloudScript
@@ -162,15 +218,25 @@ try {
     issuancePausedAt=$null; issuanceResumedAt=$null
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $evidence "release.json")
   $entry = Join-Path $fixture "tools/release/release.ps1"
-  & $entry -Action BuildImage
-  & $entry -Action ImageStatus
+  $rejected = $false
+  try { & $entry -Action Deploy } catch { $rejected = $_.Exception.Message -like '*explicit -Environment*' }
+  Assert-Test ($rejected -and $global:releaseTrace.Count -eq 0) 'missing environment blocks before cloud commands'
+  $global:fakeReleaseLock = $true
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action BuildImage } catch { $rejected = $_.Exception.Message -like '*Release lock request failed*' }
+  Assert-Test ($rejected -and $global:releaseTrace.Count -eq 0 -and $global:fakeReleaseLock) 'held lock blocks cloud mutation without releasing its owner'
+  $global:fakeReleaseLock = $false
+  & $entry -Environment $TestEnvironment -Action BuildImage
+  Assert-Test (-not $global:fakeReleaseLock) 'successful action releases its mutation lock'
+  & $entry -Environment $TestEnvironment -Action ImageStatus
 
   $rejected = $false
-  try { & $entry -Action Deploy } catch { $rejected = $_.Exception.Message -like "*requires -CutoverReady*" }
+  try { & $entry -Environment $TestEnvironment -Action Deploy } catch { $rejected = $_.Exception.Message -like "*requires -CutoverReady*" }
   Assert-Test $rejected "deployment requires explicit cutover review"
+  Assert-Test (-not $global:fakeReleaseLock) 'failed action releases its mutation lock'
 
   $rejected = $false
-  try { & $entry -Action Deploy -CutoverReady } catch {
+  try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady } catch {
     $rejected = $_.Exception.Message -like "*not paused*"
     if (-not $rejected) { throw }
   }
@@ -179,18 +245,41 @@ try {
 
   $global:fakeIssuerHealthy = $false
   $rejected = $false
-  try { & $entry -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*healthy current revision*" }
+  try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*healthy current revision*" }
   Assert-Test $rejected "failed paused template cannot establish a live issuance pause"
   $global:fakeIssuerHealthy = $true
   $global:fakeIssuerSplitTraffic = $true
   $rejected = $false
-  try { & $entry -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Issuer traffic*" }
+  try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Issuer traffic*" }
   Assert-Test $rejected "split issuer traffic blocks cutover"
   $global:fakeIssuerSplitTraffic = $false
 
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action Bootstrap } catch { $rejected = $_.Exception.Message -like '*requires -CutoverReady*' }
+  Assert-Test $rejected 'bootstrap requires explicit cutover acknowledgement'
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action Bootstrap -CutoverReady } catch { $rejected = $_.Exception.Message -like '*verified empty target*' }
+  Assert-Test $rejected 'bootstrap refuses an existing backend'
+  $global:fakeBootstrapEmpty = $true
+  $global:fakeBootstrapUsers = $true
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action Bootstrap -CutoverReady } catch { $rejected = $_.Exception.Message -like '*verified empty target*' }
+  Assert-Test ($rejected -and @($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 0) 'bootstrap refuses existing accounts before creating services'
+  $global:fakeBootstrapUsers = $false
+  $bootstrapEnv = Join-Path $fixture 'functions/.env.test-project'
+  $bootstrapEnvHash = (Get-FileHash -LiteralPath $bootstrapEnv).Hash
+  & $entry -Environment $TestEnvironment -Action Bootstrap -CutoverReady
+  Assert-Test ($global:fakeIssuancePaused -and (Test-Path -LiteralPath (Join-Path $evidence 'bootstrap-empty.json'))) 'empty bootstrap creates a verified paused issuer with inventory evidence'
+  Assert-Test ((Get-FileHash -LiteralPath $bootstrapEnv).Hash -eq $bootstrapEnvHash) 'bootstrap restores environment bytes after deployment'
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 1 -and
+    @($global:releaseTrace | Where-Object { $_ -match 'tasks queues resume|configure matching worker|--only hosting' }).Count -eq 0) 'bootstrap deploys only the paused issuer'
+  $global:fakeBootstrapEmpty = $false
+  $global:fakeIssuancePaused = $false
+  $global:releaseTrace.Clear()
+
   $global:fakeArtifactLookupDenied = $true
   $rejected = $false
-  try { & $entry -Action PauseIssuance } catch { $rejected = $_.Exception.Message -like "*PERMISSION_DENIED*" }
+  try { & $entry -Environment $TestEnvironment -Action PauseIssuance } catch { $rejected = $_.Exception.Message -like "*PERMISSION_DENIED*" }
   Assert-Test ($rejected -and @($global:releaseTrace | Where-Object { $_ -like "firebase *" }).Count -eq 0) "registry access failure does not trigger an issuer rebuild"
   $global:fakeArtifactLookupDenied = $false
   $global:fakeMissingIssuerImage = $true
@@ -199,7 +288,7 @@ try {
   $savedDebug = $env:DEBUG
   $env:DEBUG = "true"
   try {
-    & $entry -Action PauseIssuance
+    & $entry -Environment $TestEnvironment -Action PauseIssuance
     Assert-Test ($env:DEBUG -eq "true" -and -not $global:fakeFirebaseDebug) "Firebase deployment suppresses inherited debug responses and restores the caller setting"
   } finally { $env:DEBUG = $savedDebug }
   Assert-Test $global:fakeIssuancePaused "removed issuer image is rebuilt with a deployed pause gate"
@@ -207,39 +296,50 @@ try {
     (Get-ReleaseSourceDigest $fixture "test-project") -eq $source) "successful issuer recovery restores the original environment bytes and source fingerprint"
   $global:fakeIssuerDeployFails = $true
   $rejected = $false
-  try { & $entry -Action PauseIssuance } catch { $rejected = $_.Exception.Message -like "*failed (7)*" }
+  try { & $entry -Environment $TestEnvironment -Action PauseIssuance } catch { $rejected = $_.Exception.Message -like "*failed (7)*" }
   Assert-Test ($rejected -and (Get-FileHash -LiteralPath $envPath).Hash -eq $envBefore) "failed issuer recovery also restores the original environment bytes"
   $global:fakeIssuerDeployFails = $false
   $global:fakeMissingIssuerImage = $false
   $global:releaseTrace.Clear()
 
-  & $entry -Action PauseIssuance
+  & $entry -Environment $TestEnvironment -Action PauseIssuance
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "run services update runsessioncreate*--image=$($global:fakeIssuerImageUri)*" }).Count -eq 1) "runtime pause pins the serving immutable issuer image"
   $global:fakeActiveRuns = $true
   $rejected = $false
-  try { & $entry -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Cutover blocked*" }
+  try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Cutover blocked*" }
   Assert-Test $rejected "active-run inventory blocks production cutover"
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "tasks queues pause*" }).Count -eq 0) "queues keep draining while active runs remain"
   $global:fakeActiveRuns = $false
   $global:fakeBuildStatus = "FAILURE"
   $rejected = $false
-  try { & $entry -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Cloud Build failed*" }
+  try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Cloud Build failed*" }
   Assert-Test $rejected "failed remote benchmark/build blocks deployment"
   $global:fakeBuildStatus = "SUCCESS"
-  & $entry -Action Deploy -CutoverReady
+  & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady
   $firebaseChanges = @($global:releaseTrace | Where-Object { $_ -like "firebase *" })
   Assert-Test ($firebaseChanges[0] -notmatch 'functions:runSessionCreate(,|\s)' -and
     $firebaseChanges[0] -match 'functions:runSettlementImmediate') "backend deploy excludes ticket issuer and includes settlement"
   Assert-Test ($global:releaseTrace.IndexOf($firebaseChanges[0]) -lt
     $global:releaseTrace.IndexOf("configure matching worker")) "settlement deploy precedes matching worker"
   Assert-Test ($global:fakeIssuancePaused) "Deploy leaves ticket issuance paused"
-  & $entry -Action Deploy -CutoverReady
-  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "firebase *" }).Count -eq 2) "retry reuses completed backend and Hosting checkpoints"
-  & $entry -Action ResumeIssuance -CutoverReady
+  & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady
+  $expectedDeployments = if ($TestEnvironment -eq 'dev') { 2 } else { 1 }
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "firebase *" }).Count -eq $expectedDeployments) "retry reuses environment-specific deployment checkpoints"
+  & $entry -Environment $TestEnvironment -Action ResumeIssuance -CutoverReady
   $issuer = @($global:releaseTrace | Where-Object { $_ -match "functions:runSessionCreate(,|\s|$)" })
+  $artifactCheck = @($global:releaseTrace | Where-Object { $_ -like 'run services describe replay-validator *' })[0]
   Assert-Test ($issuer.Count -eq 1 -and
-    $global:releaseTrace.IndexOf("hosting byte check") -lt $global:releaseTrace.IndexOf($issuer[0])) "live artifact verification precedes ticket issuer deployment"
+    $global:releaseTrace.IndexOf($artifactCheck) -lt $global:releaseTrace.IndexOf($issuer[0])) "live artifact verification precedes ticket issuer deployment"
   Assert-Test (-not $global:fakeIssuancePaused) "explicit ResumeIssuance removes temporary runtime gate"
+  Assert-Test (-not $global:fakeCutover) 'successful resume releases the candidate ownership record'
+  foreach ($command in @($global:releaseTrace | Where-Object { $_ -ne 'configure matching worker' -and $_ -ne 'hosting byte check' })) {
+    Assert-Test ($command -match '(--project=test-project|--project test-project)( |$)') "$TestEnvironment command stays in selected project"
+  }
+  if ($TestEnvironment -ne 'dev') {
+    Assert-Test (@($global:releaseTrace | Where-Object { $_ -match '--only hosting|hosting byte check' }).Count -eq 0) "$TestEnvironment never publishes a website"
+    Write-Host "$script:passed mocked $TestEnvironment release integration checks passed; no cloud commands executed."
+    return
+  }
 
   # A second checkout with a UI-only delta uses the verified baseline written
   # by ResumeIssuance, and must not touch the worker, queues or ticket issuer.
@@ -257,14 +357,14 @@ try {
   $global:releaseTrace.Clear()
   $global:fakeIssuancePaused=$true
   $rejected=$false
-  try { & $entry -Action Deploy } catch { $rejected=$_.Exception.Message -like '*compatibility override*' }
+  try { & $entry -Environment $TestEnvironment -Action Deploy } catch { $rejected=$_.Exception.Message -like '*compatibility override*' }
   Assert-Test ($rejected -and @($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 0) 'scoped deploy refuses a paused issuer before mutations'
   $global:fakeIssuancePaused=$false
   $global:releaseTrace.Clear()
-  & $entry -Action Deploy
+  & $entry -Environment $TestEnvironment -Action Deploy
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 1 -and
     @($global:releaseTrace | Where-Object { $_ -match 'builds|tasks queues (pause|resume)|run services update|configure matching' }).Count -eq 0) 'Hosting-only release deploys once without image, queue or issuer mutations'
-  & $entry -Action Prepare
+  & $entry -Environment $TestEnvironment -Action Prepare
   $after = Get-Content -Raw (Join-Path $evidence 'release.json') | ConvertFrom-Json
   Assert-Test ($after.scope -eq 'None') 'successful scoped release advances the runtime baseline'
   $global:mockFiles += 'functions/src/profiles/profile.ts'
@@ -278,10 +378,10 @@ try {
   $scopedState | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'release.json')
   $global:releaseTrace.Clear(); $global:fakeIndexesReady=$false
   $rejected=$false
-  try { & $entry -Action Deploy } catch { $rejected=$_.Exception.Message -like '*indexes are still building*' }
+  try { & $entry -Environment $TestEnvironment -Action Deploy } catch { $rejected=$_.Exception.Message -like '*indexes are still building*' }
   Assert-Test $rejected 'backend-only release stops while indexes build'
   $global:fakeIndexesReady=$true
-  & $entry -Action Deploy
+  & $entry -Environment $TestEnvironment -Action Deploy
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'firebase *' }).Count -eq 1 -and
     @($global:releaseTrace | Where-Object { $_ -match 'builds|tasks queues (pause|resume)|run services update|configure matching' }).Count -eq 0) 'backend retry reuses deployed Functions without worker/Hosting/queue cutover'
   Write-Host "$script:passed mocked release integration checks passed; no cloud commands executed."
@@ -293,7 +393,7 @@ try {
   }
   Remove-Item -LiteralPath $resolvedFixture -Recurse -Force
   foreach ($name in @("releaseTrace", "fakeIssuancePaused", "fakeActiveRuns", "fakeBuildStatus", "fakeImageTag", "fakeImageUri", "mockFiles",
-    "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug", "fakeIndexesReady", "fakeFunctionsVersion")) {
+    "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug", "fakeIndexesReady", "fakeFunctionsVersion", "fakeBootstrapEmpty", "fakeBootstrapUsers")) {
     Remove-Variable -Name $name -Scope Global -ErrorAction SilentlyContinue
   }
 }

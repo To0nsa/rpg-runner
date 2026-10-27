@@ -111,6 +111,22 @@ camp's entry rocks move deeper into the chunk to preserve Grojib's approach.
 These authored changes affect traversal and replay outcomes; source and
 generated content must ship together.
 
+Forest revision 524 shortens the variable Rocky Grove sections from 3–6 to
+2–4 distinct chunks and removes one hard grove section before the hard ruin.
+The final repeating section still uses nine distinct hard grove chunks.
+The opening's eighth chunk uses smaller tree scenery and a repositioned solid
+statue; the eighth easy grove chunk moves its rock farther right. The second
+easy ruin chunk raises its ancient statue slightly and uses a simpler solid
+collision outline. These local changes require matching generated content and
+a coordinated gameplay compatibility release before deployment.
+
+`forest_trainingcamp_hard_004` revision 101 seats the statue at `(256, 145)`
+and moves the large tent to `(416, 123)`. The raised floor stays flat through
+X=477 before descending to the unchanged exit. This provides approach and
+landing space around both obstacles for the existing ground-enemy capsules;
+the rescue encounter's Grojib starts on valid terrain at X=516. The entrance
+pit, statue size, tent size, and movement capabilities remain the same.
+
 Levels can use automatic difficulty progression or an authored sequence of
 sections. A section chooses a chunk group, difficulty and length in chunks.
 The author sets the section order; seeded selection chooses chunks inside it.
@@ -129,6 +145,30 @@ For a gradual tour through several environments, compose:
 | 8–10 | Grove, Ruins, Camp, one section each | Hard | 3 each |
 
 These names illustrate reusable chunk groups; authors populate their own groups.
+
+### Resource gems by difficulty
+
+Ordinary health, mana and stamina gems spawn 20% more frequently on `easy`
+chunks. With the default base interval of 16 chunks, this means six spawn
+opportunities per 80 eligible easy chunks instead of five, with individual
+gaps of 13 or 14 chunks. `early`, `normal` and `hard` use the base rate.
+The first two chunks remain excluded from ordinary gem spawning.
+
+Spawn progress carries across consecutive sections and difficulty transitions;
+sections need no additional parent grouping. Short sections retain fractional
+progress instead of rounding their gem allowance independently. The bonus uses
+the difficulty of the chunk receiving the gem, including any automatic selection
+fallback, rather than the player's position when the next terrain is loaded.
+
+Each gem still restores 30% of its selected resource's maximum, choosing the
+lowest remaining health/mana/stamina percentage at spawn time. Valid terrain
+placement is required, so these are spawn opportunities rather than guaranteed
+pickups. Boss milestone gems and victory refills keep their separate rules.
+This is a local source change requiring matching client and replay-worker
+release artifacts; it is not production verification.
+
+### Section selection
+
 Exact difficulty selects only matching active chunks. It never substitutes a
 different difficulty when content is missing. With uniqueness enabled, every
 chunk in that section occurrence is different, so a three-chunk section needs
@@ -138,7 +178,8 @@ while allowing the incomplete composition to be saved.
 
 Equal minimum and maximum counts produce a fixed length. A range lets the seed
 choose the length. Sections can be duplicated and reordered; duplication keeps
-their settings and assigns a new section identity.
+their settings and assigns a new section identity. **Move earlier** and
+**Move later** keep the section selected and scroll Flow to follow it.
 
 After the final section, the author chooses either to repeat the full composition
 or to continue repeating the final section. Both keep the run going. Each

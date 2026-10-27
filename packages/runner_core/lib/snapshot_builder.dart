@@ -443,6 +443,17 @@ class SnapshotBuilder {
         hasProjectileSlot: hasProjectileSlot,
         canAffordJump: canAffordJump,
         canAffordMobility: canAffordMobility,
+        mobilityRecastTicksLeft:
+            !gameOver &&
+                !swimming &&
+                mobilitySlotValid &&
+                !world.controlLock.isStunned(player, tick + 1) &&
+                world.movement.canRecast(player, mobilityAbilityId, tick + 1)
+            ? world.movement.recastExpiresAtTick[world.movement.indexOf(
+                    player,
+                  )] -
+                  (tick + 1)
+            : 0,
         canAffordMelee: canAffordMelee,
         canAffordSecondary: canAffordSecondary,
         canAffordProjectile: canAffordProjectile,

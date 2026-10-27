@@ -56,6 +56,50 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:964001571974:android:1a4b98db937af313d81d07",
+        "android_client_info": {
+          "package_name": "com.example.rpg_runner.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "964001571974-clto6jp9c5a1g46jmoiahanmlcodggbt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.rpg_runner.dev",
+            "certificate_hash": "74b0816a97fe848635c8bd30f970a918e3eb6a6e"
+          }
+        },
+        {
+          "client_id": "964001571974-dajrtiro395fjpise2ibskleearagtgm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_RE8QyjyVnoBQ-H59DCIbGbc39faaixA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "964001571974-dajrtiro395fjpise2ibskleearagtgm.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "964001571974-u4kduk7b8j6kicmjuih0aa5o8jukr62v.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.rpgRunner"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

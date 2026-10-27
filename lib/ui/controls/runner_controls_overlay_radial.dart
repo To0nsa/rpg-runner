@@ -77,6 +77,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.mobilityAffordable,
     required this.mobilityCooldownTicksLeft,
     required this.mobilityCooldownTicksTotal,
+    this.mobilityRecastAvailable = false,
     required this.secondaryAffordable,
     required this.secondaryCooldownTicksLeft,
     required this.secondaryCooldownTicksTotal,
@@ -142,6 +143,7 @@ class RunnerControlsOverlay extends StatelessWidget {
   final bool mobilityAffordable;
   final int mobilityCooldownTicksLeft;
   final int mobilityCooldownTicksTotal;
+  final bool mobilityRecastAvailable;
   final bool secondaryAffordable;
   final int secondaryCooldownTicksLeft;
   final int secondaryCooldownTicksTotal;
@@ -214,8 +216,9 @@ class RunnerControlsOverlay extends StatelessWidget {
           child: Align(
             alignment: Alignment.bottomLeft,
             child: FractionallySizedBox(
+              // Keep activation and the base center within the run's left 33%.
               widthFactor: movementControlMode == MovementControlMode.joystick
-                  ? 0.5
+                  ? 0.33
                   : null,
               heightFactor: movementControlMode == MovementControlMode.joystick
                   ? 0.5
@@ -403,7 +406,7 @@ class RunnerControlsOverlay extends StatelessWidget {
           bottom: anchorFor(AbilitySlot.mobility).bottom,
           child: feedback(
             AbilitySlot.mobility,
-            mobilityCooldownTicksLeft,
+            mobilityRecastAvailable ? 0 : mobilityCooldownTicksLeft,
             mobilityInputMode == AbilityInputMode.tap
                 ? ActionButton(
                     label: labelFor(AbilitySlot.mobility),
@@ -412,6 +415,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                         resourcesBySlot[AbilitySlot.mobility] ??
                         ControlResourceUsage.none,
                     onPressed: onMobilityPressed,
+                    recastAvailable: mobilityRecastAvailable,
                     tuning: action,
                     cooldownRing: cooldownRing,
                     affordable: mobilityAffordable,

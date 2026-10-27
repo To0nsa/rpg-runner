@@ -53,6 +53,7 @@ class PlayerHudSnapshot {
     required this.abilityJumpId,
     required this.abilityCostsBySlot,
     this.blessings = const [],
+    this.mobilityRecastTicksLeft = 0,
   });
 
   /// Persistent effects granted during this level attempt.
@@ -105,6 +106,11 @@ class PlayerHudSnapshot {
 
   /// Whether stamina is sufficient for the equipped mobility ability.
   final bool canAffordMobility;
+
+  /// Remaining input ticks for the earned second burst, starting next tick.
+  /// Zero while the first burst moves, after expiry/cancellation, or at run end.
+  /// Resources are still checked separately; cooldown arrays retain real values.
+  final int mobilityRecastTicksLeft;
 
   /// Whether stamina is sufficient for melee.
   final bool canAffordMelee;

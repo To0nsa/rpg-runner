@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/ui/app/app_services.dart';
+import 'package:rpg_runner/ui/app/create_app_services.dart';
 import 'package:rpg_runner/ui/app/ui_app.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/pages/selectLevel/level_setup_page.dart';
@@ -64,7 +65,7 @@ void main() {
       await tester.tap(find.text('CONTROLS'));
       await tester.pumpAndSettle();
       expect(find.byType(Switch), findsNothing);
-      await tester.tap(find.text('Joystick'));
+      await tester.tap(find.text('Floating joystick'));
       await tester.pumpAndSettle();
       expect(
         services.controlSettings.movementMode,
@@ -73,6 +74,16 @@ void main() {
       expect(
         await SharedPrefsControlSettingsStore().loadMovementMode(),
         MovementControlMode.joystick,
+      );
+      await tester.tap(find.text('Fixed joystick'));
+      await tester.pumpAndSettle();
+      expect(
+        services.controlSettings.movementMode,
+        MovementControlMode.fixedJoystick,
+      );
+      expect(
+        await SharedPrefsControlSettingsStore().loadMovementMode(),
+        MovementControlMode.fixedJoystick,
       );
       await tester.tap(find.text('SETTINGS'));
       await tester.pumpAndSettle();
@@ -100,7 +111,7 @@ void main() {
       expect(services.appState.isDeveloperMode, isFalse);
       expect(
         services.controlSettings.movementMode,
-        MovementControlMode.joystick,
+        MovementControlMode.fixedJoystick,
       );
       expect(
         tester.state<NavigatorState>(find.byType(Navigator)).canPop(),
@@ -109,6 +120,28 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     },
+  );
+
+  testWidgets(
+    'launch flag reaches the hub on a fresh install without Firebase',
+    (tester) async {
+      final services = createAppServices();
+      await mount(tester, services);
+      await tester.pumpAndSettle();
+      expect(find.byType(PlayHubPage), findsOneWidget);
+      expect(find.text('Developer'), findsOneWidget);
+      expect(services.appState.authSession.isAuthenticated, isFalse);
+      expect(
+        (await services.appState.prepareRunStartDescriptor())
+            .isDeveloperPractice,
+        isTrue,
+      );
+      expect(await SharedPrefsDeveloperProfileStore().loadEnabled(), isFalse);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+    skip: !const bool.fromEnvironment('DEVELOPER_PRACTICE'),
   );
 
   testWidgets(
@@ -128,7 +161,7 @@ void main() {
       final store = SharedPrefsDeveloperProfileStore();
       await store.saveEnabled(true);
       final controlsStore = SharedPrefsControlSettingsStore();
-      await controlsStore.saveMovementMode(MovementControlMode.joystick);
+      await controlsStore.saveMovementMode(MovementControlMode.fixedJoystick);
       final services = AppServices(
         initialize: () async =>
             throw StateError('Must not initialize Firebase'),
@@ -172,7 +205,7 @@ void main() {
         tester
             .widget<RunnerGameWidget>(find.byType(RunnerGameWidget))
             .movementControlMode,
-        MovementControlMode.joystick,
+        MovementControlMode.fixedJoystick,
       );
       expect(find.byType(MoveJoystick), findsOneWidget);
       expect(find.byType(MoveButtons), findsNothing);
@@ -199,7 +232,8 @@ void main() {
     await tester.tap(find.text('CONTROLS'));
     await tester.pumpAndSettle();
     expect(find.text('Arrows'), findsOneWidget);
-    expect(find.text('Joystick'), findsOneWidget);
+    expect(find.text('Floating joystick'), findsOneWidget);
+    expect(find.text('Fixed joystick'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });

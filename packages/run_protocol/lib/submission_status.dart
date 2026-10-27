@@ -1,3 +1,4 @@
+import 'codecs/json_integer.dart';
 import 'codecs/json_value_reader.dart';
 import 'validated_run.dart';
 
@@ -36,6 +37,10 @@ final class SubmissionReward {
     this.grantId,
     this.message,
   }) {
+    requireJsonSafeInteger(provisionalGold, 'provisionalGold');
+    requireJsonSafeInteger(effectiveGoldDelta, 'effectiveGoldDelta');
+    requireJsonSafeInteger(spendableGoldDelta, 'spendableGoldDelta');
+    requireJsonSafeInteger(updatedAtMs, 'updatedAtMs');
     if (provisionalGold < 0 || updatedAtMs < 0) {
       throw ArgumentError(
         'Submission reward provisionalGold and updatedAtMs must be non-negative.',
@@ -78,16 +83,20 @@ final class SubmissionReward {
   }
 
   factory SubmissionReward.fromJson(Object? raw) {
-    final json = asObjectMap(raw, fieldName: 'submissionStatus.reward');
-    return SubmissionReward(
-      status: SubmissionRewardStatus.parse(json['status']),
-      provisionalGold: readRequiredInt(json, 'provisionalGold'),
-      effectiveGoldDelta: readRequiredInt(json, 'effectiveGoldDelta'),
-      spendableGoldDelta: readRequiredInt(json, 'spendableGoldDelta'),
-      updatedAtMs: readRequiredInt(json, 'updatedAtMs'),
-      grantId: readOptionalString(json, 'grantId'),
-      message: readOptionalString(json, 'message'),
-    );
+    try {
+      final json = asObjectMap(raw, fieldName: 'submissionStatus.reward');
+      return SubmissionReward(
+        status: SubmissionRewardStatus.parse(json['status']),
+        provisionalGold: readRequiredInt(json, 'provisionalGold'),
+        effectiveGoldDelta: readRequiredInt(json, 'effectiveGoldDelta'),
+        spendableGoldDelta: readRequiredInt(json, 'spendableGoldDelta'),
+        updatedAtMs: readRequiredInt(json, 'updatedAtMs'),
+        grantId: readOptionalString(json, 'grantId'),
+        message: readOptionalString(json, 'message'),
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
+    }
   }
 }
 
@@ -141,6 +150,7 @@ final class SubmissionStatus {
     this.validatedRun,
     this.reward,
   }) {
+    requireJsonSafeInteger(updatedAtMs, 'updatedAtMs');
     if (runSessionId.isEmpty) {
       throw ArgumentError.value(
         runSessionId,
@@ -197,18 +207,22 @@ final class SubmissionStatus {
   }
 
   factory SubmissionStatus.fromJson(Object? raw) {
-    final json = asObjectMap(raw, fieldName: 'submissionStatus');
-    return SubmissionStatus(
-      runSessionId: readRequiredString(json, 'runSessionId'),
-      state: RunSessionState.parse(json['state']),
-      updatedAtMs: readRequiredInt(json, 'updatedAtMs'),
-      message: readOptionalString(json, 'message'),
-      validatedRun: json['validatedRun'] == null
-          ? null
-          : ValidatedRun.fromJson(json['validatedRun']),
-      reward: json['reward'] == null
-          ? null
-          : SubmissionReward.fromJson(json['reward']),
-    );
+    try {
+      final json = asObjectMap(raw, fieldName: 'submissionStatus');
+      return SubmissionStatus(
+        runSessionId: readRequiredString(json, 'runSessionId'),
+        state: RunSessionState.parse(json['state']),
+        updatedAtMs: readRequiredInt(json, 'updatedAtMs'),
+        message: readOptionalString(json, 'message'),
+        validatedRun: json['validatedRun'] == null
+            ? null
+            : ValidatedRun.fromJson(json['validatedRun']),
+        reward: json['reward'] == null
+            ? null
+            : SubmissionReward.fromJson(json['reward']),
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
+    }
   }
 }

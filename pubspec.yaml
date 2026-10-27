@@ -57,6 +57,8 @@ dependencies:
   provider: ^6.1.2
   cloud_functions: ^6.5.0
   lucide_icons_flutter: ^3.1.25
+  url_launcher: ^6.3.3
+  firebase_crashlytics: ^5.4.1
 
 dev_dependencies:
   flutter_test:
@@ -89,6 +91,7 @@ flutter_native_splash:
     #image: assets/images/splash/splash_image.png
 
 flutter:
+  default-flavor: dev
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

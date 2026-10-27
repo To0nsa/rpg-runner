@@ -1,17 +1,21 @@
 import '../../abilities/ability_def.dart';
 import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
+import '../../stats/resolved_stats_cache.dart';
 import '../stores/mobility_intent_store.dart';
 import '../world.dart';
 import '../world_support_view.dart';
 
 /// Executes mobility intents (dash/roll) and applies movement state.
 ///
-/// Responsibilities:
-/// - Validate cooldown/stamina/locks at commit.
-/// - Start cooldown + ActiveAbility state on commit.
-/// - Apply dash movement and gravity suppression on execute tick.
+/// Activation owns gating, costs and cooldowns. Execution applies velocity and
+/// gravity suppression using the same gear scaling as subsequent movement ticks.
 class MobilitySystem {
+  MobilitySystem({ResolvedStatsCache? statsCache})
+    : _statsCache = statsCache ?? ResolvedStatsCache();
+
+  final ResolvedStatsCache _statsCache;
+
   void step(
     EcsWorld world,
     MovementTuningDerived tuning, {
@@ -63,7 +67,11 @@ class MobilitySystem {
 
       final speedScale = intents.speedScaleBp[ii] / 10000.0;
       final baseSpeed = intents.mobilitySpeedX[ii];
-      final dashSpeed = baseSpeed * moveSpeedMul * speedScale;
+      final gearMoveSpeedMul = _statsCache
+          .resolveForEntity(world, entity)
+          .moveSpeedMultiplier;
+      final dashSpeed =
+          baseSpeed * gearMoveSpeedMul * moveSpeedMul * speedScale;
 
       movements.dashDirX[mi] = dirX;
       movements.dashDirY[mi] = dirY;

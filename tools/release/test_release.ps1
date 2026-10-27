@@ -80,6 +80,17 @@ try {
   }
   Assert-ReleaseDrained $inventory
   Assert-True $true "permit drained inventory including cancelled runs"
+  $empty = [pscustomobject]@{ projectId='test-project';readOnly=$true;hasAuthUsers=$false;hasFirestoreCollections=$false }
+  Assert-ReleaseBootstrapEmpty $empty 'test-project' @() @()
+  Assert-True $true 'bootstrap accepts genuinely empty target'
+  Assert-Throws { Assert-ReleaseBootstrapEmpty $empty 'other-project' @() @() } 'verified empty' 'bootstrap rejects foreign inventory'
+  $empty.hasAuthUsers=$true
+  Assert-Throws { Assert-ReleaseBootstrapEmpty $empty 'test-project' @() @() } 'verified empty' 'bootstrap rejects existing Auth users'
+  $empty.hasAuthUsers=$false; $empty.hasFirestoreCollections=$true
+  Assert-Throws { Assert-ReleaseBootstrapEmpty $empty 'test-project' @() @() } 'verified empty' 'bootstrap rejects existing Firestore data'
+  $empty.hasFirestoreCollections=$false
+  Assert-Throws { Assert-ReleaseBootstrapEmpty $empty 'test-project' @(@{name='existing'}) @() } 'verified empty' 'bootstrap rejects existing Functions'
+  Assert-Throws { Assert-ReleaseBootstrapEmpty $empty 'test-project' @() @(@{name='existing'}) } 'verified empty' 'bootstrap rejects existing Cloud Run services'
   $inventory.runs.sessionStateCounts = [pscustomobject]@{ validating = 1 }
   Assert-Throws { Assert-ReleaseDrained $inventory } "Cutover blocked" "reject live validator lease/session"
   $inventory.runs.sessionStateCounts = [pscustomobject]@{ unexpected = 1 }

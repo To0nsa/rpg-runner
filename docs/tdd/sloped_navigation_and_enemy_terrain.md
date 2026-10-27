@@ -332,12 +332,22 @@ wall masks. Equal-time contacts are handled as a manifold: any enabled wall or
 ceiling rejects the arc; support candidates prefer the smallest world Y and
 then canonical edge ID. A jump succeeds only when the first accepted support
 is its eligible intended destination and exact placement at the impact X is
-valid. Descending-slope landings additionally replay the landing tick through
-the production capsule controller, requiring grounded support there, and
-recheck the trajectory at the speed implied by the published impact point and
-tick count. Shortening the candidate to its contact point must not turn a
-supported descent into a rounded-corner graze. Controller scratch is reused by
-traversal profile within each immutable geometry build.
+valid. Every jump landing replays its contact tick through the production
+capsule controller and must finish grounded on the intended surface. The
+builder also rechecks the trajectory at the speed implied by the published
+impact point and tick count. Shortening a candidate to its contact point must
+not turn a supported landing into a rounded-corner graze, including uphill and
+flat destinations.
+
+Endpoint contacts leaving the destination receive an additional bounded check.
+The source normal projects runtime collision skin into a vertical takeoff
+offset; the controller probes the contact tick and, if still clear and airborne, the next
+ballistic tick at the same horizontal speed. The probe must ground on the
+target or its directly connected eligible neighbor, without recovery or an
+intervening ungrounded contact. This rejects tip tangencies that only land
+from an ideal skin-free takeoff, while retaining stable corner landings. It
+does not change collision tolerances, actor capabilities, or trajectory
+budgets. One controller and motion result are reused within each profile build.
 This blocks walls, finite endpoints, ceilings when enabled, sloped
 undersides, narrow/ineligible supports, and intermediate terrain without
 discrete-tick tunneling.
@@ -421,7 +431,11 @@ The pursuit X is clamped to the enemy capsule's standable interval on the
 target support, including player targets near a finite ledge. Other routes use
 preferred-direction A* followed by the unrestricted retry.
 Approach accepts being at or beyond takeoff in commit direction, preventing
-overshoot reversal. Once active, jump/drop direction remains committed and the
+overshoot reversal. The takeoff tolerance cannot launch a jump whose landing
+requires more than the profile's horizontal reach over its published flight
+ticks; the actor keeps approaching until that speed cap can be respected.
+This prevents locomotion's speed clamp from changing the validated arc.
+Once active, jump/drop direction remains committed and the
 edge completes only when grounded prior support equals its exact destination
 ID. After an airborne attempt lands on a different support, the old edge is
 discarded and navigation replans from the actual foothold in the same update.
@@ -930,6 +944,14 @@ only; current Prefab-v3/Chunk-v2 generation, terrain streaming, navigation,
 normal `GameCore`, and replay construction now consume the admitted artifact.
 
 ## Reviewed Phase 3 Scenario Signatures
+
+The prepared `2026.10.21` traversal repair revalidates jump landings at their
+published cruise speed and requires actual grounded contact. Review against
+the preceding Core shows 22 fewer graph records, revised jump landing positions
+and flight ticks, and corresponding adjacency offsets for Grojib, Hashash and
+Derf. Surface geometry and all 160 records across the 15 runtime scenarios are
+unchanged. The graph hash is now `576ff787c80aa31d207d9d997120c59fcaf9e22b4b94e48122d876c27ff6eb93`;
+the containing enemy-run hash changes to `c968a4a0d90b512210a86a5e15e468e5a280a9a11d90a4fbce86895d43d3c67a`.
 
 The `2026.10.11` Bringer size reduction from 1.5x to 1.2x changes the catalog
 graph signature and its containing enemy-run signature. Rebuilding with only

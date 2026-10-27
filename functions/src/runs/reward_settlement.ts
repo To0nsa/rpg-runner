@@ -1,9 +1,12 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { isDeepStrictEqual } from "node:util";
+import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
 import { applyRunDiscoveries } from "../ownership/run_discoveries.js";
 import { applyPlayerProgress } from "../ownership/player_progress.js";
+import { levelUpDeliveries } from "../inbox/level_rewards.js";
+import { prepareSystemMessages } from "../inbox/store.js";
 import {
   canonicalMergeWriteData,
   canonicalWriteData,
@@ -147,6 +150,29 @@ export async function settleAcceptedRunSession(args: {
         tx,
         uid,
       });
+      const previousProgress = resolvedCanonical.canonical.progression.playerProgress;
+      const previousXp = previousProgress && typeof previousProgress === "object" && !Array.isArray(previousProgress)
+        ? previousProgress.totalXp : 0;
+      const playerChanged = applyPlayerProgress({
+        progression: resolvedCanonical.canonical.progression,
+        validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
+        session,
+      });
+      const nextProgress = resolvedCanonical.canonical.progression.playerProgress;
+      const nextXp = nextProgress && typeof nextProgress === "object" && !Array.isArray(nextProgress)
+        ? nextProgress.totalXp : 0;
+      // Prepare inbox reads before grant reconciliation starts transaction writes.
+      let writeLevelMessages: () => void;
+      try {
+        writeLevelMessages = await prepareSystemMessages({ db: args.db, tx, uid, nowMs,
+          deliveries: playerChanged && typeof previousXp === "number" && typeof nextXp === "number"
+            ? levelUpDeliveries(previousXp, nextXp) : [] });
+      } catch (error) {
+        if (error instanceof HttpsError) {
+          throw new SettlementInvariantViolationError("Persisted level gift state is inconsistent.");
+        }
+        throw error;
+      }
       const reconciled = await reconcilePendingRewardGrantsForTransaction({
         db: args.db,
         tx,
@@ -160,11 +186,7 @@ export async function settleAcceptedRunSession(args: {
         validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
         session,
       });
-      const playerChanged = applyPlayerProgress({
-        progression: reconciled.canonicalState.progression,
-        validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
-        session,
-      });
+      writeLevelMessages();
       if ((discoveriesChanged || playerChanged) && !reconciled.canonicalChanged) {
         reconciled.canonicalState.revision += 1;
         reconciled.canonicalChanged = true;

@@ -2,17 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:runner_core/commands/command.dart';
-import 'package:runner_core/game_core.dart';
-import 'package:runner_core/navigation/terrain_graph_materializer.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
-import 'package:runner_core/players/player_character_registry.dart';
-import 'package:runner_core/tuning/camera_tuning.dart';
-import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 import 'replay_simulation.dart';
 import 'navigation_artifact_store.dart';
+import 'replay_benchmark_input.dart';
+import 'replay_benchmark_fixture.dart';
+import 'replay_benchmark_progress.dart';
 
 /// Runs the deployment-shaped local replay throughput benchmark.
 ///
@@ -34,18 +32,22 @@ int runReplayBenchmark(List<String> args) {
     for (final measurement in measurements)
       '${measurement.levelId.name}_deterministic_outcome':
           measurement.deterministicOutcome,
+    for (final measurement in measurements)
+      '${measurement.levelId.name}_sustained_forward_progress':
+          measurement.progress.passed,
   };
   final passed = gates.values.every((value) => value);
   final gitStatus = _gitOutput(<String>['status', '--porcelain']);
   final report = <String, Object?>{
-    'benchmark': 'replay-validator-terrain-stream-v1',
+    'benchmark': 'replay-validator-terrain-stream-v2',
     'revision':
         _gitOutput(<String>['rev-parse', '--short', 'HEAD']) ?? 'unavailable',
     'dirty': gitStatus?.isNotEmpty,
     'os': Platform.operatingSystem,
     'osVersion': Platform.operatingSystemVersion,
     'dartVersion': Platform.version,
-    'fixture': 'normal-included-levels-no-enemy-stream',
+    'fixture': 'generated-terrain-no-combat-objectives',
+    'seed': config.seed,
     'tickHz': config.tickHz,
     'ticksPerLevel': config.ticks,
     'measurements': <String, Object?>{
@@ -67,9 +69,10 @@ _ReplayBenchmarkMeasurement _measureLevel({
 }) {
   final recorded = _recordFrames(levelId: levelId, config: config);
   final stopwatch = Stopwatch()..start();
-  final core = _buildCore(
+  final core = buildReplayBenchmarkCore(
     levelId: levelId,
-    config: config,
+    seed: config.seed,
+    tickHz: config.tickHz,
     graphMaterializer: NavigationArtifactStore(
       directory:
           Platform.environment['NAVIGATION_ARTIFACT_DIRECTORY'] ??
@@ -106,6 +109,7 @@ _ReplayBenchmarkMeasurement _measureLevel({
         .stagedTerrainRenderSnapshot
         ?.geometryVersion,
     deterministicOutcome: deterministicOutcome,
+    progress: recorded.progress,
   );
 }
 
@@ -113,27 +117,27 @@ _RecordedReplay _recordFrames({
   required LevelId levelId,
   required _ReplayBenchmarkConfig config,
 }) {
-  final core = _buildCore(levelId: levelId, config: config);
+  final core = buildReplayBenchmarkCore(
+    levelId: levelId,
+    seed: config.seed,
+    tickHz: config.tickHz,
+  );
+  final input = ReplayBenchmarkInput(levelId);
+  final progress = ReplayBenchmarkProgress(
+    initialX: core.playerPosX,
+    tickHz: config.tickHz,
+  );
   final frames = <ReplayCommandFrameV1>[];
   for (var tick = 1; tick <= config.ticks; tick += 1) {
-    final xWithinChunk = core.playerPosX % 600;
-    final jump =
-        levelId == LevelId.forest &&
-        core.playerGrounded &&
-        xWithinChunk >= 320 &&
-        xWithinChunk <= 380;
-    frames.add(
-      ReplayCommandFrameV1(
-        tick: tick,
-        moveAxis: 1,
-        pressedMask: jump ? ReplayCommandFrameV1.pressedJumpBit : 0,
-      ),
-    );
+    final frame = input.nextFrame(core, tick: tick);
+    frames.add(frame);
     core.applyCommands(<Command>[
-      MoveAxisCommand(tick: tick, axis: 1),
-      if (jump) JumpPressedCommand(tick: tick),
+      MoveAxisCommand(tick: tick, axis: frame.moveAxis!),
+      if (frame.pressedMask & ReplayCommandFrameV1.pressedJumpBit != 0)
+        JumpPressedCommand(tick: tick),
     ]);
     core.stepOneTick();
+    progress.observe(tick: tick, playerX: core.playerPosX);
     core.drainEvents();
     if (core.gameOver) {
       throw StateError(
@@ -146,39 +150,7 @@ _RecordedReplay _recordFrames({
     playerPosX: core.playerPosX,
     playerPosY: core.playerPosY,
     distance: core.distance,
-  );
-}
-
-GameCore _buildCore({
-  required LevelId levelId,
-  required _ReplayBenchmarkConfig config,
-  TerrainGraphMaterializer graphMaterializer =
-      const TerrainGraphMaterializer.eager(),
-}) {
-  final registered = LevelRegistry.byId(levelId);
-  final baseTuning = registered.tuning;
-  final benchmarkTuning = CoreTuning(
-    physics: baseTuning.physics,
-    unocoDemon: baseTuning.unocoDemon,
-    groundEnemy: baseTuning.groundEnemy,
-    navigation: baseTuning.navigation,
-    spatialGrid: baseTuning.spatialGrid,
-    camera: const CameraTuning(speedLagMulX: 0),
-    track: baseTuning.track,
-    collectible: baseTuning.collectible,
-    restorationItem: baseTuning.restorationItem,
-    score: baseTuning.score,
-  );
-  return GameCore(
-    graphMaterializer: graphMaterializer,
-    seed: config.seed,
-    runId: 1,
-    tickHz: config.tickHz,
-    levelDefinition: registered.copyWith(
-      tuning: benchmarkTuning,
-      noEnemyChunks: 1 << 30,
-    ),
-    playerCharacter: PlayerCharacterRegistry.eloise,
+    progress: progress,
   );
 }
 
@@ -236,12 +208,14 @@ final class _RecordedReplay {
     required this.playerPosX,
     required this.playerPosY,
     required this.distance,
+    required this.progress,
   });
 
   final List<ReplayCommandFrameV1> frames;
   final double playerPosX;
   final double playerPosY;
   final double distance;
+  final ReplayBenchmarkProgress progress;
 }
 
 final class _ReplayBenchmarkMeasurement {
@@ -254,6 +228,7 @@ final class _ReplayBenchmarkMeasurement {
     required this.finalDistance,
     required this.finalGeometryVersion,
     required this.deterministicOutcome,
+    required this.progress,
   });
 
   final LevelId levelId;
@@ -264,6 +239,7 @@ final class _ReplayBenchmarkMeasurement {
   final double finalDistance;
   final int? finalGeometryVersion;
   final bool deterministicOutcome;
+  final ReplayBenchmarkProgress progress;
 
   double get elapsedSeconds => elapsedMicros / 1000000;
 
@@ -276,5 +252,6 @@ final class _ReplayBenchmarkMeasurement {
     'finalDistance': finalDistance,
     'finalGeometryVersion': finalGeometryVersion,
     'deterministicOutcome': deterministicOutcome,
+    'maxSecondsWithoutProgress': progress.maxSecondsWithoutProgress,
   };
 }

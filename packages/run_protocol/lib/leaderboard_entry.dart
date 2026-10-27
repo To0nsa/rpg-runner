@@ -1,3 +1,4 @@
+import 'codecs/json_integer.dart';
 import 'codecs/json_value_reader.dart';
 import 'replay_digest.dart';
 
@@ -22,6 +23,11 @@ final class LeaderboardEntry {
     this.replayDigest,
     this.rank,
   }) {
+    requireJsonSafeInteger(score, 'score');
+    requireJsonSafeInteger(distanceMeters, 'distanceMeters');
+    requireJsonSafeInteger(durationSeconds, 'durationSeconds');
+    requireJsonSafeInteger(updatedAtMs, 'updatedAtMs');
+    requireJsonSafeInteger(rank, 'rank');
     _requireNonEmpty(boardId, 'boardId');
     _requireNonEmpty(entryId, 'entryId');
     _requireNonEmpty(runSessionId, 'runSessionId');
@@ -127,30 +133,34 @@ final class LeaderboardEntry {
   }
 
   factory LeaderboardEntry.fromJson(Object? raw) {
-    final json = asObjectMap(raw, fieldName: 'leaderboardEntry');
-    return LeaderboardEntry(
-      boardId: readRequiredString(json, 'boardId'),
-      entryId: readRequiredString(json, 'entryId'),
-      runSessionId: readRequiredString(json, 'runSessionId'),
-      uid: readRequiredString(json, 'uid'),
-      displayName: readRequiredString(json, 'displayName'),
-      playerLevel: _readPlayerLevel(json),
-      characterId: readRequiredString(json, 'characterId'),
-      score: readRequiredInt(json, 'score'),
-      distanceMeters: readRequiredInt(json, 'distanceMeters'),
-      durationSeconds: readRequiredInt(json, 'durationSeconds'),
-      sortKey: readRequiredString(json, 'sortKey'),
-      ghostEligible: readRequiredBool(json, 'ghostEligible'),
-      ghostAvailable: readOptionalBool(json, 'ghostAvailable') ?? false,
-      replayStorageRef: readOptionalString(json, 'replayStorageRef'),
-      replayStorageGeneration: readOptionalString(
-        json,
-        'replayStorageGeneration',
-      ),
-      replayDigest: readOptionalString(json, 'replayDigest'),
-      updatedAtMs: readRequiredInt(json, 'updatedAtMs'),
-      rank: readOptionalInt(json, 'rank'),
-    );
+    try {
+      final json = asObjectMap(raw, fieldName: 'leaderboardEntry');
+      return LeaderboardEntry(
+        boardId: readRequiredString(json, 'boardId'),
+        entryId: readRequiredString(json, 'entryId'),
+        runSessionId: readRequiredString(json, 'runSessionId'),
+        uid: readRequiredString(json, 'uid'),
+        displayName: readRequiredString(json, 'displayName'),
+        playerLevel: _readPlayerLevel(json),
+        characterId: readRequiredString(json, 'characterId'),
+        score: readRequiredInt(json, 'score'),
+        distanceMeters: readRequiredInt(json, 'distanceMeters'),
+        durationSeconds: readRequiredInt(json, 'durationSeconds'),
+        sortKey: readRequiredString(json, 'sortKey'),
+        ghostEligible: readRequiredBool(json, 'ghostEligible'),
+        ghostAvailable: readOptionalBool(json, 'ghostAvailable') ?? false,
+        replayStorageRef: readOptionalString(json, 'replayStorageRef'),
+        replayStorageGeneration: readOptionalString(
+          json,
+          'replayStorageGeneration',
+        ),
+        replayDigest: readOptionalString(json, 'replayDigest'),
+        updatedAtMs: readRequiredInt(json, 'updatedAtMs'),
+        rank: readOptionalInt(json, 'rank'),
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
+    }
   }
 
   static void _requireNonEmpty(String value, String name) {

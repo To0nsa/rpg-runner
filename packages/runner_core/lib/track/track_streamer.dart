@@ -51,6 +51,7 @@ class TrackSpawnedChunk {
     required this.index,
     required this.startX,
     required this.patternName,
+    required this.tier,
     this.chunkKey,
   });
 
@@ -62,6 +63,10 @@ class TrackSpawnedChunk {
 
   /// Pattern identifier used to generate this chunk.
   final String patternName;
+
+  /// Resolved selected difficulty, including authored overrides and fallback.
+  /// Captured here so deferred item spawning uses this chunk's own tier.
+  final ChunkPatternTier tier;
 
   /// Stable authored identity key, or null in scheduler-only fixtures.
   final String? chunkKey;
@@ -403,6 +408,7 @@ class TrackStreamer {
           index: chunkIndex,
           startX: startX,
           patternName: pattern.name,
+          tier: selection.tier,
           chunkKey: pattern.chunkKey,
         ),
       );

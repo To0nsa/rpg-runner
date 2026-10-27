@@ -4,6 +4,11 @@ A Flutter + Flame action runner focused on deterministic gameplay architecture.
 
 This is a portfolio-style game project designed to demonstrate production-minded engineering for mobile games: clean layering, testable simulation, and systems ready for replay/online expansion.
 
+The existing backend, now development, uses gameplay `2026.10.21` from the
+[October 25 release](docs/verification/game-compat-2026.10.21-production.md).
+The [Android beta workstream](docs/building/android_beta_release.md) adds isolated
+dev, staging and production apps. Its final candidate and Play release are pending.
+
 ## Why It Stands Out
 
 - Deterministic ECS simulation loop in pure Dart (`packages/runner_core/lib/`)
@@ -14,6 +19,10 @@ This is a portfolio-style game project designed to demonstrate production-minded
 
 ## Current Scope (Implemented)
 
+- [System inbox](docs/gdd/messages.md) with information messages, manually
+  claimed 25-gold gifts for new levels and a reusable menu attention marker.
+- [Targeted message delivery](docs/tdd/system_inbox.md#operator-delivery) for
+  operator-issued information and gold gifts; existing levels are not backfilled.
 - 2 authored level layouts: `forest`, `field`
 - Generated polygon terrain is the collision, navigation, placement, and
   rendering authority for normal runs and replay validation
@@ -23,6 +32,8 @@ This is a portfolio-style game project designed to demonstrate production-minded
 - Pose-aligned combat capsules, shared fixed-tick animation clocks, and exact
   [combat debug geometry](docs/tdd/combat_pose_geometry.md)
 - Authored abilities (mobility, melee, ranged, defense, utility)
+- Dash and selectable [Double Dash](docs/gdd/combat/abilities/eloise/mobility.md),
+  with two separately triggered bursts and a visible follow-up window
 - 5 enemy archetypes: ground chaser, ambusher, flying demon, transforming cultist,
   and Bringer of Death in a mandatory [Forest boss arena](docs/gdd/bringer_of_death.md),
   with shared attack knockback, 1.5x boss/column scale, faster attacks/pursuit and
@@ -50,9 +61,14 @@ This is a portfolio-style game project designed to demonstrate production-minded
   Profile also shows runs and damage dealt/taken
 - Debug-only Developer Practice with persistent local loadouts and all playable
   equipment/abilities, using the existing menus without backend run sessions
-- In-game HUD, pause, game-over, and scoring
-- Options with Settings/Controls tabs and a saved arrows-or-joystick movement
-  choice; both controls use identical full-strength directional input
+- In-game HUD, pause, game-over, and scoring, with left/top off-screen player
+  and enemy markers showing distance back to the visible area
+- Desktop keyboard/mouse controls in the main run, with automatic platform
+  selection, mouse aim, ability status/bindings, Enter start/resume and Escape/P
+  pause; see [controls](docs/gdd/01_controls.md#desktop-keyboard-and-mouse)
+- Options with Settings/Controls tabs and saved arrows, floating joystick, or
+  fixed joystick movement; the floating center stays within the left 33% of the
+  run screen, and all controls use identical full-strength directional input
 - App-owned background reward completion, curated Practice routes and
   [trusted prepared navigation](docs/tdd/prepared_navigation.md). Before a mobile
   release build, run `dart run packages/runner_core/tool/prepare_navigation.dart --client`.
@@ -81,6 +97,15 @@ flutter pub get
 flutter run
 ```
 
+Android defaults to the `dev` flavor in every build mode, including
+`flutter run --release`. It installs as `com.example.rpg_runner.dev` against
+`rpg-runner-d7add`. Explicit `staging` and `prod` release flavors use independent
+Firebase projects and local app storage. Staging uses
+`com.lothringen.longrun.staging`; the production package is still provisional.
+The new environments' OAuth/Play acceptance is pending. See
+[Android build identities](docs/tdd/android_build_variants.md) for the current
+mapping, protected signing and canonical frozen-candidate build command.
+
 For gameplay iteration on a connected phone, use a debug launch
 (`flutter run -d <device-id>`), sign in, and enable **Options > Settings > Developer mode**.
 This switches the existing screens to a local profile with all playable gear
@@ -93,29 +118,49 @@ rewards and write no leaderboards. The toggle is absent from release/profile
 builds; uninstalling or clearing app data resets it. See
 [Developer Practice](docs/tdd/developer_practice.md).
 
-Production web builds require the public, domain-restricted App Check key:
+For Windows gameplay development, start directly in Developer Practice, including
+on a fresh install:
 
 ```bash
-flutter build web --release --dart-define-from-file=web/production_defines.json
+flutter run -d windows --debug --dart-define=DEVELOPER_PRACTICE=true
 ```
 
-The [release workflow](docs/tdd/deployment_workflow.md) passes this configuration
-automatically and includes it in artifact-cache validation.
+This debug-only launch flag skips Firebase, App Check and account sign-in before
+opening the existing hub. Steam setup is not required for local Practice. It also
+works for other debug targets. The flag does not change the saved Developer mode
+toggle; omit it to resume the saved startup choice. Developer loadouts still
+persist, and release/profile builds ignore the flag.
+
+All web builds currently open Developer Practice automatically, including
+optimized builds for hosting. They use local loadouts and skip Firebase,
+account sign-in, recording, rewards and leaderboards. Options cannot switch to
+an online profile. Android account startup and native release restrictions are
+unchanged.
+
+```bash
+flutter run -d chrome
+flutter build web --release --no-web-resources-cdn
+```
+
+No web App Check key is needed for this local host. The
+[release workflow](docs/tdd/deployment_workflow.md) builds this same artifact and
+checks startup and local gameplay in headless Chrome before caching it.
 
 Startup preserves the 1.8-second studio splash and a minimum two-second game
 loader. Initialization and player-data failures remain on the loader with an
 explicit retry; the hub opens only after bootstrap and required name setup.
 See [startup and authentication](docs/tdd/authentication_flow_and_authorization.md).
 
-Normal Android account startup requires Play Games sign-in. On a new workstation, register
-the debug signing certificate in Firebase and Play Games; a regenerated
-debug keystore has a different SHA-1. See
+Normal Android account startup requires Play Games sign-in. Register each
+package/signing-certificate combination in Firebase and Play Games, including
+`com.example.rpg_runner.dev` for debug builds; a regenerated debug keystore
+has a different SHA-1. See
 [local Android sign-in troubleshooting](docs/tdd/authentication_flow_and_authorization.md#local-android-sign-in-troubleshooting)
 for credential and tester setup checks.
 
-Android App Check is separate from Play Games sign-in: debug installations need
-their debug token registered in Firebase App Check; release/profile builds use
-Play Integrity and require the signing certificate's **SHA-256** in Firebase
+Android App Check is separate from Play Games sign-in: the dev flavor needs its
+debug token registered in the dev Firebase project in every build mode. Staging
+and prod use Play Integrity and require the installed distribution certificate's **SHA-256** in Firebase
 (SHA-1 alone is insufficient). Startup emits a privacy-safe `app_check_startup`
 record, and callable requests carry that startup diagnostic context. See
 [App Check troubleshooting](docs/tdd/callable_abuse_controls.md#app-check-diagnostics-and-troubleshooting)
@@ -210,6 +255,14 @@ worker and board versions.
 - SharedPreferences
 
 ## Documentation And Planning
+
+For coding-agent work, start with [AGENTS.md](AGENTS.md) and the
+[agent routing index](.agent/README.md). Guidance is scoped by source ownership;
+workflows cover cross-layer changes, validation, releases and session handoffs.
+Check the instruction graph offline with `node tools/agents/check.mjs`; checker
+regressions use `node --test tools/agents/check.test.mjs`. No Flutter or cloud
+setup is needed for these checks. See the
+[orchestration contract](docs/tdd/agent_orchestration.md) for coverage and limits.
 
 The [documentation index](docs/README.md) links current audits, implementation
 plans, technical contracts, and game design documents. Previous audit and

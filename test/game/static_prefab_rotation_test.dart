@@ -56,21 +56,21 @@ void main() {
               ..filterQuality = ui.FilterQuality.none;
             if (isDecoration) {
               expectedPaint.colorFilter = const ColorFilter.matrix(<double>[
-                0.8,
+                0.7,
                 0,
                 0,
                 0,
-                51,
+                76.5,
                 0,
-                0.8,
-                0,
-                0,
-                51,
+                0.7,
                 0,
                 0,
-                0.8,
+                76.5,
                 0,
-                51,
+                0,
+                0.7,
+                0,
+                76.5,
                 0,
                 0,
                 0,
@@ -103,14 +103,14 @@ void main() {
                     (45 * 100 + 40) * 4,
                     (45 * 100 + 40) * 4 + 4,
                   ),
-                  [255, 51, 51, 255],
+                  [255, closeTo(76.5, 0.5), closeTo(76.5, 0.5), 255],
                 );
                 expect(
                   actualPixels.sublist(
                     (45 * 100 + 60) * 4,
                     (45 * 100 + 60) * 4 + 4,
                   ),
-                  [51, 51, 255, 255],
+                  [closeTo(76.5, 0.5), closeTo(76.5, 0.5), 255, 255],
                 );
                 expect(actualPixels.sublist(0, 4), [0, 0, 0, 0]);
               }

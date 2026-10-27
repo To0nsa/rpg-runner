@@ -73,6 +73,8 @@ import {
   handleLeaderboardLoadMyRank,
 } from "./leaderboards/callable_handlers.js";
 import { handleGhostLoadManifest } from "./ghosts/callable_handlers.js";
+import { handleInboxRequest } from "./inbox/callable_handlers.js";
+import { readDeploymentIdentity } from "./deployment_identity.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -80,14 +82,28 @@ if (getApps().length === 0) {
 
 const defaultFunctionsRegion =
   process.env.FUNCTIONS_REGION?.trim() || "europe-west1";
+const deploymentIdentity = readDeploymentIdentity();
 
 setGlobalOptions({
   region: defaultFunctionsRegion,
-  serviceAccount: "sa-run-control@rpg-runner-d7add.iam.gserviceaccount.com",
+  serviceAccount: deploymentIdentity.runControlServiceAccount,
 });
 
 const db = getFirestore();
 const userCallableAppCheckOptions = appCheckCallableOptions();
+
+export const inboxLoadSummary = inboxCallable("inboxLoadSummary", "summary");
+export const inboxList = inboxCallable("inboxList", "list");
+export const inboxMarkRead = inboxCallable("inboxMarkRead", "read");
+export const inboxClaimReward = inboxCallable("inboxClaimReward", "claim");
+
+function inboxCallable(functionName: string, operation: "summary" | "list" | "read" | "claim") {
+  return onCall(userCallableAppCheckOptions, async (request) => {
+    logAppCheckObservation({ functionName, request });
+    requirePlayGamesCallableUser(request.auth);
+    return handleInboxRequest(request, db, operation);
+  });
+}
 
 const runSessionCreateRegion =
   process.env.RUN_SESSION_CREATE_REGION?.trim() ||
@@ -115,8 +131,7 @@ const projectionReconciliationBatchSize = parseProjectionReconciliationBatchSize
   process.env.RUN_PROJECTION_RECONCILIATION_BATCH_SIZE,
 );
 const replayValidatorServiceAccount =
-  process.env.REPLAY_VALIDATOR_SERVICE_ACCOUNT?.trim() ||
-  "sa-replay-validator@rpg-runner-d7add.iam.gserviceaccount.com";
+  deploymentIdentity.replayValidatorServiceAccount;
 const profileConsistencyRepairBatchSize =
   readPositiveInt(process.env.PROFILE_CONSISTENCY_REPAIR_BATCH_SIZE) ?? 64;
 

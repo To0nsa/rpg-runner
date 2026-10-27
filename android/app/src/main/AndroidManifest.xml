@@ -1,11 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="rpg_runner"
+        android:label="@string/app_name"
         android:name="com.example.rpg_runner.RpgRunnerApplication"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
         android:isGame="true"
         android:appCategory="game">
+        <!-- Enable only after the Android flavor/Firebase project pair is verified. -->
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
         <meta-data
             android:name="com.google.android.gms.games.APP_ID"
             android:value="@string/game_services_project_id" />

@@ -11,12 +11,14 @@ class HubMenuIconColumn extends StatelessWidget {
     required this.onLeaderboardsPressed,
     required this.onMessagesPressed,
     required this.onOptionsPressed,
+    this.messagesNeedAttention = false,
   });
 
   final VoidCallback? onTownPressed;
   final VoidCallback? onProfilePressed;
   final VoidCallback? onLeaderboardsPressed;
-  final VoidCallback onMessagesPressed;
+  final VoidCallback? onMessagesPressed;
+  final bool messagesNeedAttention;
   final VoidCallback onOptionsPressed;
 
   @override
@@ -40,6 +42,8 @@ class HubMenuIconColumn extends StatelessWidget {
       MenuIconAction(
         icon: Icons.message,
         tooltip: 'Messages',
+        needsAttention: messagesNeedAttention,
+        attentionLabel: 'Unread messages or unclaimed gifts',
         onPressed: onMessagesPressed,
       ),
       MenuIconAction(

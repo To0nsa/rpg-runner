@@ -1,10 +1,82 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:rpg_runner/ui/state/run/firebase_run_session_api.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/run_ticket.dart';
+import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 
 void main() {
+  for (final rejection in [
+    ('failed-precondition', 'update-required'),
+    ('unavailable', 'release-maintenance'),
+  ]) {
+    test(
+      'callable ${rejection.$2} details survive the client adapter',
+      () async {
+        final source = _RecordingRunSessionSource()
+          ..failure = FirebaseFunctionsException(
+            code: rejection.$1,
+            message: 'Release unavailable',
+            details: {'reason': rejection.$2},
+          );
+        final api = FirebaseRunSessionApi(source: source);
+        await expectLater(
+          api.createRunSession(
+            userId: 'uid_1',
+            sessionId: 'session_1',
+            mode: RunMode.practice,
+            levelId: LevelId.field,
+            gameCompatVersion: '2026.10.21',
+          ),
+          throwsA(
+            isA<RunStartRemoteException>()
+                .having(
+                  (error) => error.isUpdateRequired,
+                  'update required',
+                  rejection.$2 == 'update-required',
+                )
+                .having(
+                  (error) => error.isReleaseMaintenance,
+                  'maintenance',
+                  rejection.$2 == 'release-maintenance',
+                ),
+          ),
+        );
+      },
+    );
+  }
+  for (final malformed in <String, Object?>{
+    'tickHz': 0,
+    'seed': 1e100,
+    'expiresAtMs': 1,
+    'loadoutSnapshot': {'mask': 0.5},
+  }.entries) {
+    test(
+      'malformed ticket ${malformed.key} becomes invalid-response',
+      () async {
+        final source = _RecordingRunSessionSource()
+          ..ticketOverrides = {malformed.key: malformed.value};
+        final api = FirebaseRunSessionApi(source: source);
+        await expectLater(
+          api.createRunSession(
+            userId: 'uid_1',
+            sessionId: 'session_1',
+            mode: RunMode.practice,
+            levelId: LevelId.field,
+            gameCompatVersion: '2026.03.0',
+          ),
+          throwsA(
+            isA<RunStartRemoteException>().having(
+              (error) => error.code,
+              'code',
+              'invalid-response',
+            ),
+          ),
+        );
+      },
+    );
+  }
   test('run create sends one bounded client request ID', () async {
     final source = _RecordingRunSessionSource();
     final api = FirebaseRunSessionApi(
@@ -37,6 +109,8 @@ void main() {
 
 final class _RecordingRunSessionSource implements FirebaseRunSessionSource {
   final List<String> clientRequestIds = <String>[];
+  Map<String, Object?> ticketOverrides = {};
+  Object? failure;
 
   @override
   Future<Map<String, dynamic>> createRunSession({
@@ -48,22 +122,26 @@ final class _RecordingRunSessionSource implements FirebaseRunSessionSource {
     required String gameCompatVersion,
   }) async {
     clientRequestIds.add(clientRequestId);
+    if (failure case final error?) throw error;
     return <String, dynamic>{
-      'runTicket': RunTicket(
-        runSessionId: 'run_1',
-        uid: userId,
-        mode: mode,
-        seed: 1,
-        tickHz: 60,
-        gameCompatVersion: gameCompatVersion,
-        levelId: levelId.name,
-        playerCharacterId: 'eloise',
-        loadoutSnapshot: const <String, Object?>{},
-        loadoutDigest: 'digest',
-        issuedAtMs: 1,
-        expiresAtMs: 2,
-        singleUseNonce: 'nonce',
-      ).toJson(),
+      'runTicket': {
+        ...RunTicket(
+          runSessionId: 'run_1',
+          uid: userId,
+          mode: mode,
+          seed: 1,
+          tickHz: 60,
+          gameCompatVersion: gameCompatVersion,
+          levelId: levelId.name,
+          playerCharacterId: 'eloise',
+          loadoutSnapshot: const <String, Object?>{},
+          loadoutDigest: 'digest',
+          issuedAtMs: 1,
+          expiresAtMs: 2,
+          singleUseNonce: 'nonce',
+        ).toJson(),
+        ...ticketOverrides,
+      },
     };
   }
 

@@ -28,7 +28,10 @@ Normal, or Hard difficulty; omitted difficulty means Automatic progression.
 Explicit sections select only active chunks matching both group and difficulty,
 without tier fallback. Global consecutive difficulty windows and their Hard
 continuation apply to Automatic selection and Automatic sections.
-Authors add, duplicate, remove and reorder sections in Flow. Duplication allocates
+Authors add, duplicate, remove and reorder sections in Flow. Flow tracks the
+selected section by stable ID and reveals its new position after reordering,
+including rows outside the lazy list's mounted range. Scrolling is local view
+state and does not change selection or authored data. Duplication allocates
 a new section ID and preserves the selected group, difficulty, count range and
 distinctness. Equal minimum/maximum counts specify an exact length; Flow shows
 one-based chunk positions when the preceding lengths are exact. These positions

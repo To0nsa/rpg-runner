@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/replay_digest.dart';
+import 'package:run_protocol/loadout_digest.dart';
 import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:run_protocol/validated_run.dart';
@@ -474,7 +475,7 @@ void main() {
         contentLengthBytes: replayBytes.length,
         validationAttempt: 1,
         tickHz: replayBlob.tickHz,
-        gameCompatVersion: '2026.10.17',
+        gameCompatVersion: '2026.10.21',
       );
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
@@ -679,6 +680,7 @@ void main() {
       '2026.10.9',
       '2026.10.10',
       '2026.10.16',
+      '2026.10.17',
       '2099.01.0',
     ]) {
       test(
@@ -1750,7 +1752,7 @@ ValidatorRunSession _session({
   String? storageGeneration = '123',
   String? ticketRunSessionId,
   String playerCharacterId = 'eloise',
-  String gameCompatVersion = '2026.10.17',
+  String gameCompatVersion = '2026.10.21',
 
   String? rulesetVersion,
   String? scoreVersion,
@@ -1798,7 +1800,7 @@ ValidatorRunSession _session({
       loadoutSnapshot: loadoutSnapshot ?? _defaultLoadoutSnapshot(),
       loadoutDigest:
           loadoutDigest ??
-          ReplayDigest.canonicalSha256ForMap(
+          LoadoutDigest.sha256ForMap(
             loadoutSnapshot ?? _defaultLoadoutSnapshot(),
           ),
       issuedAtMs: issuedAtMs,

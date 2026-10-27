@@ -80,13 +80,25 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 ## 3. Information Architecture
 
-### Developer mode (implemented, debug builds only)
+### System messages
 
-Options contains a Developer mode toggle for local gameplay testing. It switches
+The hub Messages icon opens the [system inbox](messages.md). It uses the shared
+landscape menu styling and displays a reusable attention dot while any mail is
+unread or any gift remains unclaimed. Selecting mail marks it read; Claim is a
+separate action. Newly reached levels deliver 25 gold without historical
+backfill. Live player conversations are future work and have no empty tab now.
+
+### Developer Practice (web and native debug builds)
+
+Native debug builds offer a Developer mode toggle in Options for local gameplay testing. It switches
 the existing menu screens to a visibly named Developer profile with all current
 playable equipment and abilities unlocked. Character compatibility, slot limits,
 and gameplay rules still apply. The profile remembers its own level, character,
 build name and loadouts across launches and ordinary app updates.
+
+An explicit debug launch can also enter this profile before sign-in, including
+on a fresh Windows installation. This launch choice does not change the saved
+toggle; see [startup instructions](../tdd/developer_practice.md#starting-without-account-setup).
 
 Only Practice is available. Town, account actions, leaderboards and Weekly are
 disabled, and Competitive is not offered. Run completion shows the ordinary
@@ -94,8 +106,13 @@ score breakdown with restart/exit, without rewards or leaderboard entries.
 There is no separate developer economy. Turning the toggle off restores the
 real account after it loads successfully; developer choices never replace its
 inventory or equipment. Failed reconnection leaves Developer mode active.
-There is no automatic connection-based switching, and production builds do not
-expose this option. See [technical contract](../tdd/developer_practice.md).
+There is no automatic connection-based switching. Native profile/release builds
+do not expose this option.
+
+Every web build opens this local profile automatically, including the hosted
+release build. Browser Options displays the Practice-only limitation instead of
+a switch. Loadouts persist in the browser; account progression, ghosts and
+online run modes are unavailable. See [technical contract](../tdd/developer_practice.md).
 
 ### 3.1 Screens
 
@@ -551,10 +568,12 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 
 The header uses the shared compact selector, as on Leaderboards, with
 **Settings** and **Controls** tabs. Settings is the initial tab and contains
-the existing debug-only Developer mode switch. Controls is available in all
-builds and offers **Arrows** (default) or **Joystick** for backward/forward
-movement. The choice is saved on the device and changes the in-run control's
-presentation only; both send identical full-strength directional input.
+the native debug Developer mode switch, or the Practice-only notice on web. Controls is available in all
+builds and offers **Arrows** (default), **Floating joystick** or **Fixed joystick**
+for backward/forward movement, with a short explanation of the selected mode.
+The floating base stays within the left 33% of the run screen; the fixed base
+stays at the lower-left movement position. The choice is saved on the device and
+changes presentation only; all send identical full-strength directional input.
 
 **Scope**
 

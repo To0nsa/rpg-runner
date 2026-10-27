@@ -11,6 +11,7 @@ full playable-level creation path.
 Read first:
 
 - `packages/runner_core/AGENTS.md`
+- [Authored source rules](../../assets/authoring/AGENTS.md)
 - `docs/tdd/runner_core_simulation_contract.md`
 - `tools/editor/AGENTS.md` when editor behavior changes
 
@@ -43,6 +44,10 @@ Generated Core, Game, and UI outputs are not hand-edited.
   authored; do not preserve stale expectations for removed content.
 
 ## Validation
+
+Check source freshness and generator behavior first; choose affected Core tests
+from the package and root suites. Use the complete root Core suite below when
+changed content has broad gameplay impact.
 
 ```powershell
 dart run tool/generate_chunk_runtime_data.dart --dry-run

@@ -35,7 +35,7 @@ the authored Level/Parallax pair or to regenerate the Parallax registry.
 
 Authored Prefab `kind: decoration` is carried through runtime visual sprites
 and Core snapshots as a render-only flag. Flame blends those sprites' RGB
-channels 20% toward white and preserves alpha. Obstacle and platform sprites
+channels 30% toward white and preserves alpha. Obstacle and platform sprites
 keep their authored colors. The flag does not participate in collision or
 replay rules.
 

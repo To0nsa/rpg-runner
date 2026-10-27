@@ -17,8 +17,9 @@ import {
 import { loadActiveBoardManifest } from "../boards/store.js";
 import { loadOrCreateCanonicalState } from "../ownership/canonical_store.js";
 import { normalizeAuthorizedLoadout } from "../ownership/loadout_authorization.js";
-import type { JsonObject, JsonValue } from "../ownership/contracts.js";
+import type { JsonObject } from "../ownership/contracts.js";
 import { canonicalJsonString, sha256Hex } from "../ownership/hash.js";
+import { loadoutSha256 } from "./loadout_digest.js";
 import {
   parseRunMode,
   runModeRequiresBoard,
@@ -142,9 +143,7 @@ export async function createRunSession(
   const singleUseNonce = randomUUID();
   const issuedAtMs = nowMs;
   const expiresAtMs = issuedAtMs + runSessionExpiryMs;
-  const loadoutDigest = sha256Hex(
-    canonicalJsonString(snapshot.loadoutSnapshot as JsonValue),
-  );
+  const loadoutDigest = loadoutSha256(snapshot.loadoutSnapshot);
 
   let boardContext:
     | {

@@ -8,6 +8,7 @@ import 'package:run_protocol/run_mode.dart';
 
 import 'package:rpg_runner/ui/state/boards/ghost_api.dart';
 import 'package:rpg_runner/ui/state/boards/ghost_replay_cache.dart';
+import 'package:rpg_runner/ui/state/boards/ghost_replay_cache_io.dart';
 import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 
 void main() {
@@ -36,23 +37,12 @@ void main() {
         replayDigest: replay.canonicalSha256,
       );
       final first = await cache.loadReplay(manifest: manifest);
-      await first.cachedFile.writeAsBytes([
-        0x1f,
-        0x8b,
-        99,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        255,
-      ]);
+      await File(first.cacheKey)
+          .writeAsBytes([0x1f, 0x8b, 99, 0, 0, 0, 0, 0, 0, 0, 255]);
       final recovered = await cache.loadReplay(manifest: manifest);
       expect(downloader.calls, 2);
       expect(recovered.replayBlob.toJson(), replay.toJson());
-      expect(await recovered.cachedFile.readAsBytes(), downloader.payload);
+      expect(await File(recovered.cacheKey).readAsBytes(), downloader.payload);
     },
   );
 
@@ -128,7 +118,7 @@ void main() {
     expect(downloader.calls, 1);
     expect(first.replayBlob.runSessionId, 'run_1');
     expect(second.replayBlob.canonicalSha256, first.replayBlob.canonicalSha256);
-    expect(await first.cachedFile.exists(), isTrue);
+    expect(await File(first.cacheKey).exists(), isTrue);
   });
 
   test('rejects replay that does not match manifest board/session', () async {
@@ -201,11 +191,11 @@ void main() {
       final second = await cache.loadReplay(manifest: manifest);
 
       expect(
-        utf8.encode(first.cachedFile.uri.pathSegments.last).length,
+        utf8.encode(File(first.cacheKey).uri.pathSegments.last).length,
         lessThanOrEqualTo(255),
       );
-      expect(await first.cachedFile.exists(), isTrue);
-      expect(second.cachedFile.path, first.cachedFile.path);
+      expect(await File(first.cacheKey).exists(), isTrue);
+      expect(File(second.cacheKey).path, File(first.cacheKey).path);
       expect(second.replayBlob.canonicalSha256, replay.canonicalSha256);
       expect(downloader.calls, 1);
     },
@@ -245,15 +235,15 @@ void main() {
       final other = await cache.loadReplay(
         manifest: manifest('entry_2', '100'),
       );
-      expect(await first.cachedFile.exists(), isTrue);
+      expect(await File(first.cacheKey).exists(), isTrue);
 
       final republished = await cache.loadReplay(
         manifest: manifest('entry_1', '101'),
       );
-      expect(republished.cachedFile.path, isNot(first.cachedFile.path));
-      expect(await first.cachedFile.exists(), isFalse);
-      expect(await other.cachedFile.exists(), isTrue);
-      expect(await republished.cachedFile.exists(), isTrue);
+      expect(File(republished.cacheKey).path, isNot(File(first.cacheKey).path));
+      expect(await File(first.cacheKey).exists(), isFalse);
+      expect(await File(other.cacheKey).exists(), isTrue);
+      expect(await File(republished.cacheKey).exists(), isTrue);
       await cache.loadReplay(manifest: manifest('entry_2', '100'));
       expect(downloader.calls, 3);
     },

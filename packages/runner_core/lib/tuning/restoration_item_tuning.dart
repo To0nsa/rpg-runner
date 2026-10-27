@@ -4,6 +4,7 @@ class RestorationItemTuning {
     this.enabled = true,
     this.spawnEveryChunks = 16,
     this.spawnStartChunkIndex = 2,
+    this.easySpawnRateBonusBp = 2000,
     this.restorePercentBp = 3000,
     this.itemSize = 16.0,
     this.surfaceClearanceY = 10.0,
@@ -11,16 +12,20 @@ class RestorationItemTuning {
     this.chunkEdgeMarginX = 32.0,
     this.maxAttemptsPerSpawn = 40,
     this.despawnBehindCameraMargin = 900.0,
-  });
+  }) : assert(easySpawnRateBonusBp >= 0);
 
   /// Master toggle for restoration item spawning.
   final bool enabled;
 
-  /// Spawn one item every N chunks.
+  /// Base spawn interval in chunks, before the easy-difficulty bonus.
   final int spawnEveryChunks;
 
   /// First chunk index where items can spawn.
   final int spawnStartChunkIndex;
+
+  /// Extra spawn frequency in easy chunks, in basis points (2000 = 20%).
+  /// Gives easier terrain more resource relief without strengthening each gem.
+  final int easySpawnRateBonusBp;
 
   /// Fraction of max HP/mana/stamina restored in basis points (100 = 1%).
   final int restorePercentBp;

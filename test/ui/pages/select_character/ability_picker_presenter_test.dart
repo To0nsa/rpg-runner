@@ -19,6 +19,23 @@ const AbilityOwnershipState _defaultAbilityOwnership = AbilityOwnershipState(
 );
 
 void main() {
+  test('Double Dash is a legal mobility option gated by ownership', () {
+    for (final owned in [false, true]) {
+      final option = abilityCandidatesForSlot(
+        characterId: PlayerCharacterId.eloise,
+        slot: AbilitySlot.mobility,
+        loadout: const EquippedLoadoutDef(),
+        abilityOwnership: AbilityOwnershipState(
+          learnedProjectileSpellIds: const {},
+          learnedAbilityIdsBySlot: {
+            AbilitySlot.mobility: {if (owned) 'eloise.double_dash'},
+          },
+        ),
+      ).singleWhere((candidate) => candidate.id == 'eloise.double_dash');
+      expect(option.isOwned, owned);
+      expect(option.isEnabled, isTrue); // Legality is separate from ownership.
+    }
+  });
   group('ability picker presenter', () {
     test('projectile source options include learned projectile spells', () {
       const loadout = EquippedLoadoutDef(

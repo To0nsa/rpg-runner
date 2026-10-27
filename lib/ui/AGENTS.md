@@ -73,8 +73,15 @@ Initialize services through `AppBootstrapper`/`AppServices` behind the loader
 so initialization failures are visible and retryable. `AppServices` owns
 `AppState` disposal; the provider only subscribes after initialization. Keep
 production client construction and theme configuration out of `UiApp`.
-Debug-only Developer Practice restores its local preference before online
-service initialization. `AppServices` owns profile replacement as well as
+Web always uses `AppServices.practiceOnly`, including release builds, and cannot
+switch to an online profile. `create_app_services.dart` selects web/native
+services at compile time. Native debug Developer Practice checks the explicit
+`DEVELOPER_PRACTICE` launch flag and restores its preference before online
+initialization. The native flag never writes the toggle and is ignored outside
+debug. Use `developerPracticeAllowed` for local profile/run guards. Keep native
+filesystem/HTTP adapters behind conditional imports; shared replay APIs expose
+opaque artifact IDs, not File handles. See `docs/tdd/platform_services.md`.
+`AppServices` owns profile replacement as well as
 disposal; the proxy provider owns only subscriptions. Keep developer selections
 in their separate preference namespace, preserve the real account's queues,
 and never create tickets, record/submit replays or grant rewards for local runs.
@@ -98,6 +105,9 @@ must not bypass a resume refresh. Hub warmup starts only after bootstrap.
   the durable final receipt remains until canonical ownership is refreshed
 - loading active boards, leaderboards, ranks, and ghost manifests
 - awarding run gold back into remote progression through validated run flows
+- loading system messages and whole-inbox attention, and applying manually
+  claimed gold through the revisioned ownership flow; widgets use the shared
+  `AttentionMarker` with domain-owned visibility rules
 - handling account deletion reset flow
 
 Rules:
@@ -123,9 +133,15 @@ The run route is a UI-owned assembly of lower layers:
   mounted for hold releases; failure cancels input and offers same-run retry.
   Do not route runtime recovery through startup session replacement.
 - HUD and controls read snapshots and send input through the existing router/controller path
-- Movement presentation is selected by `MovementControlMode`; arrows and the
-  horizontal joystick must emit the same digital -1/0/1 axis. Keep preferences
-  outside gameplay/replay descriptors, and preserve pointer cancellation epochs.
+- `RunnerControlScheme` selects one touch/desktop surface in the product host.
+  Desktop pointers wrap only gameplay, with HUD as a sibling; focus/lifecycle
+  cancellation precedes pause and desktop return requires explicit resume.
+  Dispose the desktop controller before its session and keep browser context
+  menu suppression scoped. See `docs/tdd/gameplay_input_architecture.md`.
+- Movement presentation is selected by `MovementControlMode`; arrows, floating
+  joystick and fixed joystick must emit the same digital -1/0/1 axis. Keep
+  preferences outside gameplay/replay descriptors, and preserve pointer
+  cancellation epochs.
 - boss entrance haptics use the run-owned binding under `haptics/`; dispose it
   before replacing or disposing its controller, and retain pulse deduplication
   across pause/resume

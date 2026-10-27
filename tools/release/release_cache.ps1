@@ -15,7 +15,7 @@ function Get-ReleaseCacheRoot {
 
 function Get-ReleaseInputPaths {
   param([string]$Root)
-  $listing = Invoke-ReleaseCommand git @("ls-files", "--cached", "--others", "--exclude-standard") $Root
+  $listing = Invoke-ReleaseCommand git @("-c", "core.quotepath=false", "ls-files", "--cached", "--others", "--exclude-standard") $Root
   return @($listing -split '\r?\n' | Where-Object {
     $_ -and $_ -notmatch '(^|/)(node_modules|\.dart_tool|build|coverage)/' -and
     $_ -notmatch '^functions/(lib|lib_test)/' -and $_ -notmatch '\.md$' -and (Test-Path -LiteralPath (Join-Path $Root $_) -PathType Leaf)
@@ -32,7 +32,7 @@ function Get-ReleaseInputHashes {
     client = '^(functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|lib/|web/|assets/|packages/[^/]+/(lib/|pubspec\.yaml$)|pubspec\.(yaml|lock)$)'
     functions = '^(functions/(src/|package\.json$|tsconfig\.json$)|firestore\.|firebase\.json$|package\.json$|pnpm-[^/]+\.yaml$)'
     worker = '^(functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|services/replay_validator/(lib/|bin/|pubspec\.(yaml|lock)$|Dockerfile$|cloudbuild\.yaml$)|packages/(runner_core|run_protocol)/(lib/|pubspec\.yaml$)|\.dockerignore$|\.gcloudignore$)'
-    infrastructure = '^(firebase\.json$|\.firebaserc$|tools/cloud/|services/replay_validator/configure_cloud\.ps1$)'
+    infrastructure = '^(firebase(?:\.(?:staging|prod))?\.json$|\.firebaserc$|tools/release/(environments\.json|release_environments\.ps1|provision_environment\.ps1)$|tools/cloud/|services/replay_validator/configure_cloud\.ps1$)'
   }
   $result = [ordered]@{}
   foreach ($name in $groups.Keys) {
@@ -57,7 +57,8 @@ function Get-ReleaseComponentInputs {
     "functions-build" { '^(functions/(src/|package\.json$|tsconfig\.json$)|package\.json$|pnpm-[^/]+\.yaml$)' }
     "functions-checks" { '^(functions/(src/|test/|tool/|package\.json$|tsconfig.*\.json$)|firebase\.test\.json$|firestore\.|package\.json$|pnpm-[^/]+\.yaml$|packages/run_protocol/lib/)' }
     "client-build" { "^($workspace|lib/|web/|assets/|$runtime|functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$)" }
-    "client-checks" { "^($workspace|lib/|web/|assets/|test/|test_driver/|tool/|services/replay_validator/(lib/|bin/|test/|pubspec\.(yaml|lock)$)|$runtime)" }
+    "android-build" { "^($workspace|android/|lib/|assets/|$runtime|tools/release/(android_artifacts|android_signing)\.ps1$|tools/release/environments\.json$|functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$)" }
+    "client-checks" { "^($workspace|lib/|web/|assets/|test/|test_driver/|tool/|services/replay_validator/(lib/|bin/|test/|pubspec\.(yaml|lock)$)|functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$|$runtime)" }
     "core-checks" { "^($workspace|packages/runner_core/|assets/authoring/)" }
     "protocol-checks" { "^($workspace|packages/run_protocol/)" }
     "content-checks" { "^($workspace|packages/runner_content_pipeline/|packages/runner_core/lib/|assets/authoring/)" }
@@ -68,7 +69,7 @@ function Get-ReleaseComponentInputs {
   }
   $selected = @($paths | Where-Object { $_ -match $pattern })
   # Recipe changes invalidate evidence without invalidating it for prose edits.
-  $selected += @($paths | Where-Object { $_ -match '^(tools/release/(release_support|release_cache|prepare_release|profile_tests|validate_release|release_ci)\.ps1|\.github/workflows/release-preparation\.yml)$' })
+  $selected += @($paths | Where-Object { $_ -match '^(tools/release/((release_support|release_cache|prepare_release|profile_tests|validate_release|release_ci)\.ps1|web_smoke\.mjs)|\.github/workflows/release-preparation\.yml)$' })
   return Get-ReleaseFileDigest $Root $selected
 }
 

@@ -1,3 +1,4 @@
+import 'codecs/json_integer.dart';
 import 'codecs/json_value_reader.dart';
 
 /// Replay-derived Codex evidence. IDs are stable names, never enum ordinals.
@@ -19,7 +20,7 @@ final class CodexRunProgress {
     }
   }
 
-  static const int maxCount = 9007199254740991;
+  static const int maxCount = maxJsonSafeInteger;
   final String levelId;
   final Map<String, int> enemyKills;
 

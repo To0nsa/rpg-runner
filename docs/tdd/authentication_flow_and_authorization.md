@@ -12,6 +12,13 @@ The app uses Firebase Authentication with this runtime policy:
   Firebase `uid` and a linked Google Play Games identity.
 - Firestore client writes/reads for authoritative game data are denied by rules.
 
+Android selects an isolated Firebase project through its explicit dev/staging/prod
+flavor and verifies that project before initializing app services. Native resources
+own Play Games credentials; the same Google account has independent Firebase state
+in each project. Dev uses its own App Check debug provider; staging/prod require
+real Play Integrity. See [Android identities](android_build_variants.md) for the
+implemented configuration and still-pending Play/OAuth acceptance.
+
 Authoritative data access (profile, ownership, runs, boards, ghosts, account delete) goes through callables, not direct Firestore from the app.
 
 ## 2) Ownership by layer
@@ -64,6 +71,14 @@ cold bootstrap replaces the loader with required name setup or the hub. Back
 cannot reveal an uninitialized hub or skip onboarding. Unknown routes and
 invalid run arguments display explicit errors rather than routing to the hub.
 
+Firebase `user-disabled` during Play Games restore or current-session token
+reads is preserved as `GameAccountDisabledException`. The loader shows **Game
+account unavailable**, explains the waiting period after a recent deletion,
+and offers **Try again**. It does not reuse cached credentials after this error.
+Firebase does not expose the disable reason, so the message describes deletion
+conditionally rather than treating all disabled accounts as deletion requests.
+A later successful retry follows normal onboarding or hub routing.
+
 `FirebaseAuthApi.ensureAuthenticatedSession()` behavior:
 
 - Try current Firebase user (`readCurrent(forceRefresh: false)`).
@@ -77,10 +92,15 @@ invalid run arguments display explicit errors rather than routing to the hub.
 Normal-account bootstrap is intentionally fail-closed until Play Games auth succeeds.
 
 Debug builds can explicitly switch to [Developer Practice](developer_practice.md)
-from Options. Its saved preference is restored before Firebase initialization;
-the local profile has no auth/ownership clients and supports Practice only.
+from Options, or start there with `--dart-define=DEVELOPER_PRACTICE=true` even
+on a fresh Windows install. The launch override and saved preference are checked
+before Firebase initialization; the override does not change the saved toggle.
+The local profile has no auth/ownership clients and supports Practice only.
 Turning it off reloads the normal authenticated account without signing it out.
-This does not change callable authorization or introduce a public offline fallback.
+Native release/profile builds ignore the flag. Web instead always uses the
+local Practice host in every build mode; it never starts Firebase/auth services
+or offers account switching. This is an explicit platform mode, not a network
+failure fallback, and does not change callable authorization.
 
 Concurrent `AppState.bootstrap()` calls share one attempt. Forced refreshes
 finish the pending ownership flush before loading profile and canonical
@@ -156,8 +176,17 @@ UI entry point:
 
 ### Local Android sign-in troubleshooting
 
+Debug builds use `com.example.rpg_runner.dev`, a separate installation and
+Firebase Android registration from release/profile's `com.example.rpg_runner`.
+See [Android build identities](android_build_variants.md) for the configuration
+files, credential setup and first-install behavior. Android Firebase startup
+loads the selected build's native resources; other platforms continue to use
+the generated Dart options.
+
 The native bridge resolves `play_games_server_client_id` first, then falls back
-to the `default_web_client_id` generated from `android/app/google-services.json`.
+to the `default_web_client_id` generated from the selected build's
+`google-services.json` (`android/app/src/debug/` for debug, `android/app/` for
+release/profile).
 Both resources are looked up by name with `getIdentifier()`. The resource keep
 rules in `android/app/src/main/res/raw/com_example_rpg_runner_auth_keep.xml`
 preserve these values when present so release resource shrinking cannot remove
@@ -177,7 +206,7 @@ certificate SHA-1. A new workstation or regenerated debug keystore can change
 the certificate even when the package name is unchanged. Register the current
 debug certificate in Firebase and link its Android OAuth credential in Play
 Console; retain credentials needed by other builds. Refresh
-`android/app/google-services.json` after updating Firebase configuration.
+the affected build's `google-services.json` after updating Firebase configuration.
 
 For unpublished Play Games configuration, enable the device's Google account
 as a Play Games tester. Check the game server credential and Firebase Play
@@ -209,7 +238,9 @@ So even if client sends a forged `userId`, the backend rejects on uid mismatch.
 App Check defaults to the explicit `monitor` rollout mode; only `monitor` and
 `enforce` are accepted, so a typo fails Functions initialization instead of
 silently relaxing the policy. Android and Apple release builds use platform
-attestation; release web requires a configured reCAPTCHA Enterprise site key;
+attestation; a web embedding host that explicitly initializes Firebase requires
+a reCAPTCHA Enterprise site key in release. The standalone web Practice host
+never initializes Firebase or App Check.
 Windows, Linux, and Fuchsia have no production attestation provider and their
 release bootstrap fails closed. `APP_CHECK_ROLLOUT_MODE=enforce` makes the
 callable runtime reject missing/invalid tokens before the handler, but Play

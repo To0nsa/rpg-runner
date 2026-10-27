@@ -14,6 +14,90 @@ import 'package:test/test.dart';
 
 void main() {
   group('terrain capsule controller', () {
+    for (final mode in [
+      TerrainMotionMode.groundedHorizontal,
+      TerrainMotionMode.groundedSurface,
+    ]) {
+      test(
+        'downhill wall contact preserves support and permits jumping: $mode',
+        () {
+          final harness = _Harness([
+            _polygon('slope', const [
+              (0, 100),
+              (94, 133),
+              (100, 70),
+              (140, 70),
+              (140, 149),
+              (200, 170),
+              (200, 250),
+              (0, 250),
+            ]),
+          ]);
+          final support = harness.geometry.edges.firstWhere(
+            (edge) => edge.id.shapeId == 'slope' && edge.outwardNormal.y < 0,
+          );
+          var capsule = _supportedCircleAtCenterX(support, centerXWorld: 70);
+          final result = TerrainCapsuleMotionResult();
+          var hitWall = false;
+          for (var tick = 0; tick < 20; tick++) {
+            harness.controller.move(
+              capsule: capsule,
+              request: TerrainMotionRequest(
+                displacementXTicks: 3 * 1024,
+                displacementYTicks: 1024,
+                mode: mode,
+              ),
+              beganGrounded: true,
+              priorSupportEdgeId: support.id,
+              priorSupportGeometryVersion: harness.geometry.version,
+              out: result,
+            );
+            expect(
+              result.diagnostic,
+              isNot(TerrainControllerDiagnostic.recoveryFailed),
+              reason: 'tick $tick',
+            );
+            expect(result.grounded, isTrue, reason: 'tick $tick');
+            if (hitWall) {
+              expect(
+                result.usedRecovery,
+                isFalse,
+                reason: 'the previous wall response must not penetrate support',
+              );
+            }
+            hitWall |= result.hitRight;
+            capsule = UprightCapsule(
+              center: TerrainPoint(
+                result.finalCenterXTicks,
+                result.finalCenterYTicks,
+              ),
+              radiusTicks: capsule.radiusTicks,
+              verticalHalfSegmentTicks: capsule.verticalHalfSegmentTicks,
+            );
+          }
+          expect(hitWall, isTrue);
+          harness.controller.move(
+            capsule: capsule,
+            request: TerrainMotionRequest(
+              displacementXTicks: 0,
+              displacementYTicks: -8 * 1024,
+              mode: TerrainMotionMode.worldSpace,
+            ),
+            beganGrounded: false,
+            out: result,
+          );
+          expect(
+            result.diagnostic,
+            isNot(TerrainControllerDiagnostic.recoveryFailed),
+          );
+          expect(
+            result.finalCenterYTicks,
+            lessThan(capsule.center.yTicks - 7 * 1024),
+          );
+        },
+      );
+    }
+
     for (final slope in [0.0, -80.0, 80.0]) {
       test('actor bounds preserve full-body support on slope $slope', () {
         final harness = _Harness([

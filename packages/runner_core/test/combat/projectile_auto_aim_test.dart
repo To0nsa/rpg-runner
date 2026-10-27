@@ -5,12 +5,18 @@ import 'package:runner_core/collision/terrain/terrain_edge_index.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/combat/projectile_aim_visibility.dart';
+import 'package:runner_core/combat/aim_motion_forecast.dart';
+import 'package:runner_core/collision/terrain/terrain_traversal_profile.dart';
+import 'package:runner_core/collision/terrain/terrain_numeric.dart';
+import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/ecs/stores/faction_store.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/mana_store.dart';
 import 'package:runner_core/ecs/stores/stamina_store.dart';
 import 'package:runner_core/ecs/systems/ability_activation_system.dart';
+import 'package:runner_core/ecs/systems/projectile_launch_system.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
@@ -20,6 +26,185 @@ import 'package:runner_core/weapons/weapon_catalog.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final tickHz in [30, 60, 120]) {
+    test('jump lead accounts for the apex at $tickHz Hz', () {
+      final scenario = _scenario(tickHz: tickHz);
+      final enemy = _enemy(scenario.world, x: 220, y: 100, velY: -180);
+      _gravityBody(scenario.world, enemy);
+
+      final direction = _fire(scenario);
+      // The enemy is rising now, but is descending by the predicted impact.
+      expect(direction.$1, greaterThan(0));
+      expect(direction.$2, inExclusiveRange(0, 0.3));
+      final flightSeconds = 120 / (600 * direction.$1);
+      final impactTicks =
+          (10 * tickHz / 60).ceil() + 1 + flightSeconds * tickHz;
+      final wholeTicks = impactTicks.floor();
+      final actualY =
+          100 -
+          180 * wholeTicks / tickHz +
+          1200 * wholeTicks * (wholeTicks + 1) / (2 * tickHz * tickHz) +
+          (-180 + 1200 * (wholeTicks + 1) / tickHz) *
+              (impactTicks - wholeTicks) /
+              tickHz;
+      final projectileY = 100 + 600 * flightSeconds * direction.$2;
+      expect(projectileY, closeTo(actualY, 1e-6));
+    });
+
+    test('falling-target lead stops at the landing height at $tickHz Hz', () {
+      final geometry = const TerrainCompiler().compile(<TerrainPolygonInput>[
+        TerrainPolygonInput.fromWorld(
+          sourcePath: 'test/floor',
+          identity: TerrainSourceIdentity(
+            chunkIndex: 0,
+            chunkKey: 'test',
+            shapeId: 'floor',
+          ),
+          vertices: <(double, double)>[
+            (-1000, 140),
+            (1000, 140),
+            (1000, 500),
+            (-1000, 500),
+          ],
+        ),
+      ], geometryVersion: 1);
+      final index = TerrainEdgeIndex(edges: geometry.edges);
+      final visibility = ProjectileAimVisibility(() => index);
+      final scenario = _scenario(
+        tickHz: tickHz,
+        terrain: (geometry: geometry, index: index),
+        pathClear: visibility.isClear,
+      );
+      final enemy = _enemy(scenario.world, x: 220, y: 100, velY: 180);
+      _gravityBody(scenario.world, enemy);
+
+      final direction = _fire(scenario);
+      final aimYAtEnemy = 100 + direction.$2 / direction.$1 * 120;
+      expect(aimYAtEnemy, closeTo(130, 0.1));
+      expect(
+        scenario.world.transform.posY[scenario.world.transform.indexOf(enemy)],
+        100,
+      );
+    });
+  }
+
+  test('source landing is included in the predicted launch position', () {
+    final geometry = const TerrainCompiler().compile(<TerrainPolygonInput>[
+      TerrainPolygonInput.fromWorld(
+        sourcePath: 'test/floor',
+        identity: TerrainSourceIdentity(
+          chunkIndex: 0,
+          chunkKey: 'test',
+          shapeId: 'floor',
+        ),
+        vertices: <(double, double)>[
+          (-1000, 140),
+          (1000, 140),
+          (1000, 500),
+          (-1000, 500),
+        ],
+      ),
+    ], geometryVersion: 1);
+    final scenario = _scenario(
+      terrain: (
+        geometry: geometry,
+        index: TerrainEdgeIndex(edges: geometry.edges),
+      ),
+    );
+    _gravityBody(scenario.world, scenario.player);
+    scenario.world.transform.velY[scenario.world.transform.indexOf(
+          scenario.player,
+        )] =
+        180;
+    final enemy = _enemy(scenario.world, x: 220, y: 130);
+    _gravityBody(scenario.world, enemy);
+
+    final direction = _fire(scenario);
+    expect(direction.$1, closeTo(1, 1e-6));
+    // Landing and retained support may differ by the controller's contact epsilon.
+    expect(
+      (direction.$2 / direction.$1 * 120).abs(),
+      lessThanOrEqualTo(
+        terrainContactEpsilonTicks / terrainPhysicsTicksPerWorldUnit + 1e-9,
+      ),
+    );
+  });
+
+  test('a lone rear target overrides forward movement and manual aim', () {
+    final scenario = _scenario();
+    _enemy(scenario.world, x: 40, y: 100);
+    final inputIndex = scenario.world.playerInput.indexOf(scenario.player);
+    scenario.world.playerInput.moveAxis[inputIndex] = 1;
+    scenario.world.playerInput.aimDirX[inputIndex] = 1;
+
+    expect(_fire(scenario), (-1.0, 0.0));
+  });
+
+  test('a rear target remains selected when its lead crosses the floor', () {
+    final geometry = const TerrainCompiler().compile(<TerrainPolygonInput>[
+      TerrainPolygonInput.fromWorld(
+        sourcePath: 'test/floor',
+        identity: TerrainSourceIdentity(
+          chunkIndex: 0,
+          chunkKey: 'test',
+          shapeId: 'floor',
+        ),
+        vertices: <(double, double)>[
+          (-1000, 140),
+          (1000, 140),
+          (1000, 500),
+          (-1000, 500),
+        ],
+      ),
+    ], geometryVersion: 1);
+    final index = TerrainEdgeIndex(edges: geometry.edges);
+    final visibility = ProjectileAimVisibility(() => index);
+    var blockedPredictions = 0;
+    final scenario = _scenario(
+      originOffset: 30,
+      pathClear: (fromX, fromY, toX, toY) {
+        final clear = visibility.isClear(fromX, fromY, toX, toY);
+        if (!clear) blockedPredictions += 1;
+        return clear;
+      },
+    );
+    _enemy(scenario.world, x: 40, y: 100, velY: 180);
+    expect(visibility.isClear(70, 100, 40, 100), isTrue);
+
+    final direction = _fire(scenario);
+    expect(blockedPredictions, 1);
+    expect(direction.$1, lessThan(0));
+    expect(direction.$2, greaterThan(0));
+
+    final intentIndex = scenario.world.projectileIntent.indexOf(
+      scenario.player,
+    );
+    ProjectileLaunchSystem(
+      projectiles: const ProjectileCatalog(),
+      tickHz: 60,
+    ).step(
+      scenario.world,
+      currentTick: scenario.world.projectileIntent.tick[intentIndex],
+    );
+    expect(scenario.world.projectile.denseEntities, hasLength(1));
+    expect(scenario.world.projectile.dirX.single, closeTo(direction.$1, 1e-9));
+  });
+
+  test('blocked targets retain intercept priority and stable ID ties', () {
+    final scenario = _scenario(pathClear: (_, _, _, _) => false);
+    _enemy(scenario.world, x: 320, y: 100);
+    _enemy(scenario.world, x: 40, y: 100);
+    _enemy(scenario.world, x: 100, y: 40);
+
+    expect(_fire(scenario), (-1.0, 0.0));
+  });
+
+  test('no hostile target retains the facing fallback', () {
+    final scenario = _scenario(facing: Facing.left);
+
+    expect(_fire(scenario), (-1.0, 0.0));
+  });
+
   test('auto aim ignores targets beyond the equipped projectile reach', () {
     final scenario = _scenario(facing: Facing.left);
     _enemy(scenario.world, x: 1000, y: 100);
@@ -39,33 +224,46 @@ void main() {
     expect(direction.$2, lessThan(-0.2));
   });
 
-  test('auto aim selects a clear target behind a blocked nearer target', () {
-    final geometry = const TerrainCompiler().compile(<TerrainPolygonInput>[
-      TerrainPolygonInput.fromWorld(
-        sourcePath: 'test/wall',
-        identity: TerrainSourceIdentity(
-          chunkIndex: 0,
-          chunkKey: 'test',
-          shapeId: 'wall',
-        ),
-        vertices: <(double, double)>[
-          (120, 80),
-          (130, 80),
-          (130, 120),
-          (120, 120),
-        ],
-      ),
-    ], geometryVersion: 1);
-    final index = TerrainEdgeIndex(edges: geometry.edges);
-    final visibility = ProjectileAimVisibility(() => index);
-    final scenario = _scenario(originOffset: 0, pathClear: visibility.isClear);
-    _enemy(scenario.world, x: 160, y: 100);
-    _enemy(scenario.world, x: 200, y: -60);
+  for (final clearFirst in [false, true]) {
+    test(
+      'clear targets outrank blocked targets (clear first: $clearFirst)',
+      () {
+        final geometry = const TerrainCompiler().compile(<TerrainPolygonInput>[
+          TerrainPolygonInput.fromWorld(
+            sourcePath: 'test/wall',
+            identity: TerrainSourceIdentity(
+              chunkIndex: 0,
+              chunkKey: 'test',
+              shapeId: 'wall',
+            ),
+            vertices: <(double, double)>[
+              (120, 80),
+              (130, 80),
+              (130, 120),
+              (120, 120),
+            ],
+          ),
+        ], geometryVersion: 1);
+        final index = TerrainEdgeIndex(edges: geometry.edges);
+        final visibility = ProjectileAimVisibility(() => index);
+        final scenario = _scenario(
+          originOffset: 0,
+          pathClear: visibility.isClear,
+        );
+        if (clearFirst) {
+          _enemy(scenario.world, x: 200, y: -60);
+          _enemy(scenario.world, x: 160, y: 100);
+        } else {
+          _enemy(scenario.world, x: 160, y: 100);
+          _enemy(scenario.world, x: 200, y: -60);
+        }
 
-    final direction = _fire(scenario);
-    expect(direction.$1, greaterThan(0));
-    expect(direction.$2, lessThan(-0.2));
-  });
+        final direction = _fire(scenario);
+        expect(direction.$1, greaterThan(0));
+        expect(direction.$2, lessThan(-0.2));
+      },
+    );
+  }
 
   test('projectile launch offset reduces lead while retaining intercept', () {
     (double, double) aimWithOffset(double offset) {
@@ -82,7 +280,7 @@ void main() {
     const sourceX = 100.0;
     const sourceY = 100.0;
     const targetX = 200.0;
-    const targetYAtLaunch = 100.0 + 200.0 * 10 / 60;
+    const targetYAtLaunch = 100.0 + 200.0 * 11 / 60;
     final flightSeconds =
         (targetX - sourceX - 20 * offsetAim.$1) / (speed * offsetAim.$1);
     final projectileY = sourceY + (20 + speed * flightSeconds) * offsetAim.$2;
@@ -158,10 +356,12 @@ void main() {
   Facing facing = Facing.right,
   double originOffset = 0,
   bool Function(double, double, double, double)? pathClear,
+  int tickHz = 60,
+  AimTerrain? terrain,
 }) {
   final world = EcsWorld();
   final system = AbilityActivationSystem(
-    tickHz: 60,
+    tickHz: tickHz,
     inputBufferTicks: 10,
     abilities: const AbilityCatalog(),
     weapons: const WeaponCatalog(),
@@ -170,6 +370,7 @@ void main() {
     accessories: const AccessoryCatalog(),
     playerCastOriginOffset: originOffset,
     projectileAimPathClear: pathClear,
+    aimTerrainProvider: terrain == null ? null : () => terrain,
   );
   final player = world.createEntity();
   world.transform.add(player, posX: 100, posY: 100, velX: 0, velY: 0);
@@ -200,6 +401,27 @@ void main() {
     ),
   );
   return (world: world, system: system, player: player);
+}
+
+void _gravityBody(EcsWorld world, int entity) {
+  world.body.add(entity, const BodyDef());
+  world.worldContactCapsule.add(
+    entity,
+    WorldContactCapsuleDef(radius: 5, verticalHalfSegment: 5),
+  );
+  world.terrainTraversalProfile.add(
+    entity,
+    createEloiseTerrainTraversalProfile(
+      enabled: true,
+      isKinematic: false,
+      useGravity: true,
+      gravityScale: 1,
+      collideCeilings: true,
+      collideLeftWalls: true,
+      collideRightWalls: true,
+    ),
+  );
+  world.terrainContact.add(entity);
 }
 
 int _enemy(

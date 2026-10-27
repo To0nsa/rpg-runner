@@ -4,7 +4,7 @@
 
 The app has two preparation boundaries. UI preflight obtains an authoritative
 RunStartDescriptor; the run then prepares local resources without advancing ticks.
-Debug-only [Developer Practice](developer_practice.md) instead creates an
+Web and native-debug [Developer Practice](developer_practice.md) instead create an
 explicitly local descriptor through the same preflight, without an authenticated
 ticket. It uses the same world, simulation and controls, skips replay recording
 and submission, and requires only world readiness. Restarts remain local.
@@ -19,7 +19,9 @@ and submission, and requires only world readiness. Restarts remain local.
   ticket prefetch/consumption, ticket issuance, and ghost artifact retrieval.
   A start joins an in-flight prefetch for the exact authenticated user, ownership
   revision, mode, level, character, loadout and compatibility key before consuming
-  its ticket once. Failed, expired or mismatched prefetch falls back to foreground
+  its ticket once. The loadout key uses `run_protocol.LoadoutDigest` over the same
+  snapshot fields as Functions issuance and worker validation. A matching digest
+  permits reuse. Failed, expired or mismatched prefetch falls back to foreground
   issuance. Canonical/auth invalidation fences late results even if the eventual
   key compares equal. Selection/session changes during the wait reject the start.
   A still-valid cached ticket suppresses redundant warmup requests.
@@ -41,6 +43,24 @@ and outbox projection still apply. Studio splash and cold-start loader minimum
 branding durations are unchanged; run loading has no artificial minimum.
 
 ## Readiness and failures
+
+New-run and leaderboard compatibility rejection uses structured callable error
+details. `failed-precondition` with `reason: update-required` identifies an
+obsolete client; `unavailable` with `reason: release-maintenance` identifies a
+paused issuer or a newer date-version candidate waiting for backend cutover.
+The `release-paused` sentinel rejects all new versions, even if the allowlist
+accidentally also contains the current version. The active gameplay tuple remains
+the source of authority; there is no client-side override or update service.
+
+Hub/leaderboard preflight presents `RunReleaseGate`; in-place restart presents
+the same gate in a dismissible dialog without replacing the current run. The
+update action opens the selected staging/prod package's HTTPS Play link. Dev
+and non-Android hosts instead ask for the current build. Failed/canceled store
+launches retain the gate, and maintenance retry must ask the server again.
+Exit/account navigation and the support mail link stay available. Existing
+submission recovery, already-issued tickets and account deletion do not acquire
+this new-run guard. Release drain still waits for outstanding tickets; a cached
+valid ticket is not invalidated merely because new issuance is paused.
 
 The controller begins paused at tick zero. World loading starts player images,
 render registries, terrain preparation, background loading, and optional ghost

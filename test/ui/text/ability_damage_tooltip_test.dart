@@ -9,6 +9,16 @@ import 'package:rpg_runner/ui/text/ability_tooltip_builder.dart';
 void main() {
   const builder = DefaultAbilityTooltipBuilder();
 
+  test('Double Dash explains its follow-up window and per-burst cost', () {
+    final tooltip = builder.build(
+      const AbilityCatalog().resolve('eloise.double_dash')!,
+    );
+    expect(tooltip.title, 'Double Dash');
+    expect(tooltip.description, contains('within 0.5 seconds'));
+    expect(tooltip.description, contains('Each burst pays the listed cost'));
+    expect(tooltip.cooldownSeconds, 2);
+  });
+
   test('Scythe Sweep shows the physical and dark amounts', () {
     final tooltip = builder.build(
       const AbilityCatalog().resolve('bringer.scythe_sweep')!,

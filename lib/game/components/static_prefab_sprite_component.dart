@@ -32,26 +32,26 @@ class StaticPrefabSpriteComponent extends PositionComponent
 
   static final ui.Paint _spritePaint = ui.Paint()
     ..filterQuality = ui.FilterQuality.none;
-  // Blend passable scenery 20% toward white (51 of 255) without changing
+  // Blend passable scenery 30% toward white (76.5 of 255) without changing
   // alpha, so atlas cutouts still reveal the scene beneath them.
   static final ui.Paint _decorationPaint = ui.Paint()
     ..filterQuality = ui.FilterQuality.none
     ..colorFilter = const ui.ColorFilter.matrix(<double>[
-      0.8,
+      0.7,
       0,
       0,
       0,
-      51,
+      76.5,
       0,
-      0.8,
-      0,
-      0,
-      51,
+      0.7,
       0,
       0,
-      0.8,
+      76.5,
       0,
-      51,
+      0,
+      0.7,
+      0,
+      76.5,
       0,
       0,
       0,

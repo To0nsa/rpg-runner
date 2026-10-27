@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'app_runtime_policy.dart';
 import '../state/app/app_state.dart';
 import '../state/settings/control_settings.dart';
 import '../state/developer/developer_profile_store.dart';
@@ -8,35 +9,64 @@ import '../state/ownership/ownership_sync_policy.dart';
 /// Owns service initialization and the app state's lifetime.
 ///
 /// Initialization is shared by concurrent callers and retried after failure.
-/// The online factory runs only after services are ready; debug developer
-/// preferences are checked first and can bypass online initialization entirely.
-/// The app shell must
-/// dispose this owner; providers expose its state without taking ownership.
+/// The online factory runs only after services are ready. Native debug startup
+/// requests can bypass it; Practice-only web hosts never construct online clients.
+/// The app shell must dispose this owner; providers expose its state without
+/// taking ownership.
 class AppServices extends ChangeNotifier {
+  /// [startInDeveloperMode] selects local Practice for this owner's startup
+  /// without changing the saved toggle. Native hosts require debug mode and a
+  /// developer store. Web uses [AppServices.practiceOnly] instead.
   AppServices({
     required Future<void> Function() initialize,
     required AppState Function() createAppState,
     DeveloperProfileStore? developerProfileStore,
     ControlSettingsStore? controlSettingsStore,
+    bool startInDeveloperMode = false,
   }) : _initialize = initialize,
+       _practiceOnly = false,
        controlSettings = ControlSettings(store: controlSettingsStore),
        _createAppState = createAppState,
-       _developerProfileStore = developerProfileStore;
+       _developerProfileStore = developerProfileStore,
+       _startInDeveloperMode = startInDeveloperMode;
 
-  final Future<void> Function() _initialize;
+  /// A local-only host with no online factory and no profile-switch escape path.
+  /// Allowed on web in every build mode, and on native debug builds only.
+  AppServices.practiceOnly({
+    required DeveloperProfileStore developerProfileStore,
+    ControlSettingsStore? controlSettingsStore,
+  }) : _initialize = null,
+       _createAppState = null,
+       _practiceOnly = true,
+       controlSettings = ControlSettings(store: controlSettingsStore),
+       _developerProfileStore = developerProfileStore,
+       _startInDeveloperMode = true {
+    if (!developerPracticeAllowed) {
+      throw StateError('Local Practice requires web or a native debug build.');
+    }
+  }
+
+  final Future<void> Function()? _initialize;
+  final bool _practiceOnly;
 
   /// Device preferences survive replacement of the authenticated app state.
   final ControlSettings controlSettings;
-  final AppState Function() _createAppState;
+  final AppState Function()? _createAppState;
   final DeveloperProfileStore? _developerProfileStore;
+  final bool _startInDeveloperMode;
   bool _switchingProfile = false;
   Future<AppState>? _initialization;
   AppState? _appState;
   bool _disposed = false;
 
-  /// Debug builds explicitly wired with local storage expose the Options toggle.
+  /// Whether this host can construct a local Practice profile.
   bool get developerModeAvailable =>
-      kDebugMode && _developerProfileStore != null;
+      developerPracticeAllowed && _developerProfileStore != null;
+
+  bool get isPracticeOnly => _practiceOnly;
+
+  /// Only native debug hosts with both service paths expose a profile toggle.
+  bool get canSwitchProfiles => developerModeAvailable && !_practiceOnly;
 
   /// Menu navigation and lifecycle refreshes must wait until switching finishes.
   bool get isSwitchingProfile => _switchingProfile;
@@ -68,13 +98,15 @@ class AppServices extends ChangeNotifier {
   Future<AppState> _initializeState() async {
     await controlSettings.load();
     if (_disposed) throw StateError('App services have been disposed.');
-    if (developerModeAvailable && await _developerProfileStore!.loadEnabled()) {
+    if (developerModeAvailable &&
+        (_startInDeveloperMode ||
+            await _developerProfileStore!.loadEnabled())) {
       if (_disposed) throw StateError('App services have been disposed.');
-      return _appState = AppState.developer(store: _developerProfileStore);
+      return _appState = AppState.developer(store: _developerProfileStore!);
     }
-    await _initialize();
+    await _initialize!();
     if (_disposed) throw StateError('App services have been disposed.');
-    return _appState = _createAppState();
+    return _appState = _createAppState!();
   }
 
   /// Switches menu profiles without signing out or sharing account persistence.
@@ -82,8 +114,8 @@ class AppServices extends ChangeNotifier {
   /// Call only outside a run; the menu resets its routes after success.
   Future<void> setDeveloperMode(bool enabled) async {
     if (_disposed) throw StateError('App services have been disposed.');
-    if (!developerModeAvailable) {
-      throw StateError('Developer mode requires a debug build.');
+    if (!canSwitchProfiles) {
+      throw StateError('Profile switching is unavailable in this build.');
     }
     if (_switchingProfile) {
       throw StateError('A profile switch is already running.');
@@ -99,11 +131,11 @@ class AppServices extends ChangeNotifier {
           trigger: OwnershipFlushTrigger.manual,
         );
       }
-      if (!enabled) await _initialize();
+      if (!enabled) await _initialize!();
       if (_disposed) throw StateError('App services have been disposed.');
       candidate = enabled
           ? AppState.developer(store: _developerProfileStore!)
-          : _createAppState();
+          : _createAppState!();
       await candidate.bootstrap();
       if (_disposed) throw StateError('App services have been disposed.');
       await _developerProfileStore!.saveEnabled(enabled);

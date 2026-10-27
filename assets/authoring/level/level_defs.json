@@ -41,7 +41,7 @@
     },
     {
       "levelId": "forest",
-      "revision": 497,
+      "revision": 524,
       "displayName": "Val Outpost",
       "visualThemeId": "forest",
       "chunkThemeGroups": ["default", "boss_bringer_of_death", "boss_shoggoth", "boss_voidborn_goddess", "boss_voidcaller", "enchanted_forest", "rocky_grove", "ruin", "trainingcamp", "woodcamp"],
@@ -79,8 +79,8 @@
             "segmentId": "default_2_3",
             "groupId": "rocky_grove",
             "difficulty": "easy",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -95,8 +95,8 @@
             "segmentId": "default_2",
             "groupId": "rocky_grove",
             "difficulty": "easy",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -111,8 +111,8 @@
             "segmentId": "default_2_3_2",
             "groupId": "rocky_grove",
             "difficulty": "easy",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -127,8 +127,8 @@
             "segmentId": "default_2_3_2_2",
             "groupId": "rocky_grove",
             "difficulty": "easy",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -151,8 +151,8 @@
             "segmentId": "ruin_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -167,8 +167,8 @@
             "segmentId": "ruin_2_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -183,8 +183,8 @@
             "segmentId": "ruin_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -199,8 +199,8 @@
             "segmentId": "ruin_2_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -215,8 +215,8 @@
             "segmentId": "ruin_2_2_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "normal",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -231,16 +231,8 @@
             "segmentId": "default_5",
             "groupId": "rocky_grove",
             "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
-            "requireDistinctChunks": true
-          },
-          {
-            "segmentId": "default_5_2",
-            "groupId": "rocky_grove",
-            "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -255,8 +247,8 @@
             "segmentId": "default_5_2_2",
             "groupId": "rocky_grove",
             "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -271,8 +263,8 @@
             "segmentId": "default_5_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {
@@ -287,8 +279,8 @@
             "segmentId": "default_5_2_2_2_2",
             "groupId": "rocky_grove",
             "difficulty": "hard",
-            "minChunkCount": 3,
-            "maxChunkCount": 6,
+            "minChunkCount": 2,
+            "maxChunkCount": 4,
             "requireDistinctChunks": true
           },
           {

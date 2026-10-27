@@ -6,7 +6,6 @@ import '../collision/terrain/terrain_edge_id.dart';
 import '../collision/terrain/terrain_numeric.dart';
 import '../util/cooperative_work_yield.dart';
 import '../collision/terrain/terrain_motion_request.dart';
-import '../collision/terrain/terrain_traversal_profile.dart';
 import '../collision/terrain/terrain_query_buffer.dart';
 import 'terrain_placement_query.dart';
 import 'terrain_surface_query_buffer.dart';
@@ -103,8 +102,11 @@ final class _ProfileGraphBuilder {
   final CapsuleSweepHit _bestHit = CapsuleSweepHit();
   final CapsuleSweepHit _bestSupportHit = CapsuleSweepHit();
   final TerrainContactDecision _scratchDecision = TerrainContactDecision();
-  final Map<TerrainTraversalProfile, TerrainCapsuleController>
-  _landingControllers = {};
+  late final _landingController = TerrainCapsuleController(
+    geometry: placementQuery.geometry,
+    index: placementQuery.terrainIndex,
+    profile: profile.traversalProfile,
+  );
   final TerrainCapsuleMotionResult _landingMotion =
       TerrainCapsuleMotionResult();
 
@@ -516,7 +518,6 @@ final class _ProfileGraphBuilder {
               : targetRange.minimumXTicks >= takeoffCenter.xTicks) {
             continue;
           }
-          final descendsAlongTravel = target.dyTicks * directionX > 0;
           final landings = _jumpLandingCandidates(
             takeoffCenter: takeoffCenter,
             directionX: directionX,
@@ -534,26 +535,20 @@ final class _ProfileGraphBuilder {
               landingCenterX: landing.placement.capsuleCenter!.xTicks,
               landingTick: landing.tick,
               capsule: capsule,
-              profile: profile,
-              requireGroundedLanding: descendsAlongTravel,
             );
             if (contact == null || contact.supportId != target.id) continue;
             // Execution derives cruise speed from the published contact point
             // and tick count. That shortened trajectory must itself land;
             // validating only the original candidate can change a face landing
             // into a corner graze when the edge is consumed by locomotion.
-            final executingLanding = !descendsAlongTravel
-                ? contact
-                : _sweepJumpTrajectory(
-                    sourceId: source.id,
-                    targetId: target.id,
-                    takeoffCenter: takeoffCenter,
-                    landingCenterX: contact.capsuleCenterXTicks,
-                    landingTick: contact.tick,
-                    capsule: capsule,
-                    profile: profile,
-                    requireGroundedLanding: true,
-                  );
+            final executingLanding = _sweepJumpTrajectory(
+              sourceId: source.id,
+              targetId: target.id,
+              takeoffCenter: takeoffCenter,
+              landingCenterX: contact.capsuleCenterXTicks,
+              landingTick: contact.tick,
+              capsule: capsule,
+            );
             if (executingLanding == null) continue;
             final exactLanding = _placeOnSurface(
               surface: target,
@@ -667,8 +662,6 @@ final class _ProfileGraphBuilder {
     required int landingCenterX,
     required int landingTick,
     required TerrainPlacementCapsule capsule,
-    required TerrainSurfaceGraphBuildProfile profile,
-    bool requireGroundedLanding = false,
   }) {
     var previousX = takeoffCenter.xTicks;
     var previousY = takeoffCenter.yTicks;
@@ -699,30 +692,37 @@ final class _ProfileGraphBuilder {
         // A support sweep can merely graze a rounded corner and slide back
         // into the air. Admit a landing only when the production controller
         // finishes this contact tick grounded on the intended finite surface.
-        if (requireGroundedLanding) {
-          final controller = _landingControllers.putIfAbsent(
-            profile.traversalProfile,
-            () => TerrainCapsuleController(
-              geometry: placementQuery.geometry,
-              index: placementQuery.terrainIndex,
-              profile: profile.traversalProfile,
-            ),
-          );
-          controller.moveAtValues(
-            centerXTicks: previousX,
-            centerYTicks: previousY,
-            radiusTicks: capsule.radiusTicks,
-            verticalHalfSegmentTicks: capsule.verticalHalfSegmentTicks,
-            displacementXTicks: currentX - previousX,
-            displacementYTicks: currentY - previousY,
-            mode: TerrainMotionMode.worldSpace,
-            beganGrounded: false,
-            out: _landingMotion,
-          );
-          if (!_landingMotion.grounded ||
-              _landingMotion.supportEdgeId != targetId) {
-            return null;
-          }
+        _landingController.moveAtValues(
+          centerXTicks: previousX,
+          centerYTicks: previousY,
+          radiusTicks: capsule.radiusTicks,
+          verticalHalfSegmentTicks: capsule.verticalHalfSegmentTicks,
+          displacementXTicks: currentX - previousX,
+          displacementYTicks: currentY - previousY,
+          mode: TerrainMotionMode.worldSpace,
+          beganGrounded: false,
+          out: _landingMotion,
+        );
+        if (!_landingMotion.grounded ||
+            _landingMotion.supportEdgeId != targetId) {
+          return null;
+        }
+        final leavingCorner =
+            (_bestSupportHit.feature == TerrainSegmentFeature.endEndpoint &&
+                landingCenterX > takeoffCenter.xTicks) ||
+            (_bestSupportHit.feature == TerrainSegmentFeature.startEndpoint &&
+                landingCenterX < takeoffCenter.xTicks);
+        if (leavingCorner &&
+            !_cornerLandingSurvivesSupportSkin(
+              sourceId: sourceId,
+              targetId: targetId,
+              previousX: previousX,
+              previousY: previousY,
+              displacementX: currentX - previousX,
+              tick: tick,
+              capsule: capsule,
+            )) {
+          return null;
         }
         return _TrajectoryLanding(
           supportId: contact.edgeId,
@@ -734,6 +734,60 @@ final class _ProfileGraphBuilder {
       previousY = currentY;
     }
     return null;
+  }
+
+  bool _cornerLandingSurvivesSupportSkin({
+    required TerrainEdgeId sourceId,
+    required TerrainEdgeId targetId,
+    required int previousX,
+    required int previousY,
+    required int displacementX,
+    required int tick,
+    required TerrainPlacementCapsule capsule,
+  }) {
+    // Placement describes a geometric tangent; grounded motion retains skin.
+    // At a rounded tip that small height difference can delay contact until
+    // the actor has passed the foothold. Probe the contact tick and its next
+    // ballistic tick without snap or recovery, keeping the published cruise.
+    final source = surfaceSet.surfaceById(sourceId)!;
+    final target = surfaceSet.surfaceById(targetId)!;
+    var x = previousX;
+    var y =
+        previousY -
+        _divideCeil(
+          terrainCollisionSkinTicks * terrainDirectionScale,
+          -source.outwardNormal.yTicks,
+        );
+    for (
+      var landingTick = tick;
+      landingTick <= tick + 1 && landingTick <= _jumpSamples.length;
+      landingTick += 1
+    ) {
+      final sample = _jumpSamples[landingTick - 1];
+      _landingController.moveAtValues(
+        centerXTicks: x,
+        centerYTicks: y,
+        radiusTicks: capsule.radiusTicks,
+        verticalHalfSegmentTicks: capsule.verticalHalfSegmentTicks,
+        displacementXTicks: displacementX,
+        displacementYTicks: sample.y - sample.prevY,
+        mode: TerrainMotionMode.worldSpace,
+        beganGrounded: false,
+        out: _landingMotion,
+      );
+      if (_landingMotion.usedRecovery) return false;
+      if (_landingMotion.grounded) {
+        final support = _landingMotion.supportEdgeId;
+        // A shared vertex may resolve to either adjoining walkable face.
+        return support == targetId ||
+            support == target.previousId ||
+            support == target.nextId;
+      }
+      if (_landingMotion.contactCount > 0) return false;
+      x = _landingMotion.finalCenterXTicks;
+      y = _landingMotion.finalCenterYTicks;
+    }
+    return false;
   }
 
   void _addDropEdge({

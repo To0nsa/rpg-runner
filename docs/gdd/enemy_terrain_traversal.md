@@ -84,6 +84,16 @@ isolates movement from combat, damage, despawning and Hashash teleporting.
 Already-transformed Derf is included with its own actual movement profile;
 phase activation and combat have separate tests.
 
+The hard ruin-to-grove-gap regression also follows a continuous five-chunk
+route through `forest_rocky_grove_hard_002` for all three ground enemies. Jump
+plans must produce grounded landings, including on rounded rock tips; a brief
+corner graze is not a foothold. Enemies also wait until a jump's landing is
+within their normal horizontal reach before launching; early-takeoff tolerance
+does not grant extra speed. The hard camp's fourth chunk seats its statue
+on the floor and spaces the statue and tent so Grojib can approach and land
+within his existing movement limits. Neither repair increases enemy abilities
+or shortens the tested route.
+
 Grojib, Hashash and twisted Derf also use [swimming pursuit](swimming.md#enemies-in-water)
 inside authored pools, including the 20% speed penalty and bank-exit strokes.
 Swimming suspends their land graph commitments until they return to terrain.

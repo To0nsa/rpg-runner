@@ -6,6 +6,26 @@ import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
 
 void main() {
+  test('existing native artifact paths retain their durable JSON key', () {
+    final json = <String, Object?>{
+      'ownerUserId': 'uid_test',
+      'runSessionId': 'existing',
+      'runMode': 'practice',
+      'replayFilePath': '/tmp/existing.replay.json',
+      'canonicalSha256': 'a' * 64,
+      'contentLengthBytes': 1234,
+      'contentType': 'application/octet-stream',
+      'step': 'queued',
+      'attemptCount': 0,
+      'nextAttemptAtMs': 0,
+      'createdAtMs': 1,
+      'updatedAtMs': 1,
+    };
+    final pending = PendingRunSubmission.fromJson(json);
+    expect(pending.replayArtifactId, '/tmp/existing.replay.json');
+    expect(pending.toJson(), json);
+  });
+
   group('SharedPrefsRunSubmissionSpoolStore', () {
     late SharedPrefsRunSubmissionSpoolStore store;
 
@@ -82,7 +102,7 @@ PendingRunSubmission _pending({
     ownerUserId: 'uid_test',
     runSessionId: runSessionId,
     runMode: RunMode.practice,
-    replayFilePath: '/tmp/$runSessionId.replay.json',
+    replayArtifactId: '/tmp/$runSessionId.replay.json',
     canonicalSha256:
         'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     contentLengthBytes: 1234,

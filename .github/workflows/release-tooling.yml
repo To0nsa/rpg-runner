@@ -10,7 +10,7 @@ on:
       - "functions/src/boards/provisioning.ts"
       - "lib/ui/state/app/app_state.dart"
       - "services/replay_validator/lib/src/validator_worker.dart"
-      - "firebase.json"
+      - "firebase*.json"
       - ".firebaserc"
   push:
     branches: [master]
@@ -22,7 +22,7 @@ on:
       - "functions/src/boards/provisioning.ts"
       - "lib/ui/state/app/app_state.dart"
       - "services/replay_validator/lib/src/validator_worker.dart"
-      - "firebase.json"
+      - "firebase*.json"
       - ".firebaserc"
 
 permissions:
@@ -43,7 +43,16 @@ jobs:
         run: |
           .\tools\release\test_release.ps1
           .\tools\release\test_release_integration.ps1
+          .\tools\release\test_release_integration.ps1 -TestEnvironment staging
+          .\tools\release\test_release_integration.ps1 -TestEnvironment prod
           .\tools\release\test_release_cache.ps1
+          .\tools\release\test_release_environments.ps1
+          .\tools\release\test_provision_environment.ps1
+          .\tools\release\test_android_signing.ps1
+          .\tools\release\test_android_artifacts.ps1
+          .\tools\release\test_database_recovery.ps1
+          .\tools\release\test_release_lock.ps1
+          .\tools\release\test_monitoring_environment.ps1
       - name: Resolve offline release plan
         shell: pwsh
         run: .\tools\release\release.ps1 -Action Plan
@@ -62,7 +71,16 @@ jobs:
         run: |
           .\tools\release\test_release.ps1
           .\tools\release\test_release_integration.ps1
+          .\tools\release\test_release_integration.ps1 -TestEnvironment staging
+          .\tools\release\test_release_integration.ps1 -TestEnvironment prod
           .\tools\release\test_release_cache.ps1
+          .\tools\release\test_release_environments.ps1
+          .\tools\release\test_provision_environment.ps1
+          .\tools\release\test_android_signing.ps1
+          .\tools\release\test_android_artifacts.ps1
+          .\tools\release\test_database_recovery.ps1
+          .\tools\release\test_release_lock.ps1
+          .\tools\release\test_monitoring_environment.ps1
       - name: Resolve offline release plan
         shell: powershell
         run: .\tools\release\release.ps1 -Action Plan

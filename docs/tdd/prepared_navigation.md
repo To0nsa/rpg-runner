@@ -1,12 +1,13 @@
 # Prepared navigation and reward verification
 
-Current production compatibility is `2026.10.12`, deployed October 12, 2026 UTC;
-see the [production evidence](../verification/game-compat-2026.10.12-production.md).
-The client pack has 3,720 graphs and the worker pack has 93,600 across the declared
+Current production compatibility is `2026.10.21`, deployed October 25, 2026 UTC;
+see the [production evidence](../verification/game-compat-2026.10.21-production.md).
+The client pack has 3,750 graphs and the worker pack has 93,910 across the declared
 38 routes; their horizons are 8 and 128 chunks respectively. The exact-image
-benchmark passed. Device, exhaustive route coverage and controlled end-to-end
-measurements remain open; the owner accepted three Field traversal failures for
-this cutover. Replay acceptance still requires the authenticated ticket,
+benchmark passed all eight gates. All automated preparation checks passed; device,
+exhaustive route coverage and controlled end-to-end measurements remain open.
+Field ground-enemy pursuit is outside the declared traversal matrix.
+Replay acceptance still requires the authenticated ticket,
 digest-verified replay and deterministic Core; client terrain and navigation
 uploads are never authority.
 
@@ -42,8 +43,10 @@ The client consumes its packaged assets, never replay-supplied graphs.
 
 `functions/src/runs/navigation_routes.json` defines 16 Practice seeds per
 selectable level, 60 Hz, a 128-chunk worker horizon, an eight-chunk client prefix
-and explicit ranked windows. The producer enumerates production forward camera
-selections at width 600 and all actor profiles. It verifies old pieces before
+and explicit ranked windows. The checked-in ranked windows cover
+October/November 2026 and Field ISO weeks 43/44 of 2026. Refresh these explicit
+windows before a later release. The producer enumerates production forward
+camera selections at width 600 and all actor profiles. It verifies old pieces before
 reuse, publishes the manifest after completion, and removes only obsolete flat
 generated `.rng` files. `preparation.json` records plan/manifest digests and size.
 
@@ -93,6 +96,12 @@ on-demand and captured prepared-cold/warm execution of a digest-verified replay.
 It checks equal termination, distance, collectibles, kills, rescues and terrain
 version. Captured graphs measure codec performance, not route coverage or server
 acceptance. The existing strict 36,000-tick benchmark uses the worker materializer.
+
+The benchmark recorder's read-only terrain lookahead lives in Core's
+`playtest/replay_benchmark_terrain.dart`. It rehydrates published occurrences
+through Core's generated catalog and geometry builder, and asks Core's landing
+predictor about candidate inputs. The service consumes that helper without
+importing generated terrain records or applying predicted movement results.
 
 See [reward settlement operations](reward_settlement_operations.md) for durable
 foreground completion and the [rollout plan](../building/reward_verification_latency.md)

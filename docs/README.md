@@ -3,6 +3,11 @@
 Audit and planning restarted on September 15, 2026. Start here for current work.
 
 - [Current audits](audit/README.md).
+- [System messages and level gifts](gdd/messages.md): manual 25-gold claims for
+  newly reached levels and a reusable attention marker;
+  [technical contract and operator sending](tdd/system_inbox.md).
+- [Off-screen actor indicators](tdd/offscreen_indicators.md): left/top bearings,
+  distance labels, enemy grouping and viewport-aware HUD placement.
 - [Town and Codex](gdd/codex.md): Théodonis city map, Store, Library,
   enemy/level discoveries and Éloïse's opening; [persistence contract](tdd/codex.md).
 - [Player progression](gdd/player_progression.md): account level and lifetime
@@ -10,8 +15,13 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Prepared navigation and reward completion](tdd/prepared_navigation.md): trusted
   graph packs, curated Practice routes, on-demand verification and app-owned
   wallet catch-up; [remaining rollout gates](building/reward_verification_latency.md).
-- [Current implementation plans](building/README.md): reward verification latency
-  and NPC rescue production smoke.
+- [Current implementation plans](building/README.md): Android beta/backend
+  isolation, reward verification latency and NPC rescue production smoke.
+- [Android beta release plan](building/android_beta_release.md): existing project
+  reused for dev, new staging/production projects, separate staging app for team
+  acceptance, required updates and Play testing; execution underway with
+  environment routing and isolation checks. One shared deployment workflow and
+  no player-data migration.
 - [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
   lifecycle/input fixes, event-retention cleanup, full local checks and 18
   mixed-input replay cases pass. Finalized authoring is deployed in `2026.10.7`;
@@ -39,8 +49,13 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   freeze diagnosis, incremental preparation, portable spatial queries, and local
   browser regression/performance evidence. The fixes have not been deployed.
 - [Run startup](tdd/run_startup.md): shared preflight, world/recorder readiness, loading recovery, and run-owned assets. See the [startup audit and local measurements](verification/run_startup_2026-10-11.md) for ticket reuse, bounded asset loading and native terrain preparation.
-- [Developer Practice](tdd/developer_practice.md): debug Options toggle, persistent
-  fully unlocked local profile, and Practice without backend sessions or rewards.
+- [Dash and Double Dash](tdd/mobility_recasts.md): shorter Dash and a separate
+  two-burst mobility choice; source prepared for `2026.10.21`, not deployed.
+- [Developer Practice](tdd/developer_practice.md): debug launch flag and Options
+  toggle, persistent fully unlocked local profile, and Practice without backend
+  sessions or rewards.
+- [Android build identities](tdd/android_build_variants.md): dev/staging/prod
+  flavors, isolated Firebase projects, signing and pending Play acceptance.
 - [Forest boss arenas](tdd/boss_arenas.md) and [Bringer gameplay](gdd/bringer_of_death.md):
   deterministic full-screen entrance, confined combat, editor authoring and replay
   scoring deployed in `2026.10.8` / `score-v4`; see

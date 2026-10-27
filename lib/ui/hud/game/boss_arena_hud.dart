@@ -10,8 +10,11 @@ import '../../components/hud_frame.dart';
 
 /// Encounter feedback reads Core; the entrance never depends on widget timers.
 class BossArenaHud extends StatelessWidget {
-  const BossArenaHud({super.key, required this.controller});
+  const BossArenaHud({super.key, required this.controller, this.panelKey});
   final GameController controller;
+
+  /// Tight painted panel bounds for other HUD elements to avoid after layout.
+  final GlobalKey? panelKey;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -49,6 +52,7 @@ class BossArenaHud extends StatelessWidget {
                     ? '$caption, ${arena!.hp100 ~/ 100} health'
                     : '$caption, ${blessing.restorationBp ~/ 100} percent health, mana and stamina restored',
                 child: HudPanel(
+                  key: panelKey,
                   width: 220,
                   padding: EdgeInsets.all(ui.space.xs),
                   child: Column(

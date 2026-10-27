@@ -2,11 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
+import '../../../game/spatial/offscreen_indicators.dart';
 import '../../../game/input/aim_preview.dart';
 import '../../../game/input/runner_gameplay_action.dart';
 import '../../../game/input/runner_semantic_action_dispatcher.dart';
 import '../../controls/runner_controls_overlay_radial.dart';
 import '../../controls/movement_control_mode.dart';
+import '../../input/runner_control_scheme.dart';
+import 'desktop_controls_overlay.dart';
 
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/abilities/ability_def.dart';
@@ -14,6 +17,8 @@ import 'package:runner_core/abilities/ability_def.dart';
 import '../../controls/control_resource_usage.dart';
 
 import '../../runner_game_ui_state.dart';
+import '../../viewport/viewport_metrics.dart';
+import 'offscreen_indicator_overlay.dart';
 import 'pause_overlay.dart';
 import 'terrain_loading_overlay.dart';
 import 'ready_overlay.dart';
@@ -45,11 +50,17 @@ class GameOverlay extends StatefulWidget {
     required this.onExitConfirmExit,
     this.movementControlMode = MovementControlMode.arrows,
     this.movementInputEpoch = 0,
+    this.controlScheme = RunnerControlScheme.touch,
+    this.indicatorFrames,
+    this.viewportMetrics,
   });
 
   final GameController controller;
+  final RunnerControlScheme controlScheme;
   final MovementControlMode movementControlMode;
   final int movementInputEpoch;
+  final ValueListenable<OffscreenIndicatorFrame?>? indicatorFrames;
+  final ViewportMetrics? viewportMetrics;
   final RunnerSemanticActionDispatcher input;
   final AimPreviewModel projectileAimPreview;
   final AimPreviewModel meleeAimPreview;
@@ -71,8 +82,12 @@ class GameOverlay extends StatefulWidget {
   Widget _buildOverlay(
     BuildContext context,
     ValueNotifier<ControlResourceUsage> warnings,
+    GlobalKey hudRowKey,
+    GlobalKey bossPanelKey,
+    GlobalKey desktopBarKey,
   ) {
     final hud = controller.snapshot.hud;
+    final desktop = controlScheme == RunnerControlScheme.desktop;
     final projectileAffordable =
         hud.canAffordProjectile && hud.projectileSlotValid;
     final meleeAffordable = hud.canAffordMelee && hud.meleeSlotValid;
@@ -99,140 +114,164 @@ class GameOverlay extends StatefulWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        IgnorePointer(
-          ignoring:
-              !uiState.isRunning ||
-              controller.terrainReadiness == TerrainReadiness.failed,
-          child: RunnerControlsOverlay(
-            spellAbilityId: hud.abilitySpellId,
-            movementInputEpoch: movementInputEpoch,
+        if (uiState.isRunning &&
+            indicatorFrames != null &&
+            viewportMetrics != null)
+          OffscreenIndicatorOverlay(
+            frames: indicatorFrames!,
+            metrics: viewportMetrics!,
             movementControlMode: movementControlMode,
-            movementEnabled:
-                uiState.isRunning &&
-                controller.terrainReadiness != TerrainReadiness.failed,
-            onMoveAxis: input.setMoveAxis,
-            onJumpPressed: () => input.triggerAction(RunnerGameplayAction.jump),
-            onMobilityPressed: () =>
-                input.triggerAction(RunnerGameplayAction.mobility),
-            onMobilityCommitted: () =>
-                input.commitAction(RunnerGameplayAction.mobility),
-            onMobilityHoldStart: () =>
-                input.beginAction(RunnerGameplayAction.mobility),
-            onMobilityHoldEnd: () =>
-                input.endAction(RunnerGameplayAction.mobility),
-            onSecondaryPressed: () =>
-                input.triggerAction(RunnerGameplayAction.secondary),
-            onSecondaryCommitted: () =>
-                input.commitAction(RunnerGameplayAction.secondary),
-            onSecondaryHoldStart: () =>
-                input.beginAction(RunnerGameplayAction.secondary),
-            onSecondaryHoldEnd: () =>
-                input.endAction(RunnerGameplayAction.secondary),
-            onSpellPressed: () =>
-                input.triggerAction(RunnerGameplayAction.spell),
-            onProjectileCommitted: () =>
-                input.commitAction(RunnerGameplayAction.projectile),
-            onProjectilePressed: () =>
-                input.triggerAction(RunnerGameplayAction.projectile),
-            onProjectileHoldStart: () =>
-                input.beginAction(RunnerGameplayAction.projectile),
-            onProjectileHoldEnd: () =>
-                input.endAction(RunnerGameplayAction.projectile),
-            onAimDir: input.setAimDir,
-            onAimClear: input.clearAimDir,
-            projectileAimPreview: projectileAimPreview,
-            chargeBarVisible: chargeBarVisible,
-            chargeBarProgress01: chargeBarProgress01,
-            chargeBarTier: hud.chargeTier,
-            projectileAffordable: projectileAffordable,
-            projectileCooldownTicksLeft:
-                hud.cooldownTicksLeft[CooldownGroup.projectile],
-            projectileCooldownTicksTotal:
-                hud.cooldownTicksTotal[CooldownGroup.projectile],
-            onMeleeCommitted: () =>
-                input.commitAction(RunnerGameplayAction.primary),
-            onMeleePressed: () =>
-                input.triggerAction(RunnerGameplayAction.primary),
-            onMeleeHoldStart: () =>
-                input.beginAction(RunnerGameplayAction.primary),
-            onMeleeHoldEnd: () => input.endAction(RunnerGameplayAction.primary),
-            onMeleeChargeHoldStart: () =>
-                input.beginAction(RunnerGameplayAction.primary),
-            onMeleeChargeHoldEnd: () =>
-                input.endAction(RunnerGameplayAction.primary),
-            onResourceShortfall: (missing) =>
-                warnings.value = ControlResourceUsage(
-                  health: missing.health,
-                  mana: missing.mana,
-                  stamina: missing.stamina,
-                ),
-            missingResourcesBySlot: {
-              for (final entry in equippedAbilityIdsBySlot.entries)
-                if (switch (entry.key) {
-                  AbilitySlot.primary =>
-                    hud.meleeSlotValid && !hud.canAffordMelee,
-                  AbilitySlot.secondary =>
-                    hud.secondarySlotValid && !hud.canAffordSecondary,
-                  AbilitySlot.projectile =>
-                    hud.projectileSlotValid && !hud.canAffordProjectile,
-                  AbilitySlot.mobility =>
-                    hud.mobilitySlotValid && !hud.canAffordMobility,
-                  AbilitySlot.spell =>
-                    hud.spellSlotValid && !hud.canAffordSpell,
-                  AbilitySlot.jump => hud.jumpSlotValid && !hud.canAffordJump,
-                })
-                  entry.key: ControlResourceUsage.shortfall(
-                    cost: hud.abilityCostsBySlot[entry.key]!,
-                    health: hud.hp,
-                    mana: hud.mana,
-                    stamina: hud.stamina,
-                  ),
-            },
-            resourcesBySlot: {
-              for (final entry in equippedAbilityIdsBySlot.entries)
-                entry.key: ControlResourceUsage.fromAbility(
-                  ability: AbilityCatalog.shared.resolve(entry.value),
-                  cost: hud.abilityCostsBySlot[entry.key]!,
-                ),
-            },
-            meleeAimPreview: meleeAimPreview,
-            aimCancelHitboxRect: aimCancelHitboxRect,
-            meleeAffordable: meleeAffordable,
-            meleeCooldownTicksLeft:
-                hud.cooldownTicksLeft[CooldownGroup.primary],
-            meleeCooldownTicksTotal:
-                hud.cooldownTicksTotal[CooldownGroup.primary],
-            meleeInputMode: hud.meleeInputMode,
-            secondaryInputMode: hud.secondaryInputMode,
-            projectileInputMode: hud.projectileInputMode,
-            mobilityInputMode: hud.mobilityInputMode,
-            jumpAffordable: jumpAffordable,
-            mobilityAffordable: mobilityAffordable,
-            mobilityCooldownTicksLeft:
-                hud.cooldownTicksLeft[CooldownGroup.mobility],
-            mobilityCooldownTicksTotal:
-                hud.cooldownTicksTotal[CooldownGroup.mobility],
-            secondaryAffordable: secondaryAffordable,
-            secondaryCooldownTicksLeft:
-                hud.cooldownTicksLeft[CooldownGroup.secondary],
-            secondaryCooldownTicksTotal:
-                hud.cooldownTicksTotal[CooldownGroup.secondary],
-            spellAffordable: spellAffordable,
-            spellCooldownTicksLeft: hud.cooldownTicksLeft[CooldownGroup.spell0],
-            spellCooldownTicksTotal:
-                hud.cooldownTicksTotal[CooldownGroup.spell0],
-            forceAimCancelSignal: forceAimCancelSignal,
-            hasSecondarySlot: hasSecondarySlot,
-            hasProjectileSlot: hasProjectileSlot,
+            touchControlsVisible: !desktop,
+            hudObstacles: [hudRowKey, bossPanelKey, if (desktop) desktopBarKey],
           ),
-        ),
+        if (desktop)
+          DesktopControlsOverlay(
+            controller: controller,
+            panelKey: desktopBarKey,
+          )
+        else
+          IgnorePointer(
+            ignoring:
+                !uiState.isRunning ||
+                controller.terrainReadiness == TerrainReadiness.failed,
+            child: RunnerControlsOverlay(
+              spellAbilityId: hud.abilitySpellId,
+              movementInputEpoch: movementInputEpoch,
+              movementControlMode: movementControlMode,
+              movementEnabled:
+                  uiState.isRunning &&
+                  controller.terrainReadiness != TerrainReadiness.failed,
+              onMoveAxis: input.setMoveAxis,
+              onJumpPressed: () =>
+                  input.triggerAction(RunnerGameplayAction.jump),
+              onMobilityPressed: () =>
+                  input.triggerAction(RunnerGameplayAction.mobility),
+              onMobilityCommitted: () =>
+                  input.commitAction(RunnerGameplayAction.mobility),
+              onMobilityHoldStart: () =>
+                  input.beginAction(RunnerGameplayAction.mobility),
+              onMobilityHoldEnd: () =>
+                  input.endAction(RunnerGameplayAction.mobility),
+              onSecondaryPressed: () =>
+                  input.triggerAction(RunnerGameplayAction.secondary),
+              onSecondaryCommitted: () =>
+                  input.commitAction(RunnerGameplayAction.secondary),
+              onSecondaryHoldStart: () =>
+                  input.beginAction(RunnerGameplayAction.secondary),
+              onSecondaryHoldEnd: () =>
+                  input.endAction(RunnerGameplayAction.secondary),
+              onSpellPressed: () =>
+                  input.triggerAction(RunnerGameplayAction.spell),
+              onProjectileCommitted: () =>
+                  input.commitAction(RunnerGameplayAction.projectile),
+              onProjectilePressed: () =>
+                  input.triggerAction(RunnerGameplayAction.projectile),
+              onProjectileHoldStart: () =>
+                  input.beginAction(RunnerGameplayAction.projectile),
+              onProjectileHoldEnd: () =>
+                  input.endAction(RunnerGameplayAction.projectile),
+              onAimDir: input.setAimDir,
+              onAimClear: input.clearAimDir,
+              projectileAimPreview: projectileAimPreview,
+              chargeBarVisible: chargeBarVisible,
+              chargeBarProgress01: chargeBarProgress01,
+              chargeBarTier: hud.chargeTier,
+              projectileAffordable: projectileAffordable,
+              projectileCooldownTicksLeft:
+                  hud.cooldownTicksLeft[CooldownGroup.projectile],
+              projectileCooldownTicksTotal:
+                  hud.cooldownTicksTotal[CooldownGroup.projectile],
+              onMeleeCommitted: () =>
+                  input.commitAction(RunnerGameplayAction.primary),
+              onMeleePressed: () =>
+                  input.triggerAction(RunnerGameplayAction.primary),
+              onMeleeHoldStart: () =>
+                  input.beginAction(RunnerGameplayAction.primary),
+              onMeleeHoldEnd: () =>
+                  input.endAction(RunnerGameplayAction.primary),
+              onMeleeChargeHoldStart: () =>
+                  input.beginAction(RunnerGameplayAction.primary),
+              onMeleeChargeHoldEnd: () =>
+                  input.endAction(RunnerGameplayAction.primary),
+              onResourceShortfall: (missing) =>
+                  warnings.value = ControlResourceUsage(
+                    health: missing.health,
+                    mana: missing.mana,
+                    stamina: missing.stamina,
+                  ),
+              missingResourcesBySlot: {
+                for (final entry in equippedAbilityIdsBySlot.entries)
+                  if (switch (entry.key) {
+                    AbilitySlot.primary =>
+                      hud.meleeSlotValid && !hud.canAffordMelee,
+                    AbilitySlot.secondary =>
+                      hud.secondarySlotValid && !hud.canAffordSecondary,
+                    AbilitySlot.projectile =>
+                      hud.projectileSlotValid && !hud.canAffordProjectile,
+                    AbilitySlot.mobility =>
+                      hud.mobilitySlotValid && !hud.canAffordMobility,
+                    AbilitySlot.spell =>
+                      hud.spellSlotValid && !hud.canAffordSpell,
+                    AbilitySlot.jump => hud.jumpSlotValid && !hud.canAffordJump,
+                  })
+                    entry.key: ControlResourceUsage.shortfall(
+                      cost: hud.abilityCostsBySlot[entry.key]!,
+                      health: hud.hp,
+                      mana: hud.mana,
+                      stamina: hud.stamina,
+                    ),
+              },
+              resourcesBySlot: {
+                for (final entry in equippedAbilityIdsBySlot.entries)
+                  entry.key: ControlResourceUsage.fromAbility(
+                    ability: AbilityCatalog.shared.resolve(entry.value),
+                    cost: hud.abilityCostsBySlot[entry.key]!,
+                  ),
+              },
+              meleeAimPreview: meleeAimPreview,
+              aimCancelHitboxRect: aimCancelHitboxRect,
+              meleeAffordable: meleeAffordable,
+              meleeCooldownTicksLeft:
+                  hud.cooldownTicksLeft[CooldownGroup.primary],
+              meleeCooldownTicksTotal:
+                  hud.cooldownTicksTotal[CooldownGroup.primary],
+              meleeInputMode: hud.meleeInputMode,
+              secondaryInputMode: hud.secondaryInputMode,
+              projectileInputMode: hud.projectileInputMode,
+              mobilityInputMode: hud.mobilityInputMode,
+              jumpAffordable: jumpAffordable,
+              mobilityAffordable: mobilityAffordable,
+              mobilityRecastAvailable: hud.mobilityRecastTicksLeft > 0,
+              mobilityCooldownTicksLeft:
+                  hud.cooldownTicksLeft[CooldownGroup.mobility],
+              mobilityCooldownTicksTotal:
+                  hud.cooldownTicksTotal[CooldownGroup.mobility],
+              secondaryAffordable: secondaryAffordable,
+              secondaryCooldownTicksLeft:
+                  hud.cooldownTicksLeft[CooldownGroup.secondary],
+              secondaryCooldownTicksTotal:
+                  hud.cooldownTicksTotal[CooldownGroup.secondary],
+              spellAffordable: spellAffordable,
+              spellCooldownTicksLeft:
+                  hud.cooldownTicksLeft[CooldownGroup.spell0],
+              spellCooldownTicksTotal:
+                  hud.cooldownTicksTotal[CooldownGroup.spell0],
+              forceAimCancelSignal: forceAimCancelSignal,
+              hasSecondarySlot: hasSecondarySlot,
+              hasProjectileSlot: hasProjectileSlot,
+            ),
+          ),
         PauseOverlay(
           visible: uiState.showPauseOverlay,
           exitConfirmOpen: exitConfirmOpen,
           onResume: onExitConfirmResume,
           onExit: onExitConfirmExit,
         ),
-        ReadyOverlay(visible: uiState.showReadyOverlay, onTap: onStart),
+        ReadyOverlay(
+          visible: uiState.showReadyOverlay,
+          onTap: onStart,
+          desktop: desktop,
+        ),
         if (uiState.isRunning)
           TerrainLoadingOverlay(
             readiness: controller.terrainReadiness,
@@ -245,6 +284,7 @@ class GameOverlay extends StatefulWidget {
             padding: const EdgeInsets.all(8),
             child: LayoutBuilder(
               builder: (context, constraints) => Row(
+                key: hudRowKey,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TopLeftHudOverlay(
@@ -273,12 +313,13 @@ class GameOverlay extends StatefulWidget {
             ),
           ),
         ),
-        BossArenaHud(controller: controller),
-        AimCancelButtonOverlay(
-          projectileAimPreview: projectileAimPreview,
-          meleeAimPreview: meleeAimPreview,
-          hitboxRect: aimCancelHitboxRect,
-        ),
+        BossArenaHud(controller: controller, panelKey: bossPanelKey),
+        if (!desktop)
+          AimCancelButtonOverlay(
+            projectileAimPreview: projectileAimPreview,
+            meleeAimPreview: meleeAimPreview,
+            hitboxRect: aimCancelHitboxRect,
+          ),
         Offstage(
           offstage: controller.snapshot.bossArena?.playerHeld ?? false,
           child: PlayerImpactBorderOverlay(
@@ -292,6 +333,9 @@ class GameOverlay extends StatefulWidget {
 }
 
 class _GameOverlayState extends State<GameOverlay> {
+  final _hudRowKey = GlobalKey();
+  final _bossPanelKey = GlobalKey();
+  final _desktopBarKey = GlobalKey();
   final _warnings = ValueNotifier<ControlResourceUsage>(
     ControlResourceUsage.none,
   );
@@ -303,6 +347,11 @@ class _GameOverlayState extends State<GameOverlay> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      widget._buildOverlay(context, _warnings);
+  Widget build(BuildContext context) => widget._buildOverlay(
+    context,
+    _warnings,
+    _hudRowKey,
+    _bossPanelKey,
+    _desktopBarKey,
+  );
 }

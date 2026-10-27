@@ -56,7 +56,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
   Future<RunSubmissionStatus> submitRunReplay({
     required String runSessionId,
     required RunMode runMode,
-    required String replayFilePath,
+    required String replayArtifactId,
     required String canonicalSha256,
     required int contentLengthBytes,
     String contentType = 'application/octet-stream',
@@ -65,7 +65,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     await journalRunReplay(
       runSessionId: runSessionId,
       runMode: runMode,
-      replayFilePath: replayFilePath,
+      replayArtifactId: replayArtifactId,
       canonicalSha256: canonicalSha256,
       contentLengthBytes: contentLengthBytes,
       contentType: contentType,
@@ -77,7 +77,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
   Future<RunSubmissionStatus> journalRunReplay({
     required String runSessionId,
     required RunMode runMode,
-    required String replayFilePath,
+    required String replayArtifactId,
     required String canonicalSha256,
     required int contentLengthBytes,
     String contentType = 'application/octet-stream',
@@ -89,7 +89,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
       userId: session.userId,
       runSessionId: runSessionId,
       runMode: runMode,
-      replayFilePath: replayFilePath,
+      replayArtifactId: replayArtifactId,
       canonicalSha256: canonicalSha256,
       contentLengthBytes: contentLengthBytes,
       contentType: contentType,
@@ -240,6 +240,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
           _app._latestVerifiedReward = status;
         }
       }
+      unawaited(_app.refreshInboxSummary());
     } catch (error) {
       debugPrint(
         'Run submission canonical sync failed after final reward status: $error',

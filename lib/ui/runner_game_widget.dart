@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:run_protocol/board_key.dart';
 
@@ -20,9 +21,14 @@ import '../game/input/runner_semantic_action_dispatcher.dart';
 import '../game/replay/run_recorder.dart';
 import '../game/runner_flame_game.dart';
 import 'app/ui_routes.dart';
+import 'app/app_runtime_policy.dart';
 import 'bootstrap/loader_content.dart';
 import 'components/loader_shell.dart';
 import 'controls/movement_control_mode.dart';
+import 'input/runner_control_scheme.dart';
+import 'input/desktop/runner_desktop_input_adapter.dart';
+import 'input/desktop/runner_desktop_aim_geometry.dart';
+import 'scoped/scoped_game_context_menu.dart';
 import 'hud/game/game_overlay.dart';
 import 'hud/gameover/game_over_overlay.dart';
 import 'haptics/haptics_cue.dart';
@@ -31,6 +37,7 @@ import 'haptics/boss_entrance_haptics_binding.dart';
 import 'runner_game_ui_state.dart';
 import 'run/runner_run_session.dart';
 import 'run/run_start_preparation.dart';
+import 'run/run_release_gate.dart';
 import 'state/app/app_state.dart';
 import 'state/run/run_start_remote_exception.dart';
 import 'state/ownership/selection_state.dart';
@@ -51,22 +58,30 @@ import 'viewport/viewport_metrics.dart';
 /// builds independent terrain candidates concurrently; browser work cooperates
 /// with rendering. A bounded native worker computes ghost ticks ahead; only
 /// presentation follows the live tick.
-/// Debug-only developer Practice skips recording and account submission while
+/// Developer Practice on web or native debug skips recording and submission,
 /// preserving the normal simulation, loading, controls and score breakdown.
 ///
 /// During play, missing terrain holds the next tick asynchronously and keeps
 /// controls mounted. Runtime failure offers same-run retry and exit; it never
 /// restarts the ticket or recorder. Waits do not accrue catch-up time.
 ///
-/// Leaving the resumed lifecycle pauses play and clears held inputs. Returning
-/// resumes lifecycle-paused play while preserving manual pauses and ready state.
+/// Leaving the resumed lifecycle pauses play and clears held inputs. Touch
+/// resumes lifecycle-paused play on return; desktop requires explicit resume.
+/// Automatic controls use keyboard/mouse on desktop platforms and their browsers,
+/// and touch elsewhere. Desktop Enter starts/resumes; Escape/P toggles pause.
+/// Windows mouse aiming has no aim-ray preview; touch previews remain available.
+/// Host UI clicks do not fire abilities. Browser context menus are suppressed
+/// while desktop controls are mounted, then restored to their prior setting.
 /// Reward completion belongs to AppState and continues after this widget closes;
 /// embedding hosts must forward app foreground state to AppState.
+/// A restart rejected for maintenance or an obsolete client shows a release
+/// dialog while retaining the current session and its submission recovery.
 /// Boss entrances hold controls within the active Core run; the replay clock
 /// continues, and defeating the boss restores ordinary route progression.
 ///
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
-/// resolution fitted to the available screen.
+/// resolution fitted to the available screen. During play, left/top off-screen
+/// actor markers use that same fitted/cropped view and ignore pointer input.
 class RunnerGameWidget extends StatefulWidget {
   const RunnerGameWidget({
     super.key,
@@ -83,6 +98,7 @@ class RunnerGameWidget extends StatefulWidget {
     this.ghostReplayBootstrap,
     this.isDeveloperPractice = false,
     this.movementControlMode = MovementControlMode.arrows,
+    this.controlScheme = RunnerControlScheme.automatic,
     this.onExit,
     this.showExitButton = true,
     this.viewportMode = ViewportScaleMode.pixelPerfectContain,
@@ -124,12 +140,17 @@ class RunnerGameWidget extends StatefulWidget {
   /// Optional verified ghost replay payload to race against.
   final GhostReplayBootstrap? ghostReplayBootstrap;
 
-  /// Debug-only local Practice, without recording, rewards or leaderboard writes.
+  /// Local Practice on web or native debug; no recording, rewards or leaderboards.
   final bool isDeveloperPractice;
 
-  /// Touch movement presentation, retained on restart. Both modes emit only
-  /// -1, 0 or 1; hosts may select a mode without providing app settings services.
+  /// Arrows, floating joystick, or fixed joystick, retained on restart. All emit
+  /// only -1, 0 or 1; hosts can select without app settings services.
   final MovementControlMode movementControlMode;
+
+  /// Automatic platform selection, or an explicit touch/keyboard-mouse surface.
+  /// Desktop focus loss pauses until explicit resume. Changing schemes clears
+  /// held inputs and pauses an active run. Movement preferences apply to touch.
+  final RunnerControlScheme controlScheme;
 
   final VoidCallback? onExit;
   final bool showExitButton;
@@ -153,6 +174,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   final UiHaptics _haptics = const UiHapticsService();
   late BossEntranceHapticsBinding _bossEntranceHaptics;
   bool _pausedByLifecycle = false;
+  RunnerControlScheme _controlScheme = RunnerControlScheme.touch;
+  RunnerDesktopInputController? _desktopInput;
+  final _desktopSurfaceKey = GlobalKey();
+  final _gameSurfaceKey = GlobalKey();
+  bool get _usesDesktop => _controlScheme == RunnerControlScheme.desktop;
   int _movementInputEpoch = 0;
   bool _started = false;
   bool _exitConfirmOpen = false;
@@ -215,6 +241,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _configureControls();
     final appState = _maybeAppState();
     if (identical(appState, _submissionAppState)) return;
     _submissionAppState?.removeListener(_onSubmissionChanged);
@@ -224,6 +251,124 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       WidgetsBinding.instance.lifecycleState == null ||
           WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
     );
+  }
+
+  @override
+  void didUpdateWidget(covariant RunnerGameWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _configureControls();
+  }
+
+  void _configureControls() {
+    final scheme = widget.controlScheme.resolve(defaultTargetPlatform);
+    if (_controlScheme == scheme) return;
+    _clearInputs();
+    _desktopInput?.dispose();
+    _desktopInput = null;
+    _controlScheme = scheme;
+    _pausedByLifecycle = false;
+    if (_started) _controller.setPaused(true);
+    if (_usesDesktop) _createDesktopInput();
+  }
+
+  void _createDesktopInput() {
+    _desktopInput = RunnerDesktopInputController(
+      dispatcher: _actions,
+      resolveAimGeometry: _desktopAimGeometry,
+      onFocusLost: _pauseDesktop,
+      onAimChanged: defaultTargetPlatform == TargetPlatform.windows
+          ? null
+          : _projectileAimPreview.updateAim,
+      onAimCleared: _projectileAimPreview.end,
+      onCancelPresentation: () {
+        _projectileAimPreview.end();
+        _meleeAimPreview.end();
+      },
+    )..setEnabled(false);
+    _requestDesktopFocus();
+  }
+
+  void _requestDesktopFocus() {
+    final input = _desktopInput;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identical(input, _desktopInput) && _isForeground) {
+        input?.requestFocus();
+      }
+    });
+  }
+
+  bool get _isForeground {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state == null || state == AppLifecycleState.resumed;
+  }
+
+  void _syncDesktopInput() {
+    _desktopInput?.setEnabled(
+      _session.isReady &&
+          _started &&
+          !_controller.snapshot.paused &&
+          !_controller.snapshot.gameOver &&
+          !_exitConfirmOpen &&
+          !_restartInFlight &&
+          _isForeground &&
+          _controller.terrainReadiness != TerrainReadiness.failed,
+    );
+  }
+
+  void _pauseDesktop() {
+    if (!_usesDesktop) return;
+    _pausedByLifecycle = false;
+    _clearInputs();
+    _controller.setPaused(true);
+    _syncDesktopInput();
+  }
+
+  RunnerDesktopAimGeometry? _desktopAimGeometry() {
+    final box = _desktopSurfaceKey.currentContext?.findRenderObject();
+    final player = _controller.snapshot.playerEntity;
+    if (box is! RenderBox ||
+        !box.hasSize ||
+        box.size.isEmpty ||
+        player == null) {
+      return null;
+    }
+    return RunnerDesktopAimGeometry.fromWorld(
+      metrics: computeViewportMetrics(
+        BoxConstraints.tight(box.size),
+        MediaQuery.devicePixelRatioOf(context),
+        virtualWidth,
+        virtualHeight,
+        widget.viewportMode,
+        alignment: widget.viewportAlignment,
+      ),
+      camera: _controller.snapshot.camera,
+      playerWorldPosition: Offset(player.pos.x, player.pos.y),
+    );
+  }
+
+  KeyEventResult _desktopShortcut(FocusNode node, KeyEvent event) {
+    final key = event.logicalKey;
+    final enter =
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter;
+    final pause =
+        key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.keyP;
+    if (!enter && !pause) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent) return KeyEventResult.handled;
+    if (!_session.isReady ||
+        !_isForeground ||
+        _controller.snapshot.gameOver ||
+        _restartInFlight) {
+      return KeyEventResult.handled;
+    }
+    if (_exitConfirmOpen) {
+      if (key == LogicalKeyboardKey.escape) _closeExitConfirm(resume: true);
+    } else if (!_started) {
+      if (enter) _startGame();
+    } else if (pause || (enter && _controller.snapshot.paused)) {
+      _togglePause();
+    }
+    return KeyEventResult.handled;
   }
 
   void _onSubmissionChanged() {
@@ -241,6 +386,11 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _submissionAppState?.setRunSubmissionForeground(
       state == AppLifecycleState.resumed,
     );
+    if (_usesDesktop) {
+      if (state != AppLifecycleState.resumed) _pauseDesktop();
+      _syncDesktopInput();
+      return;
+    }
     final runLoaded = _session.isReady;
     final uiState = _buildUiState(runLoaded: runLoaded);
     if (state == AppLifecycleState.resumed) {
@@ -261,12 +411,17 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _clearInputs() {
     _movementInputEpoch++;
-    _actions.cancelAll();
+    if (_desktopInput case final input?) {
+      input.cancelAll();
+    } else {
+      _actions.cancelAll();
+    }
     _projectileAimPreview.end();
     _meleeAimPreview.end();
   }
 
   void _cancelHeldChargedAim() {
+    _desktopInput?.cancelAbilityActions();
     _actions.clearAimDir();
     _projectileAimPreview.end();
     _meleeAimPreview.end();
@@ -277,6 +432,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   TerrainReadiness _lastTerrainReadiness = TerrainReadiness.ready;
 
   void _onControllerTick() {
+    _syncDesktopInput();
+    _desktopInput?.refreshPointerAim();
     final readiness = _controller.terrainReadiness;
     if (readiness != _lastTerrainReadiness) {
       _lastTerrainReadiness = readiness;
@@ -326,12 +483,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _validateInitialRunInputs() {
     if (widget.isDeveloperPractice &&
-        (!kDebugMode ||
+        (!developerPracticeAllowed ||
             widget.runMode != RunMode.practice ||
             widget.boardId != null ||
             widget.boardKey != null ||
             widget.ghostReplayBootstrap != null)) {
-      throw StateError('Developer runs require debug, local Practice only.');
+      throw StateError(
+        'Developer runs require web or native debug, local Practice only.',
+      );
     }
     if (widget.runSessionId.trim().isEmpty) {
       throw StateError('RunnerGameWidget requires non-empty runSessionId.');
@@ -440,13 +599,12 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     try {
       final summary = _buildReplayProvisionalSummary(event);
       final finalized = await recorder.finalize(clientSummary: summary);
-      final replaySize = await finalized.replayBlobFile.length();
       final journaledStatus = await appState.journalRunReplay(
         runSessionId: _runSessionId,
         runMode: _runMode,
-        replayFilePath: finalized.replayBlobFile.path,
+        replayArtifactId: finalized.replayArtifactId,
         canonicalSha256: finalized.replayBlob.canonicalSha256,
-        contentLengthBytes: replaySize,
+        contentLengthBytes: finalized.contentLengthBytes,
         provisionalSummary: summary,
       );
       if (!mounted) return;
@@ -507,6 +665,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _pausedByLifecycle =
         lifecycle != null && lifecycle != AppLifecycleState.resumed;
     _controller.setPaused(_pausedByLifecycle);
+    _syncDesktopInput();
+    _requestDesktopFocus();
   }
 
   void _onRestartPressed() {
@@ -557,6 +717,32 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _showRestartFailure(Object error) {
+    if (error is RunStartRemoteException &&
+        (error.isUpdateRequired || error.isReleaseMaintenance)) {
+      unawaited(
+        showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            content: SingleChildScrollView(
+              child: RunReleaseGate(
+                error: error,
+                onRetry: () {
+                  Navigator.of(dialogContext).pop();
+                  _onRestartPressed();
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
     final message = RunStartPreparation.messageFor(error);
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
@@ -564,11 +750,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _restartWithDescriptor(RunStartDescriptor descriptor) {
+    _desktopInput?.dispose();
+    _desktopInput = null;
     _bossEntranceHaptics.dispose();
     final oldSession = _session;
     final oldAimCancelHitboxRect = _aimCancelHitboxRect;
     final oldForceAimCancelSignal = _forceAimCancelSignal;
     final oldPlayerImpactFeedbackSignal = _playerImpactFeedbackSignal;
+    oldSession.removeListener(_syncDesktopInput);
     oldSession.controller.removeEventListener(_handleGameEvent);
     oldSession.controller.removeListener(_onControllerTick);
     unawaited(
@@ -610,13 +799,16 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _pausedBeforeExitConfirm = wasPaused;
       _exitConfirmOpen = true;
     });
+    _syncDesktopInput();
   }
 
   void _closeExitConfirm({required bool resume}) {
     setState(() => _exitConfirmOpen = false);
-    if (resume) {
+    if (resume && _isForeground) {
       _controller.setPaused(_pausedBeforeExitConfirm);
+      _requestDesktopFocus();
     }
+    _syncDesktopInput();
   }
 
   void _confirmExitGiveUp() {
@@ -625,9 +817,14 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _togglePause() {
+    if (!_session.isReady || !_started || !_isForeground || _exitConfirmOpen) {
+      return;
+    }
     final paused = _controller.snapshot.paused;
     if (!paused) _clearInputs();
     _controller.setPaused(!paused);
+    _syncDesktopInput();
+    if (paused) _requestDesktopFocus();
   }
 
   AbilityInputMode _resolveInputMode(RunnerGameplayAction action) {
@@ -663,6 +860,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _playerImpactFeedbackSignal = ValueNotifier<int>(0);
     _lastPlayerDamageTick = _controller.snapshot.hud.lastDamageTick;
     _lastChargeTier = 0;
+    _lastTerrainReadiness = _controller.terrainReadiness;
+    _session.addListener(_syncDesktopInput);
+    if (_usesDesktop) _createDesktopInput();
   }
 
   Future<void> _retryLoading() async {
@@ -695,6 +895,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _clearInputs();
     _controller.removeEventListener(_handleGameEvent);
     _controller.removeListener(_onControllerTick);
+    _desktopInput?.dispose();
+    _desktopInput = null;
+    _session.removeListener(_syncDesktopInput);
     _session.dispose();
     _aimCancelHitboxRect.dispose();
     _forceAimCancelSignal.dispose();
@@ -713,118 +916,145 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final session = _session;
-            final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-            final metrics = computeViewportMetrics(
-              constraints,
-              devicePixelRatio,
-              virtualWidth,
-              virtualHeight,
-              widget.viewportMode,
-              alignment: widget.viewportAlignment,
-            );
-            Widget gameView = GameViewport(
-              metrics: metrics,
-              child: GameWidget(
-                key: ValueKey(_game),
-                game: _game,
-                autofocus: false,
-                loadingBuilder: (_) => const SizedBox.shrink(),
-                errorBuilder: (_, error) =>
-                    _RunLoadFailureReporter(session: session, error: error),
-              ),
-            );
-
-            return gameView;
-          },
-        ),
-        AnimatedBuilder(
-          animation: _session,
-          builder: (context, _) {
-            final runLoaded = _session.isReady;
-            return AnimatedBuilder(
-              animation: _controller,
+    final surface = LayoutBuilder(
+      builder: (context, constraints) {
+        final session = _session;
+        final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+        final metrics = computeViewportMetrics(
+          constraints,
+          devicePixelRatio,
+          virtualWidth,
+          virtualHeight,
+          widget.viewportMode,
+          alignment: widget.viewportAlignment,
+        );
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_desktopInput case final desktop?)
+              SizedBox.expand(
+                key: _desktopSurfaceKey,
+                child: RunnerDesktopInputAdapter(
+                  controller: desktop,
+                  child: _buildGameSurface(session, metrics),
+                ),
+              )
+            else
+              _buildGameSurface(session, metrics),
+            AnimatedBuilder(
+              animation: _session,
               builder: (context, _) {
-                final uiState = _buildUiState(runLoaded: runLoaded);
-                if (uiState.showLoadingOverlay) {
-                  return _RunLoadingView(
-                    message: _session.loadingMessage,
-                    errorMessage: _session.errorMessage,
-                    onRetry: _loadingRetryInFlight ? null : _retryLoading,
-                    onExit: widget.showExitButton ? widget.onExit : null,
-                  );
-                }
-                if (uiState.gameOver) {
-                  final runEndedEvent = _controller.lastRunEndedEvent;
-                  final runEndKey =
-                      runEndedEvent?.tick ?? _controller.snapshot.tick;
-                  return GameOverOverlay(
-                    key: ValueKey(
-                      'gameOver-$_runSessionId-$runEndKey-${runEndedEvent?.reason}',
-                    ),
-                    visible: true,
-                    onRestart: _onRestartPressed,
-                    restartInProgress: _restartInFlight,
-                    onExit: widget.onExit,
-                    showExitButton: widget.showExitButton,
-                    levelId: _controller.snapshot.levelIdentity
-                        .requireRegisteredId(),
-                    runMode: _runMode,
-                    isDeveloperPractice: _descriptor.isDeveloperPractice,
-                    runEndedEvent: runEndedEvent,
-                    scoreTuning: _controller.scoreTuning,
-                    tickHz: _controller.tickHz,
-                    provisionalGoldEarned: _provisionalGoldEarned,
-                    verifiedGold: _verifiedGoldForGameOver(),
-                    runSubmissionStatus: _runSubmissionStatus,
-                    replaySubmissionJournaled: _runReplayJournaled,
-                    replaySubmissionJournalError: _runReplayJournalError,
-                    onRetryReplayJournal: _runReplayJournalInFlight
-                        ? null
-                        : () {
-                            final event = _controller.lastRunEndedEvent;
-                            if (event == null) return;
-                            setState(() {
-                              _runReplayJournalInFlight = true;
-                              _runReplayJournalError = null;
-                            });
-                            unawaited(_journalReplayForSubmission(event));
-                          },
-                  );
-                }
-                return GameOverlay(
-                  movementInputEpoch: _movementInputEpoch,
-                  movementControlMode: widget.movementControlMode,
-                  controller: _controller,
-                  input: _actions,
-                  projectileAimPreview: _projectileAimPreview,
-                  meleeAimPreview: _meleeAimPreview,
-                  aimCancelHitboxRect: _aimCancelHitboxRect,
-                  forceAimCancelSignal: _forceAimCancelSignal,
-                  playerImpactFeedbackSignal: _playerImpactFeedbackSignal,
-                  uiState: uiState,
-                  onStart: _startGame,
-                  onTogglePause: _togglePause,
-                  showExitButton: widget.showExitButton,
-                  onExit: uiState.started && !uiState.gameOver
-                      ? _openExitConfirm
-                      : widget.onExit,
-                  exitConfirmOpen: _exitConfirmOpen,
-                  onExitConfirmResume: () => _closeExitConfirm(resume: true),
-                  onExitConfirmExit: _confirmExitGiveUp,
+                final runLoaded = _session.isReady;
+                return AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    final uiState = _buildUiState(runLoaded: runLoaded);
+                    if (uiState.showLoadingOverlay) {
+                      return _RunLoadingView(
+                        message: _session.loadingMessage,
+                        errorMessage: _session.errorMessage,
+                        onRetry: _loadingRetryInFlight ? null : _retryLoading,
+                        onExit: widget.showExitButton ? widget.onExit : null,
+                      );
+                    }
+                    if (uiState.gameOver) {
+                      final runEndedEvent = _controller.lastRunEndedEvent;
+                      final runEndKey =
+                          runEndedEvent?.tick ?? _controller.snapshot.tick;
+                      return GameOverOverlay(
+                        key: ValueKey(
+                          'gameOver-$_runSessionId-$runEndKey-${runEndedEvent?.reason}',
+                        ),
+                        visible: true,
+                        onRestart: _onRestartPressed,
+                        restartInProgress: _restartInFlight,
+                        onExit: widget.onExit,
+                        showExitButton: widget.showExitButton,
+                        levelId: _controller.snapshot.levelIdentity
+                            .requireRegisteredId(),
+                        runMode: _runMode,
+                        isDeveloperPractice: _descriptor.isDeveloperPractice,
+                        runEndedEvent: runEndedEvent,
+                        scoreTuning: _controller.scoreTuning,
+                        tickHz: _controller.tickHz,
+                        provisionalGoldEarned: _provisionalGoldEarned,
+                        verifiedGold: _verifiedGoldForGameOver(),
+                        runSubmissionStatus: _runSubmissionStatus,
+                        replaySubmissionJournaled: _runReplayJournaled,
+                        replaySubmissionJournalError: _runReplayJournalError,
+                        onRetryReplayJournal: _runReplayJournalInFlight
+                            ? null
+                            : () {
+                                final event = _controller.lastRunEndedEvent;
+                                if (event == null) return;
+                                setState(() {
+                                  _runReplayJournalInFlight = true;
+                                  _runReplayJournalError = null;
+                                });
+                                unawaited(_journalReplayForSubmission(event));
+                              },
+                      );
+                    }
+                    final overlay = GameOverlay(
+                      controlScheme: _controlScheme,
+                      indicatorFrames: _game.offscreenIndicators,
+                      viewportMetrics: metrics,
+                      movementInputEpoch: _movementInputEpoch,
+                      movementControlMode: widget.movementControlMode,
+                      controller: _controller,
+                      input: _actions,
+                      projectileAimPreview: _projectileAimPreview,
+                      meleeAimPreview: _meleeAimPreview,
+                      aimCancelHitboxRect: _aimCancelHitboxRect,
+                      forceAimCancelSignal: _forceAimCancelSignal,
+                      playerImpactFeedbackSignal: _playerImpactFeedbackSignal,
+                      uiState: uiState,
+                      onStart: _startGame,
+                      onTogglePause: _togglePause,
+                      showExitButton: widget.showExitButton,
+                      onExit: uiState.started && !uiState.gameOver
+                          ? _openExitConfirm
+                          : widget.onExit,
+                      exitConfirmOpen: _exitConfirmOpen,
+                      onExitConfirmResume: () =>
+                          _closeExitConfirm(resume: true),
+                      onExitConfirmExit: _confirmExitGiveUp,
+                    );
+                    return ExcludeFocus(
+                      excluding: _usesDesktop && uiState.isRunning,
+                      child: overlay,
+                    );
+                  },
                 );
               },
-            );
-          },
-        ),
-      ],
+            ),
+          ],
+        );
+      },
+    );
+    return ScopedGameContextMenu(
+      enabled: _usesDesktop,
+      child: Focus(
+        canRequestFocus: false,
+        onKeyEvent: _usesDesktop ? _desktopShortcut : null,
+        child: surface,
+      ),
     );
   }
+
+  Widget _buildGameSurface(RunnerRunSession session, ViewportMetrics metrics) =>
+      GameViewport(
+        key: _gameSurfaceKey,
+        metrics: metrics,
+        child: GameWidget(
+          key: ValueKey(_game),
+          game: _game,
+          autofocus: false,
+          loadingBuilder: (_) => const SizedBox.shrink(),
+          errorBuilder: (_, error) =>
+              _RunLoadFailureReporter(session: session, error: error),
+        ),
+      );
 }
 
 class _RunLoadingView extends StatelessWidget {

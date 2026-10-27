@@ -8,6 +8,8 @@ import '../../accessories/accessory_catalog.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/hit_payload_builder.dart';
 import '../../combat/cast_origin_offset.dart';
+import '../../combat/aim_motion_forecast.dart';
+import '../../tuning/physics_tuning.dart';
 import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_id.dart';
 import '../../projectiles/projectile_catalog.dart';
@@ -39,6 +41,9 @@ import '../world.dart';
 /// - No RNG.
 /// - No wall-clock time; uses [currentTick].
 class AbilityActivationSystem {
+  /// [physics] must match the run's gravity tuning. Production supplies the
+  /// current published collision world through [aimTerrainProvider]; isolated
+  /// worlds may omit it to forecast free motion without terrain contacts.
   AbilityActivationSystem({
     required this.tickHz,
     required this.inputBufferTicks,
@@ -49,8 +54,20 @@ class AbilityActivationSystem {
     required this.accessories,
     this.playerCastOriginOffset,
     this.projectileAimPathClear,
+    AimTerrain Function()? aimTerrainProvider,
+    PhysicsTuning physics = const PhysicsTuning(),
     ResolvedStatsCache? statsCache,
-  }) : _statsCache =
+  }) : _sourceAimMotion = AimMotionForecast(
+         tickHz: tickHz,
+         physics: physics,
+         terrainProvider: aimTerrainProvider,
+       ),
+       _targetAimMotion = AimMotionForecast(
+         tickHz: tickHz,
+         physics: physics,
+         terrainProvider: aimTerrainProvider,
+       ),
+       _statsCache =
            statsCache ??
            ResolvedStatsCache(
              resolver: CharacterStatsResolver(
@@ -76,6 +93,8 @@ class AbilityActivationSystem {
   projectileAimPathClear;
 
   final ResolvedStatsCache _statsCache;
+  final AimMotionForecast _sourceAimMotion;
+  final AimMotionForecast _targetAimMotion;
 
   void step(
     EcsWorld world, {
@@ -92,6 +111,15 @@ class AbilityActivationSystem {
     if (loadoutIndex == null) return;
 
     final isStunned = world.controlLock.isStunned(player, currentTick);
+
+    final movements = world.movement;
+    if (isStunned ||
+        world.swimState.isSwimming(player) ||
+        currentTick >= movements.recastExpiresAtTick[movementIndex] ||
+        movements.recastAbilityId[movementIndex] !=
+            world.equippedLoadout.abilityMobilityId[loadoutIndex]) {
+      movements.clearRecast(player);
+    }
 
     final axis = world.playerInput.moveAxis[inputIndex];
     final Facing facing = axis != 0
@@ -667,6 +695,10 @@ class AbilityActivationSystem {
     _cancelCombatOnMobilityPress(world, player);
 
     final isJump = slot == AbilitySlot.jump;
+    final isRecast =
+        !isJump &&
+        ability.mobilityRecast != null &&
+        world.movement.canRecast(player, ability.id, commitTick);
     final fail = AbilityGate.canCommitMobility(
       world,
       entity: player,
@@ -675,6 +707,9 @@ class AbilityActivationSystem {
       healthCost100: isJump ? 0 : commitCost.healthCost100,
       manaCost100: isJump ? 0 : commitCost.manaCost100,
       staminaCost100: isJump ? 0 : commitCost.staminaCost100,
+      mobilityAbilityId: !isJump && ability.mobilityRecast != null
+          ? ability.id
+          : null,
     );
     if (fail != null) return false;
 
@@ -695,12 +730,22 @@ class AbilityActivationSystem {
         recoveryTicks: recoveryTicks,
         facingDir: facingDir,
         cooldownGroupId: cooldownGroupId,
-        cooldownTicks: cooldownTicks,
+        cooldownTicks: isRecast ? 0 : cooldownTicks,
         healthCost100: commitCost.healthCost100,
         manaCost100: commitCost.manaCost100,
         staminaCost100: commitCost.staminaCost100,
         movementIndex: movementIndex,
       );
+      world.movement.clearRecast(player);
+      final recast = ability.mobilityRecast;
+      if (!isRecast && recast != null) {
+        final opens = executeTick + activeTicks;
+        final expires = min(
+          opens + _scaleAbilityTicks(recast.windowTicks),
+          commitTick + cooldownTicks,
+        );
+        world.movement.armRecast(player, ability.id, opens, expires);
+      }
     }
 
     world.mobilityIntent.set(
@@ -1405,13 +1450,13 @@ class AbilityActivationSystem {
     if (sourceFi == null) return null;
     final sourceFaction = world.faction.faction[sourceFi];
 
-    final sourceX = world.transform.posX[sourceTi];
-    final sourceY = world.transform.posY[sourceTi];
-    final sourceVelX = world.transform.velX[sourceTi];
-    final sourceVelY = world.transform.velY[sourceTi];
-    final windupSeconds = max(0.0, windupTicks.toDouble()) / tickHz;
-    final sourceExecuteX = sourceX + sourceVelX * windupSeconds;
-    final sourceExecuteY = sourceY + sourceVelY * windupSeconds;
+    // Activation precedes this tick's motion; execution follows motion even
+    // with zero windup, so include the commit tick as well as the delay.
+    final motionTicksToExecute = max(0, windupTicks) + 1;
+    _sourceAimMotion.reset(world, source);
+    _sourceAimMotion.advance(motionTicksToExecute);
+    final sourceExecuteX = _sourceAimMotion.x;
+    final sourceExecuteY = _sourceAimMotion.y;
 
     final hasProjectileLead =
         projectileSpeedUnitsPerSecond != null &&
@@ -1426,6 +1471,7 @@ class AbilityActivationSystem {
     var bestDist2 = double.infinity;
     var bestInterceptSeconds = double.infinity;
     var bestHasIntercept = false;
+    var bestHasClearSight = false;
     var bestAimX = 0.0;
     var bestAimY = 0.0;
     var bestEntity = -1;
@@ -1446,13 +1492,10 @@ class AbilityActivationSystem {
 
       final targetTi = world.transform.tryIndexOf(target);
       if (targetTi == null) continue;
-      final targetX = world.transform.posX[targetTi];
-      final targetY = world.transform.posY[targetTi];
-      final targetVelX = world.transform.velX[targetTi];
-      final targetVelY = world.transform.velY[targetTi];
-
-      final targetExecuteX = targetX + targetVelX * windupSeconds;
-      final targetExecuteY = targetY + targetVelY * windupSeconds;
+      _targetAimMotion.reset(world, target);
+      _targetAimMotion.advance(motionTicksToExecute);
+      final targetExecuteX = _targetAimMotion.x;
+      final targetExecuteY = _targetAimMotion.y;
       final relX = targetExecuteX - sourceExecuteX;
       final relY = targetExecuteY - sourceExecuteY;
       final relDist2 = relX * relX + relY * relY;
@@ -1464,21 +1507,21 @@ class AbilityActivationSystem {
       var candidateAimY = relY;
 
       if (hasProjectileLead) {
-        final interceptSeconds = _solveInterceptSeconds(
-          relX: relX,
-          relY: relY,
-          targetVelX: targetVelX,
-          targetVelY: targetVelY,
-          projectileSpeedUnitsPerSecond: projectileSpeedUnitsPerSecond,
-          projectileOriginOffset: projectileOriginOffset,
+        final intercept = _forecastProjectileIntercept(
+          sourceX: sourceExecuteX,
+          sourceY: sourceExecuteY,
+          speed: projectileSpeedUnitsPerSecond,
+          lifetime: projectileLifetimeSeconds,
+          originOffset: projectileOriginOffset,
         );
+        final interceptSeconds = intercept?.seconds;
         if (interceptSeconds != null &&
             (projectileLifetimeSeconds == null ||
                 interceptSeconds <= projectileLifetimeSeconds)) {
           candidateHasIntercept = true;
           candidateInterceptSeconds = interceptSeconds;
-          candidateAimX = relX + targetVelX * interceptSeconds;
-          candidateAimY = relY + targetVelY * interceptSeconds;
+          candidateAimX = intercept!.x;
+          candidateAimY = intercept.y;
         }
       }
 
@@ -1512,28 +1555,37 @@ class AbilityActivationSystem {
         take = closer || betterTie;
       }
 
-      if (take) {
-        if (hasProjectileLead && projectileAimPathClear != null) {
-          final aimLength = sqrt(candidateAimLen2);
-          final originX =
-              sourceExecuteX +
-              candidateAimX / aimLength * projectileOriginOffset;
-          final originY =
-              sourceExecuteY +
-              candidateAimY / aimLength * projectileOriginOffset;
-          final targetX = sourceExecuteX + candidateAimX;
-          final targetY = sourceExecuteY + candidateAimY;
-          if (!projectileAimPathClear!(originX, originY, targetX, targetY)) {
-            continue;
-          }
-        }
-        bestEntity = target;
-        bestDist2 = relDist2;
-        bestInterceptSeconds = candidateInterceptSeconds;
-        bestHasIntercept = candidateHasIntercept;
-        bestAimX = candidateAimX;
-        bestAimY = candidateAimY;
+      // A clear shot can beat a better-ranked blocked prediction. Once a clear
+      // shot wins, worse-ranked candidates cannot improve it and need no raycast.
+      if (!take && bestHasClearSight) continue;
+
+      var candidateHasClearSight = true;
+      if (hasProjectileLead && projectileAimPathClear != null) {
+        final aimLength = sqrt(candidateAimLen2);
+        final originX =
+            sourceExecuteX + candidateAimX / aimLength * projectileOriginOffset;
+        final originY =
+            sourceExecuteY + candidateAimY / aimLength * projectileOriginOffset;
+        final targetX = sourceExecuteX + candidateAimX;
+        final targetY = sourceExecuteY + candidateAimY;
+        candidateHasClearSight = projectileAimPathClear!(
+          originX,
+          originY,
+          targetX,
+          targetY,
+        );
       }
+      // Forecasts cannot anticipate new inputs or AI decisions. Preserve an
+      // enemy-directed fallback when every predicted sightline is blocked.
+      if (!candidateHasClearSight && (bestHasClearSight || !take)) continue;
+
+      bestEntity = target;
+      bestDist2 = relDist2;
+      bestInterceptSeconds = candidateInterceptSeconds;
+      bestHasIntercept = candidateHasIntercept;
+      bestHasClearSight = candidateHasClearSight;
+      bestAimX = candidateAimX;
+      bestAimY = candidateAimY;
     }
 
     if (bestEntity == -1) return null;
@@ -1542,6 +1594,63 @@ class AbilityActivationSystem {
     if (bestAimLen2 <= 1e-12) return null;
     final invLen = 1.0 / sqrt(bestAimLen2);
     return (bestAimX * invLen, bestAimY * invLen);
+  }
+
+  ({double x, double y, double seconds})? _forecastProjectileIntercept({
+    required double sourceX,
+    required double sourceY,
+    required double speed,
+    required double? lifetime,
+    required double originOffset,
+  }) {
+    final motion = _targetAimMotion;
+    if (motion.isLinear) {
+      final x = motion.x - sourceX;
+      final y = motion.y - sourceY;
+      final seconds = _solveInterceptSeconds(
+        relX: x,
+        relY: y,
+        targetVelX: motion.velocityX,
+        targetVelY: motion.velocityY,
+        projectileSpeedUnitsPerSecond: speed,
+        projectileOriginOffset: originOffset,
+      );
+      if (seconds == null) return null;
+      return (
+        x: x + motion.velocityX * seconds,
+        y: y + motion.velocityY * seconds,
+        seconds: seconds,
+      );
+    }
+    // Search each fixed-tick segment in time order. This retains the earliest
+    // intercept across an apex, landing or ceiling contact without iterating
+    // an unbounded time estimate. The projectile's lifetime bounds all work.
+    final maxSeconds = lifetime ?? 0;
+    for (var tick = 0; tick < (maxSeconds * tickHz).ceil(); tick++) {
+      final elapsed = tick / tickHz;
+      final startX = motion.x - sourceX;
+      final startY = motion.y - sourceY;
+      motion.advance(1);
+      final vx = (motion.x - sourceX - startX) * tickHz;
+      final vy = (motion.y - sourceY - startY) * tickHz;
+      final seconds = _solveInterceptSeconds(
+        relX: startX,
+        relY: startY,
+        targetVelX: vx,
+        targetVelY: vy,
+        projectileSpeedUnitsPerSecond: speed,
+        projectileOriginOffset: originOffset + speed * elapsed,
+      );
+      final duration = min(1 / tickHz, maxSeconds - elapsed);
+      if (seconds != null && seconds <= duration) {
+        return (
+          x: startX + vx * seconds,
+          y: startY + vy * seconds,
+          seconds: elapsed + seconds,
+        );
+      }
+    }
+    return null;
   }
 
   double? _solveInterceptSeconds({

@@ -40,6 +40,10 @@ Current Core→HUD contract includes:
 
 This split is deliberate so HUD doesn’t need to scan entities.
 
+Off-screen actor indicators are a spatial exception: the game layer extracts
+interpolated live player/enemy body bounds from render snapshots and publishes
+a dedicated frame feed. The HUD places labels without scanning Core internals.
+
 ### 2.3 Rules
 
 * UI must treat snapshots as **read-only** and must not simulate. 
@@ -176,6 +180,35 @@ See [control presentation](01_controls.md#8-button-layout-current-overlay).
 
 ---
 
+### 3.5 Off-screen player and enemy indicators
+
+During active play, small markers identify live actors outside the left or top
+of the visible game area. Left markers follow actor height; top markers follow
+horizontal position. An actor beyond both edges gets one diagonal corner marker.
+Right-only and bottom-only departures do not display markers.
+
+- The player uses a worn-gold diamond; enemies use rust circles, with pale
+  outward arrows and readable distance text on matte iron backing.
+- Distance means the shortest gap from the actor's body to the visible game
+  area, using 25 world units per metre. Labels show whole metres rounded down,
+  or `<1 m` for a positive sub-metre gap. Corner distances include both axes.
+- A marker first appears after the body clears the view by two world units on
+  either supported edge. It remains until the body touches the view again.
+  Camera shake does not move the markers or change their visibility.
+- Nearby enemies on the same edge group as `×3 · 4 m`, showing the nearest
+  member's distance. The player remains separate and gets first placement.
+- Labels stay inside the visible viewport and device safe area, avoiding the
+  top HUD, boss panel and control regions. They may move along the left edge or
+  below top panels to stay readable. Crowded edges merge further enemies where
+  possible; if no readable slot fits, farther enemy markers are omitted.
+- Indicators never intercept touches. They are hidden during ready/loading,
+  pause and game-over overlays. Ghosts, NPCs, projectiles and death poses are
+  excluded; only actors already present in the live snapshot are considered.
+
+See [off-screen indicator implementation](../tdd/offscreen_indicators.md).
+
+---
+
 ## 4. Context overlays (stateful HUD)
 
 These are full-screen overlays that temporarily override normal HUD to express the *session state*.
@@ -262,8 +295,7 @@ For aim+commit abilities:
 ### 7.1 Additions (still HUD-safe)
 
 * Status effects on player (icons only, no scrolling list): stun/bleed/burn/slow, etc.
-* "Danger" cues:
-  * behind-camera threat (soft indicator near left edge)
+* Left/top off-screen actor indicators are implemented in section 3.5.
 * Loadout identity remains available through the Skills list and details;
   in-run control symbols consistently identify action slots.
 

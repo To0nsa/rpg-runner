@@ -607,7 +607,7 @@ class GameCore {
       statsCache: _resolvedStatsCache,
     );
     _jumpSystem = JumpSystem(abilities: abilityCatalog);
-    _mobilitySystem = MobilitySystem();
+    _mobilitySystem = MobilitySystem(statsCache: _resolvedStatsCache);
     _cooldownSystem = CooldownSystem();
     _gravitySystem = GravitySystem();
 
@@ -714,6 +714,13 @@ class GameCore {
       accessories: _accessories,
       playerCastOriginOffset: _playerCharacter.catalog.castOriginOffset,
       projectileAimPathClear: projectileAimVisibility.isClear,
+      physics: _physicsTuning,
+      aimTerrainProvider: () {
+        final bundle =
+            (_worldMotionAuthority as TerrainMultiBodyWorldMotionAuthority)
+                .terrainRuntimeBundle;
+        return (geometry: bundle.geometry, index: bundle.edgeIndex);
+      },
       statsCache: _resolvedStatsCache,
     );
     _mobilityImpactSystem = MobilityImpactSystem(abilities: abilityCatalog);
@@ -2495,6 +2502,7 @@ class GameCore {
   ///
   /// After this call, [gameOver] is true and [stepOneTick] will no-op.
   void _endRun(RunEndReason reason, {DeathInfo? deathInfo}) {
+    _world.movement.clearRecast(_player);
     _encounters.endRun(_world, tick: tick);
     _bossArenas.endRun(_world, _player);
     _bossResourceSupply.endCombat(_world);

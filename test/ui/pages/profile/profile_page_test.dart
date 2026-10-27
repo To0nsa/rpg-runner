@@ -259,6 +259,10 @@ void main() {
       await _tapDeleteAccount(tester);
       await tester.pumpAndSettle();
       expect(find.text('Delete account and data?'), findsOneWidget);
+      expect(
+        find.textContaining('Deletion can take several hours.'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();

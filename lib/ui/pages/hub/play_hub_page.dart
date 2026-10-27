@@ -117,8 +117,10 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   ? null
                   : () =>
                         Navigator.of(context).pushNamed(UiRoutes.leaderboards),
-              onMessagesPressed: () =>
-                  Navigator.of(context).pushNamed(UiRoutes.messages),
+              messagesNeedAttention: appState.inboxSummary.needsAttention,
+              onMessagesPressed: appState.inboxAvailable
+                  ? () => Navigator.of(context).pushNamed(UiRoutes.messages)
+                  : null,
               onOptionsPressed: () =>
                   Navigator.of(context).pushNamed(UiRoutes.options),
             ),

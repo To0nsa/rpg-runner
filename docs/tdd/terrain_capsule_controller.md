@@ -145,6 +145,14 @@ otherwise selects the closest feasible single-face tangent, otherwise stops at
 the shared corner. This prevents alternating projection between floor/wall,
 ceiling/wall, and opposing-wall contacts.
 
+The prepared `2026.10.21` collision fix also includes the retained grounded
+support normal in this intersection. Grounded sweeps omit that face as a
+blocker, but a wall's slide response must not move the capsule into it. This
+keeps downhill rock contacts supported and allows a subsequent jump instead
+of repeatedly failing overlap recovery. Contact/recovery budgets, step height,
+jump capabilities and simulation ordering are unchanged. Matching client and
+worker artifacts are required because the resolved motion is replay-sensitive.
+
 Step-up sweeps up, forward, and down. Its preview adds one deterministic
 collision-skin/epsilon clearance beyond the authored lift so an exactly
 `4 px` ledge is not misclassified as endpoint tangency. The final body rise

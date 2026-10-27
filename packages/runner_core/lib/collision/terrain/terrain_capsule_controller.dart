@@ -1157,6 +1157,7 @@ class TerrainCapsuleController {
             unresolvedX,
             unresolvedY,
             constraintCount,
+            retainedSupport: traversalSupport,
           );
           unresolvedX = constrained.$1;
           unresolvedY = constrained.$2;
@@ -1434,8 +1435,15 @@ class TerrainCapsuleController {
     _out.queryCellsVisited += _queryBuffer.stats.cellsVisited;
   }
 
-  (int, int) _applyConstraints(int x, int y, int constraintCount) {
-    if (_satisfiesConstraints(x, y, constraintCount)) return (x, y);
+  (int, int) _applyConstraints(
+    int x,
+    int y,
+    int constraintCount, {
+    TerrainEdge? retainedSupport,
+  }) {
+    if (_satisfiesConstraints(x, y, constraintCount, retainedSupport)) {
+      return (x, y);
+    }
 
     // In 2D the closest point in the intersection of origin-based contact
     // half-spaces is the original vector, one constraint boundary, or the
@@ -1444,15 +1452,28 @@ class TerrainCapsuleController {
     var constrainedX = 0;
     var constrainedY = 0;
     var bestDistanceSquared = x * x + y * y;
-    for (var index = 0; index < constraintCount; index += 1) {
-      final normalX = _constraintNormalX[index];
-      final normalY = _constraintNormalY[index];
+    // Grounded sweeps skip their support face as a blocker. A wall's slide
+    // response must still respect that face, or downhill motion can penetrate
+    // the floor and leave every subsequent tick stuck in overlap recovery.
+    final count = constraintCount + (retainedSupport == null ? 0 : 1);
+    for (var index = 0; index < count; index += 1) {
+      final normalX = index < constraintCount
+          ? _constraintNormalX[index]
+          : retainedSupport!.outwardNormal.xTicks;
+      final normalY = index < constraintCount
+          ? _constraintNormalY[index]
+          : retainedSupport!.outwardNormal.yTicks;
       final dot = x * normalX + y * normalY;
       if (dot >= 0) continue;
       final normalLengthSquared = normalX * normalX + normalY * normalY;
       final candidateX = x - _roundedDivide(dot * normalX, normalLengthSquared);
       final candidateY = y - _roundedDivide(dot * normalY, normalLengthSquared);
-      if (!_satisfiesConstraints(candidateX, candidateY, constraintCount)) {
+      if (!_satisfiesConstraints(
+        candidateX,
+        candidateY,
+        constraintCount,
+        retainedSupport,
+      )) {
         continue;
       }
       final deltaX = candidateX - x;
@@ -1469,8 +1490,19 @@ class TerrainCapsuleController {
     return (constrainedX, constrainedY);
   }
 
-  bool _satisfiesConstraints(int x, int y, int constraintCount) {
+  bool _satisfiesConstraints(
+    int x,
+    int y,
+    int constraintCount,
+    TerrainEdge? retainedSupport,
+  ) {
     final tolerance = terrainGeometryEpsilonTicks * terrainDirectionScale;
+    if (retainedSupport != null &&
+        x * retainedSupport.outwardNormal.xTicks +
+                y * retainedSupport.outwardNormal.yTicks <
+            -tolerance) {
+      return false;
+    }
     for (var index = 0; index < constraintCount; index += 1) {
       if (x * _constraintNormalX[index] + y * _constraintNormalY[index] <
           -tolerance) {

@@ -50,11 +50,11 @@ function Get-AllPagedResources {
       $pageUri += "$separator`pageToken=$([Uri]::EscapeDataString($pageToken))"
     }
     $response = Invoke-RestMethod -Method Get -Uri $pageUri -Headers $Headers
-    if ($response.PSObject.Properties.Name -contains $Property) {
+    if ($response.PSObject.Properties[$Property]) {
       $resources += @($response.$Property)
     }
     $pageToken = if (
-      $response.PSObject.Properties.Name -contains "nextPageToken"
+      $null -ne $response.PSObject.Properties['nextPageToken']
     ) {
       [string]$response.nextPageToken
     } else {
@@ -121,7 +121,7 @@ function Ensure-AlertPolicy {
     [Parameter(Mandatory = $true)][string]$TemplatePath,
     [Parameter(Mandatory = $true)][string]$NotificationChannel,
     [Parameter(Mandatory = $true)][hashtable]$Headers,
-    [Parameter(Mandatory = $true)][object[]]$ExistingPolicies
+    [Parameter(Mandatory = $true)][AllowEmptyCollection()][object[]]$ExistingPolicies
   )
 
   $policy = Get-Content -Raw $TemplatePath | ConvertFrom-Json -AsHashtable

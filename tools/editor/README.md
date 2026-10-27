@@ -224,7 +224,8 @@ tab, viewport, undo/redo history, and pending diff.
    then set **At least** and **At most** to `3` for exactly three chunks. Leave
    **Use each chunk at most once in this section** enabled for no repeats.
    **Duplicate section** copies its settings; drag or use **Move earlier/later**
-   to arrange the sequence. Flow shows chunk positions and matching pool counts.
+   to arrange the sequence. Flow scrolls with the selected section as it moves.
+   Flow shows chunk positions and matching pool counts.
    Explicit difficulty requires matching active chunks without tier fallback;
    incomplete but structurally valid sequences can be saved before adding their
    missing content. Runtime capacity and seam errors still block Play.
@@ -722,9 +723,10 @@ selector, which swaps only the domain's sections; it never replaces or rebuilds
 the scene or filters Diagnostics. Owner, authoring, visual-stack, and
 Diagnostics sections start folded and retain presentation-only expansion state
 while mounted. Tab changes preserve the viewport and each
-domain's last selection. Active source gestures and retained dialogs lock the
-tabs until that operation is finished or cancelled. Merely selecting a Prefab
-or expanding its inline editor does not lock the workspace.
+domain's last selection. Changing chunks keeps the active tab and clears
+selections belonging to the previous chunk. Active source gestures and retained
+dialogs lock the tabs until that operation is finished or cancelled. Merely
+selecting a Prefab or expanding its inline editor does not lock the workspace.
 
 The scene tabs make primary input explicit. The Prefabs domain has Select,
 Place, and Move tools backed by a persistent visual-library section at the top

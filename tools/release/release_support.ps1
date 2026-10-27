@@ -47,6 +47,9 @@ function Invoke-ReleaseCommand {
 function Read-ReleaseEnvironment {
   param([string]$Root, [string]$ProjectId)
   $values = @{}
+  # Firebase also reads .env. An explicit project file must exist before those
+  # shared values can be used; a new environment must never inherit dev alone.
+  if (-not (Test-Path -LiteralPath (Join-Path $Root "functions/.env.$ProjectId"))) { return $values }
   foreach ($relative in @("functions/.env", "functions/.env.$ProjectId")) {
     $path = Join-Path $Root $relative
     if (-not (Test-Path -LiteralPath $path)) { continue }
@@ -128,10 +131,10 @@ function Get-ReleaseFileDigest {
 
 function Get-ReleaseSourceDigest {
   param([string]$Root, [string]$ProjectId)
-  $listing = Invoke-ReleaseCommand git @("ls-files", "--cached", "--others", "--exclude-standard") $Root
+  $listing = Invoke-ReleaseCommand git @("-c", "core.quotepath=false", "ls-files", "--cached", "--others", "--exclude-standard") $Root
   $paths = @($listing -split '\r?\n' | Where-Object {
-    $_ -match '^(assets|lib|web|test|test_driver|packages|functions|services/replay_validator|tool|tools/cloud|tools/release|\.github/workflows)/' -or
-    $_ -match '^(\.dockerignore|\.gcloudignore|\.firebaserc|firebase\.json|firestore\..+|pubspec\..+|package\.json|pnpm-.+\.yaml|analysis_options\.yaml)$'
+    $_ -match '^(android|assets|lib|web|test|test_driver|packages|functions|services/replay_validator|tool|tools/cloud|tools/release|\.github/workflows)/' -or
+    $_ -match '^(\.dockerignore|\.gcloudignore|\.firebaserc|firebase(?:\.(?:staging|prod))?\.json|firestore\..+|pubspec\..+|package\.json|pnpm-.+\.yaml|analysis_options\.yaml)$'
   } | Where-Object { $_ -notmatch '^functions/(lib|lib_test|node_modules)/' -and (Test-Path -LiteralPath (Join-Path $Root $_) -PathType Leaf) })
   foreach ($relative in @("functions/.env", "functions/.env.$ProjectId")) {
     if (Test-Path -LiteralPath (Join-Path $Root $relative)) { $paths += $relative }
@@ -191,5 +194,15 @@ function Assert-ReleaseImage {
   $prefix = "$Region-docker.pkg.dev/$ProjectId/replay/replay-validator"
   if ($State.imageUri -notmatch "^$([regex]::Escape($prefix))@sha256:[0-9a-f]{64}$" -or $State.imageVerified -ne $true) {
     throw "No matching benchmarked immutable image. Run BuildImage."
+  }
+}
+
+function Assert-ReleaseBootstrapEmpty {
+  param([object]$Inventory, [string]$ProjectId, [object[]]$Functions, [object[]]$Services)
+  if ($Inventory.projectId -ne $ProjectId -or $Inventory.readOnly -ne $true -or
+      $Inventory.hasAuthUsers -ne $false -or $Inventory.hasFirestoreCollections -ne $false -or
+      ($null -ne $Functions -and $Functions.Count -ne 0) -or
+      ($null -ne $Services -and $Services.Count -ne 0)) {
+    throw "Bootstrap requires a verified empty target: no Auth users, Firestore collections, Functions or Cloud Run services. Use normal cutover for established environments."
   }
 }

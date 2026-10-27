@@ -487,9 +487,11 @@ class StatusSystem {
       world.selfIntent.tick[world.selfIntent.indexOf(target)] = -1;
     }
     // Cancel dash if active
+    world.movement.clearRecast(target);
     final mi = world.movement.tryIndexOf(target);
     if (mi != null && world.movement.dashTicksLeft[mi] > 0) {
       world.movement.dashTicksLeft[mi] = 0;
+      world.gravityControl.removeEntity(target);
     }
   }
 

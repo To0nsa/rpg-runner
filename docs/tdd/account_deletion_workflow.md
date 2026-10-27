@@ -2,6 +2,13 @@
 
 ## Status
 
+The system inbox adds explicit resumable stages for `system_messages`,
+`inbox_rewards` and `inbox_summaries`, all queried by recipient UID. Issuing,
+reading and claiming are fenced by the deletion tombstone. Client acceptance
+also clears inbox attention/state and invalidates late responses. These inbox
+extensions are locally implemented; the historical deployment evidence below
+does not cover them. See [system inbox](system_inbox.md).
+
 Implementation reviewed, hardened, deployed, and production-verified with
 controlled fixtures on September 15, 2026. The server and web release,
 generation-fenced Storage operations, expiry cleanup, and a complete
@@ -135,6 +142,14 @@ explicit inventory:
 New UID-owned schemas, projections, or Storage prefixes must extend this
 inventory and its emulator test before shipping.
 
+`web/account-deletion.html` provides the external request route through
+`lothringen.rpg@gmail.com`, alongside the existing Profile > Delete account flow.
+It asks which app/environment the request concerns and requires account-control
+verification before an operator acts; it is not an unauthenticated deletion API.
+The static page is included in the dev Hosting build. Its public availability
+and Play Console registration remain deployment checks in the
+[Android beta checklist](../building/android_beta_release.md).
+
 This inventory erases primary Firestore records and live Storage objects.
 Provider recovery copies follow the bucket/database configuration. Production
 verification on September 15 found seven-day soft-delete retention on the
@@ -144,6 +159,15 @@ schedules were configured. Provider recovery retention and audit-log lifecycles
 are separate from this worker's inventory; the completion checkpoint does not
 certify immediate physical removal of every provider-held copy. See
 [Cloud Artifact Retention](cloud_artifact_retention.md).
+
+That historical project is now dev. October 26 beta provisioning enabled
+seven-day PITR and daily backups retained seven days in the isolated staging/prod
+databases, as well as seven-day replay-bucket soft deletion. Their operational
+log buckets retain 30 days; required administrative/system audit buckets retain
+400 days. Readback and the synthetic restore limits are recorded in
+[beta evidence](../verification/android-beta-2026-10-26.md). The external deletion
+page discloses these separate recovery/log windows; it must not promise that
+primary deletion immediately erases provider-held copies.
 
 Top-level UID queries repeat from the beginning until empty; they do not advance
 past deleted documents. Nested ownership and board collections use durable

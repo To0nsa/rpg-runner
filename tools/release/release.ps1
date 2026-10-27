@@ -3,7 +3,7 @@
 Checks, prepares, inspects, builds and deploys the configured Firebase release.
 .DESCRIPTION
 Plan is offline. Prepare changes only local build output. Inspect is read-only.
-BuildImage uploads source and starts Cloud Build; PauseIssuance, Deploy and
+BuildImage uploads source and starts Cloud Build; Bootstrap, PauseIssuance, Deploy and
 ResumeIssuance change production.
 Deploy requires successful unchanged preparation. Coordinated releases also
 require a benchmarked image, fresh drain evidence and CutoverReady. Scoped
@@ -12,38 +12,71 @@ No data is cancelled or deleted. Issuance pauses and resumes explicitly.
 #>
 [CmdletBinding()]
 param(
-  [ValidateSet("Plan", "Checkout", "ImportCI", "Prepare", "Inspect", "BuildImage", "ImageStatus", "PauseIssuance", "Deploy", "ResumeIssuance")]
+  [ValidateSet("Plan", "Provision", "SigningSetup", "RecoverySetup", "MonitoringSetup", "Checkout", "ImportCI", "Prepare", "BuildAndroid", "Inspect", "BuildImage", "ImageStatus", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance")]
   [string]$Action = "Plan",
+  [ValidateSet("dev", "staging", "prod")]
+  [string]$Environment = "dev",
   [string]$ProjectId = "",
-  [string]$Region = "europe-west1",
+  [string]$Region = "",
   [ValidateSet("Auto", "Hosting", "Backend", "Coordinated")]
   [string]$Scope = "Auto",
   [string]$CacheDirectory = "",
   [string]$Commit = "HEAD",
   [long]$RunId = 0,
+  [string]$BillingAccount = "",
+  [string]$BudgetAmount = "",
+  [string]$NotificationEmail = "",
+  [int]$AndroidVersionCode = 0,
   [switch]$Rebuild,
   [switch]$CutoverReady
 )
 
 . (Join-Path $PSScriptRoot "release_support.ps1")
+. (Join-Path $PSScriptRoot "release_environments.ps1")
 . (Join-Path $PSScriptRoot "release_cache.ps1")
 . (Join-Path $PSScriptRoot "prepare_release.ps1")
 . (Join-Path $PSScriptRoot "release_ci.ps1")
+. (Join-Path $PSScriptRoot "release_lock.ps1")
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
+if ($Action -in @("Provision", "SigningSetup", "RecoverySetup", "MonitoringSetup", "BuildAndroid", "BuildImage", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance") -and
+    -not $PSBoundParameters.ContainsKey("Environment")) { throw "Cloud mutations require explicit -Environment dev, staging or prod." }
+$definition = Get-ReleaseEnvironmentDefinition $root $Environment $ProjectId $Region
+$ProjectId = $definition.projectId
+$Region = $definition.region
+if ($Action -eq 'Provision') {
+  . (Join-Path $PSScriptRoot 'provision_environment.ps1')
+  Initialize-ReleaseEnvironment $root $Environment $BillingAccount $BudgetAmount
+  return
+}
+$mutationLock = $null
+try {
+if ($Action -eq 'SigningSetup') {
+  $mutationLock = Enter-ReleaseMutationLock $root $definition $Action
+  . (Join-Path $PSScriptRoot 'android_signing.ps1')
+  Initialize-AndroidUploadSigning $root $definition $Environment
+  return
+}
+if ($Action -eq 'RecoverySetup') {
+  $mutationLock = Enter-ReleaseMutationLock $root $definition $Action
+  . (Join-Path $PSScriptRoot 'database_recovery.ps1')
+  Set-ReleaseDatabaseRecovery $root $definition $Environment
+  return
+}
+if ($Action -eq 'MonitoringSetup') {
+  $mutationLock = Enter-ReleaseMutationLock $root $definition $Action
+  . (Join-Path $PSScriptRoot 'monitoring_environment.ps1')
+  Set-ReleaseMonitoring $root $definition $NotificationEmail
+  return
+}
+$firebaseConfigPath = Join-Path $root $definition.firebaseConfig
 $cacheRoot = Get-ReleaseCacheRoot $root $CacheDirectory
 if ($Action -eq "Checkout") {
-  New-ReleaseCheckout $root $Commit
+  New-ReleaseCheckout $root $Commit $ProjectId
   return
 }
 if ($Action -eq "ImportCI") {
   Import-ReleaseCI $root $cacheRoot $RunId
   return
-}
-$firebase = Get-Content -Raw -LiteralPath (Join-Path $root "firebase.json") | ConvertFrom-Json
-$defaultProject = (Get-Content -Raw -LiteralPath (Join-Path $root ".firebaserc") | ConvertFrom-Json).projects.default
-if (-not $ProjectId) { $ProjectId = $defaultProject }
-if ($ProjectId -ne $defaultProject -or $firebase.hosting.site -ne $ProjectId) {
-  throw "This workflow targets the configured project and Hosting site only. Configure a separate environment before deploying elsewhere."
 }
 $contract = Get-ReleaseContract $root $ProjectId
 $inputs = Get-ReleaseInputHashes $root $ProjectId
@@ -52,7 +85,8 @@ $resolvedScope = Resolve-ReleaseScope $inputs $contract $baseline $Scope
 $sourceDigest = Get-ReleaseSourceDigest $root $ProjectId
 $evidenceDirectory = Join-Path $root ".tmp/releases/$ProjectId/$sourceDigest"
 $statePath = Join-Path $evidenceDirectory "release.json"
-$environment = Read-ReleaseEnvironment $root $ProjectId
+$environmentValues = Read-ReleaseEnvironment $root $ProjectId
+Assert-ReleaseEnvironmentValues $definition $environmentValues -RequireConfiguration:($Action -notin @("Plan", "Inspect", "ImageStatus"))
 
 function Save-ReleaseState {
   $script:state | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $statePath -Encoding utf8
@@ -67,7 +101,7 @@ function Invoke-ReleaseGcloud {
 function Invoke-ReleaseFirebase {
   param([string]$Targets)
   $commandArgs = @("--dir", "functions", "exec", "firebase", "deploy",
-    "--config", (Join-Path $root "firebase.json"), "--project", $ProjectId,
+    "--config", $firebaseConfigPath, "--project", $ProjectId,
     "--only", $Targets, "--non-interactive")
   Write-Host "Deploying $Targets"
   $savedDebug = $env:DEBUG
@@ -193,6 +227,7 @@ function Assert-LiveWorker {
 
 function Assert-LiveHosting {
   param([string]$ExpectedHash)
+  if (-not $definition.hostingSite) { return }
   $download = Join-Path $evidenceDirectory "hosting-main.dart.js"
   Invoke-WebRequest -UseBasicParsing -Uri "https://$ProjectId.web.app/main.dart.js?release=$sourceDigest" -Headers @{ "Cache-Control" = "no-cache" } -OutFile $download
   if ((Get-FileHash -LiteralPath $download).Hash -ne $ExpectedHash) {
@@ -272,8 +307,13 @@ function Confirm-ReleaseQueues {
 
 if ($Action -eq "Plan") {
   [ordered]@{
+    environment = $Environment
     projectId = $ProjectId
     region = $Region
+    firebaseConfig = $definition.firebaseConfig
+    hostingSite = $definition.hostingSite
+    androidPackage = $definition.androidPackage
+    configurationPresent = (Test-Path -LiteralPath (Join-Path $root "functions/.env.$ProjectId"))
     contract = $contract
     sourceDigest = $sourceDigest
     evidenceDirectory = $evidenceDirectory
@@ -283,6 +323,7 @@ if ($Action -eq "Plan") {
     stages = if ($resolvedScope -ne "Coordinated") { @("Prepare: reuse/validate changed components", "Deploy: verify baseline and publish $resolvedScope") } else { @("Prepare: parallel local validation/build", "Inspect: live read-only snapshot",
       "BuildImage: asynchronous remote build and strict benchmark", "ImageStatus: immutable result",
       "PauseIssuance: temporary runtime compatibility gate",
+      "Bootstrap -CutoverReady: empty targets only, create a verified paused issuer",
       "Deploy -CutoverReady: Functions/indexes, IAM, worker/queues, boards, Hosting",
       "ResumeIssuance -CutoverReady: readiness checks, queues, ticket issuer") }
   } | ConvertTo-Json -Depth 10
@@ -351,12 +392,25 @@ if ($Action -eq "Inspect") {
 
 Assert-ReleasePrepared $state $sourceDigest $ProjectId $Region $root
 
+if ($Action -in @('BuildAndroid', 'BuildImage', 'Bootstrap', 'PauseIssuance', 'Deploy', 'ResumeIssuance')) {
+  $mutationLock = Enter-ReleaseMutationLock $root $definition $Action
+}
+
+if ($Action -eq 'BuildAndroid') {
+  if (-not $PSBoundParameters.ContainsKey('Environment')) { throw 'BuildAndroid requires explicit -Environment.' }
+  . (Join-Path $PSScriptRoot 'android_signing.ps1')
+  . (Join-Path $PSScriptRoot 'android_artifacts.ps1')
+  Invoke-AndroidReleaseBuild $root $definition $Environment $AndroidVersionCode $evidenceDirectory $contract $sourceDigest
+  return
+}
+
 if ($state.scope -in @("Hosting", "Backend", "None")) {
   if ($Action -ne "Deploy") { throw "$Action is only needed for coordinated releases. Use Deploy for $($state.scope)." }
   if ($resolvedScope -ne $state.scope) { throw "Deployment scope changed since preparation. Run Prepare again." }
   Assert-ScopedBaseline
   if ($state.scope -eq "None") { Write-Host "No runtime changes to deploy."; return }
   if ($state.scope -eq "Hosting") {
+    if (-not $definition.hostingSite) { throw "This environment has no Hosting deployment. Prepare and distribute its Android artifact." }
     if (-not $state.hostingDeployedAt) {
       Invoke-ReleaseFirebase "hosting"
       $state.hostingDeployedAt = [DateTime]::UtcNow.ToString("o")
@@ -414,6 +468,25 @@ if ($Action -eq "ImageStatus") {
   Get-ImageStatus | Out-Null
   return
 }
+if ($Action -eq "Bootstrap") {
+  if (-not $CutoverReady) { throw "Bootstrap requires -CutoverReady and release authorization." }
+  if (-not (Get-ImageStatus)) { throw "Image is still building; target remains unchanged." }
+  Assert-ReleaseImage $state $ProjectId $Region
+  $emptyInventory = Invoke-ReleaseCommand node @("functions/tool/bootstrap_inventory.mjs", "--project", $ProjectId) $root | ConvertFrom-Json
+  $existingFunctions = Invoke-ReleaseGcloud @("functions", "list", "--project=$ProjectId", "--format=json") | ConvertFrom-Json
+  $existingServices = Invoke-ReleaseGcloud @("run", "services", "list", "--project=$ProjectId", "--platform=managed", "--format=json") | ConvertFrom-Json
+  Assert-ReleaseBootstrapEmpty $emptyInventory $ProjectId $existingFunctions $existingServices
+  Assert-ReleaseCutoverOwner $root $definition $sourceDigest -Claim | Out-Null
+  $emptyInventory | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDirectory "bootstrap-empty.json") -Encoding utf8
+  # Creating only the paused issuer establishes the same fence used by normal
+  # cutover. Every subsequent deployment/readiness/drain step remains unchanged.
+  Invoke-PausedIssuerRebuild
+  Assert-IssuancePaused
+  $state.issuancePausedAt = [DateTime]::UtcNow.ToString("o")
+  Save-ReleaseState
+  Write-Host "Empty environment bootstrapped with issuance paused. Continue Deploy -CutoverReady, then ResumeIssuance only after readiness and acceptance."
+  return
+}
 if ($Action -eq "PauseIssuance") {
   if (-not (Get-ImageStatus)) { throw "Image is still building; issuance was not paused." }
   Assert-ReleaseImage $state $ProjectId $Region
@@ -431,11 +504,13 @@ if ($Action -eq "PauseIssuance") {
     $imageExists = $false
   }
   if ($imageExists) {
+    Assert-ReleaseCutoverOwner $root $definition $sourceDigest -Claim | Out-Null
     Invoke-ReleaseGcloud @("run", "services", "update", "runsessioncreate",
       "--project=$ProjectId", "--region=$Region", "--image=$issuerImage",
       "--update-env-vars=RUN_SUPPORTED_GAME_COMPAT_VERSIONS=release-paused", "--quiet") "issuance" | Out-Null
   } else {
     Write-Host "Previous issuer image was removed. Rebuilding prepared issuer with the explicit pause gate."
+    Assert-ReleaseCutoverOwner $root $definition $sourceDigest -Claim | Out-Null
     Invoke-PausedIssuerRebuild
   }
   Assert-IssuancePaused
@@ -451,10 +526,11 @@ if (-not $CutoverReady) {
 if (-not (Get-ImageStatus)) { throw "Cloud Build is still running; no production changes made." }
 Assert-ReleaseImage $state $ProjectId $Region
 Assert-IssuancePaused
+$cutoverOwner = Assert-ReleaseCutoverOwner $root $definition $sourceDigest
 $inventory = Get-ReleaseInventory
 Assert-ReleaseDrained $inventory
-if (-not $environment.REPLAY_STORAGE_BUCKET -or
-    $environment.REPLAY_VALIDATION_QUEUE_LOCATION -ne $Region) {
+if (-not $environmentValues.REPLAY_STORAGE_BUCKET -or
+    $environmentValues.REPLAY_VALIDATION_QUEUE_LOCATION -ne $Region) {
   throw "Functions replay bucket/region configuration is missing or inconsistent."
 }
 
@@ -473,6 +549,7 @@ if ($Action -eq "ResumeIssuance") {
   $state.issuanceResumedAt = [DateTime]::UtcNow.ToString("o")
   Save-ReleaseState
   Save-ProductionBaseline $state.imageUri (Get-FileHash -LiteralPath (Join-Path $root "build/web/main.dart.js")).Hash
+  Complete-ReleaseCutover $root $definition $cutoverOwner
   Write-Host "Ticket issuance restored. Linked Play Games end-to-end smoke remains required."
   return
 }
@@ -497,7 +574,7 @@ $cloudScript = Join-Path $root "services/replay_validator/configure_cloud.ps1"
 if (-not $state.workerDeployedAt) {
   $cloudArguments = @{
     ProjectId = $ProjectId; Region = $Region
-    ReplayStorageBucket = $environment.REPLAY_STORAGE_BUCKET; ImageUri = $state.imageUri
+    ReplayStorageBucket = $environmentValues.REPLAY_STORAGE_BUCKET; ImageUri = $state.imageUri
     SettlementDispatchUrl = "https://$Region-$ProjectId.cloudfunctions.net/runSettlementImmediate"
   }
   & $cloudScript @cloudArguments
@@ -507,7 +584,7 @@ if (-not $state.workerDeployedAt) {
 Assert-IssuancePaused
 Invoke-ReleaseGcloud @("scheduler", "jobs", "run", "firebase-schedule-leaderboardBoardMaintenance-$Region",
   "--project=$ProjectId", "--location=$Region", "--quiet") "boards" | Out-Null
-if (-not $state.hostingDeployedAt) {
+if ($definition.hostingSite -and -not $state.hostingDeployedAt) {
   Invoke-ReleaseFirebase "hosting"
   $state.hostingDeployedAt = [DateTime]::UtcNow.ToString("o")
   Save-ReleaseState
@@ -515,4 +592,7 @@ if (-not $state.hostingDeployedAt) {
 $state.deployedAt = [DateTime]::UtcNow.ToString("o")
 Save-ReleaseState
 Write-Host "Artifacts deployed. Issuance and both queues remain paused. Verify board maintenance, then run ResumeIssuance -CutoverReady and linked Play Games smoke checks."
+} finally {
+  Exit-ReleaseMutationLock $root $definition $mutationLock
+}
 Write-Host "Release evidence: $statePath"

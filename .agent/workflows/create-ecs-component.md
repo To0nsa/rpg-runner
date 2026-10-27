@@ -5,7 +5,8 @@ description: Create a new ECS store/component in the Core package
 # Create ECS Component Workflow
 
 Use this workflow when adding persistent ECS state to
-`packages/runner_core/lib/`. Read `packages/runner_core/lib/AGENTS.md` first.
+`packages/runner_core/lib/`. Read [Core package](../../packages/runner_core/AGENTS.md)
+and [Core source](../../packages/runner_core/lib/AGENTS.md) instructions first.
 
 ## Current Shape
 
@@ -55,6 +56,10 @@ Do not use the obsolete `lib/core/**` paths.
    `lib/ui/**` consumers in the same change.
 
 ## Suggested Validation
+
+Run focused store/lifecycle tests with `dart test <target>` from
+`packages/runner_core`; add affected root integration tests with
+`flutter test <target>`. Use the broader commands below for shared system impact.
 
 ```bash
 dart analyze packages/runner_core

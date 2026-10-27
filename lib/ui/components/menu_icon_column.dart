@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_icon_button.dart';
+import 'attention_marker.dart';
 
 /// Shared icon-only menu geometry; sections may expose their selected state.
 class MenuIconColumn extends StatelessWidget {
@@ -15,10 +16,14 @@ class MenuIconColumn extends StatelessWidget {
       for (final action in actions)
         Semantics(
           selected: action.selected,
-          child: AppIconButton(
+          child: AttentionMarker(
+            visible: action.needsAttention,
+            semanticLabel: action.attentionLabel,
+            child: AppIconButton(
             icon: action.icon,
             tooltip: action.tooltip,
             onPressed: action.onPressed,
+            ),
           ),
         ),
     ],
@@ -31,9 +36,13 @@ class MenuIconAction {
     required this.tooltip,
     required this.onPressed,
     this.selected,
+    this.needsAttention = false,
+    this.attentionLabel = 'New activity',
   });
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
   final bool? selected;
+  final bool needsAttention;
+  final String attentionLabel;
 }

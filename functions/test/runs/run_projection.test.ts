@@ -21,6 +21,7 @@ import {
   reconcileLeaderboardBoardProjections,
 } from "../../src/runs/projection_reconciliation.js";
 import { settleAcceptedRunSession } from "../../src/runs/reward_settlement.js";
+import { listInbox, loadInboxSummary } from "../../src/inbox/store.js";
 import { loadRunSessionSubmissionStatus } from "../../src/runs/submission_store.js";
 
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
@@ -54,6 +55,9 @@ beforeEach(async () => {
     clearCollection(db, "account_deletion_requests"),
     clearCollection(db, "system_maintenance"),
     clearCollection(db, "leaderboard_boards"),
+    clearCollection(db, "system_messages"),
+    clearCollection(db, "inbox_rewards"),
+    clearCollection(db, "inbox_summaries"),
   ]);
 });
 
@@ -274,6 +278,50 @@ test("player stats and score XP settle once across run modes", async () => {
   });
   assert.equal(canonical.revision, 3);
 });
+
+test("new level gifts are atomic, cover multiple crossings and never backfill old levels", async () => {
+  const initial = await loadOrCreateCanonicalState({ db, uid });
+  await db.collection("ownership_profiles").doc(`${uid}__${initial.profileId}`).update({
+    "progression.playerProgress": { schemaVersion: 1, totalXp: 224,
+      acceptedRuns: 1, runsByLevel: {}, damageDealt100: 0, damageTaken100: 0 },
+  });
+  assert.equal((await listInbox(db, uid)).messages.length, 0);
+  const runSessionId = await seedCodexRun("practice", "forest", 100000, {});
+  await db.collection("validated_runs").doc(runSessionId).update({
+    playerRunStats: { schemaVersion: 1, damageDealt100: 0, damageTaken100: 0 },
+  });
+  assert.deepEqual((await Promise.all([
+    settleAcceptedRunSession({ db, runSessionId, nowMs }),
+    settleAcceptedRunSession({ db, runSessionId, nowMs }),
+  ])).sort(), ["already_settled", "settled"]);
+  const inbox = await listInbox(db, uid);
+  assert.deepEqual(inbox.messages.map((m) => m.sourceId).sort(), ["level:4", "level:5"]);
+  for (const message of inbox.messages) {
+    assert.deepEqual(message.rewards, [{ kind: "gold", amount: 25 }]);
+    assert.equal(message.claimedAtMs, null);
+  }
+  assert.equal((await loadInboxSummary(db, uid)).unclaimedCount, 2);
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(canonical.progression.gold, (await db.collection("reward_grants").doc(runSessionId).get()).get("goldAmount"));
+});
+
+for (const summary of [
+  { revision: 1, unreadCount: -1, unclaimedCount: 0 },
+  { revision: Number.MAX_SAFE_INTEGER, unreadCount: 0, unclaimedCount: 0 },
+]) {
+  test(`invalid inbox counters ${JSON.stringify(summary)} quarantine settlement atomically`, async () => {
+    await loadOrCreateCanonicalState({ db, uid });
+    await db.collection("inbox_summaries").doc(uid).set({ uid, ...summary });
+    const runSessionId = await seedCodexRun("practice", "forest", 20000, {});
+    await db.collection("validated_runs").doc(runSessionId).update({
+      playerRunStats: { schemaVersion: 1, damageDealt100: 0, damageTaken100: 0 },
+    });
+    assert.equal(await settleAcceptedRunSession({ db, runSessionId, nowMs }), "invariant_violation");
+    assert.equal((await loadOrCreateCanonicalState({ db, uid })).revision, 0);
+    assert.equal((await db.collection("system_messages").get()).size, 0);
+    assert.equal((await db.collection("run_sessions").doc(runSessionId).get()).get("state"), "settlement_pending");
+  });
+}
 
 test("invalid player stats abort settlement and preserve legacy account state", async () => {
   const initial = await loadOrCreateCanonicalState({ db, uid });

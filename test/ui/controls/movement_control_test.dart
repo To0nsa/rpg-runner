@@ -35,24 +35,31 @@ void main() {
     ),
   );
 
-  testWidgets(
-    'joystick emits full digital axes with neutral center and ignores Y',
-    (tester) async {
-      final axes = <double>[];
-      await tester.pumpWidget(host(axes.add, MovementControlMode.joystick));
-      expect(find.byType(MoveButtons), findsNothing);
-      final center = tester.getCenter(find.byType(MoveJoystick));
-      final finger = await tester.startGesture(center);
-      await finger.moveTo(center + const Offset(0, 100));
-      expect(axes, isEmpty);
-      await finger.moveTo(center + const Offset(9, 0));
-      await finger.moveTo(center);
-      await finger.moveTo(center - const Offset(9, 0));
-      await finger.moveTo(center - const Offset(100, 100));
-      await finger.up();
-      expect(axes, [1.0, 0.0, -1.0, 0.0]);
-    },
-  );
+  for (final mode in [
+    MovementControlMode.joystick,
+    MovementControlMode.fixedJoystick,
+  ]) {
+    testWidgets(
+      '$mode emits full digital axes with neutral center and ignores Y',
+      (tester) async {
+        final axes = <double>[];
+        await tester.pumpWidget(host(axes.add, mode));
+        expect(find.byType(MoveButtons), findsNothing);
+        final center = tester.getCenter(
+          find.byKey(const ValueKey('movement_joystick_base')),
+        );
+        final finger = await tester.startGesture(center);
+        await finger.moveTo(center + const Offset(0, 100));
+        expect(axes, isEmpty);
+        await finger.moveTo(center + const Offset(9, 0));
+        await finger.moveTo(center);
+        await finger.moveTo(center - const Offset(9, 0));
+        await finger.moveTo(center - const Offset(100, 100));
+        await finger.up();
+        expect(axes, [1.0, 0.0, -1.0, 0.0]);
+      },
+    );
+  }
 
   testWidgets(
     'joystick spawns at touch and follows overdrag without moving its hit area',
@@ -69,7 +76,7 @@ void main() {
       expect(tester.getCenter(base), start);
       expect(tester.getCenter(thumb), start);
       expect(axes, isEmpty);
-      final far = start + const Offset(180, 60);
+      final far = start + const Offset(120, 60);
       await finger.moveTo(far);
       await tester.pump();
       expect(tester.getRect(find.byType(MoveJoystick)), area);
@@ -94,14 +101,43 @@ void main() {
     },
   );
 
-  testWidgets(
-    'joystick retains its pointer while another finger uses actions',
-    (tester) async {
+  testWidgets('fixed joystick stays anchored through touch-down and overdrag', (
+    tester,
+  ) async {
+    final axes = <double>[];
+    await tester.pumpWidget(host(axes.add, MovementControlMode.fixedJoystick));
+    final base = find.byKey(const ValueKey('movement_joystick_base'));
+    final thumb = find.byKey(const ValueKey('movement_joystick_thumb'));
+    final center = tester.getCenter(base);
+    final finger = await tester.startGesture(center + const Offset(20, 0));
+    await tester.pump();
+    expect(axes, [1.0]);
+    expect(tester.getCenter(base), center);
+    expect(tester.getCenter(thumb), center + const Offset(20, 0));
+    await finger.moveTo(center + const Offset(400, -120));
+    await tester.pump();
+    expect(tester.getCenter(base), center);
+    expect(tester.getCenter(thumb), center + const Offset(28, 0));
+    await finger.moveTo(center + const Offset(0, -120));
+    await finger.moveTo(center - const Offset(20, 0));
+    expect(axes, [1.0, 0.0, -1.0]);
+    await finger.cancel();
+    await tester.pump();
+    expect(axes.last, 0);
+    expect(tester.getCenter(base), center);
+    expect(tester.getCenter(thumb), center);
+  });
+
+  for (final mode in [
+    MovementControlMode.joystick,
+    MovementControlMode.fixedJoystick,
+  ]) {
+    testWidgets('$mode retains its pointer while another finger uses actions', (
+      tester,
+    ) async {
       final axes = <double>[];
       var actions = 0;
-      await tester.pumpWidget(
-        host(axes.add, MovementControlMode.joystick, onAction: () => actions++),
-      );
+      await tester.pumpWidget(host(axes.add, mode, onAction: () => actions++));
       final center = tester.getCenter(find.byType(MoveJoystick));
       final first = await tester.startGesture(
         center + const Offset(20, 0),
@@ -118,8 +154,8 @@ void main() {
       expect(axes, [1.0]);
       await first.cancel();
       expect(axes, [1.0, 0.0]);
-    },
-  );
+    });
+  }
 
   for (final mode in MovementControlMode.values) {
     testWidgets(
@@ -166,6 +202,24 @@ void main() {
     expect(axes.last, 0);
     expect(find.byType(MoveJoystick), findsOneWidget);
     await finger.up();
+    final floating = await tester.startGesture(
+      tester.getCenter(find.byType(MoveJoystick)),
+    );
+    await floating.moveBy(const Offset(20, 0));
+    expect(axes.last, 1);
+    await tester.pumpWidget(host(axes.add, MovementControlMode.fixedJoystick));
+    expect(axes.last, 0);
+    await floating.moveBy(const Offset(20, 0));
+    await floating.up();
+    expect(axes.last, 0);
+    final fixed = await tester.startGesture(
+      tester.getRect(find.byType(MoveJoystick)).centerRight -
+          const Offset(8, 0),
+    );
+    expect(axes.last, 1);
+    await tester.pumpWidget(host(axes.add, MovementControlMode.joystick));
+    expect(axes.last, 0);
+    await fixed.up();
     expect(tester.takeException(), isNull);
   });
 }

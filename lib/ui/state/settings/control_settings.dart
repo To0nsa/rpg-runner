@@ -19,9 +19,11 @@ class SharedPrefsControlSettingsStore implements ControlSettingsStore {
   @override
   Future<MovementControlMode> loadMovementMode() async {
     final raw = (await SharedPreferences.getInstance()).get(_movementKey);
-    return raw == 'joystick'
-        ? MovementControlMode.joystick
-        : MovementControlMode.arrows;
+    return switch (raw) {
+      'joystick' => MovementControlMode.joystick,
+      'fixedJoystick' => MovementControlMode.fixedJoystick,
+      _ => MovementControlMode.arrows,
+    };
   }
 
   @override

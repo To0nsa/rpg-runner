@@ -1,11 +1,32 @@
+---
+description: Prepare evidence and execute a user-authorized scoped or coordinated release
+---
+
 # Deploy a release
 
-Read [deployment_workflow.md](../../docs/tdd/deployment_workflow.md) and the
-[current release checklist](../../docs/building/rescue_release_operations.md).
-Use tools/release/release.ps1 as the entry point. Its default action is Plan.
+Read [deployment_workflow.md](../../docs/tdd/deployment_workflow.md),
+[release instructions](../../tools/release/AGENTS.md), and the checklist matching
+the requested release in [current plans](../../docs/building/README.md).
+Verify its source, environment, scope and outstanding gates against the user's
+request; an older release plan is not a default target or authorization.
+Use `tools/release/release.ps1` as the entry point. Its default action is Plan.
+Select `-Environment dev|staging|prod` explicitly throughout a release. The
+registry and Firebase aliases must agree. Only dev has Hosting; a prepared web
+artifact never proves Android packaging or Play acceptance. Project-scoped
+baselines/checkpoints cannot establish readiness in a different environment.
+For authorized foundation setup, use Provision with explicit environment,
+billing account and monthly budget. Verify its live readback; it does not deploy
+the game or establish Android/Play readiness. Existing queues retain their state.
+Configure SigningSetup, RecoverySetup and MonitoringSetup in the selected project
+before candidate cutover. Mutation locks and the source-bound maintenance record
+must remain intact; inspect abandoned work before any manual lock recovery.
+Use BuildAndroid after Prepare with an explicit environment and version code.
+Check actual Play history before choosing codes and preserve the same accepted
+production AAB when promoting tracks. Native signing/resources/assets and
+Play-delivered authentication/attestation are separate acceptance gates.
 
 1. Inspect source/worktree and run Plan. Resolve tuple or Functions environment
-   drift before preparing. Use Checkout -Commit <authorized-commit> to create
+   drift before preparing. Use Checkout -Environment <environment> -Commit <authorized-commit> to create
    the isolated LF checkout and copy only application environment files. Run
    every stage there; exclude later edits. Plan reports Auto scope. No verified
    baseline means coordinated cutover; previously excluded deterministic changes
@@ -26,7 +47,11 @@ Use tools/release/release.ps1 as the entry point. Its default action is Plan.
    For Coordinated scope, once image upload/build is authorized, run BuildImage
    and poll ImageStatus.
    Preparation can be reused while the source and artifact hashes match.
-5. Once production cutover is authorized, run PauseIssuance. Keep queues running
+5. Once production cutover is authorized, run PauseIssuance. A newly provisioned
+   target uses Bootstrap -CutoverReady first: it verifies no Auth users, Firestore
+   collections, Functions or Cloud Run services and creates only the paused
+   issuer. A partially bootstrapped target recovers through normal pause/deploy,
+   never by deleting resources to make the empty check pass. Keep queues running
    while validation and settlement drain. Any cancellation/reset needs its own
    authorization and is not performed by this workflow. The action pins the live
    issuer image or, when it was deleted by managed cleanup, rebuilds the prepared

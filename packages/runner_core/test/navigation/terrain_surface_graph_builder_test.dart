@@ -599,7 +599,7 @@ void main() {
     );
 
     test(
-      'accepts thin and limit landings and resolves equal-time ties by ID',
+      'accepts thin and limit landings without relying on a shared-tip graze',
       () {
         final thin = _fixture(<TerrainPolygonInput>[
           _ground('source', const <(double, double)>[(0, 100), (80, 100)]),
@@ -677,13 +677,16 @@ void main() {
               ),
             )
             .toList();
+        // The shared tip is an exact tangent in the geometric sweep. Runtime
+        // collision skin delays contact until the capsule is beyond the tip.
+        // Keep routes onto both finite faces, but reject that unstable landing.
         expect(
           tieEdges.any((edge) {
             final capsuleX =
                 edge.landingPoint.xTicks + _ticks(-1) * edge.commitDirectionX;
             return (capsuleX - _ticks(160)).abs() <= terrainContactEpsilonTicks;
           }),
-          isTrue,
+          isFalse,
         );
         expect(
           _airEdgesBetween(

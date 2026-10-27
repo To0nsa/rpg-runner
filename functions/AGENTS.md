@@ -10,6 +10,9 @@ and account deletion workflows.
 
 Current domains:
 
+- `src/inbox/`: server-issued system messages, whole-inbox attention, manual
+  gold claims and targeted operator delivery. Level gifts are issued atomically
+  by run settlement; their receipts are separate from replay reward grants.
 - `src/ownership/`: canonical ownership state, command validation, command execution, idempotency, Firestore paths/defaults
 - `src/profile/`: remote player profile loading and updates, display-name uniqueness
 - `src/runs/`: run-session ticket creation, upload grants, validation status,

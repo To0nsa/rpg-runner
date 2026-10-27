@@ -155,9 +155,10 @@ final class ChunkSceneCoordinator {
         _ => null,
       };
 
+  /// Retains the authoring tab while clearing the previous Chunk's selections
+  /// and leaving its compiled-edge inspection.
   void bindOwner() {
-    _domain = ChunkSceneDomain.terrain;
-    _sourceDomainBeforeInspection = ChunkSceneDomain.terrain;
+    _domain = sourceDomain;
     _selections.clear();
   }
 

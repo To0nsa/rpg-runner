@@ -1,3 +1,4 @@
+import 'codecs/json_integer.dart';
 import 'board_key.dart';
 import 'codex_run_progress.dart';
 import 'player_run_stats.dart';
@@ -29,6 +30,12 @@ final class ValidatedRun {
     this.codex,
     this.playerRunStats,
   }) : stats = immutableJsonObject(stats, fieldName: 'stats') {
+    requireJsonSafeInteger(score, 'score');
+    requireJsonSafeInteger(distanceMeters, 'distanceMeters');
+    requireJsonSafeInteger(durationSeconds, 'durationSeconds');
+    requireJsonSafeInteger(tick, 'tick');
+    requireJsonSafeInteger(goldEarned, 'goldEarned');
+    requireJsonSafeInteger(createdAtMs, 'createdAtMs');
     _requireNonEmpty(runSessionId, 'runSessionId');
     _requireNonEmpty(uid, 'uid');
     _requireNonEmpty(endedReason, 'endedReason');

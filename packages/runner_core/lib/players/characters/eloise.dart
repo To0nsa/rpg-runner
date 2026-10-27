@@ -210,7 +210,8 @@ const PlayerTuning eloiseTuning = PlayerTuning(
   movement: MovementTuning(
     maxSpeedX: 200,
     accelerationX: 600,
-    decelerationX: 400,
+    // World units/s²: stop from base run speed in ~0.17s to limit release drift.
+    decelerationX: 1200,
     minMoveSpeed: 5,
     runSpeedThresholdX: 120,
     maxVelX: 1500,
