@@ -25,8 +25,9 @@ into `.tmp/release-cache` using its exact LF validation checkout. The isolated
 remote branch `release/android-beta-browser-check` carries the continuation;
 draft PR #2's head has not been advanced while its long validator job ran.
 The final release commit is **not frozen**, and no new backend, Play bundle or
-public policy has been deployed. Browser resumption, legal operator details and
-device acceptance remain required; existing release authorization remains valid.
+public policy has been deployed. The owner supplied the legal operator name,
+Nicolas Louis; country and support-mail retention remain open. Browser resumption
+and device acceptance remain required; existing release authorization remains valid.
 
 - Starting source: `f0aa66d8`; the only initial worktree edits are this plan and
   its links in `docs/README.md` and `docs/building/README.md`. Preserve them as
@@ -187,7 +188,20 @@ device acceptance remain required; existing release authorization remains valid.
   case is skipped in the default invocation. These small UI changes postdate the
   full CI run and require final-candidate CI/build validation. The shared policy
   URL is prepared but not published until the legal operator details are supplied.
-- Next: resume OAuth/Play and obtain the privacy operator details, then finalize
+- Prepared `web/privacy-policy.html` with the confirmed operator name and public
+  contact. Both public pages now distinguish Firebase Authentication's provider
+  deletion window (up to 180 days) from game recovery copies (up to seven days).
+  Balanced HTML, local cross-links and 390-pixel layout checks pass; desktop and
+  phone renders were inspected. Country/support-mail retention and publication
+  remain pending. No public placeholder or policy has been deployed.
+- October 27 resumption: Chrome is reachable but reports Gmail as its selected
+  tab. Automatic approval review rejected reading that page because unrelated
+  email is outside this release task. No email content was read; the owner has
+  been asked to select the already-loaded staging OAuth tab. The old monitoring
+  verification-email request is withdrawn: channel usability was established
+  from API readback; actual alert delivery remains untested. At 05:45 UTC,
+  staging/prod scheduled-backup inventories were still empty.
+- Next: resume OAuth/Play and obtain the remaining privacy details, then finalize
   source, run canonical Prepare/BuildAndroid, deploy dev/staging and complete
   acceptance before the already-authorized production cutover. Reuse completed
   foundations, signing, monitoring, recovery setup and unchanged check evidence.
@@ -702,7 +716,7 @@ it is not a submitted Data safety form or a published privacy policy.
 | Security | App attestation, quota/deletion state and operational request metadata | Enforced staging/prod App Check and backend authorization; restricted logs and deletion barriers |
 | Diagnostics | Crash/error types, stack traces and SDK device/installation/session metadata | Crashlytics enabled only for staging/prod Android release; custom field is environment, with no custom account identifier or exception-message payload |
 | Local preferences | Controls, local Practice selections and retry/spool state | Package-private device storage; Practice never issues or submits online runs |
-| Support and rights requests | Sender email and request contents supplied by the player | Confirmed support mailbox; operator identity and correspondence-retention policy still require owner input |
+| Support and rights requests | Sender email and request contents supplied by the player | Operator Nicolas Louis and support mailbox confirmed; country and fixed correspondence-retention period still require owner input |
 
 SDK processing must also be included. Firebase documents authentication IP/user
 agent processing, Play Integrity attestation, Crashlytics installation identifiers
@@ -718,10 +732,12 @@ ID permission. Do not translate that into a claim of no SDK data collection.
 The final staging/prod manifests remain artifact checks. Account deletion and
 separate recovery/log/Crashlytics retention are described in the prepared
 deletion page and [deletion contract](../tdd/account_deletion_workflow.md).
-Lawful-basis wording, controller identity, support retention, public policy
-publication and final Console declarations remain open release tasks. The in-app
-privacy link is implemented; its destination must be published and checked before
-release.
+The prepared privacy page maps account/gameplay processing to the requested
+service, security/reliability to legitimate interests, and rights handling to
+legal obligations. Controller name is confirmed. Country, fixed support retention,
+public policy publication and final Console declarations remain open release
+tasks. The in-app privacy link is implemented; its destination must be published
+and checked before release.
 
 ## Phase 8 - live internal release and closed beta
 

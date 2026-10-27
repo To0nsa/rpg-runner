@@ -527,6 +527,47 @@ is needed for the unrun Play sign-in, Integrity, side-by-side, lifecycle and
 performance checks. No traversal waiver has been used. No final release commit,
 install link or production acceptance is claimed.
 
+### Privacy source and browser resumption (October 27, 05:45 UTC)
+
+Owner supplied `Nicolas Louis` as the operator. Country and support-mail retention
+were asked separately and remain pending; the store market does not establish
+operator residence. Prepared `web/privacy-policy.html` with the confirmed name,
+contact, actual data purposes, lawful-basis map, recipients/transfers, retention,
+rights and deletion access. It contains no scripts, tracking resources or forms.
+Support correspondence currently uses a purpose-based retention description;
+the owner's fixed period must be incorporated before publication.
+
+Rechecked official [Firebase privacy information](https://firebase.google.com/support/privacy)
+and the [EDPB rights guide](https://www.edpb.europa.eu/sme/be-compliant/respect-individuals-rights_en).
+Corrected the deletion page to distinguish Firebase Authentication's up-to-180-day
+provider removal window from the game's seven-day recovery copies. These pages
+remain unpublished; source or a screenshot does not prove a working public URL.
+
+Validation from the root checkout based on `ad71432b`, with only these policy/docs
+edits: Python HTMLParser confirmed balanced markup, one H1 per page, no active
+embedded content, and existing relative link targets. Inspected a desktop render
+and both phone renders from isolated headless Chrome profiles without user
+accounts. `.tmp/beta-checks/privacy-layout.mjs` used actual 390-pixel mobile
+emulation and confirmed `scrollWidth == innerWidth == 390` for both pages.
+Screenshots are `privacy-desktop.png`, `privacy-policy-mobile.png` and
+`account-deletion-mobile.png` under `.tmp/beta-checks/`. An initial CLI
+`--window-size=390,844` screenshot was clipped by Chrome's minimum desktop window
+size; the explicit emulation resolved the probe limitation, with no CSS fix
+needed. External legal links were read; email delivery was not tested.
+
+Native browser inventory succeeded, but Chrome reported Gmail as the selected
+tab despite the earlier OAuth-page reply. Automatic approval review blocked
+native accessibility capture and the browser-state fallback to prevent reading
+unrelated private email. Neither request returned email content. Asked the owner
+to reselect the staging OAuth tab; no credential or console changes were made.
+The report of no verification emails does not reopen channel verification:
+omitted/UNSPECIFIED status is usable as recorded above. Delivery remains untested.
+
+Fresh `gcloud firestore backups list --project=<staging|prod> --format=json
+--quiet` at 05:45 UTC returned `[]` for both projects (exit 0). First completed
+scheduled backups remain unverified. Existing recovery configuration/rehearsal
+evidence is unchanged. No candidate, deployment, Play upload or waiver is claimed.
+
 Android/runtime implementation milestone committed as
 `aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor
 configs, project/App Check guards, maintenance/update UI, Crashlytics handlers,

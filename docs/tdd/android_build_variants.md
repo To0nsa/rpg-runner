@@ -101,8 +101,11 @@ Options > Settings exposes Privacy policy and Contact support in both online
 and local Practice profiles. They open the shared public dev-Hosting policy path
 `https://rpg-runner-d7add.web.app/privacy-policy.html` and the confirmed support
 mailbox in an external handler. A missing handler leaves navigation usable and
-shows the address. The privacy page still awaits the operator's legal identity
-and publication; the link is prepared source, not evidence of a live policy.
+shows the address. `web/privacy-policy.html` identifies the confirmed operator,
+Nicolas Louis, and documents account/gameplay processing, diagnostics, provider
+transfers, retention and rights. It links to `web/account-deletion.html`.
+Country and a fixed support-mail retention period still await owner input;
+both pages are prepared source, not evidence of publication or live acceptance.
 
 Web stays local Practice without Firebase. Apple/Windows generated Firebase
 options still refer to dev and are outside this Android production rollout;
