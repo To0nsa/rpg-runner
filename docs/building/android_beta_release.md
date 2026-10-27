@@ -18,16 +18,24 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 27, 2026
 
-Candidate under replacement: `ad759adbe96444d379d8b4e038732e8074897696`, including completed
+Candidate being replaced after its current advisory audit:
+`a4bda7e653655916736e9f8c4cc8a2fadc0c402d`, including completed
 board retention/account erasure, Unicode release fingerprints, production Play
-identities/App Check and the current-board readiness correction. Full candidate
+identities/App Check, current-board readiness and cold Android asset preparation.
+The preceding candidate `ad759adb`'s
 [CI preparation](https://github.com/To0nsa/rpg-runner/actions/runs/40550912893)
 completed with 14 passing jobs and a Chrome-startup failure in the compiled-web
 smoke. A fresh-checkout Android packaging gap was subsequently found: cached
 Prepare restores web output but not ignored navigation graphs. BuildAndroid now
 prepares those required assets explicitly; its 15 artifact/regression checks pass
-on both PowerShell versions. Freeze the corrected tooling commit and rerun CI.
-The isolated LF checkout is `.tmp/release-checkouts/ad759adbe96444d379d8b4e038732e8074897696`,
+on both PowerShell versions. Corrected-candidate
+[CI 40553794370](https://github.com/To0nsa/rpg-runner/actions/runs/40553794370)
+passes the compiled-web smoke on retry but fails the mandatory Functions audit
+on the newly updated qs advisory. The existing local/deployed qs pin is now
+6.16.1, with zero findings in both production dependency audits, 266 Functions
+tests and four inventory regressions passing. Freeze this narrow patch and run
+exact-source CI again; do not waive the advisory check.
+The isolated LF checkout is `.tmp/release-checkouts/a4bda7e653655916736e9f8c4cc8a2fadc0c402d`,
 with each environment's application configuration copied by `Checkout`.
 The isolated remote branch `release/android-beta-browser-check` carries this
 commit; draft PR #2's head has not been advanced. Earlier CI/cache evidence is

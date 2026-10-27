@@ -917,3 +917,43 @@ bundle; Add from library explicitly reports No app bundles. Allocate initial
 version code 1. Future install URL
 `https://play.google.com/apps/internaltest/4701264247659999845` remains disabled
 until the release is published. No bundle or public rollout occurred.
+
+## Current dependency audit correction (October 27)
+
+Candidate `a4bda7e653655916736e9f8c4cc8a2fadc0c402d` includes the validated cold
+Android preparation fix. Its [CI run 40553794370](https://github.com/To0nsa/rpg-runner/actions/runs/40553794370)
+passes the compiled-web smoke, resolving the preceding runner-startup failure.
+Both Functions jobs stop at the mandatory fresh advisory audit:
+[GHSA-6pq8-jhm2-2vcw](https://github.com/advisories/GHSA-6pq8-jhm2-2vcw), updated
+October 27, covers pinned qs 6.16.0 and identifies 6.16.1 as patched. The failure
+is retained in `final-ci-functions-{build,checks}-job.log`; it is not waived.
+
+Advanced only the existing qs override to 6.16.1 in `pnpm-workspace.yaml` and
+the separately uploaded `functions/package.json`, then regenerated the existing
+pnpm lockfile. The diff changes only qs's pin, integrity and dependency edges.
+Validation on `a4bda7e6` plus that correction, from the repository root with
+pinned Node 24.16.0:
+
+- `corepack pnpm install --frozen-lockfile`: pass.
+- `corepack pnpm --dir functions audit --prod --json`: zero vulnerabilities.
+- `corepack pnpm --dir functions build`: pass.
+- `corepack pnpm --dir functions test`: 266 pass, zero failures/skips.
+- `node --test functions/tool/production_inventory.test.mjs`: four pass.
+- Copied only Functions' package manifest to a new system-temporary directory
+  outside the pnpm workspace. `npm install --package-lock-only --omit=dev
+  --ignore-scripts`, `npm audit --omit=dev --json` and
+  `npm ls qs --package-lock-only --omit=dev --json` pass. Audit reports zero;
+  every production qs edge resolves to 6.16.1. No second workspace lockfile was added.
+- `git diff --check`: pass.
+
+Logs use `.tmp/beta-checks/qs-patch-*`. No runtime gameplay code changed; final
+candidate CI/build/deployment evidence must be bound to the patched commit.
+
+Both Play apps' no-ads declarations are saved and independently read back as
+Change saved, pending review submission. Production age-audience configuration
+is gated by Sign-in details. The Console and Google's
+[review-access requirements](https://support.google.com/googleplay/android-developer/answer/15748846?hl=en)
+require reusable access to authenticated gameplay, including third-party account
+details where needed. A dedicated review account was requested from the owner;
+no owner credentials or invented credentials were submitted, and that declaration
+remains incomplete. This does not prevent independent build/backend work.
