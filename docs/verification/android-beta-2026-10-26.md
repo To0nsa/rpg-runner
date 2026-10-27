@@ -500,6 +500,33 @@ pre-existing `DEVELOPER_PRACTICE` launch-flag-only skip. Logs:
 The full CI run above predates these UI edits; final-candidate checks still apply.
 The privacy destination is not published and live link acceptance is pending.
 
+At 01:21 UTC the canonical `ImportCI -RunId 40429577996 -Environment dev`
+completed successfully from
+`.tmp/release-checkouts/f9015c3d7dd028ac61bfcacc74f3e0f0ae50884d`.
+All ten components were verified and imported to shared `.tmp/release-cache`.
+This is an LF validation snapshot, not the final release candidate. Its worktree
+and the original checkout remain separate; subsequent UI changes are not claimed
+as covered by that CI run. Log: `.tmp/beta-checks/ci-import-40429577996.log`.
+
+System Node is 24.22.1 while CI is pinned to 24.16.0. For exact provenance,
+downloaded the official Node 24.16.0 Windows x64 ZIP and verified SHA-256
+`edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56`
+against `https://nodejs.org/dist/v24.16.0/SHASUMS256.txt`. The isolated SDK lives
+under `.tmp/toolchains/node-v24.16.0-win-x64`; prepend it to the release process's
+PATH and restore PATH in `finally`. The system installation was not changed.
+Its bundled Corepack selected the pinned pnpm 11.22.0 and CI import passed the
+existing strict toolchain checks. Do not weaken those checks to reuse evidence.
+
+Resume from implementation commit `c8323e39` and the active checklist. All CI jobs
+submitted during this continuation have finished (the superseded diagnostic run
+is cancelled; the final preparation and validator runs succeeded). No cloud job
+or release mutation is pending. The account browser stopped on URL verification;
+resume it only after the user loads the staging OAuth page. Needed factual input:
+legal operator name/country and support-mail retention. A physical Android device
+is needed for the unrun Play sign-in, Integrity, side-by-side, lifecycle and
+performance checks. No traversal waiver has been used. No final release commit,
+install link or production acceptance is claimed.
+
 Android/runtime implementation milestone committed as
 `aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor
 configs, project/App Check guards, maintenance/update UI, Crashlytics handlers,

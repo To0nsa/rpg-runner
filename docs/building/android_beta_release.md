@@ -18,6 +18,16 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 27, 2026
 
+Latest implementation milestone: `c8323e39` (privacy/support access). Full CI
+preparation passed on preceding `f9015c3d`; the later UI change has focused local
+validation and still needs final-candidate CI. The successful bundle is imported
+into `.tmp/release-cache` using its exact LF validation checkout. The isolated
+remote branch `release/android-beta-browser-check` carries the continuation;
+draft PR #2's head has not been advanced while its long validator job ran.
+The final release commit is **not frozen**, and no new backend, Play bundle or
+public policy has been deployed. Browser resumption, legal operator details and
+device acceptance remain required; existing release authorization remains valid.
+
 - Starting source: `f0aa66d8`; the only initial worktree edits are this plan and
   its links in `docs/README.md` and `docs/building/README.md`. Preserve them as
   part of this workstream. No staged or unrelated source changes were present.
@@ -177,9 +187,10 @@ reviewable preparation and retain all non-waived acceptance gates.
   case is skipped in the default invocation. These small UI changes postdate the
   full CI run and require final-candidate CI/build validation. The shared policy
   URL is prepared but not published until the legal operator details are supplied.
-- Next: finish OAuth/Play identity, canonical Android build evidence, diagnostics,
-  recovery and remaining release
-  acceptance. Final source is not frozen and no app upload occurred.
+- Next: resume OAuth/Play and obtain the privacy operator details, then finalize
+  source, run canonical Prepare/BuildAndroid, deploy dev/staging and complete
+  acceptance before the already-authorized production cutover. Reuse completed
+  foundations, signing, monitoring, recovery setup and unchanged check evidence.
 - Durable evidence: [Android beta execution](../verification/android-beta-2026-10-26.md).
 
 ## Outcome and environment decisions
