@@ -92,12 +92,18 @@ Production's server client is
 shared by its enabled Firebase provider, native resource and draft Play Games
 server credential. Both OAuth audiences remain External/Testing, owner only,
 with the explicitly approved `games`, `games_lite` and `drive.appdata` scopes.
-Production Android credentials, publication and installed-app acceptance remain pending.
+Both environments have all three distribution-certificate credentials linked;
+the classic credential is the default for new installs. Publication and
+installed-app acceptance remain pending.
 There is no cross-project authentication bridge or bypass.
 
 Dev uses App Check's debug provider in every mode; register installation tokens
 only in its dev Firebase app and keep them out of source/log evidence.
 Staging/prod require Play Integrity and reject configured debug tokens.
+Their selected Firebase Android apps are registered with that provider, use
+one-hour App Check tokens and require Play-recognized app versions. Each Play
+listing links only to its own Cloud project. Prior unused registrations remain
+unregistered; they are not packaged by either beta flavor.
 App Check does not replace authentication or backend authorization. Acceptance
 must use the actual Play-distributed certificate and integrity verdict; an
 upload-signed sideload or successful hub screen is insufficient evidence.

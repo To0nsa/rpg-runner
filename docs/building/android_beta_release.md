@@ -288,6 +288,20 @@ pause throughout cutover and explicitly resume the scheduler after worker readba
   Play Integrity is linked only to the production project (10,000/day quota).
   Distribution certificate/OAuth setup continues; no production artifact,
   deployment or installed-app acceptance is claimed.
+- Production distribution setup is now configured for all three Google Play
+  certificates. Matching Android OAuth clients and draft Play Games credentials
+  are verified; classic `CgkI1uaQ7aIUEAIQAQ` remains the new-install default,
+  alongside hybrid `CgkI1uaQ7aIUEAIQAg` and PQC `CgkI1uaQ7aIUEAIQAw`.
+  The refreshed genuine Firebase config passes all four environment tests.
+  Explicit App Check registration/readback completed at 17:10 UTC for both
+  environments; Firebase Console independently shows the intended packages as
+  Registered with Play Integrity. Production Play Games metadata/tester setup
+  and publication remain open. No phone is attached; device acceptance was
+  requested while independent work continues.
+- Integration found the release inventory still required future board windows
+  after `5b1f9092` changed provisioning to current windows only. The inventory
+  and resume gate are being aligned; missing current boards remain blocking.
+  Final source freeze waits for that correction's validation.
 
 ## Outcome and environment decisions
 

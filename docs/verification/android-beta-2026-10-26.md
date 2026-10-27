@@ -771,3 +771,51 @@ These checks do not establish a frozen candidate, APK/AAB acceptance, device
 sign-in, attestation, service deployment or Play publication. Production Android
 distribution credentials and both environments' App Check registration remain
 open. The staging Play Games publication approval is still pending.
+
+## Production distribution credentials and beta App Check (October 27)
+
+Downloaded the production listing's public signing archive and retained it as
+`C:\dev\lothringen-secrets\prod\play-certificates-20261027.zip`, alongside the
+three extracted public DER certificates. The current signing page's SHA-256
+matches the classic certificate below. No signing key was changed.
+
+| Certificate | SHA-1 | SHA-256 |
+| --- | --- | --- |
+| Classic | `9562EBFC414E79B77D728C607FD7D81BE50C90E1` | `3065A34ECE1F52D82E639F4A9C2279CB059B066D56CB44B83CE800FE3362101F` |
+| Hybrid classical | `B19F3C1189540F4CD8AAFCEBCCEA633E1860A190` | `7BC33DF610B1A88CBCF33BB78F4C5BDBD611DC071906DF3ACEDE776BDA3BBC26` |
+| Hybrid PQC | `0517642013243D8D564073408BC4D40099FB595A` | `1D104D96BCA39F8C07CF79D4D756B099C2551109B943C49A882CF464F66F0804` |
+
+All six hashes are registered in production app
+`1:696550437718:android:c27d2030dcee3fd2d9dcf7`, read back at
+`2026-10-27T17:03:21.6775100Z`. Each Android OAuth client uses only
+`com.lothringen.longrun` and its corresponding SHA-1:
+
+| Certificate | OAuth client ID | Draft Play Games credential |
+| --- | --- | --- |
+| Classic | `696550437718-tjm4uk58s63e8t5hdgk6036bbciuaq97.apps.googleusercontent.com` | `CgkI1uaQ7aIUEAIQAQ` |
+| Hybrid classical | `696550437718-mhlhcochb7kamr4v25jpem7psee5v40o.apps.googleusercontent.com` | `CgkI1uaQ7aIUEAIQAg` |
+| Hybrid PQC | `696550437718-uj86l62iod8rrnnmijmm65g8ti0rk8av.apps.googleusercontent.com` | `CgkI1uaQ7aIUEAIQAw` |
+
+All three Play Games links are saved as Long Run. The classic remains the default
+for new installs; the other two default-selection boxes remain unchecked.
+Refreshed genuine SDK configuration includes all three mappings and the existing
+server client. Root `flutter test test/firebase_environment_test.dart` passes
+four tests on `0e07756f` plus this configuration change; log
+`.tmp/beta-checks/prod-play-signing-config-test.log`.
+
+Explicitly registered the selected staging and production apps through
+[App Check's documented Play Integrity update API](https://firebase.google.com/docs/reference/appcheck/rest/v1/projects.apps.playIntegrityConfig/patch).
+Set one-hour tokens and `allowUnrecognizedVersion=false`, preserving other
+settings. Readback timestamps are `2026-10-27T17:10:05.6401612Z` staging and
+`2026-10-27T17:10:13.6473892Z` production. Firebase Console independently reports
+both intended packages as Registered with Play Integrity. The unused provisional
+registrations remain unchanged. The API omits the false boolean in its response;
+the documented default requires Play recognition. Existing device/account
+settings were preserved, not weakened. These registration checks do not prove
+device attestation or Play-delivered sign-in. Logs are
+`.tmp/beta-checks/staging-appcheck-registration.json` and
+`.tmp/beta-checks/prod-appcheck-registration.json`.
+
+`adb devices -l` still reports no attached device. Production Play Games metadata,
+tester readback, publication, Play artifacts, deployed acceptance and device
+checks remain open. No gameplay waiver has been used.
