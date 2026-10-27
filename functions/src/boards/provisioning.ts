@@ -1,4 +1,4 @@
-import type { Firestore } from "firebase-admin/firestore";
+import { FieldValue, type Firestore } from "firebase-admin/firestore";
 
 import { sha256Hex } from "../ownership/hash.js";
 import { currentGameCompatVersion } from "../runs/compatibility.js";
@@ -119,7 +119,7 @@ export async function ensureManagedLeaderboardBoards(
 ): Promise<BoardProvisioningResult> {
   const config = args.config ?? resolveBoardProvisioningConfig();
   const nowMs = args.nowMs ?? Date.now();
-  const includeNextWindows = args.includeNextWindows ?? true;
+  const includeNextWindows = args.includeNextWindows ?? false;
 
   let checkedCount = 0;
   let createdCount = 0;
@@ -238,14 +238,19 @@ async function ensureBoardForWindow(args: {
     .where("levelId", "==", args.levelId)
     .where("windowId", "==", args.window.windowId)
     .get();
-  const matchingBoardExists = existingSnapshot.docs.some(
+  const matchingBoard = existingSnapshot.docs.find(
     (doc) =>
       doc.get("boardKey.rulesetVersion") === args.config.rulesetVersion &&
       doc.get("boardKey.scoreVersion") === args.config.scoreVersion &&
       doc.get("gameCompatVersion") === args.config.gameCompatVersion &&
       doc.get("ghostVersion") === args.config.ghostVersion,
   );
-  if (matchingBoardExists) {
+  if (matchingBoard) {
+    // A precreated future window may have been retired by current-only
+    // maintenance. It becomes eligible again when its actual window opens.
+    if (matchingBoard.get("retiredAtMs") !== undefined) {
+      await matchingBoard.ref.update({ status: args.config.status, retiredAtMs: FieldValue.delete() });
+    }
     return false;
   }
 

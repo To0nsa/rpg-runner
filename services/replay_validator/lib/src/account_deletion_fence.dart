@@ -2,6 +2,12 @@ import 'package:googleapis/firestore/v1.dart' as firestore;
 
 import 'google_api_helpers.dart';
 
+/// Optional board projections must never recreate retired board data.
+final class BoardRetiredException implements Exception {
+  const BoardRetiredException(this.boardId);
+  final String boardId;
+}
+
 /// Raised when an asynchronous worker attempts to write data for an account
 /// whose deletion tombstone already exists.
 final class AccountDeletionInProgressException implements Exception {
@@ -32,6 +38,7 @@ final class FirestoreAccountDeletionFence {
 
   Future<DeletionFencedFirestoreTransaction> begin({
     required Iterable<String> uids,
+    String? boardId,
   }) async {
     final firestoreApi = await apiProvider.firestoreApi();
     final response = await firestoreApi.projects.databases.documents
@@ -46,6 +53,22 @@ final class FirestoreAccountDeletionFence {
         if (uid.trim().isNotEmpty) uid.trim(),
     };
     try {
+      if (boardId != null) {
+        firestore.Document? board;
+        try {
+          board = await firestoreApi.projects.databases.documents.get(
+            '$_databaseRoot/documents/leaderboard_boards/$boardId',
+            transaction: transaction,
+          );
+        } catch (error) {
+          if (!isApiNotFound(error)) rethrow;
+        }
+        if (board == null ||
+            board.fields?['retiredAtMs'] != null ||
+            board.fields?['status']?.stringValue == 'disabled') {
+          throw BoardRetiredException(boardId);
+        }
+      }
       for (final uid in distinctUids) {
         try {
           await firestoreApi.projects.databases.documents.get(

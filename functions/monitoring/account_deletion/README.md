@@ -4,22 +4,23 @@ This bundle owns the production alerts for the resumable account-deletion
 workflow:
 
 - any stage transition to `retryable`;
-- incomplete work older than twelve hours or at 720 attempts;
+- incomplete work at least twelve hours old;
 - saturation of the bounded expired-completion cleanup page;
 - unexpected errors from the scheduled repair service.
 
-Repair is configured once per minute. Twelve hours and 720 attempts are
-operator safety budgets, not duration guarantees. The attempt budget matches
-twelve hours of one-minute ticks. The September production canary passed 432
-successful stages before its final pass while traversing 56 retained boards
-and three private fixtures; the former 400-attempt alert was too low for this
-healthy traversal. The former fifteen-minute
-cadence required at least 15.5 hours for three inventory passes before extra
-pages or boards. After deployment, remeasure duration and verify the scheduler,
-the `state` + `expiresAtMs` index, and all four alert policies. Each
-`accountDeletionRepair` heartbeat includes the bounded page size, oldest age
-and stage, retryable count, maximum attempt count, and page-saturation signal.
-These values describe the selected page, not an exact collection-wide count.
+Repair runs once per minute, selecting at most ten accounts and processing up to
+32 checkpointed stage steps per account in round-robin order. The invocation
+has a shared 40-second elapsed-time budget and stops each account on retryable
+failure, lease contention, a no-progress step or the signed-upload quiet wait.
+An individual RPC can finish after the soft time budget; a step is never
+interrupted between its effects and durable checkpoint.
+
+Twelve hours is an operator safety budget, not a completion SLA. Attempts count
+successful steps as well as failures and no longer trigger the age policy. Its
+legacy display name remains stable so applying this bundle updates the existing
+policy instead of creating a duplicate. Each heartbeat reports selected-page
+oldest age/stage, retryable backlog, attempts, processed requests and
+`processedStepCount`. These are bounded-page signals, not collection-wide counts.
 Expired completions are selected oldest-first, with ten deletes per invocation
 and `expiredCompletionPageSaturated` lookahead. Thirty days is the expiry
 deadline; backlog, scheduler jitter, or outages can delay physical removal.

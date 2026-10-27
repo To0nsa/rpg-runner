@@ -478,6 +478,7 @@ class FirestoreLeaderboardProjectionStore
     for (var attempt = 0; attempt < 5; attempt++) {
       final transaction = await _deletionFence.begin(
         uids: <String>[candidate.uid],
+        boardId: candidate.boardId,
       );
       final existingDocument = await transaction.get(path);
       final existing = existingDocument == null
@@ -635,7 +636,10 @@ class FirestoreLeaderboardProjectionStore
   }) async {
     final path = _playerBestDocPath(boardId, uid);
     for (var attempt = 0; attempt < 5; attempt++) {
-      final transaction = await _deletionFence.begin(uids: <String>[uid]);
+      final transaction = await _deletionFence.begin(
+        uids: <String>[uid],
+        boardId: boardId,
+      );
       final existingDocument = await transaction.get(path);
       if (existingDocument == null) {
         await transaction.rollback();
@@ -699,6 +703,7 @@ class FirestoreLeaderboardProjectionStore
     try {
       final transaction = await _deletionFence.begin(
         uids: entries.map((entry) => entry.uid),
+        boardId: boardId,
       );
       await transaction.commit(<firestore.Write>[
         firestore.Write(

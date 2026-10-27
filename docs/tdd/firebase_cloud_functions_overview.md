@@ -325,8 +325,12 @@ Why:
 ### `leaderboardBoardMaintenance` (scheduled)
 
 - Exported in `functions/src/index.ts`.
-- Ensures managed leaderboard boards/windows exist.
-- Uses logic in `functions/src/boards/provisioning.ts`.
+- Ensures the serving tuple's current competitive/weekly windows exist; future
+  windows are provisioned on demand rather than precreated by default.
+- Uses `functions/src/boards/provisioning.ts` and `boards/retention.ts`.
+  Pre-release retention retires obsolete partitions, protects active run
+  references, waits the maximum ticket lifetime, and drains nested projections
+  and ghost objects in bounded pages. See [board lifecycle](board_lifecycle.md).
 - Defaults new boards to source game compatibility `2026.10.6`, combat
   `rules-v2`, `score-v3`, and `ghost-v1`. A managed board ID binds mode, level,
   window, ruleset, score, game compatibility, and ghost version, so rollout

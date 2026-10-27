@@ -9,6 +9,30 @@ import 'package:replay_validator/src/projection_worker.dart';
 
 void main() {
   test(
+    'retired-board tasks complete without retrying or publishing ghosts',
+    () async {
+      final ghosts = _FakeGhostPublisher();
+      final worker = DeterministicProjectionWorker(
+        leaderboardProjector: _FakeLeaderboardProjector(
+          error: const BoardRetiredException('old'),
+        ),
+        ghostPublisher: ghosts,
+        metrics: _FakeMetrics(),
+      );
+      expect(
+        (await worker.projectRunSession(runSessionId: 'old_run')).status,
+        ProjectionDispatchStatus.completed,
+      );
+      expect(
+        (await worker.reconcileBoard(boardId: 'old')).status,
+        ProjectionDispatchStatus.completed,
+      );
+      expect(ghosts.runSessionIds, isEmpty);
+      expect(ghosts.boardIds, isEmpty);
+    },
+  );
+
+  test(
     'projection failure is retryable without changing validation outcome',
     () async {
       final leaderboard = _FakeLeaderboardProjector(

@@ -392,12 +392,14 @@ test("repair scan reports bounded backlog health without account identifiers", a
     db,
     nowMs,
     maxRequests: 1,
+    maxStepsPerRequest: 1,
     dependencies,
   });
 
   assert.deepEqual(result, {
     scannedCount: 1,
     processedCount: 1,
+    processedStepCount: 1,
     retryableCount: 0,
     completedRecordDeletes: 0,
     expiredCompletionPageSaturated: false,
@@ -501,20 +503,55 @@ test("one-minute repair ticks complete a populated multi-board fixture within th
   const artifacts = new InMemoryReplayArtifactStore();
   const dependencies = deletionDependencies(new InMemoryAccountDeletionAuth(), artifacts);
   await seedLargeAccount({ db, uid, otherUid: "uid_keep", artifacts });
-  await Promise.all(["board_2", "board_3"].map((boardId) =>
+  await Promise.all(Array.from({ length: 184 }, (_, index) => `retained_board_${String(index).padStart(3, "0")}`).map((boardId) =>
     db.collection("leaderboard_boards").doc(boardId).set({ boardId }),
   ));
   await requestAccountDeletion({ db, uid, nowMs: requestNowMs, dependencies });
   let nowMs = requestNowMs;
   let result;
-  for (let tick = 0; tick < 400; tick += 1) {
+  let steps = 0;
+  for (let tick = 0; tick < 90; tick += 1) {
     nowMs += 60_000;
-    result = await processAccountDeletion({ db, uid, nowMs, dependencies });
-    if (result.status === "deleted") break;
+    result = await processPendingAccountDeletions({ db, nowMs, dependencies });
+    steps += result.processedStepCount;
+    if ((await db.collection("account_deletion_requests").doc(uid).get()).get("state") === "complete") break;
   }
-  assert.equal(result?.status, "deleted");
-  assert.ok(nowMs - requestNowMs < 12 * 60 * 60 * 1000);
+  assert.equal((await db.collection("account_deletion_requests").doc(uid).get()).get("state"), "complete");
+  assert.ok(steps > 720);
+  assert.ok(nowMs - requestNowMs < 90 * 60 * 1000);
   assert.ok(nowMs - requestNowMs >= 15 * 60 * 1000);
+});
+
+test("repair batches distribute steps fairly and stop at the elapsed-time budget", async () => {
+  const dependencies = deletionDependencies(new InMemoryAccountDeletionAuth());
+  for (const uid of ["fair_a", "fair_b"]) {
+    await db.collection("account_deletion_requests").doc(uid).set({
+      state: "requested", stage: "profile", requestedAtMs: requestNowMs,
+    });
+  }
+  const order: string[] = [];
+  const first = await processPendingAccountDeletions({ db, nowMs: requestNowMs, maxStepsPerRequest: 2,
+    dependencies: { ...dependencies, afterStage: async (stage) => { order.push(stage); } } });
+  assert.equal(first.processedCount, 2);
+  assert.equal(first.processedStepCount, 4);
+  assert.deepEqual(order, ["profile", "profile", "display_name_index", "display_name_index"]);
+  let clock = 0;
+  const limited = await processPendingAccountDeletions({ db, nowMs: requestNowMs,
+    timeBudgetMs: 2, elapsedClock: () => ++clock, dependencies });
+  assert.equal(limited.processedStepCount, 1);
+});
+
+test("repair does not spin on a live validator lease or the upload quiet period", async () => {
+  const dependencies = deletionDependencies(new InMemoryAccountDeletionAuth());
+  await db.collection("run_sessions").doc("leased").set({ uid: "waiting", state: "validating", validationLeaseExpiresAtMs: afterUploadLeaseMs });
+  await db.collection("account_deletion_requests").doc("waiting").set({
+    state: "in_progress", stage: "run_sessions", requestedAtMs: requestNowMs,
+  });
+  const result = await processPendingAccountDeletions({ db, nowMs: requestNowMs + 1, dependencies });
+  assert.equal(result.processedStepCount, 1);
+  await db.collection("account_deletion_requests").doc("waiting").update({ stage: "quiet_wait" });
+  const quiet = await processPendingAccountDeletions({ db, nowMs: requestNowMs + 1, dependencies });
+  assert.equal(quiet.processedStepCount, 1);
 });
 
 test("expired completion pages report saturation and drain oldest first without active-record obstruction", async () => {

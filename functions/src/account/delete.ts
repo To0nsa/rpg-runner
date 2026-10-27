@@ -118,12 +118,14 @@ export interface AccountDeleteResult {
 
 export interface AccountDeletionProcessResult extends AccountDeleteResult {
   processed: boolean;
+  madeProgress: boolean;
   stage: AccountDeletionStage | "complete";
 }
 
 export interface AccountDeletionRepairResult {
   scannedCount: number;
   processedCount: number;
+  processedStepCount: number;
   retryableCount: number;
   completedRecordDeletes: number;
   expiredCompletionPageSaturated: boolean;
@@ -306,10 +308,12 @@ export async function processAccountDeletion(args: {
     return {
       ...current.result,
       processed: false,
+      madeProgress: false,
       stage: current.stage,
     };
   }
 
+  let madeProgress = false;
   try {
     const outcome = await executeStage({
       db: args.db,
@@ -325,6 +329,10 @@ export async function processAccountDeletion(args: {
       outcome,
       nowMs,
     });
+    madeProgress = outcome.completed === true || outcome.stage !== acquired.stage ||
+      (outcome.boardCursor !== undefined && outcome.boardCursor !== acquired.boardCursor) ||
+      (outcome.pass !== undefined && outcome.pass !== acquired.pass) ||
+      sumCounters(outcome.counters) > 0;
   } catch (error) {
     await recordRetryableFailure({
       db: args.db,
@@ -338,6 +346,7 @@ export async function processAccountDeletion(args: {
   return {
     ...current.result,
     processed: true,
+    madeProgress,
     stage: current.stage,
   };
 }
@@ -348,7 +357,21 @@ export async function processPendingAccountDeletions(args: {
   maxRequests?: number;
   pageSize?: number;
   dependencies?: AccountDeletionDependencies;
+  maxStepsPerRequest?: number;
+  timeBudgetMs?: number;
+  /** Monotonic elapsed-time seam; gameplay and persisted timestamps are separate. */
+  elapsedClock?: () => number;
 }): Promise<AccountDeletionRepairResult> {
+  const elapsedClock = args.elapsedClock ?? (() => performance.now());
+  const startedAt = elapsedClock();
+  const timeBudgetMs = args.timeBudgetMs ?? 40_000;
+  const maxStepsPerRequest = args.maxStepsPerRequest ?? 32;
+  if (!Number.isSafeInteger(maxStepsPerRequest) || maxStepsPerRequest < 1 || maxStepsPerRequest > 100) {
+    throw new Error("maxStepsPerRequest must be an integer between 1 and 100.");
+  }
+  if (!Number.isSafeInteger(timeBudgetMs) || timeBudgetMs < 1 || timeBudgetMs > 240_000) {
+    throw new Error("timeBudgetMs must be an integer between 1 and 240000.");
+  }
   const nowMs = args.nowMs ?? Date.now();
   const maxRequests = args.maxRequests ?? 10;
   requirePositiveSafeInteger(nowMs, "nowMs");
@@ -411,27 +434,40 @@ export async function processPendingAccountDeletions(args: {
     (document) => document.state === "retryable",
   ).length;
 
-  let processedCount = 0;
-  let retryableCount = 0;
-  for (const doc of active) {
-    const result = await processAccountDeletion({
-      db: args.db,
-      uid: doc.id,
-      nowMs,
-      pageSize: args.pageSize,
-      dependencies: args.dependencies,
-    });
-    if (result.processed) {
-      processedCount += 1;
+  const processed = new Set<string>();
+  const retryable = new Set<string>();
+  const stopped = new Set<string>();
+  let processedStepCount = 0;
+  // Round-robin steps let every selected account progress before any receives
+  // another step. Each step acquires its own lease and commits its checkpoint.
+  for (let step = 0; step < maxStepsPerRequest; step += 1) {
+    for (const doc of active) {
+      if (elapsedClock() - startedAt >= timeBudgetMs) break;
+      if (stopped.has(doc.id)) continue;
+      const result = await processAccountDeletion({
+        db: args.db,
+        uid: doc.id,
+        nowMs: args.nowMs ?? Date.now(),
+        pageSize: args.pageSize,
+        dependencies: args.dependencies,
+      });
+      if (result.processed) {
+        processed.add(doc.id);
+        processedStepCount += 1;
+      }
+      if (result.status === "retryable") retryable.add(doc.id);
+      if (!result.processed || !result.madeProgress || result.status === "retryable" ||
+          result.status === "deleted" || result.stage === "quiet_wait") {
+        stopped.add(doc.id);
+      }
     }
-    if (result.status === "retryable") {
-      retryableCount += 1;
-    }
+    if (stopped.size === active.length || elapsedClock() - startedAt >= timeBudgetMs) break;
   }
   return {
     scannedCount: active.length,
-    processedCount,
-    retryableCount,
+    processedCount: processed.size,
+    processedStepCount,
+    retryableCount: retryable.size,
     completedRecordDeletes,
     expiredCompletionPageSaturated: expired.size > maxRequests,
     retryableBacklogCount,

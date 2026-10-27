@@ -52,6 +52,7 @@ import {
   handleRunSessionLoadStatus,
 } from "./runs/callable_handlers.js";
 import { ensureManagedLeaderboardBoards } from "./boards/provisioning.js";
+import { pruneObsoleteLeaderboardBoards } from "./boards/retention.js";
 import { runReplaySubmissionCleanup } from "./runs/cleanup.js";
 import { settleAcceptedRunSession } from "./runs/reward_settlement.js";
 import { enqueueAcceptedRunProjection } from "./runs/projection_dispatch.js";
@@ -630,6 +631,8 @@ export const leaderboardBoardMaintenance = onSchedule(
   async () => {
     const result = await ensureManagedLeaderboardBoards({ db });
     console.log("leaderboardBoardMaintenance", result);
+    const retention = await pruneObsoleteLeaderboardBoards({ db, apply: true });
+    logger.info("leaderboardBoardRetention", retention);
   },
 );
 

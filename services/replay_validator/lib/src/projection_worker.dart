@@ -83,6 +83,16 @@ class DeterministicProjectionWorker implements ProjectionWorker {
         durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
       );
       return const ProjectionDispatchResult.completed();
+    } on BoardRetiredException {
+      await metrics.recordDispatch(
+        runSessionId: normalizedRunSessionId,
+        status: ProjectionDispatchStatus.completed.name,
+        phase: 'projection_skipped_retired_board',
+        durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
+      );
+      return const ProjectionDispatchResult.completed(
+        message: 'Board is retired.',
+      );
     } on AccountDeletionInProgressException {
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,
@@ -140,6 +150,16 @@ class DeterministicProjectionWorker implements ProjectionWorker {
         durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
       );
       return const ProjectionDispatchResult.completed();
+    } on BoardRetiredException {
+      await metrics.recordDispatch(
+        runSessionId: 'board:$normalizedBoardId',
+        status: ProjectionDispatchStatus.completed.name,
+        phase: 'projection_reconciliation_skipped_retired_board',
+        durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
+      );
+      return const ProjectionDispatchResult.completed(
+        message: 'Board is retired.',
+      );
     } on AccountDeletionInProgressException {
       await metrics.recordDispatch(
         runSessionId: 'board:$normalizedBoardId',

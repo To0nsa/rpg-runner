@@ -7,16 +7,66 @@ import 'package:run_protocol/leaderboard_entry.dart';
 import 'package:test/test.dart';
 
 import 'package:replay_validator/src/firestore_value_codec.dart';
+import 'package:replay_validator/src/account_deletion_fence.dart';
 import 'package:replay_validator/src/google_api_helpers.dart';
 import 'package:replay_validator/src/leaderboard_projector.dart';
 
 void main() {
+  for (final status in ['missing', 'disabled', 'retired']) {
+    test(
+      'board fence rejects $status parents and rolls back without writes',
+      () async {
+        var rollbackCalls = 0;
+        final client = MockClient((request) async {
+          if (request.url.path.endsWith(':beginTransaction'))
+            return _jsonResponse({'transaction': 'dHg='});
+          if (request.method == 'GET' &&
+              request.url.path.endsWith('/leaderboard_boards/board_1')) {
+            expect(request.url.queryParameters['transaction'], 'dHg=');
+            if (status == 'missing') return _notFoundResponse();
+            return _jsonResponse({
+              'fields': {
+                'status': {
+                  'stringValue': status == 'disabled' ? 'disabled' : 'active',
+                },
+                if (status == 'retired') 'retiredAtMs': {'integerValue': '123'},
+              },
+            });
+          }
+          if (request.url.path.endsWith(':rollback')) {
+            rollbackCalls++;
+            return _jsonResponse({});
+          }
+          fail('Unexpected write or request: ${request.method} ${request.url}');
+        });
+        final fence = FirestoreAccountDeletionFence(
+          projectId: 'test-project',
+          apiProvider: _FirestoreApiProvider(firestore.FirestoreApi(client)),
+        );
+        await expectLater(
+          fence.begin(uids: [], boardId: 'board_1'),
+          throwsA(isA<BoardRetiredException>()),
+        );
+        expect(rollbackCalls, 1);
+      },
+    );
+  }
+
   test('unchanged player best rolls back its read transaction', () async {
     const transactionId = 'dGVzdC10cmFuc2FjdGlvbg==';
     final existing = _entry(score: 1200, sortKey: '0001');
     final candidate = _entry(score: 1100, sortKey: '0002');
     var rollbackCalls = 0;
     final client = MockClient((request) async {
+      if (request.method == 'GET' &&
+          RegExp(r'/leaderboard_boards/[^/]+$').hasMatch(request.url.path)) {
+        expect(request.url.queryParameters['transaction'], isNotNull);
+        return _jsonResponse({
+          'fields': {
+            'status': {'stringValue': 'active'},
+          },
+        });
+      }
       if (request.method == 'POST' &&
           request.url.path.endsWith('/documents:beginTransaction')) {
         return _jsonResponse(<String, Object?>{'transaction': transactionId});
@@ -60,6 +110,15 @@ void main() {
     final existing = _entry(score: 1200, sortKey: '0001');
     var rollbackCalls = 0;
     final client = MockClient((request) async {
+      if (request.method == 'GET' &&
+          RegExp(r'/leaderboard_boards/[^/]+$').hasMatch(request.url.path)) {
+        expect(request.url.queryParameters['transaction'], isNotNull);
+        return _jsonResponse({
+          'fields': {
+            'status': {'stringValue': 'active'},
+          },
+        });
+      }
       if (request.method == 'POST' &&
           request.url.path.endsWith('/documents:beginTransaction')) {
         return _jsonResponse(<String, Object?>{'transaction': transactionId});
@@ -106,6 +165,15 @@ void main() {
         'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
     final client = MockClient((request) async {
       if (request.method == 'GET' &&
+          RegExp(r'/leaderboard_boards/[^/]+$').hasMatch(request.url.path)) {
+        expect(request.url.queryParameters['transaction'], isNotNull);
+        return _jsonResponse({
+          'fields': {
+            'status': {'stringValue': 'active'},
+          },
+        });
+      }
+      if (request.method == 'GET' &&
           request.url.path.endsWith('/views/top10')) {
         return _jsonResponse(
           firestore.Document(
@@ -148,6 +216,15 @@ void main() {
       const transactionId = 'dGVzdC10cmFuc2FjdGlvbg==';
       Map<String, Object?>? committedBody;
       final client = MockClient((request) async {
+        if (request.method == 'GET' &&
+            RegExp(r'/leaderboard_boards/[^/]+$').hasMatch(request.url.path)) {
+          expect(request.url.queryParameters['transaction'], isNotNull);
+          return _jsonResponse({
+            'fields': {
+              'status': {'stringValue': 'active'},
+            },
+          });
+        }
         if (request.method == 'POST' &&
             request.url.path.endsWith('/documents:beginTransaction')) {
           return _jsonResponse(<String, Object?>{'transaction': transactionId});

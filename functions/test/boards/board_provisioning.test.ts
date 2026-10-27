@@ -12,6 +12,7 @@ import {
   type BoardProvisioningConfig,
 } from "../../src/boards/provisioning.js";
 import { loadActiveBoardManifest } from "../../src/boards/store.js";
+import { pruneObsoleteLeaderboardBoards } from "../../src/boards/retention.js";
 import {
   resolveCompetitiveWindow,
   resolveWeeklyWindow,
@@ -48,6 +49,8 @@ const config: BoardProvisioningConfig = {
 
 beforeEach(async () => {
   await clearCollection(db, "leaderboard_boards");
+  await clearCollection(db, "system_maintenance");
+  await clearCollection(db, "run_sessions");
 });
 
 after(async () => {
@@ -57,6 +60,69 @@ after(async () => {
 test("default provisioning config issues current combat and distance scoring", () => {
   assert.equal(resolveBoardProvisioningConfig({}).rulesetVersion, "rules-v2");
   assert.equal(resolveBoardProvisioningConfig({}).scoreVersion, "score-v4");
+});
+
+test("default provisioning creates only three current boards and rolls windows on demand", async () => {
+  const nowMs = Date.UTC(2026, 9, 27);
+  const first = await ensureManagedLeaderboardBoards({ db, nowMs, config });
+  assert.equal(first.createdCount, 3);
+  assert.equal((await db.collection("leaderboard_boards").get()).size, 3);
+  const nextMs = resolveWeeklyWindow(nowMs).closesAtMs + 1;
+  const next = await ensureManagedBoardForModeLevel({ db, mode: "weekly", levelId: "field", nowMs: nextMs, config });
+  assert.equal(next.createdCount, 1);
+});
+
+test("retention dry run is read-only and protects current boards and active runs", async () => {
+  const nowMs = Date.UTC(2026, 9, 27);
+  await ensureManagedLeaderboardBoards({ db, nowMs, config, includeNextWindows: true });
+  await ensureManagedLeaderboardBoards({ db, nowMs, config: { ...config, gameCompatVersion: "old" } });
+  const old = (await db.collection("leaderboard_boards").where("gameCompatVersion", "==", "old").get()).docs[0]!;
+  await db.collection("run_sessions").doc("active").set({ state: "validating", runTicket: { boardId: old.id } });
+  const result = await pruneObsoleteLeaderboardBoards({ db, config, nowMs, supportedVersions: new Set([config.gameCompatVersion]) });
+  assert.equal(result.candidates.length, 5);
+  assert.equal(result.protectedCount, 4);
+  assert.equal((await db.collection("leaderboard_boards").where("status", "==", "disabled").get()).size, 0);
+  assert.equal((await db.doc("system_maintenance/board_retention").get()).exists, false);
+});
+
+test("retention preserves parents across grace, bounded child pages and Storage failure", async () => {
+  const nowMs = Date.UTC(2026, 9, 27);
+  await ensureManagedBoardForModeLevel({ db, mode: "competitive", levelId: "field", nowMs, config: { ...config, gameCompatVersion: "old" } });
+  const board = (await db.collection("leaderboard_boards").get()).docs[0]!;
+  const batch = db.batch();
+  for (let index = 0; index < 101; index += 1) batch.set(board.ref.collection("player_bests").doc(`p${index}`), { uid: `u${index}` });
+  await batch.commit();
+  const base = { db, config, nowMs, supportedVersions: new Set([config.gameCompatVersion]), apply: true };
+  const retired = await pruneObsoleteLeaderboardBoards({ ...base, deleteGhostPage: async () => { throw new Error("must wait"); } });
+  assert.equal(retired.retiredCount, 1);
+  assert.equal(retired.childDeleteCount, 0);
+  const first = await pruneObsoleteLeaderboardBoards({ ...base, immediate: true });
+  assert.equal(first.childDeleteCount, 100);
+  assert.equal((await board.ref.get()).get("status"), "disabled");
+  const second = await pruneObsoleteLeaderboardBoards({ ...base, immediate: true });
+  assert.equal(second.childDeleteCount, 1);
+  await assert.rejects(pruneObsoleteLeaderboardBoards({ ...base, immediate: true, deleteGhostPage: async () => { throw new Error("storage down"); } }), /storage down/);
+  assert.equal((await board.ref.get()).exists, true);
+  const afterGrace = await pruneObsoleteLeaderboardBoards({ ...base, nowMs: nowMs + 24 * 60 * 60 * 1000, deleteGhostPage: async () => 0 });
+  assert.equal(afterGrace.deletedCount, 1);
+  assert.equal((await board.ref.get()).exists, false);
+});
+
+test("retention refuses cutover pauses and configured draining versions", async () => {
+  for (const versions of [new Set(["release-paused"]), new Set([config.gameCompatVersion, "old"])]) {
+    await assert.rejects(pruneObsoleteLeaderboardBoards({ db, config, supportedVersions: versions, apply: true }), /one supported/);
+  }
+});
+
+test("a previously retired future window is restored only when provisioned again", async () => {
+  const nowMs = Date.UTC(2026, 9, 27);
+  await ensureManagedLeaderboardBoards({ db, config, nowMs, includeNextWindows: true });
+  await pruneObsoleteLeaderboardBoards({ db, config, nowMs, apply: true, supportedVersions: new Set([config.gameCompatVersion]) });
+  const nextMs = resolveWeeklyWindow(nowMs).closesAtMs + 1;
+  await ensureManagedBoardForModeLevel({ db, mode: "weekly", levelId: "field", config, nowMs: nextMs });
+  const loaded = await loadActiveBoardManifest({ db, mode: "weekly", levelId: "field", gameCompatVersion: config.gameCompatVersion, nowMs: nextMs });
+  assert.equal(loaded.status, "active");
+  assert.equal((await db.collection("leaderboard_boards").doc(loaded.boardId).get()).get("retiredAtMs"), undefined);
 });
 
 test("ensureManagedLeaderboardBoards provisions competitive all-levels and weekly featured-level", async () => {

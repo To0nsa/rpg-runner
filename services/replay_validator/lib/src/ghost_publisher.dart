@@ -110,7 +110,10 @@ abstract class GhostObjectStore {
     required String storageGeneration,
   });
 
-  Future<void> deleteGhostObject({required String objectPath});
+  Future<void> deleteGhostObject({
+    required String objectPath,
+    String? storageGeneration,
+  });
 }
 
 final class GhostPromotionResult {
@@ -376,9 +379,15 @@ class FirestoreGhostPublisher implements GhostPublisher {
           promotedAtMs: nowMs,
         ),
       );
-    } on AccountDeletionInProgressException {
+    } catch (error) {
+      if (error is! AccountDeletionInProgressException &&
+          error is! BoardRetiredException)
+        rethrow;
       if (sourcePath != destinationPath) {
-        await _objectStore.deleteGhostObject(objectPath: destinationPath);
+        await _objectStore.deleteGhostObject(
+          objectPath: destinationPath,
+          storageGeneration: promotion.destinationStorageGeneration,
+        );
       }
       rethrow;
     }
@@ -533,6 +542,7 @@ class FirestoreGhostPublicationStore implements GhostPublicationStore {
         : const <String>[];
     final transaction = await _deletionFence.begin(
       uids: <String>[manifest.uid],
+      boardId: manifest.boardId,
     );
     await transaction.commit(<firestore.Write>[
       firestore.Write(
@@ -733,12 +743,20 @@ class GoogleCloudStorageGhostObjectStore implements GhostObjectStore {
   }
 
   @override
-  Future<void> deleteGhostObject({required String objectPath}) async {
+  Future<void> deleteGhostObject({
+    required String objectPath,
+    String? storageGeneration,
+  }) async {
     final storageApi = await apiProvider.storageApi();
     try {
-      await storageApi.objects.delete(bucketName, objectPath);
+      await storageApi.objects.delete(
+        bucketName,
+        objectPath,
+        ifGenerationMatch: storageGeneration,
+      );
     } catch (error) {
-      if (isApiNotFound(error)) {
+      if (isApiNotFound(error) ||
+          (storageGeneration != null && isApiConflict(error))) {
         return;
       }
       rethrow;

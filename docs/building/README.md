@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Board lifecycle and account deletion](board_lifecycle_cleanup.md): bounded
+  erasure batches, current-window provisioning, obsolete-board retirement and
+  authorized pre-release dev cleanup.
+
 - [Android beta release with dev, staging and production](android_beta_release.md):
   executing; reuse the existing project/owner account for dev and create named staging
   and production projects now. Team acceptance uses a separate staging app/backend;

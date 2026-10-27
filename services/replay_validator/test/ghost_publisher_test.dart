@@ -96,8 +96,7 @@ void main() {
             runSessionId: runSessionId,
             uid: 'uid_deleted',
             boardId: boardId,
-            replayStorageRef:
-                'replay-submissions/pending/uid_deleted/run_deleted/replay.bin.gz',
+            replayStorageRef: 'replay-submissions/pending/uid_deleted/run_deleted/replay.bin.gz',
           ),
         },
         top10EntriesByBoard: <String, List<LeaderboardEntry>>{
@@ -109,8 +108,7 @@ void main() {
               score: 1200,
               distanceMeters: 420,
               durationSeconds: 120,
-              replayStorageRef:
-                  'replay-submissions/pending/uid_deleted/run_deleted/replay.bin.gz',
+              replayStorageRef: 'replay-submissions/pending/uid_deleted/run_deleted/replay.bin.gz',
               rank: 1,
             ),
           ],
@@ -130,6 +128,56 @@ void main() {
         throwsA(isA<AccountDeletionInProgressException>()),
       );
 
+      expect(objectStore.deletions, <String>[
+        'ghosts/$boardId/$runSessionId/ghost.bin.gz',
+      ]);
+    },
+  );
+
+  test(
+    'removes a newly promoted ghost when board retirement fences its manifest',
+    () async {
+      const boardId = 'board_competitive_2026_03_field';
+      const runSessionId = 'run_deleted';
+      final store = _InMemoryGhostPublicationStore(
+        validatedRuns: <String, ValidatedRun>{
+          runSessionId: _validatedRun(
+            runSessionId: runSessionId,
+            uid: 'uid_deleted',
+            boardId: boardId,
+            replayStorageRef: 'replay-submissions/pending/uid_deleted/run_deleted/replay.bin.gz',
+          ),
+        },
+        top10EntriesByBoard: <String, List<LeaderboardEntry>>{
+          boardId: <LeaderboardEntry>[
+            _entry(
+              boardId: boardId,
+              runSessionId: runSessionId,
+              uid: 'uid_deleted',
+              score: 1200,
+              distanceMeters: 420,
+              durationSeconds: 120,
+              replayStorageRef: 'replay-submissions/pending/uid_deleted/run_deleted/replay.bin.gz',
+              rank: 1,
+            ),
+          ],
+        },
+      )..upsertError = const BoardRetiredException(boardId);
+      final objectStore = _InMemoryGhostObjectStore();
+      final publisher = FirestoreGhostPublisher(
+        projectId: 'demo',
+        replayStorageBucket: 'bucket',
+        publicationStore: store,
+        objectStore: objectStore,
+        clockMs: () => 10_000,
+      );
+
+      await expectLater(
+        publisher.updateGhostArtifacts(runSessionId: runSessionId),
+        throwsA(isA<BoardRetiredException>()),
+      );
+
+      expect(objectStore.deletedGenerations, ['456']);
       expect(objectStore.deletions, <String>[
         'ghosts/$boardId/$runSessionId/ghost.bin.gz',
       ]);
@@ -550,43 +598,38 @@ void main() {
     expect(requestedPageTokens, <String?>[null, 'page-2']);
   });
 
-  test(
-    'leaderboard projection store returns only integrity-complete active ghosts across pages',
-    () async {
-      final requestedPageTokens = <String?>[];
-      final client = MockClient((request) async {
-        final pageToken = request.url.queryParameters['pageToken'];
-        requestedPageTokens.add(pageToken);
-        return http.Response(
-          jsonEncode(<String, Object?>{
-            'documents': <Object?>[
-              _manifestDocumentJson(
-                entryId: pageToken == null ? 'run_active' : 'run_hidden',
-                includeIntegrity: pageToken == null,
-              ),
-            ],
-            if (pageToken == null) 'nextPageToken': 'page-2',
-          }),
-          200,
-          headers: const <String, String>{'content-type': 'application/json'},
-        );
-      });
-      final store = FirestoreLeaderboardProjectionStore(
-        projectId: 'demo',
-        apiProvider: _FirestoreApiProvider(firestore.FirestoreApi(client)),
+  test('leaderboard projection store returns only integrity-complete active ghosts across pages', () async {
+    final requestedPageTokens = <String?>[];
+    final client = MockClient((request) async {
+      final pageToken = request.url.queryParameters['pageToken'];
+      requestedPageTokens.add(pageToken);
+      return http.Response(
+        jsonEncode(<String, Object?>{
+          'documents': <Object?>[
+            _manifestDocumentJson(
+              entryId: pageToken == null ? 'run_active' : 'run_hidden',
+              includeIntegrity: pageToken == null,
+            ),
+          ],
+          if (pageToken == null) 'nextPageToken': 'page-2',
+        }),
+        200,
+        headers: const <String, String>{'content-type': 'application/json'},
       );
+    });
+    final store = FirestoreLeaderboardProjectionStore(
+      projectId: 'demo',
+      apiProvider: _FirestoreApiProvider(firestore.FirestoreApi(client)),
+    );
 
-      final manifests = await store.loadActiveGhostManifests(
-        boardId: 'board_1',
-      );
+    final manifests = await store.loadActiveGhostManifests(boardId: 'board_1');
 
-      expect(manifests.keys.toSet(), <String>{'run_active'});
-      expect(manifests['run_active']?.sourceReplayStorageGeneration, '123');
-      expect(manifests['run_active']?.promotedReplayStorageGeneration, '456');
-      expect(manifests['run_active']?.replayDigest, 'a' * 64);
-      expect(requestedPageTokens, <String?>[null, 'page-2']);
-    },
-  );
+    expect(manifests.keys.toSet(), <String>{'run_active'});
+    expect(manifests['run_active']?.sourceReplayStorageGeneration, '123');
+    expect(manifests['run_active']?.promotedReplayStorageGeneration, '456');
+    expect(manifests['run_active']?.replayDigest, 'a' * 64);
+    expect(requestedPageTokens, <String?>[null, 'page-2']);
+  });
 }
 
 GhostManifestRecord _activeManifest({
@@ -797,6 +840,7 @@ class _InMemoryGhostPublicationStore implements GhostPublicationStore {
 class _InMemoryGhostObjectStore implements GhostObjectStore {
   final List<_Promotion> promotions = <_Promotion>[];
   final List<String> deletions = <String>[];
+  final List<String?> deletedGenerations = <String?>[];
   final Set<String> _objects = <String>{};
 
   void addGhostObject({
@@ -830,8 +874,12 @@ class _InMemoryGhostObjectStore implements GhostObjectStore {
   }) async => _objects.contains('$objectPath#$storageGeneration');
 
   @override
-  Future<void> deleteGhostObject({required String objectPath}) async {
+  Future<void> deleteGhostObject({
+    required String objectPath,
+    String? storageGeneration,
+  }) async {
     deletions.add(objectPath);
+    deletedGenerations.add(storageGeneration);
   }
 }
 

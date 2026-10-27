@@ -246,19 +246,21 @@ by the scheduled worker independently of the client's authentication state.
 
 ## Scheduling, retention, and operations
 
-`accountDeletionRepair` is configured to run every minute in UTC, selecting up
-to ten active requests and processing one stage page per selected request.
-Pages default to 100 items, with validated bounds of 1–500. Each request records
-attempts, stage, last retryable error, age inputs, and aggregate deletion counters
-for operator inspection. Missing Auth
-users and already-missing data/artifacts are normal idempotent outcomes. This
-cadence replaces the former fifteen-minute cost-containment setting: three
-ordinary/final inventory passes alone need at least 62 scheduled stage ticks
-for a populated account, before extra pages and board traversal. At fifteen
-minutes per tick, that lower bound was 15.5 hours and already exceeded the
-twelve-hour alert budget. At one minute per tick it is 62 minutes. These are
-stage-count estimates, not production-duration measurements; large accounts,
-many boards, leases, retries, and queue saturation add time.
+`accountDeletionRepair` runs every minute in UTC and selects up to ten active
+requests. It performs round-robin batches of up to 32 stage steps per selected
+request, with a shared 40-second soft elapsed-time budget. Every step acquires its
+own five-minute lease, performs one bounded page and durably commits its
+checkpoint. Pages default to 100 items (validated bounds 1-500). A request stops
+for this invocation on completion, retryable failure, lease contention, no
+progress, or the signed-upload quiet wait; a live validator lease is not polled
+32 times. The soft budget is checked before starting another step, never by
+interrupting an in-flight RPC or skipping a checkpoint.
+
+`processedCount` counts distinct selected requests that executed a step;
+`processedStepCount` counts actual steps. Attempt counts include successful steps
+and are not elapsed-minute or failure counts. The callable still performs only
+one bounded step before acknowledging deletion. Missing Auth users and already
+missing records/objects remain ordinary idempotent outcomes.
 
 The repair worker selects active requests in ascending `requestedAtMs` order
 through the source-controlled `state` plus `requestedAtMs` composite index. It
@@ -275,25 +277,24 @@ Source-controlled production policies under
 `functions/monitoring/account_deletion/` alert on:
 
 - any transition to retryable failure;
-- incomplete work at least twelve hours old or at 720 attempts;
+- incomplete work at least twelve hours old;
 - an expired-completion cleanup page containing more than ten eligible records;
 - unexpected scheduled repair runtime errors.
 
-Twelve hours and 720 attempts are operator safety budgets, not completion
-guarantees. The attempt budget matches twelve hours of one-minute ticks and
-accommodates ordinary retained-board traversal. The September production canary
-passed 432 successful stages before its final pass across 56 retained boards
-and three private fixtures, without retryable failures; the former 400-attempt
-alert was too low for that traversal. The regression fixture verifies
-populated-account completion under the twelve-hour budget using simulated
-one-minute ticks. September verification confirmed the scheduler, indexes,
-enabled policies, and controlled erasure; manual bounded invocations accelerated
-stage traversal, so the measured duration is not a normal-cadence completion
-SLA. Fresh alert-email receipt was not confirmed. Future releases must reverify
-these operational dependencies. Deploy new indexes separately and wait for
-`READY` before deploying dependent Functions. Log-match policies cannot detect
-a scheduler that stops emitting logs: scheduler execution and heartbeat freshness must also be
-checked by operations.
+Twelve hours is an operator safety budget, not a completion guarantee. The
+legacy policy display name is retained for idempotent updates, but its filter
+no longer treats 720 successful steps as a failure. A regression with 184 extra
+retained boards and a populated account verifies completion within 90 simulated
+one-minute scheduler ticks while preserving signed-upload quiet time. Historical
+September evidence used one step per minute and must not be read as verification
+of the new batching or board-retention deployment. New source requires fresh
+live verification. Deploy new indexes separately and wait for `READY` before
+deploying dependent Functions. Log-match policies cannot detect missing
+heartbeats; separately check scheduler execution and heartbeat freshness.
+
+Board lifecycle is described in [board lifecycle](board_lifecycle.md). Account
+erasure still scans all retained board parents, including retired parents until
+their children and ghost objects have drained.
 
 `expiresAtMs` is set to completion time plus 30 days. It is an expiry deadline,
 not a strict bound on physical Firestore removal. The record exists
