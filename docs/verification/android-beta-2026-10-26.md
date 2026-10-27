@@ -379,6 +379,19 @@ dev release APK build and complete native artifact inspection succeeded after
 moving the Pub cache onto the checkout drive. It is CI validation, with the
 runner's dev key, not the owner's final installable candidate.
 
+The retained inspection is
+`.tmp/beta-checks/ci-40423207090-android/android-ci.json`: package
+`com.example.rpg_runner.dev`, code 1, min/target SDK 24/36, correct dev
+Firebase/Play resources, 3,750 navigation graphs, three ABIs and 16-KB alignment.
+APK SHA-256 `9b235f96f7a0a3be35d8f1caa5e5376ddf99ea494ff9a0cfdae574f119a682ed`,
+188,861,430 bytes; runner certificate
+`011d2d7c54cd24d41a29738e18f64aca176f8d55949f29f98af071d938e8bc6b`.
+Its LF-checkout navigation manifest hash is
+`6f65c41f501cc9618ecefd8ae3349d037656aacb567935ab81268f8639a812bd`.
+The retained artifact contains inspection/build evidence, not an APK intended
+for tester installation. The runner certificate does not replace the registered
+owner dev certificate.
+
 The first Replay Validator job `121916696570` in run `40421473569` was cancelled
 at its 30-minute job limit. It was still generating required offline graphs,
 reporting 76,790 graphs/7,750 windows at 1,757.361 seconds before cancellation.
@@ -396,13 +409,24 @@ Browser diagnostics in run `40425121438`, job `121928835561`, now expose the
 failure: readiness remained at `RunLoadPhase.parallaxMounted`, with null
 error/stack and the loading screen still visible. The exact assertion was
 `Expected: exactly one matching candidate` / zero `ReadyOverlay` widgets.
-The test began native browser image-decoding futures on the fake test clock,
+The test originally mounted the route on the fake test clock,
 then only yielded real asynchronous time afterward. It now mounts the route and
 pumps its bounded loading loop inside `tester.runAsync`; this follows the
 [Flutter asynchronous test guidance](https://api.flutter.dev/flutter/flutter_test/WidgetTester/runAsync.html).
 The limit remains 1,200 iterations with 16-ms simulated frames and 10-ms real
 yields. Asset loads, readiness, real simulation ticks and game-over assertions
-are preserved. Actual hosted verification remains pending, not waived.
+are preserved. Hosted run `40426008765` still fails at `parallaxMounted` without
+a reported error. The clock hypothesis is therefore unconfirmed; this change
+does not establish a fix. All component jobs pass, including the independently
+built web smoke test. The browser widget gate remains failed, not waived.
+
+The five Android launcher exports now derive from
+`docs/release-assets/android/long_run_icon.svg`, with a separate 512 px Play icon.
+The brand references were read from `C:/dev/Lothringen/Brand/`. Rendering used
+resvg-js 2.6.2 installed only under ignored `.tmp/icon-renderer`; app dependencies
+are unchanged. XML parsing, PNG dimensions/alpha and 512/48 px visual inspection
+pass. The Play image is 6,389 bytes with fully opaque alpha. No upload occurred.
+At 00:39 UTC, `adb devices -l` returned an empty device list.
 
 Android/runtime implementation milestone committed as
 `aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor

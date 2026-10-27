@@ -141,16 +141,22 @@ reviewable preparation and retain all non-waived acceptance gates.
   overlapping runs per ref; compilation, smoke, strict benchmark and image
   vulnerability checks remain mandatory.
 - Browser diagnostics identify a readiness failure at `parallaxMounted` with no
-  asset error: image decoding was started on the widget test's simulated clock.
-  The test now starts/mounts the run inside real asynchronous execution, retaining
-  the same 1,200 iterations and all assertions. Hosted verification is pending;
-  this is a harness correction, not a gameplay waiver.
+  reported asset error. Moving route startup into real asynchronous execution
+  did not resolve it: run `40426008765` still fails that case. All component jobs
+  pass, including built-web smoke. Asset/task diagnostics are being added to
+  identify the actual pending work; the simulated-clock cause remains unproven.
+  This remains a blocking check, with no gameplay waiver.
 - External deletion-page source is prepared at `web/account-deletion.html` with
   the confirmed support email, environment-specific request scope, in-app steps
   and actual retention limits. It is not yet published. Live log-bucket readback
   confirms 30-day operational and 400-day required audit retention in both new
   projects. Public privacy identity and support-correspondence policy remain
   dependent on operator input; no placeholder privacy policy is published.
+- Replaced the Flutter launcher placeholder with the game icon in all five
+  Android densities and prepared its 512 px Play export. The editable SVG and
+  generation details are in [release assets](../release-assets/android/README.md).
+  Dimensions, opacity and small-size rendering pass inspection; no store asset
+  has been uploaded. `adb devices -l` currently lists no attached device.
 - Next: finish OAuth/Play identity, canonical Android build evidence, diagnostics,
   recovery and remaining release
   acceptance. Final source is not frozen and no app upload occurred.
@@ -596,7 +602,8 @@ Drafted from implemented features and the companion repository's Identity,
 CrossMediaExpressionRules and Naming&Terminology references. Not submitted.
 Keep existing titles `Long Run` and `Long Run Staging`. These drafts fit Google's
 [30/80/4,000-character listing limits](https://support.google.com/googleplay/android-developer/answer/9859152?hl=en-GB).
-Actual screenshots, icon/artwork and IARC answers remain pending.
+The [game icon](../release-assets/android/README.md) is prepared. Actual Android
+screenshots, feature artwork and IARC answers remain pending.
 
 Production short description:
 

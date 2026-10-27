@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Lothringen: The Long Run</title>
+  <desc>A road beneath a dimmed sun, in aged gold on charcoal.</desc>
+  <rect width="512" height="512" fill="#151A1F"/>
+  <circle cx="256" cy="200" r="88" fill="#B99A52"/>
+  <path d="M148 190h216v18H148z M148 232h216v24H148z" fill="#151A1F"/>
+  <path d="M244 280h-18l-56 112h32z M268 280h18l56 112h-32z" fill="#9A7A3A"/>
+</svg>

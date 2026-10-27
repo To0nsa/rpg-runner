@@ -16,6 +16,9 @@ permanent package/listing decision and OAuth configuration remain open in the
 [active checklist](../building/android_beta_release.md). This table describes
 source configuration, not three accepted or published installations.
 
+The flavors share the [game icon source and exports](../release-assets/android/README.md).
+Launcher labels distinguish development and staging installations.
+
 ## Build and installation
 
 Use `flutter run --flavor dev -d <device-id>` or
