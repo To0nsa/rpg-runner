@@ -14,7 +14,12 @@ function Invoke-ReleaseCommand {
   $errorPath = Join-Path $scratch "$([Guid]::NewGuid().ToString('N')).log"
   Push-Location $WorkingDirectory
   $savedPreference = $ErrorActionPreference
+  $savedOutputEncoding = [Console]::OutputEncoding
   try {
+    # Git emits UTF-8 filenames even when a background PowerShell job starts
+    # with an OEM code page. Decode each invocation consistently so accented
+    # asset names cannot disappear from source/artifact fingerprints.
+    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
     # Native warnings must stay out of JSON stdout and never masquerade as
     # failures under Windows PowerShell's stderr ErrorRecord conversion.
     $ErrorActionPreference = "Continue"
@@ -24,6 +29,7 @@ function Invoke-ReleaseCommand {
       (Get-Content -Raw -LiteralPath $errorPath | Out-String).Trim()
     } else { "" }
   } finally {
+    [Console]::OutputEncoding = $savedOutputEncoding
     $ErrorActionPreference = $savedPreference
     Pop-Location
     if (Test-Path -LiteralPath $errorPath) { Remove-Item -LiteralPath $errorPath -Force }

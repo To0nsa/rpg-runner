@@ -54,7 +54,8 @@ serving issuer before applying. Delayed projection tasks must be drained or the
 board-fenced worker deployed before final removal. This tool does not authorize
 deployment, run cancellation or an account reset.
 
-Retention deployment must follow the board-fenced worker deployment. The
-current-only policy must be reviewed before offering historical leaderboards
+Keep board maintenance paused across the coordinated Functions/worker cutover,
+and resume it only after the board-fenced worker is serving. The current-only
+policy must be reviewed before offering historical leaderboards
 to real players. Local and live verification are tracked in the
 [workstream checklist](../building/board_lifecycle_cleanup.md).

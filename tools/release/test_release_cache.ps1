@@ -243,6 +243,11 @@ try {
   Assert-CacheThrows { Merge-ReleaseCIBundle $downloads (Join-Path $fixture '.tmp/bad-bundle') ('c'*40) 123 } 'coverage' 'duplicate/missing CI client shard coverage blocks bundle publication'
   $global:cacheCIRun.head_sha='d'*40
   Assert-CacheThrows { Import-ReleaseCI $fixture $importCache 123 } 'trusted' 'CI import rejects evidence from another commit'
+  # Use a fresh shell so the native Git/job regression cannot inherit these
+  # cache tests' mocked command functions.
+  $nativeShell = [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+  & $nativeShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'test_release_unicode.ps1')
+  Assert-CacheTest ($LASTEXITCODE -eq 0) 'native Unicode fingerprints match across parent and background jobs'
   Write-Host "$script:passed cache/scope/provenance checks passed; no SDK or cloud commands executed."
 } finally {
   $resolved = (Resolve-Path $fixture).Path

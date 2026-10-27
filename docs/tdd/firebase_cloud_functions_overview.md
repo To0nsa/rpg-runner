@@ -331,13 +331,13 @@ Why:
   Pre-release retention retires obsolete partitions, protects active run
   references, waits the maximum ticket lifetime, and drains nested projections
   and ghost objects in bounded pages. See [board lifecycle](board_lifecycle.md).
-- Defaults new boards to source game compatibility `2026.10.6`, combat
-  `rules-v2`, `score-v3`, and `ghost-v1`. A managed board ID binds mode, level,
+- Defaults new boards to source game compatibility `2026.10.21`, combat
+  `rules-v2`, `score-v4`, and `ghost-v1`. A managed board ID binds mode, level,
   window, ruleset, score, game compatibility, and ghost version, so rollout
   partitions can coexist without sharing leaderboard/ghost descendants.
 - Active-board and run-session callables accept only the compatibility
   allowlist resolved from `RUN_SUPPORTED_GAME_COMPAT_VERSIONS`. The default is
-  `2026.10.6` only. The next coordinated cutover must remove any temporary
+  `2026.10.21` only. The next coordinated cutover must remove any temporary
   compatibility override before restoring issuance. Historical labels
   cannot execute on the current worker.
 - The read-only production inventory groups active sessions by game
