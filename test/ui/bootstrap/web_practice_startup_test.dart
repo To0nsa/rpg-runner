@@ -4,6 +4,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flame/game.dart';
+import 'package:rpg_runner/game/runner_flame_game.dart';
 import 'package:rpg_runner/ui/app/create_app_services.dart';
 import 'package:rpg_runner/ui/app/ui_app.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
@@ -16,6 +18,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  // Browser console output is not always forwarded by Flutter's test harness.
+  // Preserve failure reporting while attaching the actual exception to the test.
+  final originalReporter = reportTestException;
+  reportTestException = (details, description) {
+    printOnFailure(details.toString());
+    originalReporter(details, description);
+  };
+  tearDownAll(() => reportTestException = originalReporter);
   for (final savedMode in [false, true]) {
     test(
       'web startup is local regardless of saved mode ($savedMode)',
@@ -84,6 +94,20 @@ void main() {
         () => Future<void>.delayed(const Duration(milliseconds: 10)),
       );
       expect(tester.takeException(), isNull);
+    }
+    if (find.byType(ReadyOverlay).evaluate().isEmpty) {
+      for (final host in tester.widgetList<GameWidget<RunnerFlameGame>>(
+        find.byType(GameWidget<RunnerFlameGame>),
+      )) {
+        final load = host.game!.loadState.value;
+        printOnFailure(
+          'Run startup phase=${load.phase}, error=${load.error}\n'
+          '${load.stackTrace}',
+        );
+      }
+      printOnFailure(
+        'Visible labels: ${tester.widgetList<Text>(find.byType(Text)).map((text) => text.data).join(' | ')}',
+      );
     }
     expect(find.byType(ReadyOverlay), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
