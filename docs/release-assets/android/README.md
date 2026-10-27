@@ -14,9 +14,17 @@ The renderer is an authoring tool, not an application dependency.
 
 The Play export is square, fully opaque, 512 × 512, under 1 MB, with no baked-in
 rounded corners or drop shadow. Visual inspection includes the 48 px launcher
-size. Actual Play upload/readback remains part of the active
+size. These follow the [Play icon specifications](https://developer.android.com/distribute/google-play/resources/icon-design-specifications).
+Actual Play upload/readback remains part of the active
 [release checklist](../../building/android_beta_release.md).
 
-Store screenshots and the feature graphic are still pending. Screenshots must
+[feature_graphic.svg](feature_graphic.svg) and its [PNG export](feature_graphic.png)
+provide a 1,024 × 500 title graphic. Render with the same resvg version and
+`assets/fonts/Cinzel/static/Cinzel-Regular.ttf` as the sole `fontFiles` entry,
+with system fonts disabled, then encode the fully opaque output as RGB PNG.
+The font's license remains alongside the source font. This is title artwork,
+not a gameplay screenshot; it makes no feature, ranking or review claims.
+
+Store screenshots are still pending. Screenshots must
 come from the accepted Android candidate; do not substitute web captures or
 invented gameplay.
