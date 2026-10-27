@@ -215,6 +215,11 @@ function Invoke-AndroidReleaseBuild {
     $toolchain = [ordered]@{flutter=(Get-ReleaseToolchain $Root 'flutter');java=(Invoke-ReleaseCommand java @('--version') $Root);
       gradle=(Invoke-ReleaseCommand (Join-Path $Root $gradle) @('--version') (Join-Path $Root 'android'));buildTools='36.0.0'}
     $type = if ($Environment -eq 'dev') { 'apk' } else { 'appbundle' }
+    # Cached Prepare restores the web artifact, not ignored source-side graphs.
+    # Materialize Android inputs even in a fresh checkout with all cache hits.
+    $preparationLog = Join-Path $directory 'preparation.log'
+    Invoke-ReleaseCommand flutter @('pub','get','--enforce-lockfile') $Root $preparationLog | Out-Null
+    Invoke-ReleaseCommand dart @('run','packages/runner_core/tool/prepare_navigation.dart','--client') $Root $preparationLog | Out-Null
     $certificate = if ($Environment -eq 'dev') { '' } else { (Read-AndroidSigningPayload $Root $Definition $Environment).certificateSha256 }
     Invoke-WithAndroidUploadSigning $Root $Definition $Environment {
       # Flutter 3.47 skips release-mode plugin regeneration with --no-pub;

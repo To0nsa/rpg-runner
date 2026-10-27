@@ -77,6 +77,58 @@ try {
   $zip = [IO.Compression.ZipFile]::Open($artifact,[IO.Compression.ZipArchiveMode]::Update)
   try { $zip.CreateEntry('upload.jks') | Out-Null } finally { $zip.Dispose() }
   Assert-AndroidThrows { Assert-AndroidArchive $fixture $artifact } 'credential file'
+  & {
+    # Exercise the real build entry after a cache restore in a cold checkout.
+    # Native tools are mocked; packaging must never precede required assets.
+    $cold = Join-Path $fixture 'cold-checkout'
+    New-Item -ItemType Directory -Force -Path $cold | Out-Null
+    $script:androidPreparationFails = $true
+    $script:androidBuildTrace = [Collections.Generic.List[string]]::new()
+    function Get-ReleaseComponentInputs { return 'inputs' }
+    function Get-ReleaseToolchain { return 'toolchain' }
+    function Invoke-WithAndroidUploadSigning {
+      param($Root, $Definition, $Environment, $Operation)
+      $script:androidBuildTrace.Add('signing')
+      & $Operation
+    }
+    function Invoke-ReleaseCommand {
+      param($Command, $CommandArgs, $WorkingDirectory, $LogPath)
+      if ($Command -eq 'git') {
+        if ($CommandArgs[0] -eq 'status') { return '' }
+        if ($CommandArgs[0] -eq 'rev-parse') { return ('a' * 40) }
+      }
+      if ($Command -eq 'java' -or $Command -like '*gradlew*') { return 'version' }
+      if ($Command -eq 'flutter' -and $CommandArgs[0] -eq 'pub') {
+        if ($CommandArgs -notcontains '--enforce-lockfile') { throw 'Unlocked dependencies' }
+        $script:androidBuildTrace.Add('dependencies')
+        return ''
+      }
+      if ($Command -eq 'dart' -and $CommandArgs -contains 'packages/runner_core/tool/prepare_navigation.dart') {
+        if ($CommandArgs -notcontains '--client') { throw 'Wrong navigation horizon' }
+        $script:androidBuildTrace.Add('navigation')
+        if ($script:androidPreparationFails) { throw 'Navigation preparation failed' }
+        New-Item -ItemType Directory -Force -Path (Join-Path $WorkingDirectory 'assets/navigation') | Out-Null
+        '{}' | Set-Content (Join-Path $WorkingDirectory 'assets/navigation/manifest.json')
+        return ''
+      }
+      if ($Command -eq 'flutter' -and $CommandArgs[0] -eq 'build') {
+        if (-not (Test-Path (Join-Path $WorkingDirectory 'assets/navigation/manifest.json'))) { throw 'Missing cold-checkout assets' }
+        $script:androidBuildTrace.Add('packaging')
+        throw 'Packaging reached with prepared assets'
+      }
+      throw "Unexpected mocked command: $Command"
+    }
+    try {
+      Assert-AndroidThrows { Invoke-AndroidReleaseBuild $cold $definition dev 1 $cold @{} 'source' } 'Navigation preparation failed'
+      Assert-AndroidTest (($script:androidBuildTrace -join ',') -eq 'dependencies,navigation') 'failed asset preparation blocks signing and packaging'
+      $script:androidPreparationFails = $false
+      $script:androidBuildTrace.Clear()
+      Assert-AndroidThrows { Invoke-AndroidReleaseBuild $cold $definition dev 1 $cold @{} 'source' } 'Packaging reached with prepared assets'
+      Assert-AndroidTest (($script:androidBuildTrace -join ',') -eq 'dependencies,navigation,signing,packaging') 'cold checkout prepares assets before signing and packaging'
+    } finally {
+      Remove-Variable androidPreparationFails,androidBuildTrace -Scope Script
+    }
+  }
   Write-Host "$script:passed Android artifact checks passed; synthetic artifacts only."
 } finally {
   $allowed = [IO.Path]::GetFullPath((Join-Path $workspace '.tmp/release-tests')).TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar

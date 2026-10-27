@@ -30,6 +30,9 @@ Prepare navigation before standalone builds. Candidates use canonical
 Checkout/Prepare, then `tools/release/release.ps1 -Action BuildAndroid
 -Environment <name> -AndroidVersionCode <allocated-code>`; see the
 [deployment contract](deployment_workflow.md). Allocate codes from Play history.
+`BuildAndroid` resolves the frozen lockfile and materializes the required client
+navigation graphs before signing/packaging, including after cached preparation
+in a fresh checkout. Cached web output does not supply source-side Android assets.
 
 Keep the normal pub step when switching native build modes. Flutter 3.47.1
 regenerates plugin registration there, excluding development-only plugins from

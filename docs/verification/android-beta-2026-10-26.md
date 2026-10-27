@@ -847,3 +847,73 @@ No deployment or gameplay waiver occurred. The installed Firebase CLI's schedule
 update uses explicit configuration field masks, preserving the existing dev
 scheduler pause; read its actual state again during cutover and resume only after
 the matching worker is healthy.
+
+## Frozen candidate and console continuation (October 27)
+
+Candidate `ad759adbe96444d379d8b4e038732e8074897696` is frozen in the canonical
+LF checkout under `.tmp/release-checkouts`. `Checkout` copied the selected dev,
+staging and production application environment files separately. Each offline
+`Plan` resolves Coordinated with the unchanged `2026.10.21/rules-v2/score-v4/ghost-v1`
+tuple. Logs: `.tmp/beta-checks/candidate-plan-{dev,staging,prod}.log`.
+
+Pushed the existing continuation branch and dispatched exact-source
+[release preparation run 40550912893](https://github.com/To0nsa/rpg-runner/actions/runs/40550912893).
+The first web-build job compiled successfully, but its subsequent smoke failed
+before browser connection: `Timed out: Chrome debugging port`. This is not a
+gameplay waiver or a passing build gate. Other jobs are still running; inspect
+and retry the isolated browser startup failure before accepting CI evidence.
+Logs: `candidate-ci-client-build-job.log` and
+`candidate-ci-client-build/client-build-0/client-build.log` under `.tmp/beta-checks`.
+
+Saved and read back production Play Games metadata: Long Run, prepared 897-character
+description, Action category, game icon and feature graphic. Both image previews
+were inspected. Next-generation IDs remain On; Recall storage without a profile
+and Saved games remain Off. This saved draft is not service publication.
+
+Production internal track `4700923082088337056` currently has no releases.
+Read back existing Toonsa list membership as the sole owner email, then selected
+and saved that list for this track. Console confirms Select testers complete.
+Its future install URL is `https://play.google.com/apps/internaltest/4700923082088337056`;
+the Console marks it unavailable until publication. No artifact is uploaded yet.
+Production's scheduled-backup listing is still empty at this checkpoint;
+`prod-backups-20261027-candidate.json` records that readback. Device checks remain
+pending, with `adb devices -l` reporting no device.
+
+Both Play Games Testers tabs independently show the owner email as the sole
+tester with access to saved drafts. Production service metadata is ready; service
+publication approval remains pending separately from internal app publication.
+Live `bootstrap_inventory.mjs --project <project>` from the candidate reports no
+Auth users or Firestore collections in staging at `2026-10-27T17:39:42.902Z` and
+production at `2026-10-27T17:39:47.598Z`. These preliminary readbacks do not replace
+Bootstrap's fresh checks. Candidate `Inspect -Environment dev` completed at
+17:34:59 UTC: three current boards, none missing, zero sessions/profiles following
+the owner's completed erasure, and the board-maintenance scheduler still PAUSED.
+Logs: `candidate-bootstrap-inventory-{staging,prod}.json` and
+`candidate-inspect-dev.log` under `.tmp/beta-checks`.
+
+The first candidate CI finished with 14 passing jobs, including the Android
+build/inspection and all client shards. Only the compiled-web Chrome startup
+failed; the dependent bundle did not run. It is not accepted preparation evidence.
+During fresh-checkout preparation, inspection found a separate required packaging
+gap: cached Prepare restores `build/web`, while ignored `assets/navigation`
+files are absent. `BuildAndroid` now resolves the frozen workspace and runs the
+existing client navigation producer before signing/packaging. Preparation failure
+blocks both. No traversal behavior or tolerance changed.
+
+On `ad759adb` plus this packaging correction, both
+`powershell.exe -NoProfile -File tools/release/test_android_artifacts.ps1` and
+`pwsh -NoProfile -File tools/release/test_android_artifacts.ps1` pass 15 checks,
+including cold-checkout success ordering and failure-before-signing behavior.
+Logs: `cold-android-ps51.log`, `cold-android-ps7.log` under `.tmp/beta-checks`.
+Release helpers (51), dev integration (102) and cache/provenance checks (56) also
+pass on both PowerShell versions; logs `cold-{release,integration,cache}-ps51.log`
+and `cold-{release,integration,cache}-ps7.log`. `git diff --check` passes.
+This supersedes the prior candidate freeze; the corrected commit needs exact-source
+CI and actual environment-specific builds.
+
+Staging internal track `4701264247659999845` now has the same verified owner-only
+Toonsa list selected and saved. Its existing Untitled release draft contains no
+bundle; Add from library explicitly reports No app bundles. Allocate initial
+version code 1. Future install URL
+`https://play.google.com/apps/internaltest/4701264247659999845` remains disabled
+until the release is published. No bundle or public rollout occurred.

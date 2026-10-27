@@ -18,19 +18,24 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 27, 2026
 
-Latest committed milestones: `a8d56c0e` (staging Play distribution identities),
-`5b1f9092` (completed board retention/account erasure, included by the owner), and
-`dcc0d891` (release fingerprint Unicode-path correction). Full CI
-preparation passed on preceding `f9015c3d`; the later UI change has focused local
-validation and still needs final-candidate CI. The successful bundle is imported
-into `.tmp/release-cache` using its exact LF validation checkout. The isolated
-remote branch `release/android-beta-browser-check` carries the continuation;
-draft PR #2's head has not been advanced while its long validator job ran.
-The final release commit is **not frozen**, and no new backend, Play bundle or
+Candidate under replacement: `ad759adbe96444d379d8b4e038732e8074897696`, including completed
+board retention/account erasure, Unicode release fingerprints, production Play
+identities/App Check and the current-board readiness correction. Full candidate
+[CI preparation](https://github.com/To0nsa/rpg-runner/actions/runs/40550912893)
+completed with 14 passing jobs and a Chrome-startup failure in the compiled-web
+smoke. A fresh-checkout Android packaging gap was subsequently found: cached
+Prepare restores web output but not ignored navigation graphs. BuildAndroid now
+prepares those required assets explicitly; its 15 artifact/regression checks pass
+on both PowerShell versions. Freeze the corrected tooling commit and rerun CI.
+The isolated LF checkout is `.tmp/release-checkouts/ad759adbe96444d379d8b4e038732e8074897696`,
+with each environment's application configuration copied by `Checkout`.
+The isolated remote branch `release/android-beta-browser-check` carries this
+commit; draft PR #2's head has not been advanced. Earlier CI/cache evidence is
+historical until the candidate's checks finish. No new backend, Play bundle or
 public policy has been deployed. The owner confirmed Nicolas Louis, based in
 Finland, with resolved support correspondence retained for 90 days. Those details
-are incorporated in the prepared policy. Chrome control has resumed on the staging
-OAuth page. Device acceptance remains required; release authorization remains valid.
+are incorporated in the prepared policy. Chrome control is working. Device
+acceptance remains required; release authorization remains valid.
 
 The owner explicitly requested inclusion of the completed board lifecycle/account-
 deletion work tracked in `docs/building/board_lifecycle_cleanup.md`. Runtime work
@@ -953,7 +958,7 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
 Next action: resume the execution checkpoint above. Foundation provisioning and
-upload-key setup are complete; OAuth/Play configuration and privacy publication,
-candidate freeze, builds, deployments and acceptance remain open. No app bundle
+upload-key/OAuth/App Check setup are complete; Play publication, public policy,
+the corrected candidate's freeze/builds, deployments and acceptance remain open. No app bundle
 has been uploaded or released. Do not repeat completed setup or treat local
 validation as live acceptance.
