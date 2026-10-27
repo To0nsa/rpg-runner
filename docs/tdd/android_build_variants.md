@@ -30,6 +30,10 @@ Prepare navigation before standalone builds. Candidates use canonical
 Checkout/Prepare, then `tools/release/release.ps1 -Action BuildAndroid
 -Environment <name> -AndroidVersionCode <allocated-code>`; see the
 [deployment contract](deployment_workflow.md). Allocate codes from Play history.
+For a fresh checkout, run `flutter build apk --config-only --flavor dev --release`
+first and verify the tracked tree remains clean. The pinned Flutter SDK generates
+its ignored Gradle wrapper before BuildAndroid queries the wrapper version.
+This configuration step does not build or sign an artifact.
 `BuildAndroid` resolves the frozen lockfile and materializes the required client
 navigation graphs before signing/packaging, including after cached preparation
 in a fresh checkout. Cached web output does not supply source-side Android assets.

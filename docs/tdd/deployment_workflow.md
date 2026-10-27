@@ -50,6 +50,10 @@ certificate must be registered separately after Play App Signing enrollment.
 
 After Prepare, `BuildAndroid -Environment <name> -AndroidVersionCode <integer>`
 requires a clean frozen checkout and builds a dev APK or signed staging/prod AAB.
+Initialize a fresh checkout's ignored Gradle wrapper with the pinned SDK's
+`flutter build apk --config-only --flavor dev --release`, then verify a clean
+tracked tree before BuildAndroid. This creates configuration only; the release
+action subsequently builds the requested flavor and records Gradle's identity.
 The Android component input hash includes native sources/configuration, shared
 app/content inputs and signing/inspection recipes. Evidence records commit,
 source/input hashes, tuple, Flutter/JDK/Gradle identity, version, artifact hash,

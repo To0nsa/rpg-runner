@@ -957,3 +957,106 @@ require reusable access to authenticated gameplay, including third-party account
 details where needed. A dedicated review account was requested from the owner;
 no owner credentials or invented credentials were submitted, and that declaration
 remains incomplete. This does not prevent independent build/backend work.
+
+## Patched candidate validation and production declarations (October 27)
+
+Frozen source: `d83a690cd4ad82a5427a522a0646027e75d0ad19`.
+[Release preparation 40555415832](https://github.com/To0nsa/rpg-runner/actions/runs/40555415832)
+completed successfully with all 16 jobs passing, including the fresh advisory
+audit, four client shards, compiled-web smoke, native Android inspection and
+complete evidence bundle. No traversal failure was waived. ImportCI runs from
+the exact LF checkout; log `.tmp/beta-checks/candidate-d83-import-ci.log`.
+
+Production Play declarations for Government apps (No), Financial features (none)
+and Health apps (none) are saved. The production IARC questionnaire is also saved,
+with pixel-art fantasy violence against humans and non-humans, unrealistic
+reactions, frequent distant combat, limited blood, dark overtones and recurring
+scary imagery. Actual player hit/death, Unoco death and Voidborn Goddess sprite
+assets were inspected alongside the active enemy catalog. No sexual, gambling,
+controlled-substance, crude-humor or authored offensive-language content was
+declared. The native-interaction answer excludes ordinary competition/ghosts:
+there is no chat or user photo/audio exchange, consistent with Google's
+[interaction guidance](https://support.google.com/googleplay/android-developer/answer/7021383?hl=en).
+No location sharing, real-world propaganda, terrorism advocacy or crime
+instruction exists in this fantasy game.
+
+Calculated ratings include PEGI 7 (mild violence, fear), ESRB Everyone 10+
+(fantasy violence, mild blood), and USK 12 (fantasy violence, dark atmosphere).
+Console confirms Questionnaire saved; review submission is still pending and
+the certificate ID is not yet populated. These content ratings do not change
+the owner's separately selected 16+ audience. Privacy, reviewer access, Data
+safety, actual Android screenshots, audience and country configuration remain
+open; no Play release was published by these declaration saves.
+
+Production's existing closed Alpha track `4700012046966711629` now targets only
+Finland (Console readback: Targeted 1). Selected the existing Toonsa email list,
+previously verified as the sole owner account, and saved
+`lothringen.rpg@gmail.com` as its feedback contact. Console reports two of four
+track-setup tasks complete. The track remains inactive with no release; no
+testers were added or invited, and no qualification period has begun.
+
+Exact-candidate ImportCI completed successfully. Canonical development Prepare
+is running from the LF checkout, using that evidence and fresh advisory checks;
+log `.tmp/beta-checks/candidate-d83-prepare-dev.log`. It subsequently passed with
+all ten components reused and the fresh dependency audit clean. Dev source digest
+is `1151277edf58a9f7926a5a709e1b0e8c9deaa3773489f5b811cb2e472feb665d`.
+Canonical BuildImage acquired/released its project lock and started Cloud Build
+`9a8b0932-3a0a-48b6-a275-f3256c232c2f` at 18:22:11 UTC. Readback is WORKING with
+the configured 7200-second limit; this is not an image pass or deployment.
+Log: `.tmp/beta-checks/candidate-d83-image-dev.log`.
+
+Production Store settings now read Game / Action with public support email
+`lothringen.rpg@gmail.com`, both saved. Optional phone/website fields are blank.
+Staging Prepare is running from the same frozen checkout, with log
+`.tmp/beta-checks/candidate-d83-prepare-staging.log`.
+
+Staging Prepare passed for digest
+`ac307d586ae098d863632d634ec6f816406f7021365bb9e107eb4972572ea87a`.
+Its canonical BuildImage started `d3015999-a988-4416-8144-0a0a05af5021` at
+18:24:53 UTC; readback is WORKING. Production Prepare also passed, for digest
+`df30dbc8463d839572f2c09693b4bc3acfe767d90d5685e7955b79425d11fbec`.
+Logs are `.tmp/beta-checks/candidate-d83-{image-staging,prepare-prod}.log`.
+Production BuildImage is underway; deployment remains gated on staging acceptance.
+
+Production's en-GB default store listing now has the prepared short/full copy,
+512px icon and 1024x500 feature graphic uploaded and visually verified. Console
+confirms Draft saved. Required phone screenshots are absent; the listing is not
+submitted or published. No generated or web screenshots were substituted.
+
+Production Cloud Build is `dbc42520-375f-483e-a547-bba48b4d0218`, started at
+18:28:11 UTC. All three image builds remain WORKING at the next readback.
+
+The first dev BuildAndroid attempt failed before packaging/signing because the
+fresh checkout lacked ignored `android/gradlew.bat`; the release action records
+Gradle's version before Flutter's normal build creates that wrapper. No artifact
+was recorded and its mutation lock was released. The pinned Flutter 3.47.1 source
+confirms `build apk --config-only` injects missing wrapper files before returning
+without assembly. Ran `flutter build apk --config-only --flavor dev --release
+--build-number=1` in the exact frozen checkout: success, wrapper/JAR generated,
+`git status --short` empty. Canonical BuildAndroid dev/version 1 is retrying;
+log `.tmp/beta-checks/candidate-d83-android-dev-retry.log`. Documented this cold
+checkout initialization in the release workflow and Android/deployment contracts.
+The candidate commit and source digests are unchanged; no tests were bypassed.
+
+Owner explicitly chose to keep Play Games tester-only. Do not publish either
+Play Games configuration. The owner will create a separate review account;
+review-access details remain incomplete. The offered Android phone is now
+connected and authorized in `adb devices -l` (model CPH2465). This is device
+availability only, not installed-app acceptance.
+
+The owner reconsidered staging once more and explicitly reconfirmed
+dev + staging + prod. No environment removal or resource deletion occurred.
+Staging's Store settings are now Game / Action with the confirmed public support
+email; both changes show saved in Console. Remaining declarations/listing and
+release publication are still pending.
+
+Dev BuildAndroid retry exited 1 after 7m36s of Gradle work: Dart AOT
+`android_aot_release_android-arm64` failed with `Out of memory` and snapshotter
+exit `-1073740791`. This is a blocking build failure, not a traversal waiver.
+The retry log and candidate's `android/dev/1/build.log` retain the failure.
+All 3,750 client graphs were generated successfully. ARM32 and x64 `app.so`
+outputs and corresponding Dart symbols exist, but ARM64 and the final APK do not.
+Canonical finally released mutation lock generation `1793126133507156`.
+Readback found approximately 1 GB free physical RAM and 3.8 GB free committed
+memory on this 16 GB workstation. Asked the owner to close unused heavy apps;
+no unrelated processes were terminated. Retry must preserve all three ABIs.

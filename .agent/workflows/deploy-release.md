@@ -21,6 +21,10 @@ Configure SigningSetup, RecoverySetup and MonitoringSetup in the selected projec
 before candidate cutover. Mutation locks and the source-bound maintenance record
 must remain intact; inspect abandoned work before any manual lock recovery.
 Use BuildAndroid after Prepare with an explicit environment and version code.
+In a fresh checkout, first run `flutter build apk --config-only --flavor dev
+--release` and verify `git status --short` is empty. This initializes Flutter's
+ignored Gradle wrapper before BuildAndroid records its version; it does not
+produce an APK or change the candidate. Do not copy wrappers from another app.
 Check actual Play history before choosing codes and preserve the same accepted
 production AAB when promoting tracks. Native signing/resources/assets and
 Play-delivered authentication/attestation are separate acceptance gates.

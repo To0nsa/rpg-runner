@@ -18,8 +18,7 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 27, 2026
 
-Candidate being replaced after its current advisory audit:
-`a4bda7e653655916736e9f8c4cc8a2fadc0c402d`, including completed
+Frozen candidate: `d83a690cd4ad82a5427a522a0646027e75d0ad19`, including completed
 board retention/account erasure, Unicode release fingerprints, production Play
 identities/App Check, current-board readiness and cold Android asset preparation.
 The preceding candidate `ad759adb`'s
@@ -33,17 +32,36 @@ on both PowerShell versions. Corrected-candidate
 passes the compiled-web smoke on retry but fails the mandatory Functions audit
 on the newly updated qs advisory. The existing local/deployed qs pin is now
 6.16.1, with zero findings in both production dependency audits, 266 Functions
-tests and four inventory regressions passing. Freeze this narrow patch and run
-exact-source CI again; do not waive the advisory check.
-The isolated LF checkout is `.tmp/release-checkouts/a4bda7e653655916736e9f8c4cc8a2fadc0c402d`,
+tests and four inventory regressions passing. The patched candidate's
+[CI 40555415832 passed all 16 jobs](https://github.com/To0nsa/rpg-runner/actions/runs/40555415832),
+including Android packaging/inspection, all client shards and the final evidence
+bundle. Exact-source ImportCI and Prepare for all three environments passed.
+Dev validator Cloud Build `9a8b0932-3a0a-48b6-a275-f3256c232c2f` is WORKING,
+started at 18:22:11 UTC. The advisory and final-image benchmark gates remain strict.
+Staging validator build `d3015999-a988-4416-8144-0a0a05af5021` is WORKING
+(18:24:53 UTC); production build `dbc42520-375f-483e-a547-bba48b4d0218`
+is WORKING (18:28:11 UTC), without deployment.
+The isolated LF checkout is `.tmp/release-checkouts/d83a690cd4ad82a5427a522a0646027e75d0ad19`,
 with each environment's application configuration copied by `Checkout`.
 The isolated remote branch `release/android-beta-browser-check` carries this
 commit; draft PR #2's head has not been advanced. Earlier CI/cache evidence is
 historical until the candidate's checks finish. No new backend, Play bundle or
 public policy has been deployed. The owner confirmed Nicolas Louis, based in
 Finland, with resolved support correspondence retained for 90 days. Those details
-are incorporated in the prepared policy. Chrome control is working. Device
-acceptance remains required; release authorization remains valid.
+are incorporated in the prepared policy. Chrome control is working. The owner's
+CPH2465 Android phone is connected and trusted, but installed-app acceptance has
+not run. The owner reconfirmed all three environments and chose to keep both new
+Play Games configurations tester-only. A dedicated review account is still to be
+created by the owner; never submit owner credentials for reviewer access.
+
+Canonical dev BuildAndroid version 1 remains incomplete. Its initial missing
+ignored Gradle wrapper was resolved with the pinned SDK's configuration-only
+build, leaving the frozen tracked tree clean. The next attempt generated all
+3,750 client navigation graphs, then failed AOT compilation for android-arm64
+with an out-of-memory error (exit -1073740791). ARM32/x64 outputs and symbols
+exist; no complete APK/evidence was recorded. The project mutation lock was
+released. Resolve local memory pressure and retry the canonical build with all
+three ABIs and inspection gates intact. Details are in the linked evidence.
 
 The owner explicitly requested inclusion of the completed board lifecycle/account-
 deletion work tracked in `docs/building/board_lifecycle_cleanup.md`. Runtime work
