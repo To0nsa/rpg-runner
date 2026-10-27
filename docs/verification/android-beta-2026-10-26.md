@@ -373,6 +373,20 @@ retention 30 days and locked `_Required` retention 400 days in both new projects
 all buckets are ACTIVE. Evidence: `.tmp/beta-checks/log-retention-*.json`.
 No retention was changed by that inspection.
 
+Native Android job `121922433760` in retry run `40423207090` passed on PR merge
+source `18cafbccdeef6effda310ffb33176aa41e23fa20` (head `a492f1ef`). The actual
+dev release APK build and complete native artifact inspection succeeded after
+moving the Pub cache onto the checkout drive. It is CI validation, with the
+runner's dev key, not the owner's final installable candidate.
+
+The first Replay Validator job `121916696570` in run `40421473569` was cancelled
+at its 30-minute job limit. It was still generating required offline graphs,
+reporting 76,790 graphs/7,750 windows at 1,757.361 seconds before cancellation.
+No compiler error or traversal test failure was reported. CI now has the same
+bounded 120-minute allowance as `cloudbuild.yaml` and one active workflow per
+ref. The complete image, runtime smoke, strict one-CPU/512-MiB benchmark and
+Critical/High vulnerability gate are retained; none is waived.
+
 Android/runtime implementation milestone committed as
 `aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor
 configs, project/App Check guards, maintenance/update UI, Crashlytics handlers,

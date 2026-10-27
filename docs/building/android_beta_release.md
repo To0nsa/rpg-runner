@@ -134,6 +134,12 @@ reviewable preparation and retain all non-waived acceptance gates.
   its startup case after asset preparation; expanded output alone still omits
   the framework exception. Adding test-attached exception/loading diagnostics
   before another retry. The built-web runtime smoke already passes.
+- Native Android CI now passes on `a492f1ef`, including the actual APK inspection.
+  The first validator-image job exhausted its 30-minute CI limit while offline
+  graph generation was still progressing (76,790 graphs at 1,757 seconds).
+  Aligning its allowance with Cloud Build's existing two-hour limit and limiting
+  overlapping runs per ref; compilation, smoke, strict benchmark and image
+  vulnerability checks remain mandatory.
 - External deletion-page source is prepared at `web/account-deletion.html` with
   the confirmed support email, environment-specific request scope, in-app steps
   and actual retention limits. It is not yet published. Live log-bucket readback

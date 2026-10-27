@@ -21,6 +21,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: replay-validator-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REPLAY_VALIDATOR_IMAGE: replay-validator:ci
   TRIVY_IMAGE: aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
@@ -28,7 +32,8 @@ env:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Offline graph preparation uses the same bounded allowance as Cloud Build.
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v7
