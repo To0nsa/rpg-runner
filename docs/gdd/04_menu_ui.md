@@ -166,6 +166,12 @@ online run modes are unavailable. See [technical contract](../tdd/developer_prac
   - Store or Library `Back` → Town map; Town `Back` → Play Hub
   - Options `Back` → Play Hub
 
+Options > Settings also offers **Privacy policy** and **Contact support** in
+both account-backed and local Practice profiles. These open an external browser
+or mail app. If no handler opens, the address is shown and menu navigation stays
+available. The beta privacy destination is prepared but not yet published; its
+operator details and live availability remain release gates.
+
 ### 3.3 Profile name rules
 
 - The first non-empty profile name does not start the rename cooldown. This

@@ -437,7 +437,8 @@ pending.
 ### Validator CI and browser gate continuation
 
 [Validator run 40426008703](https://github.com/To0nsa/rpg-runner/actions/runs/40426008703)
-on branch source `7d1d1268` completed successfully at 00:51:52 UTC October 27.
+on PR merge `31db307e37f44dcfd3e611dc1df48f408e311188` (branch source
+`7d1d1268`) completed successfully at 00:51:52 UTC October 27.
 The final image passed configured/unconfigured HTTP smoke checks and the strict
 36,000-tick benchmark at one CPU and 512 MiB. Seed 4401 produced deterministic
 outcomes in both levels: Forest 0.723795 seconds, Field 0.574230 seconds, with all
@@ -466,6 +467,38 @@ an exploratory harness check, not fresh-source release evidence. CI rebuild and
 the revised browser suite must pass before this gate is considered resolved.
 The Windows widget-harness retry remained at test loading and was interrupted;
 it produced no passing or failing test result.
+
+The release syntax/helper, cache/provenance and actual-entry-point mocked checks
+were rerun after the smoke-script change: 50, 53 and 97 pass respectively on both
+PowerShell 5.1 and 7. Logs: `.tmp/beta-checks/browser-host-*.log`. No cloud mutation
+or SDK build is performed by those mocked checks. Fresh-source CI is dispatched
+on `f9015c3d` as run `40429577996`; the source is not frozen for release.
+
+That [fresh-source run](https://github.com/To0nsa/rpg-runner/actions/runs/40429577996)
+completed with all 16 jobs successful. All five browser tests pass; the actual
+release web build also passes readiness, live simulation, exit confirmation and
+Practice game-over with no exceptions/backend requests. Build/smoke log retained
+under `.tmp/beta-checks/ci-40429577996-client-build/`. This resolves the browser
+release gate through explicit coverage relocation, without waiving a failure.
+
+The native dev APK inspection from the same source passes, now including the
+game launcher icon: 188,861,342 bytes, SHA-256
+`4e8606f34f186ae9bf8c9d89ffde7718ac6e48ff7b543dedc95a12f73736011c`, input digest
+`5fcd808b30b203aa645354e99bc355c2baaff65946e4f137cfcbd04c951487ed`.
+It retains the correct dev IDs, API 36, 3,750 navigation graphs, three ABIs and
+16-KB alignment. Its ephemeral CI certificate is not the owner's installed-app
+identity, and CI uploads inspection evidence rather than a deliverable APK.
+Readback: `.tmp/beta-checks/ci-40429577996-android/`.
+
+Subsequent Options privacy/support links use the shared dev Hosting policy path
+and confirmed support email, preserve navigation when an external handler fails,
+and remain visible alongside local Practice settings. Targeted analysis passes;
+`flutter test test/ui/pages/options/options_page_test.dart
+test/ui/bootstrap/developer_mode_ui_test.dart` reports four passes and one
+pre-existing `DEVELOPER_PRACTICE` launch-flag-only skip. Logs:
+`privacy-links-analysis.log`, `privacy-links-tests.log` under `.tmp/beta-checks/`.
+The full CI run above predates these UI edits; final-candidate checks still apply.
+The privacy destination is not published and live link acceptance is pending.
 
 Android/runtime implementation milestone committed as
 `aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor

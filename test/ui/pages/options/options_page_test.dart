@@ -13,7 +13,7 @@ import '../../../test_support/app_startup_fakes.dart';
 
 void main() {
   testWidgets(
-    'movement options fit small screens and persist every selection',
+    'settings links and movement controls remain usable on small screens',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final fixture = StartupFixture();
@@ -33,15 +33,34 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
       tester.view.physicalSize = const Size(480, 320);
+      final opened = <Uri>[];
       await tester.pumpWidget(
         MultiProvider(
           providers: [
             ChangeNotifierProvider<AppServices>.value(value: services),
             ChangeNotifierProvider<AppState>.value(value: state),
           ],
-          child: MaterialApp(theme: createUiTheme(), home: const OptionsPage()),
+          child: MaterialApp(
+            theme: createUiTheme(),
+            home: OptionsPage(
+              openUrl: (uri) async {
+                opened.add(uri);
+                return false;
+              },
+            ),
+          ),
         ),
       );
+      await tester.tap(find.text('Privacy policy'));
+      await tester.pumpAndSettle();
+      expect(
+        opened.single,
+        Uri.parse('https://rpg-runner-d7add.web.app/privacy-policy.html'),
+      );
+      expect(find.textContaining('You can open it manually.'), findsOneWidget);
+      await tester.tap(find.text('Contact support'));
+      await tester.pumpAndSettle();
+      expect(opened.last, Uri.parse('mailto:lothringen.rpg@gmail.com'));
       await tester.tap(find.text('CONTROLS'));
       await tester.pumpAndSettle();
       for (final size in [const Size(480, 320), const Size(800, 480)]) {

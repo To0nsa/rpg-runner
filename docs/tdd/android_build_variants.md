@@ -97,6 +97,13 @@ Previous handlers are retained; reporting failures do not recursively report
 themselves. No Analytics SDK or custom behavioral telemetry was added.
 Real event delivery and readable release traces remain acceptance checks.
 
+Options > Settings exposes Privacy policy and Contact support in both online
+and local Practice profiles. They open the shared public dev-Hosting policy path
+`https://rpg-runner-d7add.web.app/privacy-policy.html` and the confirmed support
+mailbox in an external handler. A missing handler leaves navigation usable and
+shows the address. The privacy page still awaits the operator's legal identity
+and publication; the link is prepared source, not evidence of a live policy.
+
 Web stays local Practice without Firebase. Apple/Windows generated Firebase
 options still refer to dev and are outside this Android production rollout;
 their bundle identities are unchanged.

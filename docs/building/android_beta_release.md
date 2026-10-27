@@ -167,6 +167,16 @@ reviewable preparation and retain all non-waived acceptance gates.
   test; browser widgets retain bootstrap, Options and local descriptor checks.
   The expanded smoke passes against the existing local web artifact; fresh-source
   CI verification remains pending. No failing gameplay check was waived.
+- Fresh-source run `40429577996` on `f9015c3d` completed with all 16 jobs passing,
+  including all five browser cases, the compiled-web start/game-over smoke,
+  all component suites, native APK inspection and final evidence-bundle assembly.
+  No traversal failures were waived. This is preparation evidence, not final
+  Android/Play authentication or deployed acceptance.
+- Added Options > Settings privacy/support links and failure fallback. Targeted
+  analysis and four focused widget cases pass; one pre-existing launch-flag-only
+  case is skipped in the default invocation. These small UI changes postdate the
+  full CI run and require final-candidate CI/build validation. The shared policy
+  URL is prepared but not published until the legal operator details are supplied.
 - Next: finish OAuth/Play identity, canonical Android build evidence, diagnostics,
   recovery and remaining release
   acceptance. Final source is not frozen and no app upload occurred.
@@ -349,7 +359,7 @@ Execution: agent via read-only CLI and connected Chrome; user for missing decisi
 
 - [x] Restore/verify Chrome browser-control access to the intended signed-in
   profile, then inspect Firebase, Google Cloud and Play Console without changes.
-- [ ] Inventory existing resources, serving versions, active sessions, pending rewards,
+- [x] Inventory existing resources, serving versions, active sessions, pending rewards,
   boards, buckets, queues, scheduler, IAM, billing, alerts and retention policies.
   Record what can be reused as dev and a redacted configuration baseline; do not
   build an account-data migration or duplicate the existing dev infrastructure.
@@ -363,7 +373,7 @@ Execution: agent via read-only CLI and connected Chrome; user for missing decisi
   Firebase and Play Games configuration consistently if the package changes.
   Reserve a distinct staging package derived from that decision and identify the
   separate staging Play listing/internal tester access.
-- [ ] Verify availability of `lothringen-long-run-staging` and
+- [x] Verify availability of `lothringen-long-run-staging` and
   `lothringen-long-run-prod`; select database/bucket locations, billing account,
   operational contact, internal team and beta audience/countries, and test-data
   and production retention policies. Record all three environment identities.
@@ -373,10 +383,18 @@ Execution: agent via read-only CLI and connected Chrome; user for missing decisi
   Package/certificate pairs can conflict across projects; resolve listing and
   credential constraints before creating duplicates or relinking a game. No
   custom cross-project authentication bridge is in scope.
-- [ ] Record team access: developers can work in dev; designated maintainers
+- [x] Record team access: developers can work in dev; designated maintainers
   deploy candidates to staging; production deployment/signing stays restricted.
   Document how candidates are selected and accepted without requiring another
   deployment system or giving internal testers production cloud permissions.
+
+Current team: the existing owner/operator `lothringen.rpg@gmail.com` is the sole
+release maintainer and acceptance owner. No additional human deployment or
+signing access has been granted. Runtime service accounts are project-local;
+internal Play testers receive no Cloud IAM access. Add future developers to dev
+only, designated release maintainers to staging, and production/signing access
+separately after an explicit owner decision. Candidate acceptance records belong
+in this checklist/evidence and precede the authorized production cutover.
 
 Exit: environment/resource matrix and identity decisions recorded; existing state
 known; outstanding user inputs named. Do not block independent local work on
@@ -406,7 +424,7 @@ Execution: agent, repository and CLI. Prepare locally before cloud changes.
   requiring resources or paused/drained sessions in another project. Retain
   readiness checks and coordinated cutover rules for established environments.
   Bootstrap must verify the target is empty rather than trust an environment name.
-- [ ] Reuse provisioning helpers with safe retries and configuration readback;
+- [x] Reuse provisioning helpers with safe retries and configuration readback;
   document console-only steps. Keep dev/staging runtime and deployment automation
   unable to mutate other environments, with separate production deployment access.
   The owner's existing operator identity can administer all projects. Serialize
@@ -416,7 +434,7 @@ Execution: agent, repository and CLI. Prepare locally before cloud changes.
   not target another project's buckets, service accounts, queues, Hosting or
   release checkpoints. Mismatched configuration blocks before mutation; preserve
   scoped-release protections and environment-specific cache/evidence validation.
-- [ ] Update deployment TDD/workflow/AGENTS documentation alongside delivered
+- [x] Update deployment TDD/workflow/AGENTS documentation alongside delivered
   changes. Validate release helpers under PowerShell 5.1 and 7 and run focused
   Functions checks for affected configuration behavior.
 
@@ -486,7 +504,7 @@ Execution: agent, repository/CLI plus Firebase and Play Console in Chrome.
 - [ ] Verify packaged IDs/resources and targeted startup/auth tests; install dev,
   staging and prod side by side. Prove the same Google account has independent
   state in each and non-production actions cannot change production progression.
-- [ ] Update Android identities/authentication TDD and build instructions. Mark
+- [x] Update Android identities/authentication TDD and build instructions. Mark
   non-Android configurations that still target the old project as development;
   verify local defaults cannot silently reach prod. Generated files stay generated.
 
@@ -546,7 +564,7 @@ Play-delivered device QA and candidate acceptance.
   recovery after disconnect, app restart and background/foreground transitions.
 - [ ] Verify wrong-environment identities/tokens fail, unauthorized access remains
   blocked, and dev/staging tests leave production accounts/resources unchanged.
-- [ ] Implement and test the single-version release policy before the first beta
+- [x] Implement and test the single-version release policy before the first beta
   client ships. Distinguish maintenance from an obsolete client; present an
   update-required screen with a Play Store button and reuse backend enforcement.
   Gate incompatible online operations/new runs, preserve outstanding submission
@@ -561,7 +579,7 @@ Play-delivered device QA and candidate acceptance.
 - [ ] Verify standard client error reporting and readable release stack traces,
   plus existing backend alerts for auth, validation and settlement. Record the
   owner, alert destination, actionable thresholds and conditions that stop rollout.
-- [ ] Configure managed production database recovery with explicit acceptable
+- [x] Configure managed production database recovery with explicit acceptable
   data-loss/recovery-time targets and retention. Run a small synthetic-data
   restore rehearsal in dev and document reward/deletion consistency checks.
   Keep recovery-copy disclosures accurate; no custom backup system is needed.
@@ -570,6 +588,11 @@ Play-delivered device QA and candidate acceptance.
   latency, memory and cost against stated limits. The isolated simulation
   benchmark alone is not cloud capacity evidence; record scaling differences
   from production and expand testing with audience.
+  Initial distribution cap is one invited owner account per app, matching the
+  confirmed current player/tester population. Additional testers require the
+  staging capacity result and an explicit tester list; no wider rollout or
+  invitations are inferred. This cap does not satisfy any Google-required
+  closed-testing qualification period or tester count.
 - [ ] Check loading, controls, device performance/memory, crashes and ANRs on
   representative Android devices. Fix beta blockers; prior release waivers are
   historical evidence and do not automatically carry into beta acceptance.
@@ -654,6 +677,40 @@ Initial beta release-note draft, only after the accepted build is available:
 > Initial Android beta: build a loadout, explore Field and Forest, and test
 > Practice, Competitive and Weekly runs. Report issues to
 > lothringen.rpg@gmail.com with your app version and steps to reproduce them.
+
+### Prepared data inventory for store/privacy completion
+
+This inventory follows the existing compliance checklist and inspected source;
+it is not a submitted Data safety form or a published privacy policy.
+
+| Processing | Data and purpose | Implemented boundary |
+| --- | --- | --- |
+| Sign-in/account management | Play Games identity, Firebase UID and authentication tokens | Separate Auth project per app; native bridge requests server-side access without extra email/phone scopes |
+| Profile and progression | Chosen display name, loadout, items, wallet, inbox and progression | Authoritative project-local Functions/Firestore; display names and competitive results can be visible to other players |
+| Runs and competition | Tick-stamped commands, run identity, seed, replay hashes, validation results, rewards and ghost replays | Project-local replay storage/validator; leaderboard and ghost features expose selected competitive results/replays |
+| Security | App attestation, quota/deletion state and operational request metadata | Enforced staging/prod App Check and backend authorization; restricted logs and deletion barriers |
+| Diagnostics | Crash/error types, stack traces and SDK device/installation/session metadata | Crashlytics enabled only for staging/prod Android release; custom field is environment, with no custom account identifier or exception-message payload |
+| Local preferences | Controls, local Practice selections and retry/spool state | Package-private device storage; Practice never issues or submits online runs |
+| Support and rights requests | Sender email and request contents supplied by the player | Confirmed support mailbox; operator identity and correspondence-retention policy still require owner input |
+
+SDK processing must also be included. Firebase documents authentication IP/user
+agent processing, Play Integrity attestation, Crashlytics installation identifiers
+and its transitive Installations/Sessions dependencies. Disabling Google Analytics
+does not remove those diagnostics. Context7 did not return the relevant disclosure
+page, so use the official [Firebase SDK disclosure](https://firebase.google.com/docs/android/play-data-disclosure)
+and [Play Games SDK disclosure](https://developer.android.com/games/pgs/data-collection)
+when completing the actual form against the frozen Android dependency graph.
+
+No Analytics, advertising or purchase package is configured in `pubspec.lock`;
+the inspected dev APK has no location, contacts, camera, microphone or advertising
+ID permission. Do not translate that into a claim of no SDK data collection.
+The final staging/prod manifests remain artifact checks. Account deletion and
+separate recovery/log/Crashlytics retention are described in the prepared
+deletion page and [deletion contract](../tdd/account_deletion_workflow.md).
+Lawful-basis wording, controller identity, support retention, public policy
+publication and final Console declarations remain open release tasks. The in-app
+privacy link is implemented; its destination must be published and checked before
+release.
 
 ## Phase 8 - live internal release and closed beta
 
@@ -770,7 +827,7 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
 Next action: resume the execution checkpoint above. Foundation provisioning and
-upload-key setup are complete; OAuth/Play configuration, remaining implementation,
+upload-key setup are complete; OAuth/Play configuration and privacy publication,
 candidate freeze, builds, deployments and acceptance remain open. No app bundle
 has been uploaded or released. Do not repeat completed setup or treat local
 validation as live acceptance.

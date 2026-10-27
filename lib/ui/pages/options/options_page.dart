@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_services.dart';
 import '../../app/ui_routes.dart';
@@ -13,16 +14,42 @@ import '../../theme/ui_tokens.dart';
 
 /// App options, including the local profile switch in development builds.
 class OptionsPage extends StatefulWidget {
-  const OptionsPage({super.key});
+  const OptionsPage({this.openUrl = _openExternal, super.key});
+
+  final Future<bool> Function(Uri) openUrl;
 
   @override
   State<OptionsPage> createState() => _OptionsPageState();
 }
 
+Future<bool> _openExternal(Uri uri) =>
+    launchUrl(uri, mode: LaunchMode.externalApplication);
+
 enum _OptionsTab { settings, controls }
 
 class _OptionsPageState extends State<OptionsPage> {
   _OptionsTab _tab = _OptionsTab.settings;
+  bool _openingLink = false;
+
+  Future<void> _openLink(Uri uri) async {
+    if (_openingLink) return;
+    setState(() => _openingLink = true);
+    var opened = false;
+    try {
+      opened = await widget.openUrl(uri);
+    } catch (_) {
+      // A missing browser/mail handler must leave account navigation usable.
+    }
+    if (!mounted) return;
+    setState(() => _openingLink = false);
+    if (!opened) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not open $uri. You can open it manually.'),
+        ),
+      );
+    }
+  }
 
   Future<void> _setMovementMode(
     ControlSettings settings,
@@ -123,31 +150,73 @@ class _OptionsPageState extends State<OptionsPage> {
                     );
                   },
                 )
-              : services.isPracticeOnly
-              ? Text(
-                  'Developer Practice: local play with all equipment and abilities. Account features are unavailable in this build.',
-                  style: ui.text.body,
-                )
-              : services.canSwitchProfiles
-              ? Column(
+              : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SwitchListTile(
-                      title: Text('Developer mode', style: ui.text.headline),
-                      subtitle: Text(
-                        'Local profile with all equipment and abilities. Practice only; no account rewards.',
-                        style: ui.text.body,
-                      ),
-                      value: appState.isDeveloperMode,
-                      onChanged: services.isSwitchingProfile
-                          ? null
-                          : (enabled) => _switchProfile(context, enabled),
+                    services.isPracticeOnly
+                        ? Text(
+                            'Developer Practice: local play with all equipment and abilities. Account features are unavailable in this build.',
+                            style: ui.text.body,
+                          )
+                        : services.canSwitchProfiles
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SwitchListTile(
+                                title: Text(
+                                  'Developer mode',
+                                  style: ui.text.headline,
+                                ),
+                                subtitle: Text(
+                                  'Local profile with all equipment and abilities. Practice only; no account rewards.',
+                                  style: ui.text.body,
+                                ),
+                                value: appState.isDeveloperMode,
+                                onChanged: services.isSwitchingProfile
+                                    ? null
+                                    : (enabled) =>
+                                          _switchProfile(context, enabled),
+                              ),
+                              if (services.isSwitchingProfile)
+                                const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                            ],
+                          )
+                        : Text(
+                            'No additional settings available.',
+                            style: ui.text.body,
+                          ),
+                    SizedBox(height: ui.space.md),
+                    Wrap(
+                      spacing: ui.space.sm,
+                      children: [
+                        TextButton(
+                          onPressed: _openingLink
+                              ? null
+                              : () => _openLink(
+                                  Uri.https(
+                                    'rpg-runner-d7add.web.app',
+                                    '/privacy-policy.html',
+                                  ),
+                                ),
+                          child: const Text('Privacy policy'),
+                        ),
+                        TextButton(
+                          onPressed: _openingLink
+                              ? null
+                              : () => _openLink(
+                                  Uri(
+                                    scheme: 'mailto',
+                                    path: 'lothringen.rpg@gmail.com',
+                                  ),
+                                ),
+                          child: const Text('Contact support'),
+                        ),
+                      ],
                     ),
-                    if (services.isSwitchingProfile)
-                      const Center(child: CircularProgressIndicator()),
                   ],
-                )
-              : Text('No additional settings available.', style: ui.text.body),
+                ),
         ),
       ),
     );
