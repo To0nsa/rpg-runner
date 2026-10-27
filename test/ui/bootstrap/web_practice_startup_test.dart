@@ -2,16 +2,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flame/game.dart';
-import 'package:rpg_runner/game/runner_flame_game.dart';
 import 'package:rpg_runner/ui/app/create_app_services.dart';
 import 'package:rpg_runner/ui/app/ui_app.dart';
-import 'package:rpg_runner/ui/app/ui_routes.dart';
-import 'package:rpg_runner/ui/hud/game/game_overlay.dart';
-import 'package:rpg_runner/ui/hud/game/ready_overlay.dart';
-import 'package:rpg_runner/ui/hud/gameover/game_over_overlay.dart';
 import 'package:rpg_runner/ui/pages/hub/play_hub_page.dart';
 import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,7 +49,7 @@ void main() {
     );
   }
 
-  testWidgets('web boots, opens options and plays a recorder-free local run', (
+  testWidgets('web opens local-only options and prepares a Practice run', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -83,65 +76,10 @@ void main() {
     await tester.pumpAndSettle();
     final descriptor = await services.appState.prepareRunStartDescriptor();
     expect(descriptor.isDeveloperPractice, isTrue);
-    // Browser asset loading performs real asynchronous work alongside frames.
-    await tester.runAsync(() async {
-      navigator.pushNamed(UiRoutes.run, arguments: descriptor);
-      for (
-        var i = 0;
-        i < 1200 && find.byType(ReadyOverlay).evaluate().isEmpty;
-        i++
-      ) {
-        await tester.pump(const Duration(milliseconds: 16));
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-        expect(tester.takeException(), isNull);
-      }
-    });
-    if (find.byType(ReadyOverlay).evaluate().isEmpty) {
-      for (final host in tester.widgetList<GameWidget<RunnerFlameGame>>(
-        find.byType(GameWidget<RunnerFlameGame>),
-      )) {
-        final load = host.game!.loadState.value;
-        printOnFailure(
-          'Run startup phase=${load.phase}, error=${load.error}\n'
-          '${load.stackTrace}',
-        );
-        printOnFailure('Completed load tasks: ${host.game!.loadTimings}');
-        final pendingImages = <String>[];
-        for (final key in host.game!.images.keys) {
-          try {
-            host.game!.images.fromCache(key);
-          } catch (_) {
-            pendingImages.add(key);
-          }
-        }
-        printOnFailure(
-          'Requested images=${host.game!.images.keys.length}, '
-          'pending=${pendingImages.join(', ')}',
-        );
-      }
-      printOnFailure(
-        'Visible labels: ${tester.widgetList<Text>(find.byType(Text)).map((text) => text.data).join(' | ')}',
-      );
-    }
-    expect(find.byType(ReadyOverlay), findsOneWidget);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pump();
-    final controller = tester
-        .widget<GameOverlay>(find.byType(GameOverlay))
-        .controller;
-    for (var i = 0; i < 30; i++) {
-      await tester.pump(const Duration(milliseconds: 17));
-    }
-    expect(controller.tick, greaterThan(0));
-    controller.giveUp();
-    await tester.pump();
-    expect(find.byType(GameOverOverlay), findsOneWidget);
-    expect(
-      tester
-          .widget<GameOverOverlay>(find.byType(GameOverOverlay))
-          .isDeveloperPractice,
-      isTrue,
-    );
+    expect(services.isPracticeOnly, isTrue);
+    expect(services.appState.authSession.isAuthenticated, isFalse);
+    // Asset-backed readiness, live ticks and Practice game-over are exercised
+    // against the compiled app by the mandatory web_smoke.mjs release gate.
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

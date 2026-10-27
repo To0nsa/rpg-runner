@@ -155,9 +155,13 @@ try {
   await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
   await until('run start', async () => !(await hasText('Click or press Enter to start')));
   await until('live simulation timer', async () => /\b00:0[1-9]\b/.test(await evaluate(textExpression)), 30000);
+  await click('Exit game');
+  await until('run exit confirmation', () => hasText('Want to exit?'));
+  await click('Exit');
+  await until('local Practice game-over', () => hasText('No rewards or leaderboard entries.'));
   assert.equal(exceptions.length, 0, exceptions.join('\n'));
   assert.equal(backendRequests.length, 0, backendRequests.join('\n'));
-  console.log('PASS: release web hub, Practice-only Options, local run readiness/start; no browser exceptions or backend requests.');
+  console.log('PASS: release web hub, Practice-only Options, local run readiness/start/game-over; no browser exceptions or backend requests.');
 } catch (error) {
   if (socket?.readyState === WebSocket.OPEN) {
     console.error('Browser semantics:', await evaluate(textExpression).catch(() => '<unavailable>'));

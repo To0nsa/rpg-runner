@@ -38,3 +38,10 @@ multipart upload, submission retries and persisted queue compatibility.
 covers adapter selection and local-profile startup without native filesystem
 access. Browser tests are additional evidence; native widget tests and a web
 compile alone do not establish browser runtime support.
+
+`web_practice_startup_test.dart` checks local bootstrap, Options and run
+descriptors in the browser widget harness. Asset-backed game readiness, live
+ticks, exit confirmation and the Practice-only game-over screen are checked by
+`tools/release/web_smoke.mjs` against the compiled release app, with real browser
+I/O. That mandatory client-build gate also rejects browser exceptions and any
+backend request. It does not substitute for Android authentication/device checks.

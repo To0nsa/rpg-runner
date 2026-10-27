@@ -428,6 +428,45 @@ are unchanged. XML parsing, PNG dimensions/alpha and 512/48 px visual inspection
 pass. The Play image is 6,389 bytes with fully opaque alpha. No upload occurred.
 At 00:39 UTC, `adb devices -l` returned an empty device list.
 
+The corresponding feature graphic is a 1,024 × 500 RGB PNG (34,349 bytes),
+rendered from its SVG with the existing Cinzel font. Dimensions, full opacity
+before RGB encoding, and visual layout pass inspection. It is title artwork,
+not a gameplay screenshot. Play upload and actual Android screenshots remain
+pending.
+
+### Validator CI and browser gate continuation
+
+[Validator run 40426008703](https://github.com/To0nsa/rpg-runner/actions/runs/40426008703)
+on branch source `7d1d1268` completed successfully at 00:51:52 UTC October 27.
+The final image passed configured/unconfigured HTTP smoke checks and the strict
+36,000-tick benchmark at one CPU and 512 MiB. Seed 4401 produced deterministic
+outcomes in both levels: Forest 0.723795 seconds, Field 0.574230 seconds, with all
+eight gates true. The fixture excludes combat/objectives; this is not full-game
+device performance evidence. Trivy 0.74.0, using its freshly fetched database,
+found zero Critical/High OS vulnerabilities; it found no language-specific files
+to scan. Application dependency audits remain separate required checks.
+CI image manifest `sha256:1a22d003cc6f518351db0a70d0d4dc65c8427fb08f9d429b2990749bc262032e`
+was built on the runner only; it is not a deployed project image.
+
+Isolated diagnostic source `6d000021` was pushed to
+`release/android-beta-browser-check` and dispatched as release-preparation run
+`40428392923`, preserving the long validator job. Its browser case again failed
+at `parallaxMounted`: zero completed load tasks and all 23 requested images still
+pending (player, parallax and terrain/prefab atlases). No missing-file exception
+was reported. This records the observed harness failure, not a proven SDK cause.
+
+The asset-backed gameplay assertions are moved to mandatory `web_smoke.mjs`,
+which now checks exit confirmation and the Practice-only game-over screen as
+well as actual readiness, live timer, local-only Options, no exceptions and no
+backend requests. Browser widget tests retain bootstrap and descriptor checks.
+No readiness/asset assertion or gameplay failure is waived. Targeted Dart
+analysis and Node syntax checks pass. Expanded smoke against the existing
+October 25 local web artifact passes (`browser-runtime-gameover.log`); this is
+an exploratory harness check, not fresh-source release evidence. CI rebuild and
+the revised browser suite must pass before this gate is considered resolved.
+The Windows widget-harness retry remained at test loading and was interrupted;
+it produced no passing or failing test result.
+
 Android/runtime implementation milestone committed as
 `aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor
 configs, project/App Check guards, maintenance/update UI, Crashlytics handlers,

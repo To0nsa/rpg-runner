@@ -157,6 +157,16 @@ reviewable preparation and retain all non-waived acceptance gates.
   generation details are in [release assets](../release-assets/android/README.md).
   Dimensions, opacity and small-size rendering pass inspection; no store asset
   has been uploaded. `adb devices -l` currently lists no attached device.
+- Validator image CI `40426008703` completed successfully at 00:51 UTC on
+  October 27: full navigation preparation, configured/unconfigured runtime
+  smoke, strict 1-CPU/512-MiB benchmark and Critical/High vulnerability scan pass.
+  This is CI validation, not a deployed image or a frozen candidate.
+- The isolated browser diagnostic (`40428392923`) found 23 requested images
+  pending and no completed load task in the widget harness. Readiness, live ticks
+  and Practice game-over are now covered by the mandatory compiled-app smoke
+  test; browser widgets retain bootstrap, Options and local descriptor checks.
+  The expanded smoke passes against the existing local web artifact; fresh-source
+  CI verification remains pending. No failing gameplay check was waived.
 - Next: finish OAuth/Play identity, canonical Android build evidence, diagnostics,
   recovery and remaining release
   acceptance. Final source is not frozen and no app upload occurred.
@@ -602,8 +612,8 @@ Drafted from implemented features and the companion repository's Identity,
 CrossMediaExpressionRules and Naming&Terminology references. Not submitted.
 Keep existing titles `Long Run` and `Long Run Staging`. These drafts fit Google's
 [30/80/4,000-character listing limits](https://support.google.com/googleplay/android-developer/answer/9859152?hl=en-GB).
-The [game icon](../release-assets/android/README.md) is prepared. Actual Android
-screenshots, feature artwork and IARC answers remain pending.
+The [game icon and title graphic](../release-assets/android/README.md) are
+prepared. Actual Android screenshots and IARC answers remain pending.
 
 Production short description:
 
