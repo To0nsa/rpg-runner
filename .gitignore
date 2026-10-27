@@ -115,6 +115,7 @@ tools/output/tree.txt
 
 # Firebase CLI deployment cache
 /.firebase/
+/functions/.crashlytics/
 
 # =========================
 # Node / pnpm

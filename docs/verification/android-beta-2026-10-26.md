@@ -1187,3 +1187,158 @@ digest `sha256:fb6a16cbee611183462938e19deb9aeaf79c283eadff475e4ab029a4e2a3c331`
 and recorded provenance/cache evidence. Log:
 `.tmp/beta-checks/candidate-f44-image-staging-complete.log`. This is live proof of
 image reuse across isolated registries; runtime deployment remains pending.
+
+Frozen f44ab755 dev BuildAndroid version 1 passed at 20:09:10 UTC after disk
+recovery. Artifact SHA-256:
+`428b02e8b713741f4625022e7d11d5e34635fe3bcc8847cd1528c1ce11300ea3`,
+184126366 bytes. Package/version `com.example.rpg_runner.dev` / `1.0.0-dev` / 1;
+min SDK 24, target SDK 36, three ABIs, nine native libraries and 16 KB alignment
+pass. All 3750 navigation graphs are present with the same verified manifest
+hash. Native resources target rpg-runner-d7add and its registered dev Firebase
+app/Play Games OAuth client. No advertising-ID permission. Evidence is
+`.tmp/release-checkouts/f44ab755bd173b352be5f5d9c63c293b911def64/.tmp/releases/rpg-runner-d7add/863755afe6412f9819a90a501148b7a38a7593310f72fa069ae659920b328228/android/dev/1/android.json`;
+the installable APK is alongside it. Log:
+`.tmp/beta-checks/candidate-f44-android-dev-retry.log`. Lock generation
+`1793131022306097` was released. Staging sequential AOT preparation and production
+image-copy submission have started; neither is recorded complete yet.
+
+The verified dev APK installed successfully on the connected CPH2465 with
+`adb install -r`; package readback confirms versionCode 1, versionName 1.0.0-dev,
+min SDK 24 and target SDK 36. This preserves the existing dev installation's data;
+the app has not yet been launched for the new backend acceptance session.
+Staging sequential AOT preparation subsequently completed; its AAB is not yet
+packaged/inspected. Production sequential AOT preparation is running.
+
+Production image copy `84a144e6-3867-4a34-be88-5ba8282f8f75` ran from
+20:12:19 to 20:13:40 UTC and completed SUCCESS. Canonical ImageStatus verified
+its strict benchmark and the same immutable digest as dev/staging, recording
+copy provenance. Log: `.tmp/beta-checks/candidate-f44-image-prod-complete.log`.
+All three projects now have the same verified worker image in their isolated
+registries; no production runtime has been deployed.
+
+Canonical dev PauseIssuance is in progress. Its existing issuer image had been
+removed by managed registry cleanup, so the built-in recovery path is rebuilding
+only runSessionCreate with RUN_SUPPORTED_GAME_COMPAT_VERSIONS=release-paused.
+The source-bound cutover record is claimed; do not replace it or clear the held
+mutation lock while this action runs. Log:
+`.tmp/beta-checks/candidate-f44-pause-dev.log`. Successful pause/readiness and the
+fresh drain inventory remain required before coordinated deployment.
+
+The first issuer recovery failed during Firebase's local discovery with
+`User code failed to load. Cannot determine backend specification. Timeout after
+10000`. Preserved the log as
+`.tmp/beta-checks/candidate-f44-pause-dev-discovery-timeout.log`. Cloud readback
+still showed the original ACTIVE issuer/revision `runsessioncreate-00071-wx8`,
+with its October 25 update time; issuance was not paused by that attempt.
+The mutation lock was released and local environment bytes restored. The
+source-bound cutover record remains owned by this same candidate. Retrying
+canonical PauseIssuance with the operator-only `FUNCTIONS_DISCOVERY_TIMEOUT=60`,
+documented in [Firebase initialization guidance](https://firebase.google.com/docs/functions/tips#avoid_deployment_timeouts_during_initialization).
+This only extends local CLI source discovery; no runtime gate is relaxed.
+Retry log: `.tmp/beta-checks/candidate-f44-pause-dev-retry.log`.
+
+The retry passed discovery and created regional issuer build
+`fb198fdc-394e-44e6-8b20-c79f61a108ef`, which completed SUCCESS at 20:24:30 UTC.
+Canonical PauseIssuance verified the healthy paused serving revision
+`runsessioncreate-00072-suz` and released mutation lock generation
+`1793132429804344`. The board-maintenance scheduler read back PAUSED. Dev Deploy
+-CutoverReady is now running, using the same 60-second CLI discovery allowance
+and retaining the source-bound cutover ownership. It performs a fresh drain check
+before pausing queues/deploying consumers. Log:
+`.tmp/beta-checks/candidate-f44-deploy-dev.log`. Issuance must remain paused until
+worker, boards and live artifact checks pass; then explicitly resume the legacy
+board scheduler and run canonical ResumeIssuance. Production Android sequential
+AOT preparation has also completed with all three symbols; its AAB is still pending.
+
+Dev's fresh drain inventory at 20:26:45 UTC found four already accepted runs,
+four settled grants, no active sessions, no stale/quarantined settlements and all
+three expected current boards. These precede the new worker deployment and are
+not claimed as new-candidate replay acceptance. No cancellation/reset was needed.
+Functions deployment completed at 20:31:11 UTC. Worker revision
+`replay-validator-00059-ssr` became Ready at 20:34:15 UTC, serving 100% of traffic;
+its recorded worker checkpoint is 20:35:26 UTC.
+
+Deploy then stopped at the legacy paused board scheduler: Google rejected RunJob
+with `FAILED_PRECONDITION: Job.state must be ENABLED for RunJob`. Preserved
+`.tmp/beta-checks/candidate-f44-dev-boards-paused.log`. Functions and worker
+checkpoints remain valid; Hosting is not yet deployed. Issuance and both queues
+remain paused. Fresh readback verified the worker's exact expected immutable
+digest, Ready status and 100% traffic, then explicitly resumed the legacy
+board-maintenance scheduler. Readback is ENABLED. Canonical Deploy is retrying
+from saved checkpoints, log `.tmp/beta-checks/candidate-f44-deploy-dev-retry.log`.
+The source-bound cutover record remains owned by f44ab755; no gate was bypassed.
+
+Windows Computer Use's lightweight connection check still returns native-pipe
+unavailable (OS error 2). No app input was attempted. Production's backup list
+also remains empty at the later readback; first backup completion is still open.
+
+Dev Deploy retry completed at 20:40:27 UTC, reusing the validated Functions and
+worker checkpoints and publishing Hosting. The resumed board scheduler's last
+attempt was 20:40:19 UTC with ENABLED state and an empty (successful) status.
+Live worker smoke at 20:42:15 UTC returned 403 without authentication and 200
+`ready` for the existing authorized operator. The identity token stayed only in
+process memory; saved evidence contains no token:
+`.tmp/beta-checks/candidate-f44-dev-worker-smoke.json`.
+
+Both public policy pages returned HTTP 200 and exactly matched frozen build
+bytes. Privacy SHA-256 is
+`6734a9a63e201f6fbeed7cda85c232a51039851437a91fadf8699fbd1629859c`;
+account deletion SHA-256 is
+`594770ae8008a711f18546e7d9df1b9e40ea0f13f8a63a0646b3c5ba7086aa40`.
+Evidence: `.tmp/beta-checks/candidate-f44-live-policy-verification.json`.
+Live URLs: https://rpg-runner-d7add.web.app/privacy-policy.html and
+https://rpg-runner-d7add.web.app/account-deletion.html.
+
+Canonical ResumeIssuance passed all fresh drain/current-board/live-artifact gates
+and restored dev issuance at 20:47:37 UTC. It deployed the normal issuer, removed
+the temporary runtime gate, recorded the baseline and cleared this candidate's
+cutover ownership. The serving issuer is `runsessioncreate-00074-9w8`.
+Log `.tmp/beta-checks/candidate-f44-resume-dev.log`; mutation lock generation
+`1793133844796787` was released. Play Games/replay/device acceptance remains
+separate and unrun for the new stack. The phone is asleep; an unlock request is
+pending while independent work continues.
+
+Freed memory by stopping only release-owned Gradle daemon 26308 after verifying
+its identity and IDLE state; no user application was closed. Staging canonical
+BuildAndroid version 1 is now running. Its prior sequential AOT outputs and shared
+client navigation pack are reused; signing/inspection/symbol upload remain gates.
+
+Dev negative service smoke passed at 21:00:46 UTC: authenticated malformed
+validation/projection task bodies both return 400 `invalid_request`, while
+unauthenticated playerProfileLoad and runSessionCreate calls both return 401
+`UNAUTHENTICATED`. No gameplay fixtures were created. Evidence:
+`.tmp/beta-checks/candidate-f44-dev-worker-protocol-smoke.json`. This verifies
+deployed rejection paths, not Play Games or Play Integrity device acceptance.
+
+Staging BuildAndroid version 1 passed at 21:01:26 UTC. Signed AAB SHA-256:
+`156dbcb2157681b5464c42424f167dcf461f3bc8882c12e4a45fbf610cdf655a`,
+174459159 bytes. Package/version `com.lothringen.longrun.staging` /
+`1.0.0-staging` / 1; min SDK 24, target SDK 36. The registered upload certificate
+SHA-256 is `ab46f14dc351dccaffa431f129bc95f2926c42aac0ddd9be5bf96f2bf84596c9`.
+The bundle has the expected staging Firebase/Play resources, all 3750 graph
+bytes, three ABIs, nine native libraries, 16 KB alignment and no advertising-ID
+permission. Client graph preparation reports built=0/reused=3750 in 36.277s.
+Firebase CLI successfully uploaded all symbols to staging app
+`1:943085064373:android:51c288ba51386d01572efc`; R8 mapping is retained. Evidence is
+in the frozen checkout's staging source-digest directory under
+`android/staging/1/android.json`, alongside `app-staging-release.aab`. The derived
+inspection APK is not a distribution artifact. No Play upload has occurred.
+Mutation lock generation `1793134181741069` was released.
+
+Staging's first Bootstrap stopped before any cloud mutation because symbol upload
+had generated untracked `functions/.crashlytics/dump_syms.exe` and `dump_syms.obj`.
+The strict source fence correctly rejected the altered checkout. Preserved that
+failure in `.tmp/beta-checks/candidate-f44-bootstrap-staging.log` and moved only
+these two generated SDK files, after inventory/hash verification, into
+`.tmp/beta-checks/crashlytics-generated-staging-f44`. The frozen tree is clean and
+canonical Plan again reports the original prepared staging source digest
+`5467c26ac1dde5608a06f80031e29dfaed25e7726f2a61924a7d24dcbb4934cc`.
+No candidate source or preparation record was changed. Future checkouts ignore
+this exact SDK cache directory; guidance documents recovery for older candidates.
+`git diff --check`, `git check-ignore functions/.crashlytics/dump_syms.exe` and
+`node tools/agents/check.mjs` passed (32 guidance files).
+
+Staging Bootstrap -CutoverReady is retrying with FUNCTIONS_DISCOVERY_TIMEOUT=60.
+It must pass the fresh empty-project inventory and create only the paused issuer.
+Log: `.tmp/beta-checks/candidate-f44-bootstrap-staging-retry.log`. Production native
+AOT is prepared, but its final BuildAndroid action remains pending.

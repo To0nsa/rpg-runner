@@ -25,6 +25,11 @@ In a fresh checkout, first run `flutter build apk --config-only --flavor dev
 --release` and verify `git status --short` is empty. This initializes Flutter's
 ignored Gradle wrapper before BuildAndroid records its version; it does not
 produce an APK or change the candidate. Do not copy wrappers from another app.
+Crashlytics symbol upload can create `functions/.crashlytics/`; this generated
+SDK cache is ignored in current source. For an older frozen checkout without
+that ignore, inspect and move only this generated cache to ignored evidence
+storage, then verify the clean tree and original prepared source digest. Do not
+edit the frozen candidate or weaken its source checks to recover.
 Check actual Play history before choosing codes and preserve the same accepted
 production AAB when promoting tracks. Native signing/resources/assets and
 Play-delivered authentication/attestation are separate acceptance gates.
@@ -69,6 +74,11 @@ Play-delivered authentication/attestation are separate acceptance gates.
    not just a desired template from a failed update.
 6. Run Deploy -CutoverReady only after the drain review. Review saved
    checkpoints if an index or later deployment step fails; keep issuance paused.
+   If the existing board-maintenance scheduler was deliberately paused, preserve
+   that pause through Functions rollout. After verifying the new worker's exact
+   image, Ready status and 100% traffic, explicitly resume the scheduler: Google
+   requires an enabled job for RunJob. If Deploy stopped at that precondition,
+   rerun it to reuse the completed checkpoints before ResumeIssuance.
 7. Inspect board completion, then run ResumeIssuance -CutoverReady. Complete the
    linked Play Games smoke, replay acceptance, once-only settlement, leaderboard,
    retired-version rejection and generation-pinned ghost checks.

@@ -1,6 +1,6 @@
 # Android beta release with dev, staging and production
 
-Status: executing, October 26, 2026. This is the
+Status: executing; started October 26, 2026. This is the
 active checklist for reusing the existing project for development, creating
 isolated staging and production backends, and releasing an Android beta through
 Google Play. Team expansion and internal release-candidate testing make staging
@@ -51,7 +51,9 @@ digest: `sha256:fb6a16cbee611183462938e19deb9aeaf79c283eadff475e4ab029a4e2a3c331
 The frozen candidate adopted this matching image through verified cache evidence.
 Staging copy build `fe7f9df1-ab0f-43e7-aa24-02f1c7b13880` completed SUCCESS
 at 19:57:05 UTC. Canonical ImageStatus verified its strict benchmark and exact
-digest equality; no graphs were regenerated. Production copy remains pending.
+digest equality; no graphs were regenerated. Production copy
+`84a144e6-3867-4a34-be88-5ba8282f8f75` also passed at 20:13:40 UTC; canonical
+ImageStatus verified the same digest and strict benchmark in all three projects.
 The advisory and benchmark gates remain strict.
 At the owner's request to avoid duplicate navigation generation, staging build
 `d3015999-a988-4416-8144-0a0a05af5021` and production build
@@ -59,15 +61,19 @@ At the owner's request to avoid duplicate navigation generation, staging build
 A narrow release-tooling change now copies a verified
 environment-neutral image into each destination registry, with matching worker
 inputs, live source evidence, exact destination digest and a strict benchmark.
-Its mocked checks pass on both PowerShell versions and the live dev-to-staging
-copy passes. No backend has yet been deployed from this candidate.
+Its mocked checks pass on both PowerShell versions and both live image copies
+pass. Dev runtime cutover is complete; staging/prod runtime deployment is pending.
 The validated tooling milestone is frozen in the candidate above.
 The preceding LF checkout `.tmp/release-checkouts/d83a690cd4ad82a5427a522a0646027e75d0ad19`
 retains its build evidence. Draft PR #2's head has not been advanced. Earlier
 component evidence is reused only after exact fingerprint/toolchain/artifact
 verification; no full CI run is claimed for the new tooling-only commit.
-No new backend, Play bundle or
-public policy has been deployed. The owner confirmed Nicolas Louis, based in
+No Play bundle is uploaded. Public privacy/deletion pages are live and match the
+prepared bytes. Dev is deployed with healthy worker `replay-validator-00059-ssr`
+and issuer `runsessioncreate-00074-9w8`, both serving all traffic. Both queues are
+RUNNING, the board scheduler is ENABLED, and canonical ResumeIssuance completed
+at 20:47:37 UTC. Anonymous worker access returns 403; authorized readiness is 200.
+Actual Play Games/replay/device acceptance remains open. The owner confirmed Nicolas Louis, based in
 Finland, with resolved support correspondence retained for 90 days. Those details
 are incorporated in the prepared policy. Chrome's native control pipe is now
 unavailable after a reconnect/reset attempt; browser inventory is empty. CLI
@@ -87,22 +93,38 @@ The owner needs the other apps open. A sequential Flutter assemble
 retry (`--resource-pool-size=1`) succeeded with all three architectures/symbols;
 canonical packaging/inspection then succeeded. Its navigation preparation
 validated and reused all 3,750 graphs, building zero. Details are in the linked
-evidence. The new frozen candidate still needs its environment-specific Android
-build records; the earlier dev APK is not relabeled as a new-commit build.
+evidence. The new frozen candidate's dev APK completed canonical verification at
+20:09:10 UTC, version 1 / 1.0.0-dev, SHA-256
+`428b02e8b713741f4625022e7d11d5e34635fe3bcc8847cd1528c1ce11300ea3`.
+Staging's signed AAB also passed at 21:01:26 UTC, version 1 / 1.0.0-staging,
+SHA-256 `156dbcb2157681b5464c42424f167dcf461f3bc8882c12e4a45fbf610cdf655a`,
+with project-specific resources, 3750 reused graphs, three ABIs, 16 KB checks and
+successful staging symbol upload. Staging Bootstrap is running; production's AAB
+remains to be packaged. No earlier APK is relabeled as a new-commit build.
 The new candidate's sequential AOT step also passed all three architectures.
 Its first packaging attempt failed on disk space after reusing all 3750 graphs.
 Redundant generated Android caches were cleared, preserving source and recorded
-artifacts; 6.3 GB was available before the canonical dev retry. That retry is
-running. Failure details and retained logs are in the verification evidence.
+artifacts; 6.3 GB was available before the successful canonical dev retry.
+The dev APK is installed on the connected phone with its expected version.
+Staging and production sequential AOT preparation passed; production's signed
+packaging and inspection remain pending. Dev PauseIssuance recovered its removed old issuer
+image by deploying only the explicitly paused issuer. Its first attempt hit
+Firebase's 10-second local discovery timeout before changing the serving service;
+the retry passed using the documented 60-second discovery allowance. Its
+source-bound cutover record was retained through recovery and cleared only after
+verified ResumeIssuance. The deliberately paused legacy board scheduler also
+needed an explicit resume after verifying the new worker, before RunJob could
+succeed. The workflow now documents that recovery ordering.
+Failure details and retained logs are in the verification evidence.
 
 The owner explicitly requested inclusion of the completed board lifecycle/account-
 deletion work tracked in `docs/building/board_lifecycle_cleanup.md`. Runtime work
 is now committed as `5b1f9092`, with 266 Functions and 298 worker tests passing,
 worker analysis and executable compilation. Include it in the frozen candidate;
 the older passing CI does not cover it. Its dev cleanup restored the projection
-queue, but the legacy board-maintenance scheduler remains PAUSED until the new
-current-window provisioner and board-fenced worker are deployed. Preserve that
-pause throughout cutover and explicitly resume the scheduler after worker readback.
+queue and left the legacy board-maintenance scheduler PAUSED. The October 27
+cutover preserved that pause through Functions rollout and resumed it only after
+verifying the matching worker; the scheduler is now ENABLED.
 
 - Starting source: `f0aa66d8`; the only initial worktree edits are this plan and
   its links in `docs/README.md` and `docs/building/README.md`. Preserve them as
@@ -735,10 +757,10 @@ identities; production no longer depends on the workstation debug signing key.
 Execution: agent via automated checks and staging deployment; internal team via
 Play-delivered device QA and candidate acceptance.
 
-- [ ] Run relevant client/Core/protocol/Functions/worker checks and generated
+- [x] Run relevant client/Core/protocol/Functions/worker checks and generated
   content freshness. Follow the traversal workflow for included level/navigation
   changes; record levels, seeds, enemies, horizons and exclusions.
-- [ ] Prepare navigation graphs and run the strict benchmark on the final worker
+- [x] Prepare navigation graphs and run the strict benchmark on the final worker
   image. Reuse valid preparation evidence and retain required coverage; do not
   repeat this work for unrelated UI changes.
 - [ ] Freeze the candidate commit and deploy its complete stack to staging.
@@ -1015,8 +1037,10 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: resume the execution checkpoint above. Foundation provisioning and
-upload-key/OAuth/App Check setup are complete; Play publication, public policy,
-the corrected candidate's freeze/builds, deployments and acceptance remain open. No app bundle
-has been uploaded or released. Do not repeat completed setup or treat local
-validation as live acceptance.
+Next action: monitor staging Bootstrap, then complete its coordinated deployment
+and readiness/resume checks. Package and inspect the already compiled production
+Android flavor. Restore Chrome control for Play upload/publication and unlock the
+phone for actual device acceptance. Deploy production only after non-waived
+staging acceptance. Public policy, all worker images, dev deployment and verified
+dev/staging Android artifacts are complete; no Play bundle is uploaded/released.
+Do not repeat completed setup or treat local validation as live acceptance.
