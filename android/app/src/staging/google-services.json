@@ -12,7 +12,12 @@
           "package_name": "com.example.rpg_runner.staging"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDVOm5ucODF2RUAUHh4NicS9lkTMtLPM0Q"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -31,7 +41,12 @@
           "package_name": "com.lothringen.longrun.staging"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDVOm5ucODF2RUAUHh4NicS9lkTMtLPM0Q"
@@ -39,7 +54,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

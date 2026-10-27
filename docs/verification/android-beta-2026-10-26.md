@@ -37,6 +37,18 @@ The confirmed Finland/90-day support-retention text also passes the separate
 headless 390-pixel layout probe for both public pages. No candidate is frozen
 and no waiver was used.
 
+After the next authorized resumption, Chrome read back all three saved scopes
+from the loaded staging page. Play Games saved draft server credential
+`CgkItaGAorkbEAIQAA` using the same web client. The genuine Android config was
+downloaded with `firebase apps:sdkconfig ANDROID
+1:943085064373:android:51c288ba51386d01572efc --project lothringen-long-run-staging`
+and checked for the expected project, app, package and type-3 client before
+replacing the staging source file. Its native server-client resource now agrees.
+`flutter test test/firebase_environment_test.dart` passes all four cases on these
+changes atop `6a511535`; log `.tmp/beta-checks/staging-oauth-native-config-test.log`.
+The first sandboxed invocation produced no output and was stopped; the successful
+invocation used installed-SDK access. This does not prove Play/device sign-in.
+
 ## Initial state
 
 Source inspected: `f0aa66d8`, repository root `C:\dev\rpg_runner`.

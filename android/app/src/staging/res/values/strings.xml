@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">Long Run Staging</string>
     <string name="game_services_project_id">943085064373</string>
+    <string name="play_games_server_client_id">943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com</string>
 </resources>

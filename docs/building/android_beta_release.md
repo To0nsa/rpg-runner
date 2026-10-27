@@ -18,8 +18,8 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 27, 2026
 
-Latest committed milestone: `1d1297da` (privacy policy source); external-secret
-storage and confirmed privacy details are being finalized. Full CI
+Latest committed milestone: `6a511535` (external-secret storage, confirmed privacy
+details and staging OAuth/provider evidence). Full CI
 preparation passed on preceding `f9015c3d`; the later UI change has focused local
 validation and still needs final-candidate CI. The successful bundle is imported
 into `.tmp/release-cache` using its exact LF validation checkout. The isolated
@@ -237,6 +237,11 @@ the older passing CI does not cover it. Google console setup can proceed meanwhi
 - Chrome's reload readback then stopped because the helper could not confidently
   determine the current URL. No further browser input was sent in that turn;
   saved scopes still need a fresh-page readback before being treated as verified.
+- Subsequent owner-authorized resumption verified the saved staging scopes on a
+  fresh page. The matching web client is now saved as staging's draft Play Games
+  server credential (`CgkItaGAorkbEAIQAA`). Refreshed the genuine Firebase Android
+  config and explicit native server-client resource; all four environment tests
+  pass. Android/distribution credentials and Play publication remain pending.
 - Durable evidence: [Android beta execution](../verification/android-beta-2026-10-26.md).
 
 ## Outcome and environment decisions

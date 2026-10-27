@@ -82,8 +82,10 @@ OAuth client, Firebase Play Games provider and tester/publication configuration.
 Staging's game is linked to its Cloud project, and Firebase's enabled Play Games
 provider uses web client
 `943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com`.
-Play credential linkage, native resource refresh and installed-app acceptance
-remain pending. There is no cross-project authentication bridge or bypass.
+The same client is saved as its draft Play Games game-server credential and is
+present in the downloaded Firebase config and explicit native resource. Android
+distribution credentials, publication and installed-app acceptance remain pending.
+There is no cross-project authentication bridge or bypass.
 
 Dev uses App Check's debug provider in every mode; register installation tokens
 only in its dev Firebase app and keep them out of source/log evidence.
