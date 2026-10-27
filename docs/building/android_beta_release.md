@@ -140,6 +140,11 @@ reviewable preparation and retain all non-waived acceptance gates.
   Aligning its allowance with Cloud Build's existing two-hour limit and limiting
   overlapping runs per ref; compilation, smoke, strict benchmark and image
   vulnerability checks remain mandatory.
+- Browser diagnostics identify a readiness failure at `parallaxMounted` with no
+  asset error: image decoding was started on the widget test's simulated clock.
+  The test now starts/mounts the run inside real asynchronous execution, retaining
+  the same 1,200 iterations and all assertions. Hosted verification is pending;
+  this is a harness correction, not a gameplay waiver.
 - External deletion-page source is prepared at `web/account-deletion.html` with
   the confirmed support email, environment-specific request scope, in-app steps
   and actual retention limits. It is not yet published. Live log-bucket readback
@@ -585,6 +590,54 @@ Execution: agent prepares/configures; user validates factual business declaratio
 Exit: required console tasks complete, policy URLs work, disclosures match the
 candidate, and reviewers/testers can access the game.
 
+### Prepared English (UK) listing copy
+
+Drafted from implemented features and the companion repository's Identity,
+CrossMediaExpressionRules and Naming&Terminology references. Not submitted.
+Keep existing titles `Long Run` and `Long Run Staging`. These drafts fit Google's
+[30/80/4,000-character listing limits](https://support.google.com/googleplay/android-developer/answer/9859152?hl=en-GB).
+Actual screenshots, icon/artwork and IARC answers remain pending.
+
+Production short description:
+
+> Build your loadout and fight to survive a dark-fantasy action runner.
+
+Production full description:
+
+> In Lothringen: The Long Run, survival depends on the choices you make before
+> a run and the timing of every move within it.
+>
+> Choose your equipment and abilities, then fight through scrolling Field and
+> Forest routes. Jump past hazards, manage your resources, and combine melee,
+> ranged, spell and mobility abilities as enemies close in.
+>
+> Experiment in Practice, take on fixed-route Competitive and Weekly challenges,
+> and compare your scores on leaderboards. Race recorded ghosts, earn in-game
+> rewards, and adapt your build for the next attempt. Discover enemies and places
+> in the Library as your account progresses.
+>
+> This Android beta requires an internet connection and a Google Play Games
+> account. It is played in landscape, with configurable touch movement controls.
+> Beta updates may include maintenance periods and required app updates.
+>
+> Send feedback or request help at lothringen.rpg@gmail.com.
+
+Staging short description:
+
+> Internal testing for Long Run. Separate test accounts and progression.
+
+Staging full description: prepend this paragraph to the production description:
+
+> Long Run Staging is the separate internal testing app for selected release
+> candidates. Your staging account and progress are independent of Long Run.
+> Access is limited to invited testers.
+
+Initial beta release-note draft, only after the accepted build is available:
+
+> Initial Android beta: build a loadout, explore Field and Forest, and test
+> Practice, Competitive and Weekly runs. Report issues to
+> lothringen.rpg@gmail.com with your app version and steps to reproduce them.
+
 ## Phase 8 - live internal release and closed beta
 
 Execution: agent via canonical release CLI, Chrome and physical-device checks.
@@ -596,8 +649,9 @@ Execution: agent via canonical release CLI, Chrome and physical-device checks.
   testing, use normal cutover/drain gates rather than the empty-project bootstrap.
   Any code/content fix returns to staging; environment-specific bundle checks and
   production smoke still run because the staging AAB is a different application.
-- [ ] Present the concrete production deployment and recovery set for release
-  authorization. Use the canonical bootstrap or coordinated path as appropriate,
+- [ ] Record the concrete production deployment and recovery set, then use the
+  owner's October 26 initial-release authorization after the non-waived acceptance
+  checks pass. Use canonical bootstrap or coordinated cutover as appropriate,
   preserving readiness, issuer, queue and compatibility fences. The old owner's
   disposable dev data is not permission to reset new production accounts.
   Keep production in maintenance until backend and Play availability match.
