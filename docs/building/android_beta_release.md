@@ -18,8 +18,8 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 27, 2026
 
-Latest committed milestone: `6a511535` (external-secret storage, confirmed privacy
-details and staging OAuth/provider evidence). Full CI
+Latest committed milestones: `65ee1d27` (staging native OAuth configuration) and
+`5b1f9092` (completed board retention/account erasure, included by the owner). Full CI
 preparation passed on preceding `f9015c3d`; the later UI change has focused local
 validation and still needs final-candidate CI. The successful bundle is imported
 into `.tmp/release-cache` using its exact LF validation checkout. The isolated
@@ -32,10 +32,13 @@ are incorporated in the prepared policy. Chrome control has resumed on the stagi
 OAuth page. Device acceptance remains required; release authorization remains valid.
 
 The owner explicitly requested inclusion of the completed board lifecycle/account-
-deletion work tracked in `docs/building/board_lifecycle_cleanup.md`. Those changes
-are actively being implemented in this checkout and must be preserved. Freeze
-only after that work is completed and its Functions/worker validation is recorded;
-the older passing CI does not cover it. Google console setup can proceed meanwhile.
+deletion work tracked in `docs/building/board_lifecycle_cleanup.md`. Runtime work
+is now committed as `5b1f9092`, with 266 Functions and 298 worker tests passing,
+worker analysis and executable compilation. Include it in the frozen candidate;
+the older passing CI does not cover it. Its dev cleanup restored the projection
+queue, but the legacy board-maintenance scheduler remains PAUSED until the new
+current-window provisioner and board-fenced worker are deployed. Preserve that
+pause throughout cutover and explicitly resume the scheduler after worker readback.
 
 - Starting source: `f0aa66d8`; the only initial worktree edits are this plan and
   its links in `docs/README.md` and `docs/building/README.md`. Preserve them as
@@ -242,6 +245,30 @@ the older passing CI does not cover it. Google console setup can proceed meanwhi
   server credential (`CgkItaGAorkbEAIQAA`). Refreshed the genuine Firebase Android
   config and explicit native server-client resource; all four environment tests
   pass. Android/distribution credentials and Play publication remain pending.
+- Staging Play Integrity is now linked to its own Firebase project only
+  (`943085064373`), read back in Console with the default 10,000/day API limit.
+  This setup is not an attestation-verdict acceptance result. Native OAuth wiring
+  is committed as `65ee1d27` and backed up on the continuation branch.
+- First scheduled staging Firestore backup is now READY:
+  `1ec4a342-a204-4237-8c45-c52e9fed4f25`, snapshot October 27 at 09:33:55 UTC,
+  expiry November 3 at the same time. Production's inventory is still empty at
+  this readback; its first completed backup is not claimed.
+- Staging Play App Signing is enrolled with Google's three-certificate signing
+  set (classic, hybrid classical and hybrid PQC). The downloaded public archive
+  and extracted certificates are retained outside the repo under
+  `C:\dev\lothringen-secrets\staging`. All six SHA-1/SHA-256 fingerprints were
+  registered and read back in the correct Firebase Android app at 15:57 UTC.
+  Three matching Android OAuth clients are created and verified. Their Play Games
+  links are saved as drafts: classic `CgkItaGAorkbEAIQAQ`, hybrid
+  `CgkItaGAorkbEAIQAg`, PQC `CgkItaGAorkbEAIQAw`. The classic credential remains
+  the default for new installs. Refreshed genuine native configuration includes
+  all three Android clients plus the existing server client; all four focused
+  environment tests pass. Saved Play Games description, Action category, icon
+  and feature graphic; Console reports ready to publish. Automatic approval
+  review blocked the final Play Games service publication because it extends
+  beyond the tester list and locks some settings. Specific owner approval is
+  pending; nothing was published. Play-delivered sign-in and attestation remain
+  unverified. Production configuration can proceed independently.
 - Durable evidence: [Android beta execution](../verification/android-beta-2026-10-26.md).
 
 ## Outcome and environment decisions

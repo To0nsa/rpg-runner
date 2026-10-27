@@ -672,3 +672,57 @@ Existing run submission/recovery is retained. Repository-root local evidence:
 - Targeted Dart analysis passes after fixing an initial style finding. A first
   test fixture omitted the required Firebase exception message; corrected before
   the successful rerun. No gameplay/traversal failure has been waived yet.
+
+## Staging Play signing and Android credentials (October 27)
+
+Play Console's signing page for app `4975698862921375548` reports Google-managed
+App Signing in use with zero installed users. Its downloaded `certificates.zip`
+contains three signing certificates, matching Google's current quantum-ready
+enrollment. No signing key was changed. The archive and extracted public DER files
+are retained in `C:\dev\lothringen-secrets\staging`, outside every checkout.
+The upload key remains a separate identity.
+
+| Certificate | SHA-1 | SHA-256 |
+| --- | --- | --- |
+| Classic | `7B1DC37D7E16EA26B374ED635F23276CCA4FA63E` | `6272EA6A975B3A59283153010BE2AD3F53E958897E34FD034A797D8ACBBD842F` |
+| Hybrid classical | `FBDF0AD7A141F198B4471666B9BF7D25A2454E33` | `8ADCA0CB69362D4453F5B1F43BC3B5B74CD22CA1254E05472C68CEEDA4B54D90` |
+| Hybrid PQC | `187EDE06AA5FDBE1E47E83C1E81543E603E102DC` | `45BB21C4FB4CBF7D81BBCA9B9ABD6B2664AB7CAE44A562CD182F1DD78F9046FC` |
+
+Registered and verified all six hashes through Firebase Management's SHA API for
+app `1:943085064373:android:51c288ba51386d01572efc` at
+`2026-10-27T15:57:40.801Z`, preserving the upload-certificate registrations.
+Play Integrity's linked Cloud project was read back as `943085064373` only,
+with a 10,000/day API quota. This does not establish an accepted device verdict.
+
+Created and read back these Android OAuth clients in that staging project; all
+use package `com.lothringen.longrun.staging`. Each is saved as a separate draft
+Play Games credential with player-facing name `Long Run Staging`.
+
+| Certificate | OAuth client ID | Play Games credential |
+| --- | --- | --- |
+| Classic | `943085064373-1oepm623hb1hjdts2pg8h6qiiug8nvrv.apps.googleusercontent.com` | `CgkItaGAorkbEAIQAQ` |
+| Hybrid classical | `943085064373-fsq59kpq3mi3bu2h5mo9muritttb100k.apps.googleusercontent.com` | `CgkItaGAorkbEAIQAg` |
+| Hybrid PQC | `943085064373-dsfa2d8fjhjeuhngkripiqrkv9cqi520.apps.googleusercontent.com` | `CgkItaGAorkbEAIQAw` |
+
+The classic credential remains the default for new installs. Saved games and
+additional Recall storage remain off. The Console's optional Firebase link is
+for Analytics and is not required for the configured Firebase Auth provider;
+it remains unused. Existing server credential `CgkItaGAorkbEAIQAA` binds the
+separate web client recorded above. Google's publication review now reports the
+credentials ready. Saved the prepared description, Action category, 512-pixel
+icon and 1024-by-500 feature graphic; both uploaded previews were inspected.
+Console then reported ready to publish. Automatic approval review rejected the
+final Play Games service publication because the service becomes available
+beyond the tester list and some settings become irreversible. The owner has
+been asked for that specific approval; it is pending. No publication was made.
+
+Downloaded genuine native config with `firebase apps:sdkconfig ANDROID
+1:943085064373:android:51c288ba51386d01572efc --project
+lothringen-long-run-staging --out .tmp/beta-checks/staging-sdkconfig-play-signing.json`.
+Verified project/app/package and all three certificate-client mappings before
+updating `android/app/src/staging/google-services.json`. Root command
+`flutter test test/firebase_environment_test.dart` passes all four tests on
+`5b1f9092` plus this config change; log
+`.tmp/beta-checks/staging-play-signing-config-test.log`.
+This is configuration evidence, not the frozen candidate or installed-app
+acceptance. No Play bundle or backend deployment has occurred in this step.

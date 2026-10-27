@@ -43,6 +43,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "943085064373-1oepm623hb1hjdts2pg8h6qiiug8nvrv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lothringen.longrun.staging",
+            "certificate_hash": "7b1dc37d7e16ea26b374ed635f23276cca4fa63e"
+          }
+        },
+        {
+          "client_id": "943085064373-dsfa2d8fjhjeuhngkripiqrkv9cqi520.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lothringen.longrun.staging",
+            "certificate_hash": "187ede06aa5fdbe1e47e83c1e81543e603e102dc"
+          }
+        },
+        {
+          "client_id": "943085064373-fsq59kpq3mi3bu2h5mo9muritttb100k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lothringen.longrun.staging",
+            "certificate_hash": "fbdf0ad7a141f198b4471666b9bf7d25a2454e33"
+          }
+        },
+        {
           "client_id": "943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com",
           "client_type": 3
         }
