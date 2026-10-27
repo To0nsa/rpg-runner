@@ -130,6 +130,17 @@ artifact and readiness gates still apply. Bootstrap never imports or resets data
 If bootstrap creates the issuer before a later failure, inspect it and recover
 with normal `PauseIssuance`/`Deploy`; do not erase resources to rerun bootstrap.
 
+First-time coordinated `Deploy -CutoverReady -EnableInitialEventRetries`
+acknowledges Firebase's prompt for new retry-enabled settlement/projection event
+handlers. After the ordinary prepared-image, paused-issuer and drain gates, it
+reads the live Functions inventory and deploys only missing
+`runSettlementOnHandoff` / `runProjectionOnAccepted` with `--force`. Existing
+handlers must be active in the selected project/region with retries already
+enabled; drift blocks instead of being changed. The regular full deployment,
+issuer and Firestore commands never inherit this flag. Normal defaults remain
+strict, and a partial successful creation is skipped on retry. This adds no new
+runtime retry policy: the two idempotent handlers already declare it in source.
+
 Functions derive their runtime and private validator-invoker service accounts
 from the SDK deployment project, rejecting contradictory project variables or a
 foreign validator override. Release checks validate replay bucket, region,

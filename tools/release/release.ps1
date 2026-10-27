@@ -29,6 +29,7 @@ param(
   [int]$AndroidVersionCode = 0,
   [ValidateSet('', 'dev', 'staging', 'prod')]
   [string]$ReuseImageFrom = '',
+  [switch]$EnableInitialEventRetries,
   [switch]$Rebuild,
   [switch]$CutoverReady
 )
@@ -40,8 +41,12 @@ param(
 . (Join-Path $PSScriptRoot "release_ci.ps1")
 . (Join-Path $PSScriptRoot "release_lock.ps1")
 . (Join-Path $PSScriptRoot "release_image.ps1")
+. (Join-Path $PSScriptRoot "release_firebase.ps1")
 if ($ReuseImageFrom -and ($Action -ne 'BuildImage' -or $ReuseImageFrom -eq $Environment)) {
   throw 'ReuseImageFrom requires BuildImage and a different source environment.'
+}
+if ($EnableInitialEventRetries -and ($Action -ne 'Deploy' -or -not $CutoverReady)) {
+  throw 'EnableInitialEventRetries requires Deploy -CutoverReady and release authorization.'
 }
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
 if ($Action -in @("Provision", "SigningSetup", "RecoverySetup", "MonitoringSetup", "BuildAndroid", "BuildImage", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance") -and
@@ -88,6 +93,9 @@ $contract = Get-ReleaseContract $root $ProjectId
 $inputs = Get-ReleaseInputHashes $root $ProjectId
 $baseline = Read-ReleaseBaseline $cacheRoot $ProjectId $Region
 $resolvedScope = Resolve-ReleaseScope $inputs $contract $baseline $Scope
+if ($EnableInitialEventRetries -and $resolvedScope -ne 'Coordinated') {
+  throw 'EnableInitialEventRetries requires Coordinated scope.'
+}
 $sourceDigest = Get-ReleaseSourceDigest $root $ProjectId
 $evidenceDirectory = Join-Path $root ".tmp/releases/$ProjectId/$sourceDigest"
 $statePath = Join-Path $evidenceDirectory "release.json"
@@ -105,10 +113,17 @@ function Invoke-ReleaseGcloud {
 }
 
 function Invoke-ReleaseFirebase {
-  param([string]$Targets)
+  param([string]$Targets, [switch]$InitialEventRetries)
   $commandArgs = @("--dir", "functions", "exec", "firebase", "deploy",
     "--config", $firebaseConfigPath, "--project", $ProjectId,
     "--only", $Targets, "--non-interactive")
+  if ($InitialEventRetries) {
+    $selected = @($Targets -split ',')
+    if ($selected.Count -eq 0 -or @($selected | Where-Object {
+      $_ -notin @('functions:runSettlementOnHandoff', 'functions:runProjectionOnAccepted')
+    }).Count -gt 0) { throw 'Initial retry acknowledgement is limited to the two event handlers.' }
+    $commandArgs += '--force'
+  }
   Write-Host "Deploying $Targets"
   $savedDebug = $env:DEBUG
   try {
@@ -579,6 +594,15 @@ if ($Action -eq "ResumeIssuance") {
 # Repair/settlement surfaces and indexes must exist before the matching worker.
 Confirm-ReleaseQueues "pause"
 if (-not $state.functionsDeployedAt) {
+  if ($EnableInitialEventRetries) {
+    $liveFunctions = Invoke-ReleaseGcloud @('functions', 'list', "--project=$ProjectId", '--format=json') | ConvertFrom-Json
+    $initialRetryTargets = @(Get-ReleaseInitialEventRetryTargets $liveFunctions $ProjectId $Region)
+    if ($initialRetryTargets.Count -gt 0) {
+      # --force also acknowledges unrelated Firebase prompts. Restrict it to
+      # missing, explicitly named handlers; the normal full deploy stays strict.
+      Invoke-ReleaseFirebase ($initialRetryTargets -join ',') -InitialEventRetries
+    }
+  }
   $exports = [regex]::Matches(
     (Get-Content -Raw -LiteralPath (Join-Path $root "functions/src/index.ts")),
     'export const ([A-Za-z][A-Za-z0-9_]*)\s*='

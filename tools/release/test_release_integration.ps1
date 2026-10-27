@@ -26,6 +26,7 @@ $global:fakeIndexesReady = $true
 $global:fakeFunctionsVersion = '2026-10-01T00:00:00Z'
 $global:fakeBootstrapEmpty = $false
 $global:fakeBootstrapUsers = $false
+$global:fakeMissingEventHandlers = $false
 $global:fakeReleaseLock = $false
 $global:fakeLockGeneration = 100
 $global:fakeCutover = $null
@@ -34,7 +35,7 @@ $global:mockFiles = @(
   "tools/release/release.ps1", "tools/release/release_support.ps1", "tools/release/release_cache.ps1",
   "tools/release/prepare_release.ps1", "tools/release/profile_tests.ps1", "tools/release/release_ci.ps1",
   "tools/release/release_environments.ps1", "tools/release/environments.json",
-  "tools/release/release_lock.ps1", "tools/release/release_image.ps1",
+  "tools/release/release_lock.ps1", "tools/release/release_image.ps1", "tools/release/release_firebase.ps1",
   "firebase.staging.json", "firebase.prod.json",
   "functions/src/index.ts", "functions/src/runs/compatibility.ts",
   "functions/src/boards/provisioning.ts", "lib/ui/state/app/app_state.dart",
@@ -52,6 +53,7 @@ function corepack {
   $global:fakeFirebaseDebug = [bool]$env:DEBUG
   $global:releaseTrace.Add("firebase " + ($args -join " "))
   $global:LASTEXITCODE = 0
+  if ($args -contains '--force') { $global:fakeMissingEventHandlers = $false }
   if (($args -join " ") -match 'functions:runSessionCreate(,|\s|$)') {
     $envValues = Read-ReleaseEnvironment $fixture "test-project"
     $global:fakeIssuancePaused = $envValues.ContainsKey("RUN_SUPPORTED_GAME_COMPAT_VERSIONS") -and
@@ -143,7 +145,7 @@ function gcloud {
   if ($command.StartsWith("functions list")) {
     if ($global:fakeBootstrapEmpty) { return '[]' }
     $exports = [regex]::Matches((Get-Content -Raw (Join-Path $fixture 'functions/src/index.ts')), 'export const ([A-Za-z][A-Za-z0-9_]*)\s*=')
-    return (@($exports | ForEach-Object { @{ name = "projects/test-project/locations/europe-west1/functions/$($_.Groups[1].Value)"; state = "ACTIVE"; updateTime = $global:fakeFunctionsVersion } }) | ConvertTo-Json -Depth 5)
+    return (@($exports | Where-Object { -not $global:fakeMissingEventHandlers -or $_.Groups[1].Value -notin @('runSettlementOnHandoff','runProjectionOnAccepted') } | ForEach-Object { @{ name = "projects/test-project/locations/europe-west1/functions/$($_.Groups[1].Value)"; state = "ACTIVE"; updateTime = $global:fakeFunctionsVersion; eventTrigger=@{retryPolicy='RETRY_POLICY_RETRY'} } }) | ConvertTo-Json -Depth 5)
   }
   if ($command.StartsWith('run services list')) { return '[]' }
   return "{}"
@@ -232,6 +234,12 @@ try {
     issuancePausedAt=$null; issuanceResumedAt=$null
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $evidence "release.json")
   $entry = Join-Path $fixture "tools/release/release.ps1"
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action Plan -EnableInitialEventRetries } catch { $rejected = $_.Exception.Message -like '*requires Deploy -CutoverReady*' }
+  Assert-Test $rejected 'initial retry acknowledgement is invalid for offline Plan'
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action Deploy -EnableInitialEventRetries } catch { $rejected = $_.Exception.Message -like '*requires Deploy -CutoverReady*' }
+  Assert-Test $rejected 'initial retry acknowledgement does not bypass cutover authorization'
   $rejected = $false
   try { & $entry -Action Deploy } catch { $rejected = $_.Exception.Message -like '*explicit -Environment*' }
   Assert-Test ($rejected -and $global:releaseTrace.Count -eq 0) 'missing environment blocks before cloud commands'
@@ -344,6 +352,9 @@ try {
   $rejected = $false
   try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Cutover blocked*" }
   Assert-Test $rejected "active-run inventory blocks production cutover"
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady -EnableInitialEventRetries } catch { $rejected = $_.Exception.Message -like '*Cutover blocked*' }
+  Assert-Test $rejected 'initial retry acknowledgement retains the active-run drain gate'
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "tasks queues pause*" }).Count -eq 0) "queues keep draining while active runs remain"
   $global:fakeActiveRuns = $false
   $global:fakeBuildStatus = "FAILURE"
@@ -351,8 +362,20 @@ try {
   try { & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady } catch { $rejected = $_.Exception.Message -like "*Cloud Build failed*" }
   Assert-Test $rejected "failed remote benchmark/build blocks deployment"
   $global:fakeBuildStatus = "SUCCESS"
+  $initialStatePath = Join-Path $evidence 'release.json'
+  $initialState = Get-Content -LiteralPath $initialStatePath -Raw
+  $global:releaseTrace.Clear()
+  $global:fakeMissingEventHandlers = $true
+  & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady -EnableInitialEventRetries
+  $forced = @($global:releaseTrace | Where-Object { $_ -like 'firebase *--force*' })
+  Assert-Test ($forced.Count -eq 1 -and $forced[0] -match '--only functions:runSettlementOnHandoff,functions:runProjectionOnAccepted --non-interactive --force$') 'explicit initial retry acknowledgement forces only the two missing event handlers'
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'firebase *firestore:*--force*' -or $_ -match 'firebase .*functions:runSessionCreate(,|\s).*--force' }).Count -eq 0) 'initial retry acknowledgement never forces issuer, indexes or the full backend deployment'
+  $initialState | Set-Content -LiteralPath $initialStatePath -Encoding utf8
+  $global:fakeMissingEventHandlers = $false
+  $global:releaseTrace.Clear()
   & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady
   $firebaseChanges = @($global:releaseTrace | Where-Object { $_ -like "firebase *" })
+  Assert-Test (@($firebaseChanges | Where-Object { $_ -match '--force' }).Count -eq 0) 'ordinary deployments retain strict Firebase prompt defaults'
   Assert-Test ($firebaseChanges[0] -notmatch 'functions:runSessionCreate(,|\s)' -and
     $firebaseChanges[0] -match 'functions:runSettlementImmediate') "backend deploy excludes ticket issuer and includes settlement"
   Assert-Test ($global:releaseTrace.IndexOf($firebaseChanges[0]) -lt
@@ -435,7 +458,7 @@ try {
   }
   Remove-Item -LiteralPath $resolvedFixture -Recurse -Force
   foreach ($name in @("releaseTrace", "fakeIssuancePaused", "fakeActiveRuns", "fakeMissingCurrentBoards", "fakeBuildStatus", "fakeImageTag", "fakeImageUri", "mockFiles",
-    "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug", "fakeIndexesReady", "fakeFunctionsVersion", "fakeBootstrapEmpty", "fakeBootstrapUsers")) {
+    "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug", "fakeIndexesReady", "fakeFunctionsVersion", "fakeBootstrapEmpty", "fakeBootstrapUsers", "fakeMissingEventHandlers")) {
     Remove-Variable -Name $name -Scope Global -ErrorAction SilentlyContinue
   }
 }

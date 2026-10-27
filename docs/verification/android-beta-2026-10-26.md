@@ -1342,3 +1342,78 @@ Staging Bootstrap -CutoverReady is retrying with FUNCTIONS_DISCOVERY_TIMEOUT=60.
 It must pass the fresh empty-project inventory and create only the paused issuer.
 Log: `.tmp/beta-checks/candidate-f44-bootstrap-staging-retry.log`. Production native
 AOT is prepared, but its final BuildAndroid action remains pending.
+
+The staging bootstrap retry verified an empty target at 21:19:41 UTC and created
+issuer build `0c59986b-f738-4185-aadb-e88e0d9aac01` (SUCCESS at 21:23:38 UTC).
+Revision `runsessioncreate-00001-cad` became Ready at 21:23:49 UTC with 100% traffic.
+Firebase then returned a failure because its newly created `gcf-artifacts`
+repository lacked a cleanup policy. The issuer creation succeeded; bootstrap as
+a whole did not. Its lock was released and local environment bytes restored,
+while source-bound cutover ownership remains. Do not repeat Bootstrap or erase
+resources to satisfy its empty-project check.
+
+Applied the documented Firebase `functions:artifacts:setpolicy --project
+lothringen-long-run-staging --location europe-west1 --days 7 --force
+--non-interactive` under the project mutation lock. Readback confirms the
+`firebase-functions-cleanup` policy with `olderThan=604800s`, then the lock was
+released. This covers Functions build images only, not player data or the separate
+replay-image retention policy. Log:
+`.tmp/beta-checks/candidate-f44-staging-functions-cleanup-policy.log`.
+Canonical PauseIssuance is recovering the partially created target using the
+same candidate/cutover record; log
+`.tmp/beta-checks/candidate-f44-pause-staging-recovery.log`.
+
+To make room for production packaging, verified the retained final dev APK hash
+and removed only six disposable `build/app/intermediates/*/devRelease` directories
+within the frozen checkout. The exact scoped paths are recorded in
+`.tmp/beta-checks/candidate-f44-dev-intermediate-cleanup.txt`. Final artifacts,
+symbols, evidence, source and shared graph/AOT caches remain intact; 2.76 GB was
+available afterward. The frozen source tree remains clean. Phone readback still
+shows Asleep/NotificationShade; device acceptance has not been attempted.
+
+Canonical staging PauseIssuance recovery passed at 21:26:27 UTC. Healthy paused
+issuer `runsessioncreate-00002-lrp` serves 100% traffic. The subsequent coordinated
+Deploy passed its drain fence but stopped before creating the remaining Functions:
+Firebase requires `--force` to acknowledge the already-authored retry policies on
+`runSettlementOnHandoff` and `runProjectionOnAccepted`. The lock was released;
+issuance and both queues remain paused, with the original cutover record intact.
+Logs: `.tmp/beta-checks/candidate-f44-deploy-staging.log` and the frozen staging
+evidence directory's `firebase.log`. No direct deployment workaround was used.
+
+The release entry point now offers `-EnableInitialEventRetries` only for
+coordinated `Deploy -CutoverReady`. Fresh live inventory selects only missing
+instances of those two handlers for a separate explicitly acknowledged creation.
+Existing mismatched, unfinished or non-retrying handlers block. Full deployment,
+issuer and Firestore operations never receive `--force`; ordinary defaults and
+pause/drain/benchmark checks remain strict. No runtime policy was changed.
+
+Validation from the main checkout on both Windows PowerShell 5.1 and PowerShell 7:
+61 release checks (plus 16 image checks), 56 cache/provenance checks, 29 environment
+checks, and mocked entry-point checks for dev (101), staging (96), prod (96) pass.
+Integration cases include explicit acknowledgement, missing-handler-only scope,
+strict defaults, invalid action/authorization and active-run blocking. Logs use
+`.tmp/beta-checks/initial-retries-`; guidance (32 files) and diff checks also pass.
+These are mocked tool checks, not proof of the pending live staging deployment.
+Freeze the correction and compare LF application fingerprints before cache reuse;
+a preliminary comparison against the main CRLF working tree did not match and
+was not used as evidence of equivalence.
+
+After the owner unlocked the CPH2465, adb confirmed the dev app was foreground
+and a screenshot showed its retained signed-in profile. The agent started Val
+Outpost Competitive, tapped the start overlay, allowed the stationary player to
+fall behind after three seconds, and tapped Collect Score. Read-only inventory
+at 21:33:20 UTC had four validated/accepted/settled runs; at 21:37:04 UTC it had
+five, zero rejected runs and zero quarantined settlements. One unrelated issued
+session existed both before and after; it was left intact. Evidence:
+`.tmp/beta-checks/candidate-f44-dev-{before,after}-device.json` and
+`dev-phone-{current,after-play,run,started,result,collect}.png`. This is a basic
+physical dev replay/settlement smoke on the new worker, not fresh-account sign-in,
+exactly-once retry stress, full gameplay QA or staging Play Integrity acceptance.
+The owner later navigated to Android's Long Run Dev app-info screen; no settings
+were changed and no further phone input was sent.
+
+The owner reported restoring the computer connection twice. New native-helper
+checks, including a fresh Node session, still returned native-pipe unavailable
+(OS error 2); browser inventories remained empty. No Windows input was sent.
+Official OpenAI setup/troubleshooting guidance was provided; Console work remains
+blocked by the unavailable connection, independently of the working phone/CLI.

@@ -72,8 +72,18 @@ Play-delivered authentication/attestation are separate acceptance gates.
    issuer image or, when it was deleted by managed cleanup, rebuilds the prepared
    issuer with the pause gate explicitly set. Verify the healthy serving revision,
    not just a desired template from a failed update.
+   If the first Firebase deploy creates the issuer but stops for a missing
+   `gcf-artifacts` cleanup policy, use Firebase's `functions:artifacts:setpolicy`
+   with the explicit project/location and seven-day retention under the project
+   mutation lock. Verify readback, then recover with PauseIssuance; Bootstrap's
+   empty-project precondition no longer applies. Preserve the cutover record.
 6. Run Deploy -CutoverReady only after the drain review. Review saved
    checkpoints if an index or later deployment step fails; keep issuance paused.
+   A new project's first deployment of the two retry-enabled event handlers needs
+   `-EnableInitialEventRetries`. This acknowledges Firebase's retry prompt only
+   for missing settlement/projection handlers after live inventory; normal deploy,
+   issuer and Firestore commands retain strict defaults. Use it only with the
+   release authorization, after confirming the handlers' idempotency checks.
    If the existing board-maintenance scheduler was deliberately paused, preserve
    that pause through Functions rollout. After verifying the new worker's exact
    image, Ready status and 100% traffic, explicitly resume the scheduler: Google

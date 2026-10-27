@@ -2,6 +2,7 @@
 param()
 
 . (Join-Path $PSScriptRoot "release_support.ps1")
+. (Join-Path $PSScriptRoot "release_firebase.ps1")
 & (Join-Path $PSScriptRoot "test_release_image.ps1")
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
 $fixture = Join-Path $root ".tmp/release-tests/$([Guid]::NewGuid().ToString('N'))"
@@ -22,6 +23,25 @@ function Assert-Throws {
 }
 
 try {
+  $retryNames = @(Get-ReleaseInitialEventRetryTargets @() 'test-project' 'europe-west1')
+  Assert-True (($retryNames -join ',') -ceq 'functions:runSettlementOnHandoff,functions:runProjectionOnAccepted') 'initial retry targets contain only the two missing event handlers'
+  $retryFunction = [pscustomobject]@{
+    name='projects/test-project/locations/europe-west1/functions/runSettlementOnHandoff'
+    state='ACTIVE'; eventTrigger=[pscustomobject]@{retryPolicy='RETRY_POLICY_RETRY'}
+  }
+  Assert-True ((@(Get-ReleaseInitialEventRetryTargets @($retryFunction) 'test-project' 'europe-west1') -join ',') -ceq 'functions:runProjectionOnAccepted') 'partial initial deployment skips the already enabled event handler'
+  $retryFunction.eventTrigger.retryPolicy='RETRY_POLICY_DO_NOT_RETRY'
+  Assert-Throws { Get-ReleaseInitialEventRetryTargets @($retryFunction) 'test-project' 'europe-west1' } 'inspect it' 'initial acknowledgement cannot change an existing retry policy'
+  $retryFunction.eventTrigger.retryPolicy='RETRY_POLICY_RETRY'
+  $retryFunction.state='DEPLOYING'
+  Assert-Throws { Get-ReleaseInitialEventRetryTargets @($retryFunction) 'test-project' 'europe-west1' } 'inspect it' 'initial acknowledgement blocks an unfinished handler'
+  $retryFunction.state='ACTIVE'
+  $retryFunction.name='projects/foreign-project/locations/europe-west1/functions/runSettlementOnHandoff'
+  Assert-Throws { Get-ReleaseInitialEventRetryTargets @($retryFunction) 'test-project' 'europe-west1' } 'inspect it' 'initial acknowledgement rejects foreign identities'
+  $retryFunction.name='projects/test-project/locations/us-central1/functions/runSettlementOnHandoff'
+  Assert-Throws { Get-ReleaseInitialEventRetryTargets @($retryFunction) 'test-project' 'europe-west1' } 'inspect it' 'initial acknowledgement cannot relocate an existing handler'
+  $retryFunction.name='projects/test-project/locations/europe-west1/functions/runSettlementOnHandoff'
+  Assert-Throws { Get-ReleaseInitialEventRetryTargets @($retryFunction,$retryFunction) 'test-project' 'europe-west1' } 'inspect it' 'initial acknowledgement rejects ambiguous handler identity'
   foreach ($relative in @("lib/ui/state/app/app_state.dart", "functions/src/runs/compatibility.ts",
     "functions/src/boards/provisioning.ts", "services/replay_validator/lib/src/validator_worker.dart")) {
     $target = Join-Path $fixture $relative

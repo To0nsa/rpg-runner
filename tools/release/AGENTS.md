@@ -40,6 +40,10 @@ Do not assume a previously used release checklist is the current target.
 - Bootstrap requires a fresh empty-project inventory and the same prepared
   source/benchmarked image. Create only a paused issuer, then use normal cutover.
   Never clear an established environment to satisfy bootstrap emptiness.
+- EnableInitialEventRetries is an explicit first-deployment acknowledgement for
+  coordinated Deploy only. Force only missing settlement/projection event
+  handlers after live inventory; never force the issuer, indexes or full deploy.
+  Existing handler policy/identity drift blocks. Keep ordinary defaults strict.
 - Keep successful preparation bound to source/toolchain/artifact evidence.
   Production stage checkpoints must never outlive their matching artifacts.
 - Web builds are optimized local Practice hosts with no Firebase configuration.

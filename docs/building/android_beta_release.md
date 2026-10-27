@@ -73,7 +73,10 @@ prepared bytes. Dev is deployed with healthy worker `replay-validator-00059-ssr`
 and issuer `runsessioncreate-00074-9w8`, both serving all traffic. Both queues are
 RUNNING, the board scheduler is ENABLED, and canonical ResumeIssuance completed
 at 20:47:37 UTC. Anonymous worker access returns 403; authorized readiness is 200.
-Actual Play Games/replay/device acceptance remains open. The owner confirmed Nicolas Louis, based in
+The installed dev APK completed a short physical-device run on the new stack:
+accepted/settled counts increased from four to five with zero rejection or
+quarantine. Fresh-account sign-in, Play Integrity and the full acceptance matrix
+remain open. The owner confirmed Nicolas Louis, based in
 Finland, with resolved support correspondence retained for 90 days. Those details
 are incorporated in the prepared policy. Chrome's native control pipe is now
 unavailable after a reconnect/reset attempt; browser inventory is empty. CLI
@@ -99,8 +102,11 @@ evidence. The new frozen candidate's dev APK completed canonical verification at
 Staging's signed AAB also passed at 21:01:26 UTC, version 1 / 1.0.0-staging,
 SHA-256 `156dbcb2157681b5464c42424f167dcf461f3bc8882c12e4a45fbf610cdf655a`,
 with project-specific resources, 3750 reused graphs, three ABIs, 16 KB checks and
-successful staging symbol upload. Staging Bootstrap is running; production's AAB
-remains to be packaged. No earlier APK is relabeled as a new-commit build.
+successful staging symbol upload. Staging's paused issuer is now healthy, but the
+first full deployment stopped at Firebase's acknowledgement for new retry-enabled
+event handlers. A focused release-tool fix is validated and must be frozen before
+retrying; production's AAB remains to be packaged. No earlier APK is relabeled as
+a new-commit build.
 The new candidate's sequential AOT step also passed all three architectures.
 Its first packaging attempt failed on disk space after reusing all 3750 graphs.
 Redundant generated Android caches were cleared, preserving source and recorded
@@ -587,7 +593,7 @@ Execution: agent via read-only CLI and connected Chrome; user for missing decisi
   operational contact, internal team and beta audience/countries, and test-data
   and production retention policies. Record all three environment identities.
   Consult brand references before changing public names or authoring store copy.
-- [ ] Inventory existing Play Games and OAuth credentials. Prefer leaving the
+- [x] Inventory existing Play Games and OAuth credentials. Prefer leaving the
   working dev identity in the old project and configuring staging/prod separately.
   Package/certificate pairs can conflict across projects; resolve listing and
   credential constraints before creating duplicates or relinking a game. No
@@ -657,7 +663,7 @@ Execution: agent via CLI; Chrome for billing/console-only setup; user where requ
 - [x] Label the existing project as development and reuse its account, data and
   services. Keep credentials needed for dev sign-in. Only clean up obsolete
   owner fixtures when necessary; no data preservation or import task is required.
-- [ ] Create the new staging and production Firebase/Cloud projects with their
+- [x] Create the new staging and production Firebase/Cloud projects with their
   chosen IDs/display names, associate approved billing and enable required APIs.
   Configure separate budgets/alerts and conservative scaling; budget alerts are
   notifications, not a guaranteed spending cap.
@@ -665,7 +671,7 @@ Execution: agent via CLI; Chrome for billing/console-only setup; user where requ
   indexes/rules, Artifact Registry/build resources, least-privilege service
   accounts, both task queues and scheduler jobs. Image-dependent worker deployment
   goes through canonical bootstrap: staging first, production after acceptance.
-- [ ] Create separate environment configuration/secrets. Keep worker invocation,
+- [x] Create separate environment configuration/secrets. Keep worker invocation,
   bucket access, token audiences and settlement dispatch inside each project;
   do not grant dev/staging identities access to production resources.
 - [ ] Apply existing retention/cleanup and monitoring policies to each selected
@@ -692,10 +698,10 @@ Execution: agent, repository/CLI plus Firebase and Play Console in Chrome.
   production installation for the owner when the former release package changes
   backend; do not build local-state migration code just to preserve owner data.
   Verify Auth, outbox, replay spool and ghost cache state cannot cross environments.
-- [ ] Retain the working dev registration/certificates in the existing Firebase
+- [x] Retain the working dev registration/certificates in the existing Firebase
   project. Register staging/production packages and proper signing certificates
   in their own projects; resolve OAuth conflicts through the Phase 1 identity plan.
-- [ ] Establish staging/production Play Games and Firebase Auth linkage using the
+- [x] Establish staging/production Play Games and Firebase Auth linkage using the
   supported topology chosen in Phase 1. Prefer retaining the existing dev game
   configuration and configuring each new environment separately where Console
   permits it. Staging must test the real authentication path without a bypass.
@@ -732,7 +738,7 @@ Execution: agent for configuration/builds; user for protected credential handlin
   team acceptance. Resolve listing/Play Games eligibility before relying on this
   path. Dev keeps local release-mode testing; its own Play listing is optional
   because required store-delivered integration coverage now belongs to staging.
-- [ ] Register the appropriate installed-app signing certificates with each
+- [x] Register the appropriate installed-app signing certificates with each
   environment's Firebase, Play Games and App Check setup. Distinguish Google's
   distribution signing certificate from the local upload certificate.
 - [ ] Add a repeatable Android preparation/build path tied to frozen source,
@@ -1037,10 +1043,12 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: monitor staging Bootstrap, then complete its coordinated deployment
-and readiness/resume checks. Package and inspect the already compiled production
-Android flavor. Restore Chrome control for Play upload/publication and unlock the
-phone for actual device acceptance. Deploy production only after non-waived
+Next action: freeze the validated initial-event-retry tooling correction, compare
+application fingerprints in LF checkouts, prepare using matching evidence and
+record recovery of the paused staging cutover before deploying with the explicit
+acknowledgement. Complete staging readiness/resume and final Android artifacts.
+Restore Chrome control for Play upload/publication and continue the physical-device
+acceptance matrix. Deploy production only after non-waived
 staging acceptance. Public policy, all worker images, dev deployment and verified
 dev/staging Android artifacts are complete; no Play bundle is uploaded/released.
 Do not repeat completed setup or treat local validation as live acceptance.
