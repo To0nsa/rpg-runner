@@ -819,3 +819,31 @@ device attestation or Play-delivered sign-in. Logs are
 `adb devices -l` still reports no attached device. Production Play Games metadata,
 tester readback, publication, Play artifacts, deployed acceptance and device
 checks remain open. No gameplay waiver has been used.
+
+## Current-board release readiness integration (October 27)
+
+Source: `a577bed8` plus the current-board inventory/resume/cache correction.
+The completed board lifecycle implementation provisions current windows only;
+the release inventory previously required future windows as well. It now derives
+current expected IDs from the same provisioning configuration. A missing current
+board still rejects resume before either queue resumes. Future-only fixtures
+cannot satisfy readiness. The inventory regression runs after the Functions
+build, and both inventory source/test changes invalidate cached build evidence.
+
+Commands ran from `C:\dev\rpg_runner`, with logs under `.tmp/beta-checks`:
+
+| Command | Result | Log prefix |
+| --- | --- | --- |
+| Pinned Node 24.16.0 `--test functions/tool/production_inventory.test.mjs` | 4 pass | `current-board-inventory-tests` |
+| `tools/release/test_release.ps1` | 51 pass on PowerShell 5.1 and 7 | `current-board-release-ps51`, `current-board-release-ps7` |
+| `tools/release/test_release_integration.ps1` | 102 dev checks pass on both | `current-board-integration-ps51`, `current-board-integration-ps7` |
+| Same with `-TestEnvironment staging` | 97 pass on both | `current-board-staging-ps51`, `current-board-staging-ps7` |
+| Same with `-TestEnvironment prod` | 97 pass on both | `current-board-prod-ps51`, `current-board-prod-ps7` |
+| `tools/release/test_release_cache.ps1` | 56 pass on both | `current-board-cache-ps51`, `current-board-cache-ps7` |
+
+All logs use `.log`. `git diff --check` passes. These tests mock cloud commands;
+the inventory subprocess replaces network access and uses no real credentials.
+No deployment or gameplay waiver occurred. The installed Firebase CLI's scheduler
+update uses explicit configuration field masks, preserving the existing dev
+scheduler pause; read its actual state again during cutover and resume only after
+the matching worker is healthy.

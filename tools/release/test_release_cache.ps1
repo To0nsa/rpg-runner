@@ -94,6 +94,13 @@ try {
     'input' | Set-Content -LiteralPath $path
   }
   $cache = Join-Path $fixture '.tmp/cache'
+  foreach ($relative in @('functions/tool/production_inventory.mjs', 'functions/tool/production_inventory.test.mjs')) {
+    $beforeInventory = Get-ReleaseComponentInputs $fixture 'functions-build'
+    $inventoryPath = Join-Path $fixture $relative
+    New-Item -ItemType Directory -Force -Path (Split-Path $inventoryPath) | Out-Null
+    'inventory fixture' | Set-Content -LiteralPath $inventoryPath
+    Assert-CacheTest ((Get-ReleaseComponentInputs $fixture 'functions-build') -ne $beforeInventory) "inventory validation input invalidates backend build evidence: $relative"
+  }
   $androidBefore = Get-ReleaseComponentInputs $fixture 'android-build'
   $webBeforeAndroid = Get-ReleaseComponentInputs $fixture 'client-build'
   New-Item -ItemType Directory -Force -Path (Join-Path $fixture 'android/app') | Out-Null

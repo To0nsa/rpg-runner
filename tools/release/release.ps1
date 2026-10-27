@@ -535,8 +535,8 @@ if (-not $environmentValues.REPLAY_STORAGE_BUCKET -or
 }
 
 if ($Action -eq "ResumeIssuance") {
-  if (-not $state.deployedAt -or $inventory.boards.missingExpectedCurrentOrNextCount -ne 0) {
-    throw "Artifacts or current/next boards are not ready. Complete Deploy and inspect board maintenance."
+  if (-not $state.deployedAt -or $inventory.boards.missingExpectedCurrentCount -ne 0) {
+    throw "Artifacts or current boards are not ready. Complete Deploy and inspect board maintenance."
   }
   Assert-LiveReleaseArtifacts
   Confirm-ReleaseQueues "resume"

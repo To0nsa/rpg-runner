@@ -300,8 +300,11 @@ pause throughout cutover and explicitly resume the scheduler after worker readba
   requested while independent work continues.
 - Integration found the release inventory still required future board windows
   after `5b1f9092` changed provisioning to current windows only. The inventory
-  and resume gate are being aligned; missing current boards remain blocking.
-  Final source freeze waits for that correction's validation.
+  and resume gate now use the provisioner's configured levels and current
+  windows. Four inventory regressions pass; release helpers (51), integration
+  (102 dev / 97 staging / 97 prod) and cache checks (56) pass on both PowerShell
+  versions. Missing current boards still block without resuming queues. These
+  are local/mocked checks; final-candidate CI and live cutover remain required.
 
 ## Outcome and environment decisions
 

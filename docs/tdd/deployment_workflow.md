@@ -410,11 +410,13 @@ retry. Operations are sequential because accepted replay settlement and worker
 compatibility depend on that order.
 
 Deploy leaves normal issuance and both queues paused. ResumeIssuance requires
-zero missing expected current/next boards in the inventory, the exact worker
+zero missing expected current boards in the inventory, the exact worker
 digest with 100% traffic on its ready revision, and a byte-matching live
 main.dart.js. It resumes the queues, deploys runSessionCreate, and removes only
 the temporary supported-version override. It records artifacts deployed and
 issuance resumed separately. Scheduler acceptance alone is not board completion.
+The inventory uses the provisioner's configured levels and current UTC windows;
+future boards are created on demand and are not a readiness prerequisite.
 
 If ResumeIssuance is interrupted after the issuer starts serving, inspect live
 state before retrying: new sessions may now exist, and the fresh drain check will

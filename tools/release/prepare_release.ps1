@@ -20,6 +20,7 @@ function Invoke-ReleaseComponent {
     "functions-build" {
       Remove-ReleaseOutput $Root "functions/lib"
       Invoke-ReleaseCommand corepack @("pnpm", "--dir", "functions", "build") $Root $log | Out-Null
+      Invoke-ReleaseCommand node @("--test", "functions/tool/production_inventory.test.mjs") $Root $log | Out-Null
     }
     "client-checks" {
       if ($ShardIndex -eq 0) {

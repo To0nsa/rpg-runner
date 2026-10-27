@@ -564,23 +564,22 @@ async function inventoryBoards(boards, observedAtMs) {
   const provisioningConfig = resolveBoardProvisioningConfig();
   const expectedIds = new Set();
   for (const mode of ["competitive", "weekly"]) {
-    const levels = mode === "competitive" ? ["field", "forest"] : ["field"];
+    const levels = mode === "competitive"
+      ? provisioningConfig.competitiveLevelIds
+      : [provisioningConfig.weeklyLevelId];
     const current = resolveWindowForMode(mode, observedAtMs);
-    const next = resolveWindowForMode(mode, current.closesAtMs + 1);
     for (const levelId of levels) {
-      for (const window of [current, next]) {
-        expectedIds.add(
-          buildManagedBoardId({
-            mode,
-            levelId,
-            windowId: window.windowId,
-            rulesetVersion: provisioningConfig.rulesetVersion,
-            scoreVersion: provisioningConfig.scoreVersion,
-            gameCompatVersion: provisioningConfig.gameCompatVersion,
-            ghostVersion: provisioningConfig.ghostVersion,
-          }),
-        );
-      }
+      expectedIds.add(
+        buildManagedBoardId({
+          mode,
+          levelId,
+          windowId: current.windowId,
+          rulesetVersion: provisioningConfig.rulesetVersion,
+          scoreVersion: provisioningConfig.scoreVersion,
+          gameCompatVersion: provisioningConfig.gameCompatVersion,
+          ghostVersion: provisioningConfig.ghostVersion,
+        }),
+      );
     }
   }
   const actualIds = new Set(boards.map((doc) => doc.id));
@@ -610,8 +609,8 @@ async function inventoryBoards(boards, observedAtMs) {
       activeNowGameCompatVersionCounts,
     ),
     activeNowRulesetVersionCounts: sortRecord(activeNowRulesetVersionCounts),
-    expectedCurrentAndNextCount: expectedIds.size,
-    missingExpectedCurrentOrNextCount: [...expectedIds].filter(
+    expectedCurrentCount: expectedIds.size,
+    missingExpectedCurrentCount: [...expectedIds].filter(
       (id) => !actualIds.has(id),
     ).length,
   };

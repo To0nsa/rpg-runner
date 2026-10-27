@@ -54,7 +54,7 @@ function Get-ReleaseComponentInputs {
   $workspace = 'pubspec\.(yaml|lock)$|analysis_options\.yaml$|packages/[^/]+/pubspec\.yaml$'
   $runtime = 'packages/[^/]+/lib/'
   $pattern = switch ($Component) {
-    "functions-build" { '^(functions/(src/|package\.json$|tsconfig\.json$)|package\.json$|pnpm-[^/]+\.yaml$)' }
+    "functions-build" { '^(functions/(src/|tool/production_inventory(?:\.test)?\.mjs$|package\.json$|tsconfig\.json$)|package\.json$|pnpm-[^/]+\.yaml$)' }
     "functions-checks" { '^(functions/(src/|test/|tool/|package\.json$|tsconfig.*\.json$)|firebase\.test\.json$|firestore\.|package\.json$|pnpm-[^/]+\.yaml$|packages/run_protocol/lib/)' }
     "client-build" { "^($workspace|lib/|web/|assets/|$runtime|functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$)" }
     "android-build" { "^($workspace|android/|lib/|assets/|$runtime|tools/release/(android_artifacts|android_signing)\.ps1$|tools/release/environments\.json$|functions/src/runs/navigation_routes\.json$|packages/runner_core/tool/(prepare_navigation|update_navigation_revision)\.dart$)" }

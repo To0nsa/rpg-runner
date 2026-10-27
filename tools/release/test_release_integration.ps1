@@ -7,6 +7,7 @@ New-Item -ItemType Directory -Force -Path $fixture | Out-Null
 $global:releaseTrace = [System.Collections.Generic.List[string]]::new()
 $global:fakeIssuancePaused = $false
 $global:fakeActiveRuns = $false
+$global:fakeMissingCurrentBoards = 0
 $global:fakeBuildStatus = "SUCCESS"
 $global:fakeImageTag = ""
 $global:fakeImageUri = "europe-west1-docker.pkg.dev/test-project/replay/replay-validator@sha256:$('a' * 64)"
@@ -68,7 +69,7 @@ function node {
       rewardGrantStateCounts = @{ validated_settled = 1 }
       quarantinedSettlementCount = 0
     }
-    boards = @{ missingExpectedCurrentOrNextCount = 0 }
+    boards = @{ missingExpectedCurrentCount = $global:fakeMissingCurrentBoards }
   } | ConvertTo-Json -Depth 10)
 }
 function gcloud {
@@ -325,6 +326,12 @@ try {
   & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady
   $expectedDeployments = if ($TestEnvironment -eq 'dev') { 2 } else { 1 }
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "firebase *" }).Count -eq $expectedDeployments) "retry reuses environment-specific deployment checkpoints"
+  $global:fakeMissingCurrentBoards = 1
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action ResumeIssuance -CutoverReady } catch { $rejected = $_.Exception.Message -like '*current boards are not ready*' }
+  Assert-Test ($rejected -and $global:fakeIssuancePaused) 'missing current board blocks resume and preserves maintenance'
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'tasks queues resume*' }).Count -eq 0) 'missing current board does not resume queues'
+  $global:fakeMissingCurrentBoards = 0
   & $entry -Environment $TestEnvironment -Action ResumeIssuance -CutoverReady
   $issuer = @($global:releaseTrace | Where-Object { $_ -match "functions:runSessionCreate(,|\s|$)" })
   $artifactCheck = @($global:releaseTrace | Where-Object { $_ -like 'run services describe replay-validator *' })[0]
@@ -392,7 +399,7 @@ try {
     throw "Refusing to remove fixture outside the test workspace."
   }
   Remove-Item -LiteralPath $resolvedFixture -Recurse -Force
-  foreach ($name in @("releaseTrace", "fakeIssuancePaused", "fakeActiveRuns", "fakeBuildStatus", "fakeImageTag", "fakeImageUri", "mockFiles",
+  foreach ($name in @("releaseTrace", "fakeIssuancePaused", "fakeActiveRuns", "fakeMissingCurrentBoards", "fakeBuildStatus", "fakeImageTag", "fakeImageUri", "mockFiles",
     "fakeIssuerImageUri", "fakeIssuerHealthy", "fakeIssuerSplitTraffic", "fakeMissingIssuerImage", "fakeIssuerDeployFails", "fakeArtifactLookupDenied", "fakeFirebaseDebug", "fakeIndexesReady", "fakeFunctionsVersion", "fakeBootstrapEmpty", "fakeBootstrapUsers")) {
     Remove-Variable -Name $name -Scope Global -ErrorAction SilentlyContinue
   }
