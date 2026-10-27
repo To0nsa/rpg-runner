@@ -83,18 +83,20 @@ void main() {
     await tester.pumpAndSettle();
     final descriptor = await services.appState.prepareRunStartDescriptor();
     expect(descriptor.isDeveloperPractice, isTrue);
-    navigator.pushNamed(UiRoutes.run, arguments: descriptor);
-    for (
-      var i = 0;
-      i < 1200 && find.byType(ReadyOverlay).evaluate().isEmpty;
-      i++
-    ) {
-      await tester.pump(const Duration(milliseconds: 16));
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 10)),
-      );
-      expect(tester.takeException(), isNull);
-    }
+    // Start the browser's image decoding in the real async zone. Merely yielding
+    // to runAsync after mounting leaves decoder futures on the fake test clock.
+    await tester.runAsync(() async {
+      navigator.pushNamed(UiRoutes.run, arguments: descriptor);
+      for (
+        var i = 0;
+        i < 1200 && find.byType(ReadyOverlay).evaluate().isEmpty;
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        expect(tester.takeException(), isNull);
+      }
+    });
     if (find.byType(ReadyOverlay).evaluate().isEmpty) {
       for (final host in tester.widgetList<GameWidget<RunnerFlameGame>>(
         find.byType(GameWidget<RunnerFlameGame>),

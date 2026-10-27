@@ -387,6 +387,23 @@ bounded 120-minute allowance as `cloudbuild.yaml` and one active workflow per
 ref. The complete image, runtime smoke, strict one-CPU/512-MiB benchmark and
 Critical/High vulnerability gate are retained; none is waived.
 
+The superseded validator run `40423207049`, still using the insufficient old
+limit, was explicitly cancelled after the replacement was submitted; its actual
+final status is `completed/cancelled`. Corrected workflow source is commit
+`3aad1cc8365dcedbffb70a2c0e2e5ded9619c600`.
+
+Browser diagnostics in run `40425121438`, job `121928835561`, now expose the
+failure: readiness remained at `RunLoadPhase.parallaxMounted`, with null
+error/stack and the loading screen still visible. The exact assertion was
+`Expected: exactly one matching candidate` / zero `ReadyOverlay` widgets.
+The test began native browser image-decoding futures on the fake test clock,
+then only yielded real asynchronous time afterward. It now mounts the route and
+pumps its bounded loading loop inside `tester.runAsync`; this follows the
+[Flutter asynchronous test guidance](https://api.flutter.dev/flutter/flutter_test/WidgetTester/runAsync.html).
+The limit remains 1,200 iterations with 16-ms simulated frames and 10-ms real
+yields. Asset loads, readiness, real simulation ticks and game-over assertions
+are preserved. Actual hosted verification remains pending, not waived.
+
 Android/runtime implementation milestone committed as
 `aac4d7f662dcd8268494993e3d990cd794646c61`. The commit includes the genuine flavor
 configs, project/App Check guards, maintenance/update UI, Crashlytics handlers,
