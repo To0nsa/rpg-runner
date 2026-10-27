@@ -19,8 +19,13 @@ Do not assume a previously used release checklist is the current target.
   test_provision_environment.ps1 on both PowerShell versions when changing it.
 - SigningSetup creates staging/prod upload keys backed by project-local Secret
   Manager and a Windows DPAPI recovery copy. Never print/export plaintext secret
-  payloads. Build credentials exist only for the build scope and are restored in
-  finally. Google Play distribution certificates are separate from upload keys.
+  payloads. Keep local secrets outside all checkouts: the sibling
+  `lothringen-secrets/<environment>` directory, or an external absolute
+  `LOTHRINGEN_SECRETS_DIR`. This includes temporary build keystores. Build
+  credentials exist only for the build scope and are restored in finally.
+  Protect the external directory for the operator; never copy secrets into
+  `.tmp` or CI artifacts. Google Play distribution certificates are separate
+  from upload keys.
 - BuildAndroid requires prepared source in a clean frozen checkout and an explicit
   environment/version code. Verify actual native resources, signing, assets and
   page alignment; web/CI dev evidence cannot replace signed staging/prod evidence.

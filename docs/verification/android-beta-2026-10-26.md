@@ -1,7 +1,41 @@
 # Android beta execution evidence
 
-Status: in progress, October 26, 2026. No new environment deployed yet.
+Status: in progress, October 27, 2026. No new game backend deployed yet.
 The active checklist is [android_beta_release.md](../building/android_beta_release.md).
+
+## External secret storage and staging OAuth (October 27)
+
+On the owner's instruction, local credentials moved to
+`C:\dev\lothringen-secrets/<environment>`, matching Pikkuretki's sibling-folder
+pattern. The directory allows only the operator and SYSTEM. Both upload-signing
+DPAPI backups and DER certificates retain their original SHA-256 file hashes.
+The staging OAuth JSON was DPAPI-encrypted there, decrypted in memory and compared
+before removing its exact plaintext download. No keys were rotated. Historical
+`.tmp/release-signing` references below describe the previous location.
+
+SigningSetup and BuildAndroid now use the external directory, including temporary
+build keystores; absolute `LOTHRINGEN_SECRETS_DIR` overrides are rejected inside the
+common repository/current checkout. A trailing newline in DPAPI files is trimmed
+before decryption. Repository-root checks on these changes atop `1d1297da`:
+`test_android_signing.ps1` (12), `test_release.ps1` (50),
+`test_release_integration.ps1` (97), and `test_release_cache.ps1` (53) all pass under
+Windows PowerShell and PowerShell 7. Logs: `.tmp/beta-checks/external-secrets-*`.
+These are mocked/local tests, not release deployment evidence. Agent guidance
+validation also passes (32 files, maximum chain 27,369/28,672 bytes).
+
+Staging Google Auth Platform is External/Testing with the owner as the sole test
+user. Its web client is
+`943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com`.
+Project-local Secret Manager backup `play-games-oauth-client` was read back and
+compared in memory. Firebase REST provider `playgames.google.com` was enabled and
+read back with that client at `2026-10-27T15:30:20Z`. A prior 403 reported a missing
+quota project; the documented `X-Goog-User-Project` header resolved it without
+additional IAM grants. The explicitly approved `games`, `games_lite` and
+`drive.appdata` scopes were saved in staging's non-sensitive scope list. Play
+credential linkage and device sign-in still require their own verification.
+The confirmed Finland/90-day support-retention text also passes the separate
+headless 390-pixel layout probe for both public pages. No candidate is frozen
+and no waiver was used.
 
 ## Initial state
 

@@ -37,10 +37,15 @@ Native artifact preparation and service deployment remain in progress in the
 
 `SigningSetup -Environment staging|prod` creates a separate upload key in that
 project's `android-upload-signing` Secret Manager secret. The initial Windows
-operator retains a DPAPI recovery copy under ignored `.tmp/release-signing/`.
+operator retains a DPAPI recovery copy outside the repository, in the sibling
+`lothringen-secrets/<environment>/` directory (`C:\dev\lothringen-secrets` on the
+release workstation). `LOTHRINGEN_SECRETS_DIR` can select another external absolute
+directory; paths inside the repository or release checkout are rejected.
 Retries restore and verify the existing key rather than rotating it. Only the
 build scope receives a temporary keystore/password environment; finally removes
-the file and restores prior process variables. Google Play's distribution
+the file and restores prior process variables. Temporary keystores also stay in
+the protected external directory. Never copy local secrets into `.tmp`, Git or CI
+artifacts. Google Play's distribution
 certificate must be registered separately after Play App Signing enrollment.
 
 After Prepare, `BuildAndroid -Environment <name> -AndroidVersionCode <integer>`

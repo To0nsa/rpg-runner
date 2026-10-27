@@ -47,6 +47,12 @@ release/profile require account services. Staging/prod use project-local protect
 upload keys. Play's distribution certificate is a different installed-app
 identity and must be registered separately after Play App Signing enrollment.
 
+Local signing recovery copies and temporary build keys stay outside every
+checkout, in `C:\dev\lothringen-secrets/<environment>` on this workstation.
+The release tool defaults to the common repository's sibling `lothringen-secrets`
+folder; an external absolute `LOTHRINGEN_SECRETS_DIR` overrides it. Recovery copies
+use Windows DPAPI and the folder is restricted to the operator and SYSTEM.
+
 ## Firebase, Play Games and App Check
 
 Genuine Firebase downloads live at
@@ -73,8 +79,11 @@ the Android OAuth credential ending `clto6jp9c5a1g46jmoiahanmlcodggbt` is not a
 server client. Existing dev credentials are preserved. New environments need
 their own game/Cloud linkage, Android package/certificate credentials, server
 OAuth client, Firebase Play Games provider and tester/publication configuration.
-Staging's game is linked to its Cloud project; OAuth/provider completion is still
-pending. There is no cross-project authentication bridge or bypass.
+Staging's game is linked to its Cloud project, and Firebase's enabled Play Games
+provider uses web client
+`943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com`.
+Play credential linkage, native resource refresh and installed-app acceptance
+remain pending. There is no cross-project authentication bridge or bypass.
 
 Dev uses App Check's debug provider in every mode; register installation tokens
 only in its dev Firebase app and keep them out of source/log evidence.
@@ -104,8 +113,10 @@ mailbox in an external handler. A missing handler leaves navigation usable and
 shows the address. `web/privacy-policy.html` identifies the confirmed operator,
 Nicolas Louis, and documents account/gameplay processing, diagnostics, provider
 transfers, retention and rights. It links to `web/account-deletion.html`.
-Country and a fixed support-mail retention period still await owner input;
-both pages are prepared source, not evidence of publication or live acceptance.
+The owner confirmed Finland and deletion of support correspondence 90 days after
+resolution. Both pages are prepared source, not evidence of publication or live
+acceptance. The mailbox retention policy requires operator handling; the app does
+not automatically manage support email.
 
 Web stays local Practice without Firebase. Apple/Windows generated Firebase
 options still refer to dev and are outside this Android production rollout;

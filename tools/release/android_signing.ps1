@@ -1,5 +1,23 @@
 # Upload keys are separate from Google Play's distribution signing keys.
 # Secret payloads stay in memory; the workstation recovery copy uses Windows DPAPI.
+function Get-AndroidSigningDirectory {
+  param([string]$Root, [string]$Environment)
+  if ($Environment -notin @('staging','prod')) { throw 'Upload signing requires staging or prod.' }
+  $commonRoot = [IO.Path]::GetFullPath((Get-ReleaseCommonRoot $Root))
+  $location = if ($env:LOTHRINGEN_SECRETS_DIR) { $env:LOTHRINGEN_SECRETS_DIR }
+    else { Join-Path (Split-Path $commonRoot -Parent) 'lothringen-secrets' }
+  if (-not [IO.Path]::IsPathRooted($location)) { throw 'LOTHRINGEN_SECRETS_DIR must be an absolute directory outside the repository.' }
+  $directory = [IO.Path]::GetFullPath($location).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+  foreach ($checkout in @($commonRoot, [IO.Path]::GetFullPath($Root))) {
+    $boundary = $checkout.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    if ($directory.Equals($boundary, [StringComparison]::OrdinalIgnoreCase) -or
+        $directory.StartsWith(($boundary + [IO.Path]::DirectorySeparatorChar), [StringComparison]::OrdinalIgnoreCase)) {
+      throw 'Local signing secrets must remain outside the repository and release checkout.'
+    }
+  }
+  return Join-Path $directory $Environment
+}
+
 function Assert-AndroidSigningPayload {
   param([object]$Payload, [object]$Definition, [string]$Environment)
   if ($Payload.schemaVersion -ne 1 -or $Payload.projectId -ne $Definition.projectId -or
@@ -42,7 +60,7 @@ function Initialize-AndroidUploadSigning {
   if (@($versions | Where-Object { $_ -and $_.state -eq 'ENABLED' }).Count -gt 0) {
     $payload = Read-AndroidSigningPayload $Root $Definition $Environment
   } else {
-    $directory = Join-Path (Get-ReleaseCommonRoot $Root) ".tmp/release-signing/$Environment"
+    $directory = Get-AndroidSigningDirectory $Root $Environment
     New-Item -ItemType Directory -Force -Path $directory | Out-Null
     $backup = Join-Path $directory 'upload-signing.dpapi'
     $keystore = Join-Path $directory 'upload.jks'
@@ -50,7 +68,7 @@ function Initialize-AndroidUploadSigning {
     $savedPassword = $env:LOTHRINGEN_UPLOAD_KEY_PASSWORD
     try {
       if (Test-Path -LiteralPath $backup) {
-        $secure = Get-Content -Raw -LiteralPath $backup | ConvertTo-SecureString
+        $secure = ConvertTo-SecureString (Get-Content -Raw -LiteralPath $backup).Trim()
         $json = [Net.NetworkCredential]::new('', $secure).Password
         $payload = $json | ConvertFrom-Json
         Assert-AndroidSigningPayload $payload $Definition $Environment
@@ -114,8 +132,8 @@ function Initialize-AndroidUploadSigning {
 function Invoke-WithAndroidUploadSigning {
   param([string]$Root, [object]$Definition, [string]$Environment, [scriptblock]$Build)
   if ($Environment -eq 'dev') { & $Build; return }
+  $directory = Get-AndroidSigningDirectory $Root $Environment
   $payload = Read-AndroidSigningPayload $Root $Definition $Environment
-  $directory = Join-Path $Root '.tmp/release-signing'
   New-Item -ItemType Directory -Force -Path $directory | Out-Null
   $keystore = Join-Path $directory "$([guid]::NewGuid().ToString('N')).jks"
   $prefix = "LOTHRINGEN_$($Environment.ToUpperInvariant())_"

@@ -1,5 +1,6 @@
 . (Join-Path $PSScriptRoot 'release_support.ps1')
 . (Join-Path $PSScriptRoot 'release_environments.ps1')
+. (Join-Path $PSScriptRoot 'release_cache.ps1')
 . (Join-Path $PSScriptRoot 'android_signing.ps1')
 $workspace = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $fixture = Join-Path $workspace ".tmp/release-tests/signing-$([guid]::NewGuid().ToString('N'))"
@@ -20,7 +21,21 @@ function Assert-SigningTest {
 function Read-AndroidSigningPayload { return $global:signingTestPayload }
 $oldPassword = $env:LOTHRINGEN_STAGING_STORE_PASSWORD
 $oldPath = $env:LOTHRINGEN_STAGING_KEYSTORE
+$oldSecretsDirectory = $env:LOTHRINGEN_SECRETS_DIR
+$secretFixture = Join-Path ([IO.Path]::GetTempPath()) "lothringen-signing-test-$([guid]::NewGuid().ToString('N'))"
 try {
+  $env:LOTHRINGEN_SECRETS_DIR = $null
+  $expectedDefault = Join-Path (Split-Path $workspace -Parent) 'lothringen-secrets/staging'
+  Assert-SigningTest ((Get-AndroidSigningDirectory $workspace staging) -eq $expectedDefault) 'default secrets directory is a sibling of the repository'
+  $env:LOTHRINGEN_SECRETS_DIR = $fixture
+  $failed = $false
+  try { Get-AndroidSigningDirectory $fixture staging | Out-Null } catch { $failed = $true }
+  Assert-SigningTest $failed 'secrets directory inside the common repository is rejected'
+  $env:LOTHRINGEN_SECRETS_DIR = 'relative-secrets'
+  $failed = $false
+  try { Get-AndroidSigningDirectory $fixture staging | Out-Null } catch { $failed = $true }
+  Assert-SigningTest $failed 'relative secret paths are rejected'
+  $env:LOTHRINGEN_SECRETS_DIR = $secretFixture
   Assert-AndroidSigningPayload $global:signingTestPayload $definition staging
   Assert-SigningTest $true 'own environment and keystore digest are accepted'
   $failed = $false
@@ -39,21 +54,27 @@ try {
     Invoke-WithAndroidUploadSigning $fixture $definition staging {
       Assert-SigningTest ((Test-Path -LiteralPath $env:LOTHRINGEN_STAGING_KEYSTORE) -and
         $env:LOTHRINGEN_STAGING_STORE_PASSWORD -eq 'test-fixture') 'build gets only temporary signing inputs'
+      Assert-SigningTest ($env:LOTHRINGEN_STAGING_KEYSTORE.StartsWith(($secretFixture + [IO.Path]::DirectorySeparatorChar), [StringComparison]::OrdinalIgnoreCase)) 'temporary build keystore stays outside the repository'
       throw 'Expected build failure'
     }
   } catch { $failed = $_.Exception.Message -eq 'Expected build failure' }
   Assert-SigningTest $failed 'build failures propagate'
   Assert-SigningTest ($env:LOTHRINGEN_STAGING_STORE_PASSWORD -eq 'preexisting-fixture' -and
     $env:LOTHRINGEN_STAGING_KEYSTORE -eq 'preexisting-path') 'environment restored after failed build'
-  Assert-SigningTest (@(Get-ChildItem -LiteralPath (Join-Path $fixture '.tmp/release-signing') -Filter '*.jks').Count -eq 0) 'temporary keystore removed after failed build'
+  Assert-SigningTest (@(Get-ChildItem -LiteralPath (Join-Path $secretFixture 'staging') -Filter '*.jks').Count -eq 0) 'temporary keystore removed after failed build'
   Invoke-WithAndroidUploadSigning $fixture $definition dev { Assert-SigningTest $true 'dev uses no cloud upload-signing key' }
   Write-Host "$script:passed signing checks passed; no cloud credentials used."
 } finally {
   $env:LOTHRINGEN_STAGING_STORE_PASSWORD = $oldPassword
   $env:LOTHRINGEN_STAGING_KEYSTORE = $oldPath
+  $env:LOTHRINGEN_SECRETS_DIR = $oldSecretsDirectory
   $global:signingTestPayload = $null
   $allowed = [IO.Path]::GetFullPath((Join-Path $workspace '.tmp/release-tests')).TrimEnd('\') + '\'
   $resolved = [IO.Path]::GetFullPath($fixture)
   if (-not $resolved.StartsWith($allowed, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe fixture path.' }
   Remove-Item -LiteralPath $resolved -Recurse -Force
+  $secretAllowed = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\lothringen-signing-test-'
+  $secretResolved = [IO.Path]::GetFullPath($secretFixture)
+  if (-not $secretResolved.StartsWith($secretAllowed, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe secret fixture path.' }
+  if (Test-Path -LiteralPath $secretResolved) { Remove-Item -LiteralPath $secretResolved -Recurse -Force }
 }

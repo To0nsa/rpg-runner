@@ -18,16 +18,24 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 27, 2026
 
-Latest implementation milestone: `c8323e39` (privacy/support access). Full CI
+Latest committed milestone: `1d1297da` (privacy policy source); external-secret
+storage and confirmed privacy details are being finalized. Full CI
 preparation passed on preceding `f9015c3d`; the later UI change has focused local
 validation and still needs final-candidate CI. The successful bundle is imported
 into `.tmp/release-cache` using its exact LF validation checkout. The isolated
 remote branch `release/android-beta-browser-check` carries the continuation;
 draft PR #2's head has not been advanced while its long validator job ran.
 The final release commit is **not frozen**, and no new backend, Play bundle or
-public policy has been deployed. The owner supplied the legal operator name,
-Nicolas Louis; country and support-mail retention remain open. Browser resumption
-and device acceptance remain required; existing release authorization remains valid.
+public policy has been deployed. The owner confirmed Nicolas Louis, based in
+Finland, with resolved support correspondence retained for 90 days. Those details
+are incorporated in the prepared policy. Chrome control has resumed on the staging
+OAuth page. Device acceptance remains required; release authorization remains valid.
+
+The owner explicitly requested inclusion of the completed board lifecycle/account-
+deletion work tracked in `docs/building/board_lifecycle_cleanup.md`. Those changes
+are actively being implemented in this checkout and must be preserved. Freeze
+only after that work is completed and its Functions/worker validation is recorded;
+the older passing CI does not cover it. Google console setup can proceed meanwhile.
 
 - Starting source: `f0aa66d8`; the only initial worktree edits are this plan and
   its links in `docs/README.md` and `docs/building/README.md`. Preserve them as
@@ -201,10 +209,34 @@ and device acceptance remain required; existing release authorization remains va
   verification-email request is withdrawn: channel usability was established
   from API readback; actual alert delivery remains untested. At 05:45 UTC,
   staging/prod scheduled-backup inventories were still empty.
-- Next: resume OAuth/Play and obtain the remaining privacy details, then finalize
+- Owner subsequently confirmed Finland and 90 days after resolution for support
+  correspondence. Policy text is updated; the mailbox policy is an operator
+  responsibility, not an automated app feature. Native Chrome inspection now
+  reaches the selected staging OAuth page and configuration is in progress.
+- Next: complete OAuth/Play and publish the prepared privacy information, then finalize
   source, run canonical Prepare/BuildAndroid, deploy dev/staging and complete
   acceptance before the already-authorized production cutover. Reuse completed
   foundations, signing, monitoring, recovery setup and unchanged check evidence.
+- October 27 resumed after the owner's temporary handoff. Local signing backups,
+  certificates and the staging OAuth backup now live in the operator/SYSTEM-only
+  `C:\dev\lothringen-secrets` sibling directory, following Pikkuretki's layout.
+  DPAPI readback and unchanged signing-file hashes were verified; the plaintext
+  OAuth download was removed. Temporary build keys also stay outside checkouts.
+  Both PowerShell versions pass 12 signing, 50 release, 97 integration and 53
+  cache checks. No secrets were committed or keys rotated.
+- Staging OAuth identity is configured as External/Testing with the owner as its
+  sole test user. Web client
+  `943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com`
+  is backed up in that project's `play-games-oauth-client` Secret Manager secret.
+  Firebase's Play Games provider was enabled and read back with that exact client
+  at 15:30 UTC. The initial REST call failed for missing quota-project attribution;
+  adding the documented project header resolved it. This is configuration evidence,
+  not device sign-in acceptance. The owner explicitly approved `games`, `games_lite`
+  and `drive.appdata` for staging/prod; all three are saved in staging's
+  non-sensitive scope list. Production configuration remains pending.
+- Chrome's reload readback then stopped because the helper could not confidently
+  determine the current URL. No further browser input was sent in that turn;
+  saved scopes still need a fresh-page readback before being treated as verified.
 - Durable evidence: [Android beta execution](../verification/android-beta-2026-10-26.md).
 
 ## Outcome and environment decisions
@@ -716,7 +748,7 @@ it is not a submitted Data safety form or a published privacy policy.
 | Security | App attestation, quota/deletion state and operational request metadata | Enforced staging/prod App Check and backend authorization; restricted logs and deletion barriers |
 | Diagnostics | Crash/error types, stack traces and SDK device/installation/session metadata | Crashlytics enabled only for staging/prod Android release; custom field is environment, with no custom account identifier or exception-message payload |
 | Local preferences | Controls, local Practice selections and retry/spool state | Package-private device storage; Practice never issues or submits online runs |
-| Support and rights requests | Sender email and request contents supplied by the player | Operator Nicolas Louis and support mailbox confirmed; country and fixed correspondence-retention period still require owner input |
+| Support and rights requests | Sender email and request contents supplied by the player | Operator Nicolas Louis, Finland; confirmed support mailbox; delete correspondence 90 days after resolution |
 
 SDK processing must also be included. Firebase documents authentication IP/user
 agent processing, Play Integrity attestation, Crashlytics installation identifiers
@@ -734,10 +766,10 @@ separate recovery/log/Crashlytics retention are described in the prepared
 deletion page and [deletion contract](../tdd/account_deletion_workflow.md).
 The prepared privacy page maps account/gameplay processing to the requested
 service, security/reliability to legitimate interests, and rights handling to
-legal obligations. Controller name is confirmed. Country, fixed support retention,
-public policy publication and final Console declarations remain open release
-tasks. The in-app privacy link is implemented; its destination must be published
-and checked before release.
+legal obligations. Controller name/country and 90-day resolved-support retention
+are confirmed. Public policy publication and final Console declarations remain
+open release tasks. The in-app privacy link is implemented; its destination must
+be published and checked before release.
 
 ## Phase 8 - live internal release and closed beta
 
