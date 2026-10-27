@@ -18,8 +18,9 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 27, 2026
 
-Latest committed milestones: `65ee1d27` (staging native OAuth configuration) and
-`5b1f9092` (completed board retention/account erasure, included by the owner). Full CI
+Latest committed milestones: `a8d56c0e` (staging Play distribution identities),
+`5b1f9092` (completed board retention/account erasure, included by the owner), and
+`dcc0d891` (release fingerprint Unicode-path correction). Full CI
 preparation passed on preceding `f9015c3d`; the later UI change has focused local
 validation and still needs final-candidate CI. The successful bundle is imported
 into `.tmp/release-cache` using its exact LF validation checkout. The isolated
@@ -270,6 +271,23 @@ pause throughout cutover and explicitly resume the scheduler after worker readba
   pending; nothing was published. Play-delivered sign-in and attestation remain
   unverified. Production configuration can proceed independently.
 - Durable evidence: [Android beta execution](../verification/android-beta-2026-10-26.md).
+- Production's old listing is still an empty March draft without a package or
+  uploaded bundle. The current creation flow confirmed `com.lothringen.longrun`
+  available and reserved it in new Long Run listing `4975092661531994619`
+  (English UK, Game, Free). The old draft remains intact. New production Firebase
+  app `1:696550437718:android:c27d2030dcee3fd2d9dcf7` matches that package; its
+  genuine configuration and explicit flavor/registry/client identity are updated.
+  Production Play Games is linked only to project `696550437718`. OAuth is now
+  External/Testing with only the owner and the three approved game scopes.
+  Production web client `696550437718-6n2bu175hk96rn77o8cob7ht6pcr2h4s.apps.googleusercontent.com`
+  is backed up in external DPAPI and project-local Secret Manager. Firebase's
+  enabled provider was verified at 16:56 UTC; the same client is saved as draft
+  Play Games server credential `CgkI1uaQ7aIUEAIQAA`. Genuine Firebase configuration
+  and native resources agree. Four environment tests, 29 isolation checks on
+  each PowerShell version and Gradle's production Google Services task pass.
+  Play Integrity is linked only to the production project (10,000/day quota).
+  Distribution certificate/OAuth setup continues; no production artifact,
+  deployment or installed-app acceptance is claimed.
 
 ## Outcome and environment decisions
 
@@ -303,7 +321,7 @@ stage, not another backend environment.
 | Development debug | `com.example.rpg_runner.dev` | Existing project, now development | Everyday work and device debugging |
 | Development release/profile | Same development package | Development project | Local release-mode debugging; a dev Play listing is optional |
 | Staging release, separate app's Play internal track | `com.lothringen.longrun.staging` | New staging project | Team acceptance, real Play authentication/attestation and release rehearsals |
-| Production release, Play internal track | `com.example.rpg_runner` | New production project | Final production-artifact smoke checks before promotion |
+| Production release, Play internal track | `com.lothringen.longrun` | New production project | Final production-artifact smoke checks before promotion |
 | Production release, closed beta and later public release | Same production package | Production project | Player testing and eventual public release |
 
 These package names are the current baseline, pending the explicit identity
@@ -455,7 +473,7 @@ Execution: agent via read-only CLI and connected Chrome; user for missing decisi
 - [ ] Inspect developer account type/date, verification and distribution access;
   existing app listings, package names, version codes and signing state;
   Play Games configuration, testers and linked Cloud/OAuth projects.
-- [ ] Decide the permanent production Android package/listing before upload.
+- [x] Decide the permanent production Android package/listing before upload.
   The new Cloud project name does not choose the Android package. Inspect Play
   constraints and prefer the simplest supported identity setup. Existing owner
   installations may be replaced without preserving gameplay data; update native,

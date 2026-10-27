@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">Long Run</string>
     <string name="game_services_project_id">696550437718</string>
+    <string name="play_games_server_client_id">696550437718-6n2bu175hk96rn77o8cob7ht6pcr2h4s.apps.googleusercontent.com</string>
 </resources>

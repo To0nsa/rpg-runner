@@ -41,7 +41,7 @@
       "workerUrl": "https://replay-validator-696550437718.europe-west1.run.app",
       "validationQueue": "replay-validation",
       "projectionQueue": "replay-projection",
-      "androidPackage": "com.example.rpg_runner"
+      "androidPackage": "com.lothringen.longrun"
     }
   }
 }

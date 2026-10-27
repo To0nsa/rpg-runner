@@ -101,7 +101,7 @@ Android defaults to the `dev` flavor in every build mode, including
 `flutter run --release`. It installs as `com.example.rpg_runner.dev` against
 `rpg-runner-d7add`. Explicit `staging` and `prod` release flavors use independent
 Firebase projects and local app storage. Staging uses
-`com.lothringen.longrun.staging`; the production package is still provisional.
+`com.lothringen.longrun.staging`; production uses `com.lothringen.longrun`.
 The new environments' OAuth/Play acceptance is pending. See
 [Android build identities](docs/tdd/android_build_variants.md) for the current
 mapping, protected signing and canonical frozen-candidate build command.

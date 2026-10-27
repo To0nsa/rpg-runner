@@ -726,3 +726,48 @@ updating `android/app/src/staging/google-services.json`. Root command
 `.tmp/beta-checks/staging-play-signing-config-test.log`.
 This is configuration evidence, not the frozen candidate or installed-app
 acceptance. No Play bundle or backend deployment has occurred in this step.
+
+## Production branded identity and server OAuth (October 27)
+
+The current Play creation flow reserved `com.lothringen.longrun` in new Long Run
+listing `4975092661531994619` (English UK, Game, Free). The previous empty March
+draft `4975420968170292531` remains untouched; no package or bundle was attached
+to it. The production flavor, release registry and client identity now select
+the branded package. Firebase app `1:696550437718:android:c27d2030dcee3fd2d9dcf7`
+is genuinely registered in `lothringen-long-run-prod`; the earlier provisional
+registration remains intact. Its existing upload certificate was registered and
+read back at `2026-10-27T16:44:33.0378265Z`.
+
+Production OAuth is External/Testing, with only the owner as a test user. Saved
+and read back the approved `games`, `games_lite` and `drive.appdata` scopes.
+Created web client
+`696550437718-6n2bu175hk96rn77o8cob7ht6pcr2h4s.apps.googleusercontent.com` without
+web origins or redirect URIs, as required for the Play Games server credential.
+Its secret is verified in `C:\dev\lothringen-secrets\prod\oauth-client.dpapi` and
+production Secret Manager `play-games-oauth-client`. The temporary plaintext
+download was removed only after encrypted readback matched. No secret appears
+in source or evidence. Firebase's enabled `playgames.google.com` provider was
+read back with this client at `2026-10-27T16:56:08.5943861Z`.
+
+The same client is saved as draft Play Games server credential
+`CgkI1uaQ7aIUEAIQAA`, named Long Run. Play Integrity readback lists only project
+`696550437718`, with the default 10,000/day quota. Downloaded genuine Firebase SDK
+configuration includes the server client and matches the production app/package.
+The explicit native resource uses that same client.
+
+Validation on `dcc0d891` plus this identity change, from the repository root:
+
+- `flutter test test/firebase_environment_test.dart`: four pass;
+  `.tmp/beta-checks/prod-identity-tests.log`. A sandboxed wrapper stalled before
+  starting Dart; stopped that invocation and reran with access to the SDK cache.
+- `test_release_environments.ps1` on Windows PowerShell 5.1 and PowerShell 7:
+  29 checks pass each, no cloud commands; `prod-identity-environments-ps51.log`
+  and `prod-identity-environments-ps7.log` in `.tmp/beta-checks`.
+- From `android`, `gradlew.bat :app:processProdReleaseGoogleServices --console=plain`:
+  succeeds in 49 seconds. Generated `project_id`, `google_app_id` and
+  `default_web_client_id` match production. Log: `prod-google-services-gradle.log`.
+
+These checks do not establish a frozen candidate, APK/AAB acceptance, device
+sign-in, attestation, service deployment or Play publication. Production Android
+distribution credentials and both environments' App Check registration remain
+open. The staging Play Games publication approval is still pending.

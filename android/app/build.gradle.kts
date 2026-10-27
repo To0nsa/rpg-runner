@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        // Only the prod flavor uses this unsuffixed Play identity.
+        // Dev keeps its existing identity; beta flavors override it explicitly.
         applicationId = "com.example.rpg_runner"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -55,6 +55,7 @@ android {
         }
         create("prod") {
             dimension = "environment"
+            applicationId = "com.lothringen.longrun"
             signingConfig = signingConfigs.getByName("prod")
         }
     }

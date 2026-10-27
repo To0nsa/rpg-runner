@@ -9,10 +9,12 @@ signing inputs fail instead of falling back to the debug key.
 | --- | --- | --- | --- | --- |
 | dev | debug, profile, release | `com.example.rpg_runner.dev` | Long Run Dev | `rpg-runner-d7add` |
 | staging | release | `com.lothringen.longrun.staging` | Long Run Staging | `lothringen-long-run-staging` |
-| prod | release | `com.example.rpg_runner` (provisional) | Long Run | `lothringen-long-run-prod` |
+| prod | release | `com.lothringen.longrun` | Long Run | `lothringen-long-run-prod` |
 
-Staging's separate Play listing reserves its branded package. Production's
-permanent package/listing decision and OAuth configuration remain open in the
+Separate staging and production Play listings reserve the branded packages.
+Production listing `4975092661531994619` replaces the role of the old empty draft;
+that draft and its earlier configuration remain intact. Play distribution setup
+and installed-app acceptance remain open in the
 [active checklist](../building/android_beta_release.md). This table describes
 source configuration, not three accepted or published installations.
 
@@ -65,7 +67,7 @@ project before constructing app services or activating attestation.
 | --- | --- |
 | dev | `1:964001571974:android:1a4b98db937af313d81d07` |
 | staging | `1:943085064373:android:51c288ba51386d01572efc` |
-| prod (provisional package) | `1:696550437718:android:ae64523736000c9ed9dcf7` |
+| prod | `1:696550437718:android:c27d2030dcee3fd2d9dcf7` |
 
 Refresh with `firebase apps:sdkconfig ANDROID <app-id> --project <project-id>
 --out <new-temporary-file>`, verify package/project, then replace that flavor's
@@ -84,7 +86,13 @@ provider uses web client
 `943085064373-cgchd3tftpkgv4f30q01k3aqblqa5vls.apps.googleusercontent.com`.
 The same client is saved as its draft Play Games game-server credential and is
 present in the downloaded Firebase config and explicit native resource. Android
-distribution credentials, publication and installed-app acceptance remain pending.
+distribution credentials are configured for all three Play signing certificates.
+Production's server client is
+`696550437718-6n2bu175hk96rn77o8cob7ht6pcr2h4s.apps.googleusercontent.com`,
+shared by its enabled Firebase provider, native resource and draft Play Games
+server credential. Both OAuth audiences remain External/Testing, owner only,
+with the explicitly approved `games`, `games_lite` and `drive.appdata` scopes.
+Production Android credentials, publication and installed-app acceptance remain pending.
 There is no cross-project authentication bridge or bypass.
 
 Dev uses App Check's debug provider in every mode; register installation tokens

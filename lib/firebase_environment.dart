@@ -3,7 +3,7 @@
 enum FirebaseEnvironment {
   dev('rpg-runner-d7add', 'com.example.rpg_runner.dev'),
   staging('lothringen-long-run-staging', 'com.lothringen.longrun.staging'),
-  prod('lothringen-long-run-prod', 'com.example.rpg_runner');
+  prod('lothringen-long-run-prod', 'com.lothringen.longrun');
 
   const FirebaseEnvironment(this.projectId, this.androidPackage);
 

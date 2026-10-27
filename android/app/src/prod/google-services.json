@@ -12,7 +12,12 @@
           "package_name": "com.example.rpg_runner"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "696550437718-6n2bu175hk96rn77o8cob7ht6pcr2h4s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDB594kqmVAnQIDM9olyxsoYpygX_mmACg"
@@ -20,7 +25,41 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "696550437718-6n2bu175hk96rn77o8cob7ht6pcr2h4s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:696550437718:android:c27d2030dcee3fd2d9dcf7",
+        "android_client_info": {
+          "package_name": "com.lothringen.longrun"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "696550437718-6n2bu175hk96rn77o8cob7ht6pcr2h4s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDB594kqmVAnQIDM9olyxsoYpygX_mmACg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "696550437718-6n2bu175hk96rn77o8cob7ht6pcr2h4s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
