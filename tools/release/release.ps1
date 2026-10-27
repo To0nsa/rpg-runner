@@ -27,6 +27,8 @@ param(
   [string]$BudgetAmount = "",
   [string]$NotificationEmail = "",
   [int]$AndroidVersionCode = 0,
+  [ValidateSet('', 'dev', 'staging', 'prod')]
+  [string]$ReuseImageFrom = '',
   [switch]$Rebuild,
   [switch]$CutoverReady
 )
@@ -37,6 +39,10 @@ param(
 . (Join-Path $PSScriptRoot "prepare_release.ps1")
 . (Join-Path $PSScriptRoot "release_ci.ps1")
 . (Join-Path $PSScriptRoot "release_lock.ps1")
+. (Join-Path $PSScriptRoot "release_image.ps1")
+if ($ReuseImageFrom -and ($Action -ne 'BuildImage' -or $ReuseImageFrom -eq $Environment)) {
+  throw 'ReuseImageFrom requires BuildImage and a different source environment.'
+}
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
 if ($Action -in @("Provision", "SigningSetup", "RecoverySetup", "MonitoringSetup", "BuildAndroid", "BuildImage", "Bootstrap", "PauseIssuance", "Deploy", "ResumeIssuance") -and
     -not $PSBoundParameters.ContainsKey("Environment")) { throw "Cloud mutations require explicit -Environment dev, staging or prod." }
@@ -134,17 +140,19 @@ function Get-ImageStatus {
   Write-Host "Cloud Build $($script:state.buildId): $($build.status)"
   if ($build.status -in @("QUEUED", "PENDING", "WORKING")) { return $false }
   if ($build.status -ne "SUCCESS") { throw "Cloud Build failed: $($build.status). See $($build.logUrl)" }
-  $image = @($build.results.images | Where-Object { $_.name -eq $script:state.imageTag })
-  if ($image.Count -ne 1 -or $image[0].digest -notmatch '^sha256:[0-9a-f]{64}$') {
-    throw "Cloud Build did not report exactly one expected immutable image."
+  $digest = Get-ReleaseImageDigest $build $script:state.imageTag
+  if ($script:state.PSObject.Properties.Name -contains 'reusedImage' -and $script:state.reusedImage -and
+      $digest -cne $script:state.reusedImage.digest) {
+    throw 'Copied image digest differs from the verified source image.'
   }
-  $script:state.imageUri = "$Region-docker.pkg.dev/$ProjectId/replay/replay-validator@$($image[0].digest)"
+  $script:state.imageUri = "$Region-docker.pkg.dev/$ProjectId/replay/replay-validator@$digest"
   $script:state.imageVerified = $true
   Save-ReleaseState
   $imageDirectory = Join-Path $cacheRoot "images/$ProjectId/$Region"
   New-Item -ItemType Directory -Force -Path $imageDirectory | Out-Null
-  @{ workerInputs = $inputs.worker; buildId = $state.buildId; imageTag = $state.imageTag; imageUri = $state.imageUri } |
-    ConvertTo-Json | Set-Content -LiteralPath (Join-Path $imageDirectory "$($inputs.worker).json") -Encoding utf8
+  @{ workerInputs = $inputs.worker; buildId = $state.buildId; imageTag = $state.imageTag; imageUri = $state.imageUri;
+     reusedImage = $(if ($state.PSObject.Properties.Name -contains 'reusedImage') { $state.reusedImage } else { $null }) } |
+    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $imageDirectory "$($inputs.worker).json") -Encoding utf8
   $json | Set-Content -LiteralPath (Join-Path $evidenceDirectory "cloud-build.json") -Encoding utf8
   Write-Host $script:state.imageUri
   return $true
@@ -441,6 +449,9 @@ if ($Action -eq "BuildImage") {
     if ($imageRecord.workerInputs -ne $inputs.worker) { throw "Worker image cache input mismatch." }
     $state.buildId = $imageRecord.buildId
     $state.imageTag = $imageRecord.imageTag
+    if ($imageRecord.PSObject.Properties.Name -contains 'reusedImage') {
+      $state | Add-Member -NotePropertyName reusedImage -NotePropertyValue $imageRecord.reusedImage -Force
+    }
     Save-ReleaseState
   }
   if ($state.buildId -and -not $Rebuild) {
@@ -448,8 +459,18 @@ if ($Action -eq "BuildImage") {
     return
   }
   $tag = "$Region-docker.pkg.dev/$ProjectId/replay/replay-validator:release-$($sourceDigest.Substring(0,12))-$([DateTime]::UtcNow.ToString('yyyyMMddHHmmss'))"
-  $buildJson = Invoke-ReleaseGcloud @("builds", "submit", ".", "--project=$ProjectId", "--region=global",
-    "--config=services/replay_validator/cloudbuild.yaml", "--substitutions=_IMAGE_URI=$tag", "--async", "--format=json") "submit"
+  $reusedImage = $null
+  if ($ReuseImageFrom) {
+    $sourceDefinition = Get-ReleaseEnvironmentDefinition $root $ReuseImageFrom
+    $reusedImage = Get-ReleaseReusableImage $root $cacheRoot $sourceDefinition $inputs.worker
+    $copyConfig = Join-Path $evidenceDirectory 'copy-image.json'
+    Write-ReleaseImageCopyConfig $copyConfig $reusedImage.imageUri $tag
+    $buildJson = Invoke-ReleaseGcloud @('builds','submit','--no-source',"--project=$ProjectId",'--region=global',
+      "--config=$copyConfig",'--async','--format=json') 'submit'
+  } else {
+    $buildJson = Invoke-ReleaseGcloud @("builds", "submit", ".", "--project=$ProjectId", "--region=global",
+      "--config=services/replay_validator/cloudbuild.yaml", "--substitutions=_IMAGE_URI=$tag", "--async", "--format=json") "submit"
+  }
   $build = $buildJson | ConvertFrom-Json
   if ((Get-ReleaseSourceDigest $root $ProjectId) -ne $sourceDigest) {
     throw "Release source changed while uploading the image. Cloud Build $($build.id) is untrusted; run Prepare again."
@@ -460,6 +481,7 @@ if ($Action -eq "BuildImage") {
   $state.imageTag = $tag
   $state.imageUri = ""
   $state.imageVerified = $false
+  $state | Add-Member -NotePropertyName reusedImage -NotePropertyValue $reusedImage -Force
   Save-ReleaseState
   Write-Host "Started Cloud Build $($state.buildId). Run ImageStatus; preparation need not be repeated."
   return

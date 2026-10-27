@@ -38,9 +38,14 @@ including Android packaging/inspection, all client shards and the final evidence
 bundle. Exact-source ImportCI and Prepare for all three environments passed.
 Dev validator Cloud Build `9a8b0932-3a0a-48b6-a275-f3256c232c2f` is WORKING,
 started at 18:22:11 UTC. The advisory and final-image benchmark gates remain strict.
-Staging validator build `d3015999-a988-4416-8144-0a0a05af5021` is WORKING
-(18:24:53 UTC); production build `dbc42520-375f-483e-a547-bba48b4d0218`
-is WORKING (18:28:11 UTC), without deployment.
+At the owner's request to avoid duplicate navigation generation, staging build
+`d3015999-a988-4416-8144-0a0a05af5021` and production build
+`dbc42520-375f-483e-a547-bba48b4d0218` were cancelled around 19:00 UTC.
+Dev's build continues. A narrow release-tooling change now copies a verified
+environment-neutral image into each destination registry, with matching worker
+inputs, live source evidence, exact destination digest and a strict benchmark.
+Its mocked checks pass on both PowerShell versions; live copies are not yet run.
+Freeze the validated tooling milestone before the next preparation/cutover.
 The isolated LF checkout is `.tmp/release-checkouts/d83a690cd4ad82a5427a522a0646027e75d0ad19`,
 with each environment's application configuration copied by `Checkout`.
 The isolated remote branch `release/android-beta-browser-check` carries this
@@ -48,7 +53,9 @@ commit; draft PR #2's head has not been advanced. Earlier CI/cache evidence is
 historical until the candidate's checks finish. No new backend, Play bundle or
 public policy has been deployed. The owner confirmed Nicolas Louis, based in
 Finland, with resolved support correspondence retained for 90 days. Those details
-are incorporated in the prepared policy. Chrome control is working. The owner's
+are incorporated in the prepared policy. Chrome's native control pipe is now
+unavailable after a reconnect/reset attempt; browser inventory is empty. CLI
+work continues, but Console uploads need the connection restored. The owner's
 CPH2465 Android phone is connected and trusted, but installed-app acceptance has
 not run. The owner reconfirmed all three environments and chose to keep both new
 Play Games configurations tester-only. A dedicated review account is still to be
@@ -60,8 +67,11 @@ build, leaving the frozen tracked tree clean. The next attempt generated all
 3,750 client navigation graphs, then failed AOT compilation for android-arm64
 with an out-of-memory error (exit -1073740791). ARM32/x64 outputs and symbols
 exist; no complete APK/evidence was recorded. The project mutation lock was
-released. Resolve local memory pressure and retry the canonical build with all
-three ABIs and inspection gates intact. Details are in the linked evidence.
+released. The owner needs the other apps open. A sequential Flutter assemble
+retry (`--resource-pool-size=1`) succeeded with all three architectures/symbols;
+canonical packaging/inspection is now running. Its navigation preparation
+validated and reused all 3,750 graphs, building zero. Details are in the linked
+evidence; no final APK is yet recorded.
 
 The owner explicitly requested inclusion of the completed board lifecycle/account-
 deletion work tracked in `docs/building/board_lifecycle_cleanup.md`. Runtime work

@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param([ValidateSet('dev', 'staging', 'prod')][string]$TestEnvironment = 'dev')
 . (Join-Path $PSScriptRoot "release_support.ps1")
+. (Join-Path $PSScriptRoot "release_cache.ps1")
+. (Join-Path $PSScriptRoot "release_environments.ps1")
 $workspaceRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
 $fixture = Join-Path $workspaceRoot ".tmp/release-tests/$([Guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Force -Path $fixture | Out-Null
@@ -10,6 +12,8 @@ $global:fakeActiveRuns = $false
 $global:fakeMissingCurrentBoards = 0
 $global:fakeBuildStatus = "SUCCESS"
 $global:fakeImageTag = ""
+$global:fakeSourceImageTag = ''
+$global:fakeImageDigest = "sha256:$('a' * 64)"
 $global:fakeImageUri = "europe-west1-docker.pkg.dev/test-project/replay/replay-validator@sha256:$('a' * 64)"
 $global:fakeIssuerImageUri = "europe-west1-docker.pkg.dev/test-project/gcf-artifacts/issuer@sha256:$('b' * 64)"
 $global:fakeIssuerHealthy = $true
@@ -30,7 +34,7 @@ $global:mockFiles = @(
   "tools/release/release.ps1", "tools/release/release_support.ps1", "tools/release/release_cache.ps1",
   "tools/release/prepare_release.ps1", "tools/release/profile_tests.ps1", "tools/release/release_ci.ps1",
   "tools/release/release_environments.ps1", "tools/release/environments.json",
-  "tools/release/release_lock.ps1",
+  "tools/release/release_lock.ps1", "tools/release/release_image.ps1",
   "firebase.staging.json", "firebase.prod.json",
   "functions/src/index.ts", "functions/src/runs/compatibility.ts",
   "functions/src/boards/provisioning.ts", "lib/ui/state/app/app_state.dart",
@@ -78,12 +82,21 @@ function gcloud {
   if ($command -eq 'auth print-access-token') { return 'mock-token' }
   $global:releaseTrace.Add($command)
   if ($command.StartsWith("builds submit")) {
-    $global:fakeImageTag = ($args | Where-Object { $_ -like "--substitutions=*" }).Substring("--substitutions=_IMAGE_URI=".Length)
+    if ($args -contains '--no-source') {
+      $configPath = ($args | Where-Object { $_ -like '--config=*' }).Substring('--config='.Length)
+      $global:fakeImageTag = (Get-Content $configPath -Raw | ConvertFrom-Json).images[0]
+    } else {
+      $global:fakeImageTag = ($args | Where-Object { $_ -like "--substitutions=*" }).Substring("--substitutions=_IMAGE_URI=".Length)
+    }
     return '{"id":"build-1"}'
   }
   if ($command.StartsWith("builds describe")) {
+    $buildTag = if ($args -contains 'source-build') { $global:fakeSourceImageTag } else { $global:fakeImageTag }
+    $buildDigest = if ($args -contains 'source-build') { "sha256:$('a' * 64)" } else { $global:fakeImageDigest }
     return (@{ status = $global:fakeBuildStatus; logUrl = "mock://logs"
-      results = @{ images = @(@{name=$global:fakeImageTag; digest="sha256:$('a' * 64)"}) }
+      steps = @(@{id='benchmark-release-image';name='gcr.io/cloud-builders/docker';status='SUCCESS';
+        args=@('run','--rm','--cpus=1','--memory=512m',$buildTag,'benchmark','--ticks=36000','--strict')})
+      results = @{ images = @(@{name=$buildTag; digest=$buildDigest}) }
     } | ConvertTo-Json -Depth 10)
   }
   if ($command.StartsWith("run services update runsessioncreate")) {
@@ -230,6 +243,28 @@ try {
   & $entry -Environment $TestEnvironment -Action BuildImage
   Assert-Test (-not $global:fakeReleaseLock) 'successful action releases its mutation lock'
   & $entry -Environment $TestEnvironment -Action ImageStatus
+
+  $sourceEnvironment = if ($TestEnvironment -eq 'dev') { 'staging' } else { 'dev' }
+  $sourceDefinition = Get-ReleaseEnvironmentDefinition $fixture $sourceEnvironment
+  $workerInputs = (Get-ReleaseInputHashes $fixture 'test-project').worker
+  $cache = Get-ReleaseCacheRoot $fixture
+  $sourceRecord = Join-Path $cache "images/$($sourceDefinition.projectId)/$($sourceDefinition.region)/$workerInputs.json"
+  New-Item -ItemType Directory -Force -Path (Split-Path $sourceRecord) | Out-Null
+  $sourcePrefix = "$($sourceDefinition.region)-docker.pkg.dev/$($sourceDefinition.projectId)/replay/replay-validator"
+  $global:fakeSourceImageTag = "${sourcePrefix}:release-source"
+  @{workerInputs=$workerInputs;buildId='source-build';imageTag=$global:fakeSourceImageTag;
+    imageUri="$sourcePrefix@sha256:$('a' * 64)"} | ConvertTo-Json | Set-Content $sourceRecord
+  & $entry -Environment $TestEnvironment -Action BuildImage -ReuseImageFrom $sourceEnvironment -Rebuild
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'builds submit --no-source*' }).Count -eq 1) 'reuse copies image without uploading source or rebuilding graphs'
+  Assert-Test (-not $global:fakeReleaseLock) 'image copy releases destination mutation lock'
+  $global:fakeImageDigest = "sha256:$('b' * 64)"
+  $rejected = $false
+  try { & $entry -Environment $TestEnvironment -Action ImageStatus } catch { $rejected = $_.Exception.Message -like '*Copied image digest differs*' }
+  Assert-Test $rejected 'copy cannot verify different image bytes'
+  $global:fakeImageDigest = "sha256:$('a' * 64)"
+  & $entry -Environment $TestEnvironment -Action ImageStatus
+  $copyState = Get-Content (Join-Path $evidence 'release.json') -Raw | ConvertFrom-Json
+  Assert-Test ($copyState.imageVerified -and $copyState.reusedImage.projectId -eq $sourceDefinition.projectId) 'copy records source project and verifies destination digest'
 
   $rejected = $false
   try { & $entry -Environment $TestEnvironment -Action Deploy } catch { $rejected = $_.Exception.Message -like "*requires -CutoverReady*" }

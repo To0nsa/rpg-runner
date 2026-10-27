@@ -53,6 +53,12 @@ Do not assume a previously used release checklist is the current target.
 - Scoped deployment requires a verified baseline and fresh unchanged live
   consumers. Shared gameplay/protocol/infrastructure changes use coordinated
   cutover. Keep the exact final-image benchmark and readiness/drain gates.
+- For identical worker inputs, build the environment-neutral image once, then
+  use BuildImage -ReuseImageFrom dev for staging and -ReuseImageFrom staging for
+  prod. Verify source build evidence and destination digest; each project retains
+  its own registry and runtime configuration. Grant only repository-level reader
+  access to the destination build account. Never infer reusable graphs from the
+  gameplay version alone. test_release.ps1 includes image-reuse regressions.
 - Keep cloud mutations sequential and explicit. Tests use mocked commands and
   isolated .tmp fixtures; never run a production cutover to test the scripts.
 - Environment mutation locks live in the selected project's build bucket. Keep

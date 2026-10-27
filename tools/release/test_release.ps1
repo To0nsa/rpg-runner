@@ -2,6 +2,7 @@
 param()
 
 . (Join-Path $PSScriptRoot "release_support.ps1")
+& (Join-Path $PSScriptRoot "test_release_image.ps1")
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).Path
 $fixture = Join-Path $root ".tmp/release-tests/$([Guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Force -Path $fixture | Out-Null

@@ -1060,3 +1060,51 @@ Canonical finally released mutation lock generation `1793126133507156`.
 Readback found approximately 1 GB free physical RAM and 3.8 GB free committed
 memory on this 16 GB workstation. Asked the owner to close unused heavy apps;
 no unrelated processes were terminated. Retry must preserve all three ABIs.
+
+## Shared graph/image reuse and memory recovery (October 27)
+
+The owner needs their other applications open. Used Flutter 3.47.1's supported
+`assemble --resource-pool-size=1` with the same Gradle-emitted inputs, output paths,
+defines and all three AOT targets. Confirmed the option in the pinned SDK's
+assemble command and BuildSystemConfig; no SDK or candidate source was changed.
+Ignored helper `.tmp/beta-checks/prepare_android_serial.ps1` records this exact
+candidate invocation. It passed, produced the missing ARM64 output, retained
+ARM32/x64 and all three symbol files, and verified the tracked tree clean.
+Log `.tmp/beta-checks/candidate-d83-serial-dev.log`. Canonical dev BuildAndroid
+version 1 was retried; log `candidate-d83-android-dev-after-serial.log` in the
+same directory. Its graph preparation reports built=0, reused=3750 in 29.665s.
+Packaging/inspection remains in progress; compilation alone is not acceptance.
+
+The owner requested reuse of identical navigation graphs across environments.
+Inspection confirmed Android flavors share the client directory, whereas three
+isolated Docker builds each regenerate the complete worker navigation pack.
+The worker image contains no project configuration or secrets; deployment supplies
+those separately. Implemented BuildImage -ReuseImageFrom with a shared worker
+fingerprint, live source-build/strict-benchmark verification, immutable pull/tag,
+destination strict benchmark, exact digest equality and saved copy provenance.
+No runtime/gameplay or generator behavior changed. The destination still owns its
+registry image and all runtime/service/data identities.
+
+Cancelled the redundant staging `d3015999-a988-4416-8144-0a0a05af5021` and prod
+`dbc42520-375f-483e-a547-bba48b4d0218` jobs around 19:00 UTC; their cancellation is
+recorded as superseded work, never as passing image evidence. Dev build
+`9a8b0932-3a0a-48b6-a275-f3256c232c2f` continues (52,300 graphs at the next readback).
+Granted repository-level `roles/artifactregistry.reader` on dev's `replay` repo
+to staging's actual build account `943085064373-compute@developer.gserviceaccount.com`,
+and on staging's `replay` repo to production's build account
+`696550437718-compute@developer.gserviceaccount.com`. Both IAM updates succeeded;
+no player-data or runtime cross-project roles were granted.
+
+Local image-reuse validation on PowerShell 5.1 and 7: 16 focused image-evidence
+checks, 53 release checks, and the full integration matrix (106 dev, 101 staging,
+101 prod) pass; cache tests also pass. Logs use `.tmp/beta-checks/image-reuse-*`.
+The first new integration test lacked its own helper imports; corrected the test
+harness and reran successfully. These tests mock cloud commands and do not prove
+the pending image copies/deployments. Existing CI evidence still covers unchanged
+application/worker component inputs; the tooling milestone needs its own commit.
+
+Chrome control later lost its native pipe. One reconnect/reset attempt failed,
+and browser control inventory returns no connected browser. Console work is
+pending restoration; CLI work remains available. The phone reports Android API 35.
+Production PITR and delete protection are enabled with 604800s retention; its
+scheduled-backup list is still empty (do not call this a completed backup).

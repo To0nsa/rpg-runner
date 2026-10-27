@@ -316,7 +316,26 @@ Do not relabel old omitted checks as successful current evidence.
 BuildImage starts asynchronously and caches successful exact-image benchmark
 results by worker inputs, project and region outside the release checkout.
 Reuse re-reads the original Cloud Build status and immutable image result.
-Rebuild deliberately submits another image. The strict 36,000-tick benchmark of
+For matching worker inputs, `BuildImage -ReuseImageFrom <environment>` reads the
+source environment's cache record, verifies its current successful Cloud Build
+result and strict benchmark, then submits a source-free pull/tag/benchmark job in
+the destination project. The immutable image, including its complete navigation
+pack, is copied without recompilation. ImageStatus requires the destination
+digest to equal the source digest and retains that provenance in release/cache
+evidence. Every project retains its own registry, runtime identities and data.
+Worker fingerprints cover Core/protocol sources, generator/revision tools, route
+plan, dependency locks and container recipes; equal game-version strings alone
+are insufficient. Android flavors share the checkout's client graph directory
+and validate existing exact-key graph bytes before packaging.
+
+The destination Cloud Build account requires `roles/artifactregistry.reader` on
+only the source `replay` repository. For this beta, staging's build account reads
+dev's repository; production's build account reads staging's. This does not grant
+cross-project Firestore, Auth, Storage or runtime access. Missing source evidence
+or permissions fails closed. A prior failed/cancelled destination job needs
+explicit `-Rebuild` after inspection; a still-running source is not reusable.
+
+Rebuild deliberately submits another image or requested copy. The strict 36,000-tick benchmark of
 the final container remains required for coordinated release; it is inexpensive
 and is not removed by this optimization.
 Cloud Build allows 7,200 seconds for image preparation and the strict benchmark.

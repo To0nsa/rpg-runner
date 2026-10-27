@@ -50,6 +50,12 @@ Play-delivered authentication/attestation are separate acceptance gates.
    Play Games smoke. Do not run pause/image/resume stages for those scopes.
    For Coordinated scope, once image upload/build is authorized, run BuildImage
    and poll ImageStatus.
+   For identical worker inputs across environments, finish one image first, then
+   use `BuildImage -Environment staging -ReuseImageFrom dev` and later
+   `BuildImage -Environment prod -ReuseImageFrom staging`. Each copy runs the
+   strict benchmark and must retain the source digest in its own registry.
+   The destination build account needs reader access only to the source image
+   repository. Runtime service identities and player data stay project-local.
    Preparation can be reused while the source and artifact hashes match.
 5. Once production cutover is authorized, run PauseIssuance. A newly provisioned
    target uses Bootstrap -CutoverReady first: it verifies no Auth users, Firestore
