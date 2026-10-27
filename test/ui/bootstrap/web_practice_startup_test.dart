@@ -83,8 +83,7 @@ void main() {
     await tester.pumpAndSettle();
     final descriptor = await services.appState.prepareRunStartDescriptor();
     expect(descriptor.isDeveloperPractice, isTrue);
-    // Start the browser's image decoding in the real async zone. Merely yielding
-    // to runAsync after mounting leaves decoder futures on the fake test clock.
+    // Browser asset loading performs real asynchronous work alongside frames.
     await tester.runAsync(() async {
       navigator.pushNamed(UiRoutes.run, arguments: descriptor);
       for (
@@ -105,6 +104,19 @@ void main() {
         printOnFailure(
           'Run startup phase=${load.phase}, error=${load.error}\n'
           '${load.stackTrace}',
+        );
+        printOnFailure('Completed load tasks: ${host.game!.loadTimings}');
+        final pendingImages = <String>[];
+        for (final key in host.game!.images.keys) {
+          try {
+            host.game!.images.fromCache(key);
+          } catch (_) {
+            pendingImages.add(key);
+          }
+        }
+        printOnFailure(
+          'Requested images=${host.game!.images.keys.length}, '
+          'pending=${pendingImages.join(', ')}',
         );
       }
       printOnFailure(
