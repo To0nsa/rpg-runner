@@ -12,8 +12,15 @@ const assets = new Map([
 const previewLifetimeMs = 30 * 60 * 1000;
 const maxPreviews = 128;
 
+class ConsoleRequestError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
 function fail(status, message) {
-  return Object.assign(new Error(message), { status });
+  return new ConsoleRequestError(status, message);
 }
 
 function fields(value, allowed) {
@@ -37,7 +44,13 @@ async function readJson(request) {
 }
 
 function publicError(error) {
-  if (error.status) return { status: error.status, message: error.message };
+  if (error instanceof ConsoleRequestError) return { status: error.status, message: error.message };
+  if (error.code === 7 || error.code === 'permission-denied') {
+    return { status: 403, message: 'Firestore denied access to the selected project. The tool uses Application Default Credentials (ADC), which can belong to a different account than your gcloud login. Run gcloud auth application-default login with an authorized account, restart the console, then retry this same delivery.' };
+  }
+  if (error.code === 16 || error.code === 'unauthenticated' || error.code === 'app/invalid-credential') {
+    return { status: 401, message: 'The tool could not authenticate with Application Default Credentials (ADC). Run gcloud auth application-default login with an authorized account, restart the console, then retry this same delivery.' };
+  }
   const domainStatus = { 'invalid-argument': 400, 'not-found': 404,
     'already-exists': 409, 'failed-precondition': 409 }[error.code];
   if (domainStatus) return { status: domainStatus, message: error.message };

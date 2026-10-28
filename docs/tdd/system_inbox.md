@@ -109,6 +109,10 @@ from `tools/release/environments.json`. It never derives the target from ADC or
 the active gcloud project. Each send initializes a named Admin app for that
 explicit project and deletes it afterwards. Local ADC provides operator
 Firestore authority; credentials are not exposed to browser code.
+Firestore permission-denied and unauthenticated failures return explicit ADC
+recovery guidance instead of the generic uncertain-delivery error. Provider
+credential details remain private, and the existing draft/source identity is
+retained for retry. The tool never switches accounts or grants IAM access.
 
 The HTTP service binds to `127.0.0.1` and validates exact Host, same-origin
 requests, a random per-process bearer token and bounded JSON bodies. It serves

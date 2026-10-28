@@ -28,6 +28,17 @@ Existing authorized service-account credentials also work. A normal gcloud or
 Firebase CLI login alone is not ADC. Credentials stay in the Node process.
 The tool does not grant IAM access or deploy the player inbox.
 
+If sending reports **Firestore denied access**, the ADC account lacks access to
+the selected project. The tool now identifies this separately from connection
+failures. Your active gcloud account and ADC account can differ; successful
+gcloud commands do not establish that the tool's credentials work. Run
+`gcloud auth application-default login` and select an account authorized for
+that environment, then restart the console, open the new printed URL and
+preview/retry the existing draft. This command replaces the local default ADC
+credentials, which other local applications may also use. An explicit
+`GOOGLE_APPLICATION_CREDENTIALS` file takes precedence and must be corrected
+separately. See [ADC troubleshooting](https://cloud.google.com/docs/authentication/troubleshoot-adc).
+
 ## Send a message
 
 1. Select **Development**, **Staging** or **Production**. The mapped project is
