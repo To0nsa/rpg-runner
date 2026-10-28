@@ -1869,3 +1869,156 @@ compiler was stopped, releasing 2,150,285,312 committed bytes. Evidence:
 `candidate-c8b-staging-gradle-idle.json` and
 `candidate-bcb-orphan-kotlin-cleanup.json`. User applications stayed open.
 Production sequential AOT is now running; production runtime remains undeployed.
+
+Production sequential AOT subsequently passed for all three ABIs with the expected
+symbol sizes. Canonical production BuildAndroid version 1 is now running, without
+a flavor switch after priming. Logs: `candidate-c8b-serial-prod.log` and
+`candidate-c8b-android-prod.log`. No production runtime cutover is authorized by
+this artifact-preparation result.
+
+Fresh source-registry policy and `gcloud builds get-default-service-account
+--project=rpg-runner-d7add` verified dev build identity
+`964001571974-compute@developer.gserviceaccount.com`. Under staging mutation lock
+`1793220086390171`, granted only `roles/artifactregistry.reader` on staging's
+`europe-west1/replay` repository so dev can reuse the corrected environment-neutral
+image. The existing production build-account reader remains. Readback policy
+etag is `BwZe7JbXiQM=`; the mutation lock was released before production packaging.
+Evidence: `candidate-c8b-staging-registry-iam-{fresh-before,after}.json`.
+No dev access to production resources or project-wide role was granted.
+
+Completed-build cleanup and terminating only verified release-owned daemons
+restored sufficient space. An optional read-only historical web-cache deduplication
+scan was stopped; its mutation mode was never run. No hard links were created
+and all canonical component-cache paths remain unchanged.
+
+Corrected staging Cloud Build `32238450-f739-4eb3-8c4b-c4cefc9fc06c` completed
+SUCCESS at `2026-10-28T20:54:01.913108Z`. Immutable image digest:
+`sha256:9c81113febe223d1e399d12bdaa8253131e71a1df901611852d47b00b42edd80`.
+The final-image `benchmark-release-image` step ran with `--cpus=1 --memory=512m`,
+`--ticks=36000 --strict` and passed all eight gates. Seed 4401, generated-terrain
+fixture without combat objectives: Forest 1.873056 s / 320.33x realtime;
+Field 1.661960 s / 361.02x realtime. Both completed 36,000 command frames with
+deterministic outcomes and sustained forward progress. The full server navigation
+build ended at 9,500 windows / 93,910 graphs. This benchmark remains distinct
+from cloud replay/settlement capacity and device acceptance. Evidence:
+`candidate-c8b-staging-cloud-build-completed.json` and
+`candidate-c8b-staging-image-benchmark.json`. Canonical ImageStatus is binding
+this result to the candidate before any runtime cutover.
+
+Production c8b BuildAndroid passed at `2026-10-28T21:01:26.1688121Z`:
+version 1 / `1.0.0`, 174,459,406 bytes, SHA-256
+`d3a7997b24839e369c9a06a5ca06ad8bb7406223a86199aeea425c83a0d25b44`.
+Production resources, upload certificate, navigation assets, all native ABIs,
+16 KB alignment and symbol upload passed. Lock `1793220283197707` was released.
+After the completed bundle was copied by the canonical action and Gradle was
+verified idle, only its release-owned Gradle 35564 and Kotlin 35264 processes
+were stopped while independent final inspection continued; evidence:
+`candidate-c8b-prod-gradle-idle.json`. The prior bcb bundle remains distinct.
+
+Canonical staging ImageStatus accepted the successful build and exact digest,
+persisting its source-bound release/cache evidence in
+`candidate-c8b-image-status-staging.log`. Production intermediate cleanup removed
+1,814,472,939 bytes at `2026-10-28T21:04:41.5138112Z`; all 11 retained hashes match
+and the checkout remains clean. Free disk was 3,752,558,592 bytes. Dev sequential
+AOT is running, and canonical production BuildImage is copying the verified
+staging image with `-ReuseImageFrom staging`; both remain pending actions.
+
+Both destination image-copy builds passed their own strict benchmark and canonical
+ImageStatus verified exact digest equality: production build
+`4200f874-bbef-49df-b099-ce6aeca286a3` finished at
+`2026-10-28T21:09:15.720155Z`; dev build
+`933b4257-cfd1-4052-bb21-15615f062a85` finished at
+`2026-10-28T21:10:18.876093Z`. Copy submission locks `1793221674418495` and
+`1793221741823762` were released. All three projects retain image digest
+`sha256:9c81113febe223d1e399d12bdaa8253131e71a1df901611852d47b00b42edd80`.
+Evidence: `candidate-c8b-verified-images.json`, copy/status logs and per-environment
+`cloud-build.json`. Dev sequential AOT passed with symbol sizes 3,904,016 /
+4,470,048 / 4,469,080 bytes. No flavor switch will precede its remaining canonical
+APK packaging. The canonical c8b staging PauseIssuance action is now running;
+runtime deployment/resume and the live drill are still pending.
+
+Canonical staging PauseIssuance passed at `2026-10-28T21:16:09.9326353Z` and
+released mutation lock `1793222111995324`. The new c8b source-bound cutover record
+remains. Guarded Deploy is now running under lock `1793222223415327`; the fresh
+drain gate passed and the coordinated backend phase excludes `runSessionCreate`.
+Logs: `candidate-c8b-pauseissuance-staging.log`, `candidate-c8b-deploy-staging.log`.
+
+Four completed c8b bundle/mapping output copies were removed at
+`2026-10-28T21:18:55.3564206Z`, recovering 401,340,881 bytes after exact comparison
+with retained canonical artifacts. No canonical artifact was removed; both AAB
+hashes match their inspection records. Evidence:
+`candidate-c8b-output-deduplication-{plan,result}.json`.
+
+The corrected staging Deploy passed: Functions checkpoint
+`2026-10-28T21:21:43.6360894Z`, worker checkpoint
+`2026-10-28T21:25:31.0594148Z`, full deployment
+`2026-10-28T21:25:42.2532295Z`. Mutation lock `1793222223415327` was released.
+The saved inventory has all three expected compatible current boards active,
+with zero missing/malformed/key/window mismatches. Guarded ResumeIssuance is
+running and will recheck live readiness/boards before reopening issuance.
+Fresh dev readback still shows worker `replay-validator-00059-ssr` at 100% traffic
+and the latest Functions update on October 27, matching the preceding deployment;
+no later dev deployment was found. Evidence:
+`candidate-c8b-dev-before-cutover-{worker,functions}.json`.
+
+Canonical staging ResumeIssuance passed at `2026-10-28T21:30:44.7660337Z`;
+mutation lock `1793222822179117` was released and the source-bound cutover record
+cleared. Both queues are running. Authorized readiness returned 200, anonymous
+worker access 403, and the unauthenticated callable 401 at 21:33 UTC. The staging
+project had no Auth users before the new fixture. Evidence:
+`candidate-c8b-resumeissuance-staging.log`,
+`candidate-c8b-staging-worker-verified.json`, and
+`candidate-c8b-staging-http-inspection.json`.
+
+The first expanded c8b drill started at `2026-10-28T21:35:45.762Z`, issued two
+Field tickets and uploaded their payloads, then stopped before any dispatch.
+Its Forest selection changed legacy `runType` but retained the prior `runMode`;
+the canonical ownership validator correctly rejected the mismatched pair.
+This fixture error is not a replay/projection result. Its original state/logs
+remain `candidate-c8b-staging-smoke.json` and `candidate-c8b-staging-smoke-run.log`.
+Normal account deletion entered `quiet_wait` at `2026-10-28T21:36:23.054Z`;
+lock `1793223340373032` was released. No clock override or owner data reset was used.
+
+The retry helper sets both fields and uses separate state/payload paths. A local
+check against the frozen compiled ownership implementation reproduced the old
+failure and accepted all six mode/level combinations, including both possible
+Weekly levels, at `2026-10-28T21:41:25.760Z`. This check made no cloud writes.
+Evidence: `candidate-c8b-smoke-selection-check.json`; retry entrypoint:
+`staging_c8b_smoke_retry.ps1`. The original failed fixture remains available for
+cleanup. Dev canonical BuildAndroid version 1 started during the real quiet wait,
+without switching flavors after its successful AOT priming.
+
+The owner then requested a safe pause. No fresh retry drill or dev runtime cutover
+was started. The already-running dev BuildAndroid completed successfully at
+`2026-10-28T21:56:20.1960089Z`: version 1 / `1.0.0-dev`, package
+`com.example.rpg_runner.dev`, 184,126,366 bytes, APK SHA-256
+`ce0aa0e2d08106cb13000de644939b8b3e8a15d4e768b93e2735663de077d376`.
+Native resources/signing, 3,750 navigation graphs, three ABIs and 16 KB checks
+passed. Dev symbols are retained locally; upload is intentionally only required
+for staging/prod. Lock `1793223744781505` was released. All three artifact hashes
+were checked together in `candidate-c8b-android-artifacts.json`.
+
+After Gradle finished and the APK was copied, only the verified idle release-owned
+Gradle 36968 and Kotlin 38188 processes were stopped at 21:56 UTC; final artifact
+inspection continued independently. Evidence: `candidate-c8b-dev-gradle-idle.json`.
+Dev build intermediates remain available; no further optional cleanup was started
+after the pause request.
+
+The normal synthetic-account deletion completed after the actual quiet period.
+The cleanup action verified Auth, ownership, run/reward/validation records,
+leaderboard/ghost references and recorded replay objects absent at
+`2026-10-28T21:57:11.667Z`; only the intended compact 30-day tombstone remains.
+Evidence: `candidate-c8b-staging-smoke.json` and
+`candidate-c8b-staging-smoke-cleanup.log`. This closes fixture cleanup, not live
+replay/projection acceptance: dispatch never began in this attempt.
+
+Resume from the corrected, locally checked `staging_c8b_smoke_retry.ps1` with its
+fresh state path. Keep the failed attempt intact. The frozen c8b checkout remains
+the release authority; unrelated ongoing changes in the main worktree are excluded.
+Dev's c8b runtime cutover, live staging replay/ghost/capacity checks, Play-delivered
+acceptance and production runtime deployment remain pending. Production still
+requires non-waived staging acceptance; no Play upload/publication occurred.
+
+Cleanup lock `1793224608441765` was released. Both in-flight commands exited 0.
+The safe pause is recorded in `candidate-c8b-pause-checkpoint.json`; frozen
+source is clean, the retry state does not exist, and no release action remains running.
