@@ -1417,3 +1417,455 @@ checks, including a fresh Node session, still returned native-pipe unavailable
 (OS error 2); browser inventories remained empty. No Windows input was sent.
 Official OpenAI setup/troubleshooting guidance was provided; Console work remains
 blocked by the unavailable connection, independently of the working phone/CLI.
+
+### Final candidate recovery, October 27 late UTC
+
+Committed and pushed `bcb59300e98c3563adc3ca32bddcd89c2813cedb` to the existing
+continuation branch `release/android-beta-browser-check`. Canonical Checkout
+created its clean LF tree and copied each environment configuration. All 32
+comparisons against the preceding f44 LF checkout pass: the ten validation
+components, Android build inputs, and seven runtime/environment groups per
+project. Evidence: `.tmp/beta-checks/candidate-bcb-input-equivalence.json`.
+The pinned Flutter configuration-only command initialized the ignored Android
+wrapper successfully. Copied the verified 3,750-graph navigation pack; canonical
+BuildAndroid must still validate every graph and produce its own final evidence.
+
+The disk had only about 95 MB free after checkout. Verified the retained f44 dev
+APK and staging AAB hashes, then removed only that checkout's disposable
+`build/app/intermediates`, `build/app/generated`, `build/app/tmp` and
+`.dart_tool/flutter_build` trees. Absolute-path and reparse checks preceded
+deletion; source, final artifacts, symbols, web output and evidence remain.
+Exact paths: `.tmp/beta-checks/candidate-bcb-prior-intermediate-cleanup.txt`.
+Gradle reported PID 37348 IDLE; its log bound the last completed build to f44.
+Stopped only that verified release daemon to free memory. User apps were left open.
+
+Fresh staging inventory at 21:52:06 UTC shows only the ACTIVE paused issuer
+`runsessioncreate-00002-lrp`, Ready with 100% traffic, both replay queues PAUSED,
+no active Cloud Build jobs, no Auth users and no Firestore collections. Evidence:
+`.tmp/beta-checks/candidate-bcb-staging-recovery-inspection.json`. This establishes
+the inspected recovery state, not completion of the pending full deployment.
+
+Production's first scheduled Firestore backup is READY: backup
+`2fe07603-1334-4f5b-ad70-65b233e6e41f`, snapshot `2026-10-27T21:33:42.186313Z`,
+expiry `2026-11-03T21:33:42.186313Z`. Readback at 21:58:22 UTC is retained in
+`.tmp/beta-checks/candidate-bcb-prod-backups.json`; this proves scheduled backup
+completion, not a full-service restore rehearsal.
+
+At 22:10 UTC / October 28 00:10 Helsinki the owner requested a pause. Interrupted
+both running local commands; exec sessions 45277 (remaining Prepare/BuildImage
+loop) and 76015 (sequential staging AOT) exited 1. Preserve the partial output as
+interrupted, not passing evidence. Staging Prepare had passed at 22:07:11 UTC for
+source digest `71ed90cfad8e455f9820a63d539da4e34d3dda589cc3112802b31c321655cba0`.
+Its matching image was verified by canonical BuildImage, with mutation lock
+generation `1793138896848317` released. Production preparation for source digest
+`bdb733be391ad2120e4d2891eb4730df51bc638a710cbffd61a0932acde66d20` is incomplete;
+dev preparation in this final checkout has not started. Staging sequential AOT
+has only `app.android-arm.symbols` (3,904,292 bytes), not a complete native build.
+
+No new deployment or cutover-record replacement occurred. The manual recovery
+helper `.tmp/beta-checks/recover_staging_bcb.ps1` is syntax-checked, unexecuted and
+requires a fresh guarded inspection; staging ownership still belongs to f44.
+The source-independent old f44 Android output copies were also removed only
+after verifying the retained APK/AAB, with file inventory in
+`.tmp/beta-checks/candidate-bcb-prior-output-cleanup.json`. Final artifacts,
+symbols and evidence remain. Free disk at pause: 4,748,124,160 bytes.
+The owner authorizes further cleanup of unused `.tmp` content on resumption;
+no wholesale cleanup was performed. The owner confirms the reviewer account is
+not created. Chrome/native connection remains unavailable; no Play upload or
+production runtime deployment is claimed.
+
+### Temporary cleanup on resumption, October 28
+
+On the owner's cleanup request, inspected `.tmp` from `C:\dev\rpg_runner` and
+removed 38 disposable directories containing 47,286 files / 6,676,644,964 bytes
+(6.22 GiB). These were Android intermediates and Flutter/test output from older
+checkouts plus unused benchmark/preview browser profiles. Source checkouts,
+signed APK/AABs, symbols, navigation data, release caches, credentials and
+release evidence were excluded. The protected OAuth directory was inaccessible
+to inventory and left untouched. No user application or service was stopped.
+
+`& .tmp/beta-checks/tmp-cleanup.ps1` reviewed the exact targets; the same command
+with `-Apply` removed all 38 with zero failures. Every target's resolved absolute
+path stayed under `.tmp`; ancestry and recursive checks rejected reparse points
+and protected artifact names. A fresh process check found no selected path in
+running command lines. The broader inventory counted 23.09 GiB of readable files;
+it skipped reparse points and recorded the OAuth access limitation.
+
+At 16:45:02 UTC, post-cleanup verification matched all 251 retained artifact and
+metadata SHA-256 hashes, confirmed every selected directory absent, and verified
+unchanged clean status for all 12 release checkouts. Frozen source remains
+`bcb59300e98c3563adc3ca32bddcd89c2813cedb`. C: free space was 7,060,054,016 bytes
+(6.58 GiB); Windows reported memory pressure during inventory, so this is the
+measured post-cleanup space rather than a projection from the initial inventory.
+`git diff --check` passes. No application tests, preparation or cloud mutations
+were run for this cleanup.
+
+Exact paths/results and preservation evidence remain in `.tmp/beta-checks/`:
+`tmp-cleanup-plan.json`, `tmp-cleanup-result.json`,
+`tmp-cleanup-process-check.json`, `tmp-cleanup-preservation-before.json` and
+`tmp-cleanup-verification.json`. The existing pause/recovery gates remain open.
+
+### CLI continuation, October 28
+
+The owner requested all remaining release work that does not require browser
+access. Frozen source remains `bcb59300e98c3563adc3ca32bddcd89c2813cedb`.
+The three canonical Plans retain the expected environment identities and tuple;
+dev resolves `None`, while staging and production remain `Coordinated`. Plan
+logs: `.tmp/beta-checks/candidate-bcb-plan-resumed-{dev,staging,prod}.json`.
+
+From the frozen checkout, `release.ps1 -Environment prod -Action Prepare`
+with the shared `.tmp/release-cache` passed at `2026-10-28T17:05:59.5490264Z`.
+All ten validation components were reused after fingerprint/artifact checks;
+the mandatory fresh dependency audit reports no known vulnerabilities.
+Production source digest remains
+`bdb733be391ad2120e4d2891eb4730df51bc638a710cbffd61a0932acde66d20`.
+Dev Prepare also passed with scope `None`, source digest
+`368b1024cab59895ef8d4f24bc090144e34a35ddeb16cc7691c09ebe67a42696`;
+this does not claim a new full test run or a dev backend deployment.
+
+Canonical production BuildImage reused its existing successful copy build
+`84a144e6-3867-4a34-be88-5ba8282f8f75`; staging ImageStatus reverified
+`fe7f9df1-ab0f-43e7-aa24-02f1c7b13880`. Both retain immutable digest
+`sha256:fb6a16cbee611183462938e19deb9aeaf79c283eadff475e4ab029a4e2a3c331`
+and successful strict benchmark evidence. No new image build was submitted.
+The production mutation lock was released. Logs use
+`candidate-bcb-{prepare-dev,prepare-prod,image-prod,image-staging}-resumed.log`
+under `.tmp/beta-checks`.
+
+Fresh staging readback still showed healthy paused issuer
+`runsessioncreate-00002-lrp` with 100% traffic and both queues PAUSED.
+Production's scheduled backup remains READY. `adb devices -l` reports no device;
+the previous checkpoint's attached-phone state is no longer current. Browser
+work and Play-delivered/device acceptance remain open; production service
+deployment is still gated on staging acceptance.
+
+Guarded staging recovery completed with `.tmp/beta-checks/recover_staging_bcb.ps1`
+from the frozen checkout. The lock-protected inspection at
+`2026-10-28T17:11:22.2623353Z` verified the same healthy paused issuer, both paused
+queues, no active builds, exactly one ACTIVE function, no Auth users and no
+Firestore collections. The old f44 record was conditionally replaced with bcb
+source digest `71ed90cfad8e455f9820a63d539da4e34d3dda589cc3112802b31c321655cba0`,
+cutover generation `1793207498100417`. Mutation lock `1793207435287224` was released.
+The before/after records and command log are
+`candidate-bcb-staging-recovery-{before,after}.json` and
+`candidate-bcb-staging-recovery-resumed.log`. Issuance remained paused.
+
+Sequential staging AOT completed with `prepare_android_serial_bcb.ps1
+-Environment staging`: ARM32, ARM64 and x64 symbol files are 3,904,292, 4,470,368
+and 4,469,408 bytes respectively. This is compilation evidence only; canonical
+BuildAndroid retains responsibility for signed packaging, inspection and uploads.
+The build reused all 3,750 navigation graphs, building zero. Its native bundle
+was generated at 17:29:52 UTC; final inspection/upload is still in progress.
+
+A bounded staging CLI drill is prepared in ignored evidence storage as
+`staging_bcb_smoke.{ps1,mjs}`; Node and PowerShell syntax checks passed, but no
+synthetic account or replay has been created yet. It requires canonical deployed/
+resumed state, uses a project mutation lock, one disabled temporary Auth account,
+two 1,800-tick Field replays, real queue/worker processing and the frozen domain
+transactions. Duplicate validation/settlement, projection and generation-pinned
+ghost reads are checked; cleanup uses the real account-deletion stages and clock.
+This does not exercise Play authentication, signed client upload grants, device
+recovery or the full capacity/acceptance matrix. Context7 was unavailable; the
+SDK/REST usage was checked against official
+[Admin credentials](https://firebase.google.com/docs/reference/admin/node/firebase-admin.app.credential),
+[Auth users](https://firebase.google.com/docs/auth/admin/manage-users),
+[Cloud Tasks](https://docs.cloud.google.com/tasks/docs/reference/rest/v2/projects.locations.queues.tasks/create)
+and [Storage insert](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/insert)
+documentation. No library or frozen source files were changed for this drill.
+
+Canonical staging `BuildAndroid -AndroidVersionCode 1` completed successfully at
+`2026-10-28T17:33:01.3528421Z`. Artifact SHA-256:
+`8e3c12cfa933e38060af554af79c317125bd367eb3774721af68fbfabd523914`,
+174,459,166 bytes, package `com.lothringen.longrun.staging`, version `1.0.0-staging`,
+min SDK 24 / target SDK 36. The configured upload certificate, all environment
+resources, 3,750 graphs, three ABIs, nine native libraries and 16 KB alignment
+passed. Crashlytics symbols uploaded successfully; mapping and all three Dart
+symbol files are retained with `android.json` under the frozen checkout's
+`.tmp/releases/lothringen-long-run-staging/71ed90cfad8e455f9820a63d539da4e34d3dda589cc3112802b31c321655cba0/android/staging/1/`.
+Mutation lock `1793207648215178` was released. This is a newly built bcb artifact,
+not a relabeled f44 artifact, and has not been uploaded to Google Play.
+
+After verifying the release Gradle daemon's last build belonged to bcb and its
+last state was idle, stopped only PID 34196 to release memory. The bounded
+`cleanup_completed_android.ps1 -Environment staging -Apply` then removed
+1,814,609,031 bytes of completed Android intermediates and Flutter compiler cache.
+All 11 retained files' hashes matched before/after; source stayed clean. Free
+space became 3,952,156,672 bytes at 17:37:21 UTC. Its separate plan/result records
+are `candidate-bcb-staging-completed-intermediate-cleanup-{plan,result}.json`.
+
+The first canonical staging `Deploy -CutoverReady -EnableInitialEventRetries`
+attempt reached the two missing event handlers, then failed during trigger
+creation with Eventarc service-agent permission propagation. No handler remained
+in live Functions inventory; the paused issuer remained ACTIVE. Readback confirms
+`service-943085064373@gcp-sa-eventarc.iam.gserviceaccount.com` already has
+`roles/eventarc.serviceAgent`, so no IAM role change was made. Google's
+[Eventarc troubleshooting guidance](https://docs.cloud.google.com/eventarc/docs/troubleshooting)
+documents this initial propagation delay. The source-bound cutover record remains;
+mutation lock `1793209021754844` was released. Failure log and inspection:
+`candidate-bcb-staging-eventarc-first-attempt.log`,
+`candidate-bcb-staging-eventarc-{iam,functions}.json`. Canonical retry is running
+with `FUNCTIONS_DISCOVERY_TIMEOUT=60`; it is not yet passing deployment evidence.
+
+The prepared replay drill now generates gzip payloads through the frozen Dart
+`RunTicket` / `ReplayBlobV1.withComputedDigest` codec, preserving positive frame
+ticks and replay-v1 double spelling. A local-only 1,800-frame round-trip passed,
+digest `31fc3798c4817d06c127b1bac44533f6d4ad8c598f33e08ad57db3e78fd49613`,
+4,837 compressed bytes. The local codec fixture was never sent to staging.
+
+Production and dev sequential AOT both completed for all three architectures.
+Production symbols are 3,904,292 / 4,470,368 / 4,469,408 bytes; dev symbols are
+3,904,016 / 4,470,048 / 4,469,080 bytes. Logs:
+`candidate-bcb-serial-{prod,dev}-resumed.log`. Signed packaging remains pending.
+
+The Eventarc retry successfully created both handlers at 17:52 UTC; canonical
+Deploy then continued with the remaining Functions, rules and indexes. No
+additional IAM role grant or source edit was needed. Completion of the whole
+stack is still pending. The CLI drill's first read-only SDK initialization failed
+because the Admin Firestore factory rejects a custom token credential. Using the
+installed Cloud Firestore client with an in-memory `GoogleAuth`/`OAuth2Client`
+resolved it; SDK type/source and the official
+[OAuth client reference](https://docs.cloud.google.com/nodejs/docs/reference/google-auth-library/latest/google-auth-library/oauth2client)
+were checked. Read-only retry confirms Auth and Firestore access, zero users and
+no collections at observation. No account or replay was created. Logs:
+`candidate-bcb-staging-sdk-check{,-retry}.log`.
+
+The canonical retry deployed every remaining staging Function and Firestore
+rules/index definitions successfully. `functionsDeployedAt` is
+`2026-10-28T17:57:38.1406004Z`. It then stopped as designed at
+`Confirm-ReleaseBackend` because indexes were still building; worker deployment
+and issuance resume have not run. Fresh readback shows 10 CREATING / 2 READY
+indexes in `candidate-bcb-staging-index-readiness.json`. The Functions checkpoint
+is retained, the issuer is still paused, and mutation lock `1793209470816128` was
+released. Rerunning canonical Deploy after readiness will reuse the completed
+Functions stage. Production `BuildAndroid -AndroidVersionCode 1` started during
+the index wait; it prepares the signed artifact only, not production services.
+
+Staging's next index readback shows all 12 READY in
+`candidate-bcb-staging-index-readiness-latest.json`. No second Functions rollout
+is needed for unchanged source; canonical Deploy still must verify the backend,
+deploy the worker and run board maintenance before resume.
+
+Canonical dev Inspect completed with live inventory at `2026-10-28T18:02:04.188Z`:
+worker `replay-validator-00059-ssr` is latest-created/latest-ready at 100% traffic;
+both queues are RUNNING and all nine scheduled jobs are ENABLED. All three
+expected current boards are present. There are five accepted/validated runs and
+five settled grants, no quarantined or stale pending settlements, no invalid
+leaderboard/ghost source references, and three current issued sessions. No user
+data was changed. Evidence: `candidate-bcb-inspect-dev-resumed.log` and the frozen
+dev release directory's `inventory.json`, `worker.json`, `queues.json`,
+`scheduler.json`, `functions.json`.
+
+Production packaging regenerated native compilation after switching flavors,
+then completed the Gradle bundle at 18:18:17 UTC. Canonical inspection/upload is
+still running, so this is not yet release-artifact acceptance. For the remaining
+dev package, run sequential AOT immediately before BuildAndroid; prior flavor
+preparation does not guarantee Flutter's shared build state stays reusable.
+Verified idle release-owned Gradle PID 18324 was stopped after its completed bcb
+build to release memory. No application source or user application was changed.
+
+Production canonical BuildAndroid completed at `2026-10-28T18:23:38.8711728Z`.
+The version-1 AAB is 174,459,293 bytes, SHA-256
+`0304e471ef42b931e57a661245d3b8b23cc279017028ea93dde75b8ff91eafab`.
+Package `com.lothringen.longrun`, version `1.0.0`, SDK 24/36, production Firebase/
+Play Games resources and upload certificate
+`6934f381b5cab46ced0084cb4dd7e6691ee84a4be98987ff09ce2882b36b67a4` passed.
+Archive checks verified 3,750 navigation graphs, all three ABIs, nine native
+libraries and 16 KB alignment. Symbols uploaded successfully; mapping, symbols,
+manifest and inspection APK/APKS are retained alongside `android.json` in
+`.tmp/releases/lothringen-long-run-prod/bdb733be391ad2120e4d2891eb4730df51bc638a710cbffd61a0932acde66d20/android/prod/1/`.
+Mutation lock `1793210427863506` was released. No Play upload or production service
+deployment occurred. Canonical staging Deploy is now continuing with the saved
+Functions checkpoint and READY indexes; log:
+`candidate-bcb-deploy-staging-index-ready.log`.
+
+Completed production-intermediate cleanup at 18:26:16 UTC removed 2,109,003,387
+bytes / 14,193 files; all 11 production artifact/metadata hashes still match.
+Free disk became 2,855,473,152 bytes. Evidence:
+`candidate-bcb-prod-completed-intermediate-cleanup-{plan,result}.json`.
+The final sequential dev AOT preparation passed afterward, recorded in
+`candidate-bcb-serial-dev-final.log`; no further flavor switch should precede
+its canonical APK packaging.
+
+Canonical staging Deploy completed at `2026-10-28T18:34:06.1272005Z`, with worker
+checkpoint `2026-10-28T18:33:40.1758786Z`. New revision
+`replay-validator-00001-rsg` is Ready, latest-created/latest-ready and serves 100%
+traffic. Live readback confirms the exact benchmarked `sha256:fb6a16c...a3c331`
+image, 1 CPU / 512 MiB, concurrency 1, maximum 10 instances and project-local
+`sa-replay-validator` identity. Both queues retain PAUSED state, configured at
+five dispatches/second and five concurrent dispatches. Board maintenance was
+invoked by the canonical command. The mutation lock `1793212055244721` was
+released; source-bound cutover ownership persists until verified resume.
+Readback: `candidate-bcb-staging-worker-verified.json`; command log:
+`candidate-bcb-deploy-staging-index-ready.log`. Guarded ResumeIssuance is now
+running, but issuance restoration is not yet claimed.
+
+Canonical staging `ResumeIssuance -CutoverReady` completed successfully;
+`issuanceResumedAt` is `2026-10-28T18:42:51.3373207Z`. The command verified the
+live artifacts/current boards, resumed both queues, deployed the issuer,
+removed its temporary compatibility gate and saved the verified baseline.
+It cleared the source-bound cutover record and released mutation lock
+`1793212609231588`. Log: `candidate-bcb-resume-staging.log`. The frozen candidate
+checkout remains clean. Play-linked authentication and device acceptance remain
+unrun; the prepared CLI inspection/drill follows this backend checkpoint.
+
+Live CLI HTTP inspection passed at `2026-10-28T18:44:49.637Z`: authenticated
+worker readiness 200, anonymous worker 403, unauthenticated ticket callable 401;
+zero Auth users before fixtures. The bounded drill then used one disabled
+synthetic account and dispatched both 1,800-frame replays at 18:47:20 UTC.
+Practice seed 14 ended at tick 728, score 475, one gold; competitive Field seed
+871327128 ended at tick 1047, score 685, two gold. Both were accepted and settled
+in about 2.7 / 4.4 seconds from finalize. They did not simulate all 1,800 ticks:
+both ended naturally in gaps. The practice immediate settlement request timed
+out at four seconds while durable settlement succeeded; evidence retains this
+fallback rather than treating it as a lost reward.
+
+The drill **failed** its 120-second leaderboard/ghost gate. Worker logs show
+`projection_unchanged` after 37 ms; no ghost was published. Duplicate delivery,
+wallet invariance and ghost-download assertions were not reached. Cleanup
+entered `quiet_wait` at `2026-10-28T18:49:57.370Z` using the real deletion clock;
+mutation lock `1793213205589008` was released. Logs/state:
+`candidate-bcb-staging-smoke{,-run.log,-worker-log.json,-metrics.json}`.
+Both queues were RUNNING and empty when metrics were collected at 18:55 UTC.
+This failed drill is not capacity or release acceptance.
+
+Investigation reproduced a Firestore decoder bug: `mapValue: {}` and
+`arrayValue: {}` became null when REST omitted nested members. The valid empty
+`codex.enemyKills` map then made both projection stores discard the accepted
+`ValidatedRun`. Context7 remains unavailable; the official
+[Firestore Value reference](https://docs.cloud.google.com/firestore/docs/reference/rest/v1/Value)
+and installed SDK types were checked. The source fix retains empty collection
+types without changing validation, gameplay, compatibility or protocol fields.
+Added regressions cover empty/nested values and both real projection readers
+using an HTTP fixture with empty kill evidence. Before-fix regression fails;
+after-fix three tests pass. From `services/replay_validator`, `dart analyze`,
+`dart test test --reporter=expanded` (301 tests), and `dart compile exe
+bin/server.dart -o ../../.tmp/beta-checks/empty-firestore-values-validator.exe`
+all passed. Logs: `empty-firestore-values-{regression-before,regression-after,
+analyze,worker-tests,compile}.log`. These are local/mocked checks; a replacement
+frozen candidate and live staging retest are still required.
+
+The validated fix is committed as `c8b353a6e332bad701b6c044d4d138cc17e64b85`.
+Canonical Checkout created its clean LF worktree and copied each environment's
+configuration through the matching explicit dev/staging/prod action. The bcb
+checkout remains clean and unchanged. Its abandoned native intermediates were
+removed separately (294,536,061 bytes), verifying all 11 retained production
+artifact hashes; evidence is `candidate-bcb-superseded-intermediate-cleanup-*.json`.
+Canonical c8b staging Prepare is rerunning the four changed validation components
+and reusing six checked unchanged components; current output is not yet a pass.
+
+The bcb synthetic account's real deletion quiet period elapsed, and the cleanup
+command completed at `2026-10-28T19:05:11.899Z`. It verified Auth absence, canonical
+profile/run/grant/validated-result absence, no board best/view/ghost entry and
+absence of all recorded pending/validated/ghost artifacts. The compact completed
+deletion tombstone retains its normal 30-day expiry. Mutation lock
+`1793214272491703` was released. Evidence:
+`candidate-bcb-staging-smoke-cleanup.log` and updated drill JSON. No owner's dev
+account or production data was used or deleted.
+
+Canonical c8b staging Prepare passed at `2026-10-28T19:24:17.0142373Z`, source
+digest `9c12c7d2105803296844a8b53b118af89524f89f769150b484e59f8a8bc3f604`.
+Fresh checks: 269 Functions tests, production build/inventory checks, 1,348 client
+tests with one existing platform skip (the web-only fresh-install launch test),
+301 worker tests and the AOT protocol probe. Client/lib/test/test_driver and worker
+analysis passed; advisory audit found no vulnerabilities. Six unchanged components
+were verified/reused, including the web artifact. The candidate also includes
+already-committed message-console work from the main branch; its Functions input
+changes were revalidated, not mislabeled unchanged. New component durations:
+Functions checks 330 s, Functions build 38 s, client checks 1,067 s, worker checks
+141 s. Log: `candidate-c8b-prepare-staging.log` and candidate release evidence.
+
+Dev/prod Prepare subsequently passed using the verified ten-component cache and
+fresh advisory audits. Their respective source digests are
+`3c1b12893ebba736a70ab1f8931451de1ba81df65a2dde51a6fa5039873be529` and
+`0f6e94f5572b161b0b3b5b652da51983bcdb725a992af4d706cd19020e7cc918`.
+The candidate branch now points to c8b. Navigation reuse compared unchanged
+Android/runtime inputs and verified all 3,753 files / 31,441,085 bytes against
+bcb, including 3,750 graphs; manifest SHA-256
+`6f65c41f501cc9618ecefd8ae3349d037656aacb567935ab81268f8639a812bd`.
+Canonical BuildAndroid still checks freshness and packaged bytes. Staging AOT
+completed for all three ABIs (3,904,292 / 4,470,368 / 4,469,408 symbol bytes).
+Evidence: `candidate-c8b-navigation-reuse.json`, `candidate-c8b-serial-staging.log`.
+
+Canonical staging BuildImage started Cloud Build
+`32238450-f739-4eb3-8c4b-c4cefc9fc06c` at 19:27:38 UTC, tag
+`release-9c12c7d21058-20261028192728`; mutation lock `1793215648752984` was released.
+It is still WORKING, so no corrected image/deployment acceptance is claimed yet.
+No c8b cloud runtime cutover or signed Android packaging has happened yet.
+
+Additional bounded disk cleanup retained unique artifact bytes: six duplicate
+APK/AAB/mapping files removed at 19:38 UTC (873,428,802 bytes), with every retained
+counterpart hash verified. Three old web output trees were byte-identical to c8b's
+verified cached web artifact (4,488 files each, tree digest
+`e256d366cc7a0a08dad2f8ac64673edaf1d918d756e33a41327d8862c49a4875`);
+removing them at 19:49 UTC recovered 541,269,378 bytes. Old checkout source and
+signed Android artifacts remain; those old web paths require cache restoration
+before any future use. Six imported CI artifact copies were verified against
+their canonical component caches and removed at 19:56 UTC (494,936,256 bytes).
+Import bundle/component metadata and validation logs remain, and retained caches
+passed verification again afterward. Evidence: `release-output-deduplication-*`,
+`old-web-deduplication-*`, `import-artifact-deduplication-*`. Free C: space was
+4,114,898,944 bytes after these operations.
+
+Staging c8b BuildAndroid version 1 has now started. The earlier BuildImage
+submission command completed and released its lock before this independent
+operator action; its asynchronous Cloud Build continues from the uploaded
+immutable source snapshot. No operator release commands overlap. Image creation
+is regenerating the full server navigation plan (38 routes), so its completion
+and strict final-image benchmark remain pending. The staging AOT outputs have
+not been invalidated by a flavor switch. Log: `candidate-c8b-android-staging.log`.
+
+The first c8b BuildAndroid attempt stopped in preflight because the clean checkout
+had no ignored `android/gradlew.bat`; lock `1793217419532801` was released. At
+`2026-10-28T20:01:18.4069997Z`, the three missing generated wrapper files were
+materialized from the pinned Flutter 3.47.1 SDK's own wrapper cache, following
+its installed `GradleUtils.injectGradleWrapperIfNeeded` implementation. Each
+copied hash matched, existing Gradle distribution properties were preserved,
+and the candidate remained clean. Evidence:
+`candidate-c8b-gradle-wrapper-bootstrap.json`. This is environment preparation,
+not a source or dependency change. For future cold checkouts, the documented
+`flutter build apk --config-only --flavor dev --release` initializes the same
+ignored wrapper before canonical BuildAndroid. The staging retry acquired lock
+`1793217731486308` and reached Gradle packaging. Its still-pending result is in
+`candidate-c8b-android-staging-retry.log`; the initial failure remains preserved.
+
+A read-only Play Developer API capability check at `2026-10-28T20:10:19.3626168Z`
+returned HTTP 403 / `ACCESS_TOKEN_SCOPE_INSUFFICIENT` for both app packages using
+the existing CLI login. No Play edit, upload or publication occurred. The
+[device-tier configuration list endpoint](https://developers.google.com/android-publisher/api-ref/rest/v3/applications.deviceTierConfigs/list)
+requires the Android Publisher OAuth scope; current cloud credentials cannot
+replace a Play-authorized browser/API login. Evidence: `play-api-cli-access.json`.
+This establishes a concrete access blocker for browser-free Play publication,
+not a conclusion about the developer account's underlying app permissions.
+
+Before the corrected runtime is deployed, the c8b live drill is prepared for a
+bounded five-submission burst on one disabled synthetic account: Practice Field
+and Forest, both current Competitive boards, and the current Weekly board. All
+ranked projections must expose their exact run and generation-pinned ghost;
+duplicate validation/settlement must leave wallet and canonical revision unchanged.
+Predetermined limits are 60 seconds for observed validation plus settlement,
+120 seconds for projection, sampled memory below 85% of the worker limit, and
+300 CPU-seconds / 150 GiB-seconds of worker allocation in the observed window.
+Resource allocation is a bounded cost proxy, not a billing total. Each payload
+has 1,800 input frames; natural early termination is recorded and does not prove
+full-run duration/capacity. Queue snapshots, actual terminal ticks, metrics and
+the real account-deletion quiet period remain required evidence. This is a
+prepared check, not a pass or Play/device acceptance.
+
+Canonical c8b staging BuildAndroid passed at `2026-10-28T20:29:57.7921679Z`.
+Version 1 / `1.0.0-staging`, package `com.lothringen.longrun.staging`, SDK 24/36,
+AAB SHA-256 `f9db4dd6d2b15ca406b37c322450ad607c1a61d96019ed4d9ab1cf4a4b291699`,
+174,459,163 bytes. Actual native resources/signing, 3,750 navigation graphs,
+all three ABIs / nine native libraries and 16 KB ELF alignment passed;
+Crashlytics symbols uploaded. Mutation lock `1793217731486308` was released.
+Its completed native intermediates were removed at 20:33 UTC, recovering
+1,814,609,139 bytes while all 11 retained artifact hashes matched. Evidence:
+`candidate-c8b-staging-completed-intermediate-cleanup-{plan,result}.json`.
+
+Memory pressure was relieved only after packaging completed: the verified idle
+staging Gradle daemon 14212 was stopped. An earlier attempt to stop old Kotlin
+daemon 20584 was aborted because its CPU changed. Once no Gradle clients/daemons
+remained, its old release parent 34196 was confirmed absent and that orphan
+compiler was stopped, releasing 2,150,285,312 committed bytes. Evidence:
+`candidate-c8b-staging-gradle-idle.json` and
+`candidate-bcb-orphan-kotlin-cleanup.json`. User applications stayed open.
+Production sequential AOT is now running; production runtime remains undeployed.

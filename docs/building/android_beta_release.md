@@ -1,6 +1,7 @@
 # Android beta release with dev, staging and production
 
-Status: executing; started October 26, 2026. This is the
+Status: resumed October 28, 2026 (Helsinki) for all work that does not require
+browser access; started October 26, 2026. This is the
 active checklist for reusing the existing project for development, creating
 isolated staging and production backends, and releasing an Android beta through
 Google Play. Team expansion and internal release-candidate testing make staging
@@ -16,9 +17,103 @@ setup, use of the existing billing account, deployments, maintenance/pause/resum
 and internal/closed Play publication. Public rollout remains excluded. Complete
 reviewable preparation and retain all non-waived acceptance gates.
 
-## Execution checkpoint - October 27, 2026
+## Execution checkpoint - October 28, 2026
 
-Frozen candidate: `f44ab755bd173b352be5f5d9c63c293b911def64`, including completed
+October 28 continuation: the owner requested all remaining work that can proceed
+without browser access. Continue the corrected frozen c8b candidate through
+native artifacts, guarded staging deployment and available CLI acceptance checks.
+Play-delivered staging acceptance still gates production deployment. Browser-only
+configuration/publication and the dedicated reviewer-account handoff remain open.
+
+Current candidate: `c8b353a6e332bad701b6c044d4d138cc17e64b85`. Prepare passed for
+all three environments. Its staging version 1 AAB passed canonical verification
+and symbol upload at 20:29 UTC, SHA-256
+`f9db4dd6d2b15ca406b37c322450ad607c1a61d96019ed4d9ab1cf4a4b291699`.
+Production sequential AOT is running, and the corrected validator image is still
+building. The live staging runtime is still the preceding bcb deployment below;
+the c8b cutover and five-submission replay/projection retest remain pending.
+The CLI's existing cloud login cannot access the Play publishing API: both apps
+return HTTP 403 for insufficient OAuth scope. No Android device is attached.
+
+Previous bcb CLI progress: dev and production Prepare passed; staging preparation and
+both destination images remain verified. All ten production validation components
+were reused only after input/artifact checks; the fresh advisory audit passed.
+Guarded recovery at 17:11 UTC transferred staging's cutover record to bcb after
+fresh empty-project, paused-issuer/queues and no-active-build checks. Staging AOT
+completed for all three ABIs. Canonical staging BuildAndroid passed at 17:33 UTC,
+including signing/resources/assets, 16 KB checks and symbol upload. Version 1 AAB
+SHA-256: `8e3c12cfa933e38060af554af79c317125bd367eb3774721af68fbfabd523914`.
+After the first Eventarc propagation failure, the retry deployed all staging
+Functions, rules and index definitions at 17:57 UTC. It stopped at the index
+readiness gate: 10 CREATING / 2 READY on immediate readback. Its checkpoint was
+reused after all 12 staging indexes became READY. Canonical Deploy passed at 18:34 UTC, with
+worker `replay-validator-00001-rsg` Ready at 100% traffic on the verified image.
+Guarded ResumeIssuance passed at 18:42 UTC; its source-bound cutover record was
+cleared and mutation lock released. Production BuildAndroid passed at 18:23 UTC,
+version 1 / `1.0.0`, AAB SHA-256
+`0304e471ef42b931e57a661245d3b8b23cc279017028ea93dde75b8ff91eafab`,
+including production signing/resources and symbol upload. Dev packaging and
+staging CLI acceptance remain. No production service deployment has
+occurred. No Android device is currently attached.
+
+Staging acceptance found a blocker at 18:49 UTC: both synthetic replays were
+accepted and settled, but leaderboard/ghost projection timed out. The worker
+decoded an empty Firestore map as null, invalidating runs whose Codex kill map
+was empty. The regression reproduces this locally; the decoder fix preserves
+empty maps/arrays. All 301 worker tests, analysis and executable compilation
+pass. Replacement candidate `c8b353a6e332bad701b6c044d4d138cc17e64b85` is frozen
+in its canonical clean checkout and pushed to the candidate branch. Prepare has
+passed for all three environments; the corrected staging worker image is building.
+Staging signed packaging passed for all three architectures. Complete the
+remaining native artifacts, guarded deployment and live drill. The bcb artifacts retain their original
+identity and are not an accepted release. Its temporary account/data cleanup
+passed at 19:05 UTC after the real quiet period; only the intended tombstone remains.
+
+Previous pause, October 27 at 22:10 UTC / 00:10 Helsinki: both active local commands were interrupted
+and returned exit 1: the remaining preparation/image loop and staging sequential
+AOT compilation. This was an owner-requested pause, not a passing build result.
+Staging Prepare passed at 22:07:11 UTC, source digest
+`71ed90cfad8e455f9820a63d539da4e34d3dda589cc3112802b31c321655cba0`;
+its cached immutable image was verified and the mutation lock released. Production
+Prepare is incomplete; final-candidate dev Prepare has not started. Staging AOT
+has only ARM32 symbols, so native packaging is not ready. No new cutover recovery
+or deployment was performed. Dev remains online; staging remains paused under
+the preceding f44 cutover record; production has no game deployment.
+
+The owner authorizes cleaning unused `.tmp` content to free space, then explicitly
+requested this pause. Resume with a bounded inventory/cleanup, preserving active
+candidate source, final artifacts/symbols, verified caches and release evidence.
+Do not wipe `.tmp`: it contains the frozen candidate and the only local copies
+of signed builds. About 4.75 GB was free at pause. The dedicated reviewer account
+has not been created. Browser connection remains unavailable.
+
+Temporary cleanup completed on October 28 at 18:45 Helsinki. Removed 38 unused
+build/test/profile directories (6.22 GiB); C: had 6.58 GiB free afterward.
+All 251 retained artifact/metadata hashes matched and all 12 release checkouts
+remained clean, including the frozen bcb candidate. Source, signed builds,
+symbols, navigation data, shared release caches and release evidence are retained.
+Details: `.tmp/beta-checks/tmp-cleanup-{plan,result,verification}.json` and the
+linked verification record. Preparation resumed after this cleanup checkpoint.
+
+Previous bcb resume helpers/logs live in `.tmp/beta-checks/`: `prepare_android_serial_bcb.ps1`,
+`recover_staging_bcb.ps1`, `candidate-bcb-*`. Guarded recovery is now complete;
+the original record and fresh inspection are retained in the evidence. Current
+c8b work is listed above and in Next action. Reuse evidence only for unchanged
+inputs; do not deploy production before non-waived staging acceptance.
+
+Preceding frozen candidate: `bcb59300e98c3563adc3ca32bddcd89c2813cedb`, pushed to
+`release/android-beta-browser-check`. It adds the validated, explicit initial
+event-retry acknowledgement and generated Crashlytics-cache ignore. Comparison
+of its clean LF checkout against `f44ab755` passed all 32 checks: ten validation
+components, Android build inputs and seven runtime/environment groups for each
+project. Its staging/prod bundles completed, but the October 28 CLI drill found
+the projection blocker above; its artifacts retain their original commit identity.
+Production's first scheduled Firestore
+backup is now verified READY, snapshot October 27 at 21:33:42 UTC, expiring
+November 3 at the same time. Chrome's native pipe and browser inventory remain
+unavailable after the latest owner-reported reconnect.
+
+Previous frozen candidate: `f44ab755bd173b352be5f5d9c63c293b911def64`, including completed
 board retention/account erasure, Unicode release fingerprints, production Play
 identities/App Check, current-board readiness, cold Android asset preparation and
 verified cross-environment worker-image reuse. Its isolated LF checkout is
@@ -766,12 +861,15 @@ Play-delivered device QA and candidate acceptance.
 - [x] Run relevant client/Core/protocol/Functions/worker checks and generated
   content freshness. Follow the traversal workflow for included level/navigation
   changes; record levels, seeds, enemies, horizons and exclusions.
-- [x] Prepare navigation graphs and run the strict benchmark on the final worker
+- [ ] Prepare navigation graphs and run the strict benchmark on the final worker
   image. Reuse valid preparation evidence and retain required coverage; do not
   repeat this work for unrelated UI changes.
+  The prior bcb image passed; corrected c8b image/benchmark is in progress.
 - [ ] Freeze the candidate commit and deploy its complete stack to staging.
   Hold it stable for the test session while dev work continues. Record who
   accepts the candidate; a fix selects a new commit and repeats affected checks.
+  Prior bcb deployment/resume passed October 28; its CLI drill found the
+  projection blocker. The c8b replacement is frozen but not yet deployed.
 - [ ] Install the staging release through its separate Play internal track. Verify
   real Play Integrity and Play Games sign-in, including a fresh tester account.
 - [ ] Exercise issuance, replay upload/acceptance, exactly-once rewards, wallet
@@ -1043,12 +1141,11 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: freeze the validated initial-event-retry tooling correction, compare
-application fingerprints in LF checkouts, prepare using matching evidence and
-record recovery of the paused staging cutover before deploying with the explicit
-acknowledgement. Complete staging readiness/resume and final Android artifacts.
-Restore Chrome control for Play upload/publication and continue the physical-device
-acceptance matrix. Deploy production only after non-waived
-staging acceptance. Public policy, all worker images, dev deployment and verified
-dev/staging Android artifacts are complete; no Play bundle is uploaded/released.
-Do not repeat completed setup or treat local validation as live acceptance.
+Next action: finish the corrected worker image build/benchmark for replacement
+candidate `c8b353a6` and perform the guarded staging cutover.
+Repeat the bounded live drill and finalize its Android artifacts; preserve all
+bcb failure evidence and original artifact identities. Then continue the Play
+upload/publication and physical-device acceptance matrix when browser/device
+access is available. Deploy production only after non-waived staging acceptance.
+No Play bundle has been uploaded/released. Do not repeat completed setup or treat
+local validation as live acceptance.
