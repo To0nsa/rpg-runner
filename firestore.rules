@@ -7,6 +7,9 @@ service cloud.firestore {
     match /inbox_rewards/{messageId} {
       allow read, write: if false;
     }
+    match /inbox_receipts/{messageId} {
+      allow read, write: if false;
+    }
     match /inbox_summaries/{uid} {
       allow read, write: if false;
     }

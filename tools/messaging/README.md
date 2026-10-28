@@ -86,7 +86,13 @@ Imported drafts retain their environment and still require preview before send.
 The confirmation records environment, project, UID, deterministic message ID and
 confirmation time. It means delivery succeeded or an identical delivery already
 existed; it does not imply the player read the message or claimed its gold.
-The backend retains the immutable contents, source identity and claim receipt.
+While a message is active, the backend retains its immutable contents, source
+identity and claim record.
+After player deletion or automatic 30-day cleanup, a compact receipt retains
+source identity, a content hash and claim result; the message text is removed.
+An identical delivery retry still succeeds without recreating the message.
+Unclaimed gifts never expire. Claimed gifts become eligible for cleanup 30 days
+after claim; information messages 30 days after first read.
 This first version does not add a durable operator-identity audit log.
 
 ## Validation

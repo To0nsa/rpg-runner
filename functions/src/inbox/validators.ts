@@ -3,18 +3,20 @@ import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
 import { requireObject } from "../ownership/validators.js";
 import type { InboxCursor } from "./contracts.js";
 
+export type InboxOperation = "summary" | "list" | "read" | "claim" | "delete";
+
 /** Reject unknown fields so clients cannot supply sender or reward contents. */
-export function parseInboxRequest(raw: unknown, operation: "summary" | "list" | "read" | "claim") {
+export function parseInboxRequest(raw: unknown, operation: InboxOperation) {
   assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
   const allowed = ["userId", ...(operation === "list" ? ["cursor"] : []),
-    ...(operation === "read" || operation === "claim" ? ["messageId"] : []),
+    ...(["read", "claim", "delete"].includes(operation) ? ["messageId"] : []),
     ...(operation === "claim" ? ["commandId", "expectedRevision"] : [])];
   if (Object.keys(data).some((key) => !allowed.includes(key))) {
     throw new HttpsError("invalid-argument", "Unsupported inbox request field.");
   }
   const userId = boundedText(data.userId, "userId", 128);
-  const messageId = operation === "read" || operation === "claim"
+  const messageId = ["read", "claim", "delete"].includes(operation)
     ? documentId(data.messageId, "messageId") : undefined;
   let cursor: InboxCursor | undefined;
   if (operation === "list" && data.cursor != null) {

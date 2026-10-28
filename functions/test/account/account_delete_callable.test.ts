@@ -57,6 +57,7 @@ beforeEach(async () => {
       "reward_grants",
       "system_messages",
       "inbox_rewards",
+      "inbox_receipts",
       "inbox_summaries",
     ].map((collection) => clearCollection(db, collection)),
   );
@@ -214,6 +215,7 @@ test("bounded workflow erases large account, catches reinsertion, then deletes a
     "reward_grants",
     "system_messages",
     "inbox_rewards",
+    "inbox_receipts",
     "inbox_summaries",
     "ghost_runs",
     "leaderboard_ghost_runs",
@@ -780,7 +782,7 @@ async function seedLargeAccount(args: {
       uid: args.uid,
       runSessionId: `run_${suffix}`,
     });
-    for (const collection of ["system_messages", "inbox_rewards", "inbox_summaries"]) {
+    for (const collection of ["system_messages", "inbox_rewards", "inbox_receipts", "inbox_summaries"]) {
       await args.db.collection(collection).doc(`inbox_${suffix}`).set({ uid: args.uid });
       await args.db.collection(collection).doc("other_account").set({ uid: args.otherUid });
     }
@@ -859,6 +861,7 @@ async function seedDeletionStageArtifact(args: {
     reward_grants: { collection: "reward_grants", uidField: "uid" },
     system_messages: { collection: "system_messages", uidField: "uid" },
     inbox_rewards: { collection: "inbox_rewards", uidField: "uid" },
+    inbox_receipts: { collection: "inbox_receipts", uidField: "uid" },
     inbox_summaries: { collection: "inbox_summaries", uidField: "uid" },
     ghost_runs_uid: { collection: "ghost_runs", uidField: "uid" },
     ghost_runs_user_id: {

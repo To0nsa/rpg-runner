@@ -21,9 +21,19 @@ unclaimed gifts. It clears only when both are empty. Rows label unread mail
 and available/claimed gifts. The dot is reusable UI; Library/Store discovery
 policies are future work.
 
-Gifts do not expire; this version has no message deletion. The flat reward is
-temporary balance policy until individual level rewards are designed. Already
-issued gifts retain their promised amount. Item grants are not implemented.
+Unclaimed gifts never expire. Claimed gift messages are automatically removed
+after 30 days from claiming. Information messages stay until read, then are
+automatically removed after 30 days from the first read. Cleanup runs periodically;
+reading again does not restart the timer.
+
+Players can use **Delete message** to remove information or claimed gift messages
+immediately. Unclaimed gifts have deletion disabled with "Claim your gold before
+deleting this message." Deletion updates inbox attention and leaves claimed gold
+in the wallet. Failed requests can be retried safely.
+
+The flat level reward is temporary balance policy until individual level rewards
+are designed. Already issued gifts retain their promised amount. Item grants are
+not implemented.
 
 The inbox provides refresh and retry actions. Attention refreshes periodically
 while foregrounded; system mail is not live chat. Future player messaging is

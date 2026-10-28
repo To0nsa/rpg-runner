@@ -34,4 +34,5 @@ export const inboxCollections = {
   messages: "system_messages",
   rewards: "inbox_rewards",
   summaries: "inbox_summaries",
+  receipts: "inbox_receipts",
 } as const;

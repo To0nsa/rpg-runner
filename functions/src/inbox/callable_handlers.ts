@@ -2,13 +2,13 @@ import type { Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { assertAccountActive } from "../account/deletion_guard.js";
 import { consumeUserQuota } from "../abuse/quota.js";
-import { parseInboxRequest } from "./validators.js";
-import { claimInboxReward, listInbox, loadInboxSummary, markInboxMessageRead } from "./store.js";
+import { parseInboxRequest, type InboxOperation } from "./validators.js";
+import { claimInboxReward, deleteInboxMessage, listInbox, loadInboxSummary, markInboxMessageRead } from "./store.js";
 
 /** Authenticated inbox surface; reward issuance is never exposed to players. */
 export async function handleInboxRequest(
   request: { auth?: { uid?: string } | null; data: unknown }, db: Firestore,
-  operation: "summary" | "list" | "read" | "claim",
+  operation: InboxOperation,
 ) {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Authentication required.");
@@ -20,6 +20,7 @@ export async function handleInboxRequest(
     case "summary": return { summary: await loadInboxSummary(db, uid) };
     case "list": return listInbox(db, uid, parsed.cursor);
     case "read": return markInboxMessageRead(db, uid, parsed.messageId!);
+    case "delete": return deleteInboxMessage({ db, uid, messageId: parsed.messageId! });
     case "claim": return claimInboxReward({ db, uid, messageId: parsed.messageId!,
       commandId: parsed.commandId!, expectedRevision: parsed.expectedRevision! });
   }

@@ -46,11 +46,13 @@ in ownership, run, leaderboard, and ghost handlers.
 ## App Check rollout contract
 
 System inbox callables (`inboxLoadSummary`, `inboxList`, `inboxMarkRead`,
-`inboxClaimReward`) follow these identity, payload and deletion rules. The
+`inboxClaimReward`, `inboxDeleteMessage`) follow these identity, payload and
+deletion rules. The
 `inbox_read` and `inbox_write` routes collect one-minute/day telemetry in monitor
 mode without numerical limits, including when established routes use global
 enforcement. Select inbox enforcement limits after recording normal traffic.
-Issuing messages is a privileged operator/server path, not a callable.
+Message deletion consumes `inbox_write` quota after UID validation and the account
+deletion check. Issuing messages is a privileged operator/server path, not a callable.
 See [system inbox](system_inbox.md).
 
 All user callable exports set Firebase Functions v2 `enforceAppCheck` from

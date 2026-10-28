@@ -13,6 +13,13 @@ abstract interface class InboxApi {
     required String messageId,
   });
 
+  /// Removes an eligible message once and returns the acknowledged inbox counts.
+  /// Unclaimed gifts are protected; retries after successful deletion are safe.
+  Future<InboxSummary> deleteMessage({
+    required String userId,
+    required String messageId,
+  });
+
   /// Claims a stored attachment with ownership revision and command identity.
   /// Retrying an already claimed gift must never credit the wallet again.
   Future<InboxClaimResult> claim({

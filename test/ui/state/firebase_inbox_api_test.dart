@@ -5,6 +5,41 @@ import 'package:rpg_runner/ui/state/inbox/inbox_models.dart';
 import '../test_support/inbox_fixture.dart';
 
 void main() {
+  test(
+    'delete requires an explicit matching receipt and sends only identity',
+    () async {
+      final source = _Source({
+        'messageId': 'info',
+        'deleted': true,
+        'summary': {'revision': 2, 'unreadCount': 0, 'unclaimedCount': 0},
+      });
+      final api = FirebaseInboxApi(source: source);
+      final summary = await api.deleteMessage(userId: 'uid', messageId: 'info');
+      expect(summary.revision, 2);
+      expect(source.lastName, 'inboxDeleteMessage');
+      expect(source.lastData, {'userId': 'uid', 'messageId': 'info'});
+      for (final invalid in [null, false, 'true', 1]) {
+        source.response['deleted'] = invalid;
+        await expectLater(
+          api.deleteMessage(userId: 'uid', messageId: 'info'),
+          throwsFormatException,
+        );
+      }
+      source.response['deleted'] = true;
+      source.response['messageId'] = 'other';
+      await expectLater(
+        api.deleteMessage(userId: 'uid', messageId: 'info'),
+        throwsFormatException,
+      );
+      source.response['messageId'] = 'info';
+      source.response.remove('summary');
+      await expectLater(
+        api.deleteMessage(userId: 'uid', messageId: 'info'),
+        throwsFormatException,
+      );
+    },
+  );
+
   final message = <String, Object?>{
     'schemaVersion': 1,
     'id': 'gift',

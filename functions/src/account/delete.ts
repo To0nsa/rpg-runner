@@ -64,6 +64,7 @@ export const accountDeletionStages = [
   "reward_grants",
   "system_messages",
   "inbox_rewards",
+  "inbox_receipts",
   "inbox_summaries",
   "ghost_runs_uid",
   "ghost_runs_user_id",
@@ -713,10 +714,12 @@ async function executeStage(args: {
       });
     case "system_messages":
     case "inbox_rewards":
+    case "inbox_receipts":
     case "inbox_summaries":
       return deleteSimpleUidPage({ ...args,
         collection: args.deletion.stage === "system_messages" ? inboxCollections.messages
-          : args.deletion.stage === "inbox_rewards" ? inboxCollections.rewards : inboxCollections.summaries,
+          : args.deletion.stage === "inbox_rewards" ? inboxCollections.rewards
+          : args.deletion.stage === "inbox_receipts" ? inboxCollections.receipts : inboxCollections.summaries,
         counter: "inboxDocs" });
     case "board_ghosts":
       return deleteBoardGhostPage(args);

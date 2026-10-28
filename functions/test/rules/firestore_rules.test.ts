@@ -33,6 +33,7 @@ const serverOwnedDocumentPaths = [
   "reward_grants/run_1",
   "system_messages/message_1",
   "inbox_rewards/message_1",
+  "inbox_receipts/message_1",
   "inbox_summaries/uid_1",
   "leaderboard_boards/board_1",
   "leaderboard_boards/board_1/player_bests/uid_1",

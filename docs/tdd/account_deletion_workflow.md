@@ -3,9 +3,10 @@
 ## Status
 
 The system inbox adds explicit resumable stages for `system_messages`,
-`inbox_rewards` and `inbox_summaries`, all queried by recipient UID. Issuing,
-reading and claiming are fenced by the deletion tombstone. Client acceptance
-also clears inbox attention/state and invalidates late responses. These inbox
+`inbox_rewards`, `inbox_receipts` and `inbox_summaries`, all queried by recipient UID.
+Issuing, reading, claiming, message deletion and retention repair are fenced by the
+deletion tombstone. Compact inbox receipts have no expiry until account erasure.
+Client acceptance also clears inbox attention/state and invalidates late responses. These inbox
 extensions are locally implemented; the historical deployment evidence below
 does not cover them. See [system inbox](system_inbox.md).
 

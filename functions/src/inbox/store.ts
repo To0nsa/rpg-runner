@@ -12,6 +12,7 @@ import {
 import type { OwnershipCommandResult } from "../ownership/contracts.js";
 import { inboxCollections, type InboxCursor, type InboxSummary, type SystemMessage } from "./contracts.js";
 import { boundedText, safeInteger } from "./validators.js";
+import { inboxMessageExpiry } from "./retention_policy.js";
 
 const pageSize = 20;
 export const emptyInboxSummary: InboxSummary = { revision: 0, unreadCount: 0, unclaimedCount: 0 };
@@ -19,6 +20,22 @@ export const emptyInboxSummary: InboxSummary = { revision: 0, unreadCount: 0, un
 /** Delivery identity survives text edits, policy changes and request retries. */
 export function systemMessageId(uid: string, sourceId: string): string {
   return createHash("sha256").update(JSON.stringify([uid, sourceId])).digest("hex");
+}
+
+function contentHash(message: SystemMessage): string {
+  return createHash("sha256").update(JSON.stringify([
+    message.uid, message.sourceId, message.title, message.body, message.rewards,
+  ])).digest("hex");
+}
+
+function readRemovalReceipt(raw: DocumentData, id: string, uid: string) {
+  if (raw.uid !== uid) throw new HttpsError("not-found", "Message not found.");
+  if (raw.schemaVersion !== 1 || raw.messageId !== id ||
+      typeof raw.contentHash !== "string" || !/^[a-f0-9]{64}$/.test(raw.contentHash)) {
+    throw new HttpsError("failed-precondition", "Invalid message removal receipt.");
+  }
+  safeInteger(raw.deletedAtMs, "deletedAtMs");
+  return raw;
 }
 
 export function readInboxSummary(raw: DocumentData | undefined): InboxSummary {
@@ -104,8 +121,17 @@ export async function prepareSystemMessages(args: {
   const summaryRef = args.db.collection(inboxCollections.summaries).doc(args.uid);
   const summary = readInboxSummary((await args.tx.get(summaryRef)).data());
   const refs = messages.map((message) => args.db.collection(inboxCollections.messages).doc(message.id));
-  const existing = await args.tx.getAll(...refs);
+  const existing = await args.tx.getAll(...refs,
+    ...messages.map((message) => args.db.collection(inboxCollections.receipts).doc(message.id)));
   const pending = messages.filter((message, index) => {
+    const removed = existing[index + messages.length].data();
+    if (removed) {
+      const receipt = readRemovalReceipt(removed, message.id, args.uid);
+      if (receipt.contentHash !== contentHash(message)) {
+        throw new HttpsError("already-exists", "Delivery identity was reused with different content.");
+      }
+      return false;
+    }
     if (!existing[index].exists) return true;
     const previous = decodeSystemMessage(existing[index].data(), message.id, args.uid);
     if (previous.sourceId !== message.sourceId || previous.title !== message.title ||
@@ -122,7 +148,7 @@ export async function prepareSystemMessages(args: {
   return () => {
     if (updatedSummary === null) return;
     for (const message of pending) {
-      args.tx.create(args.db.collection(inboxCollections.messages).doc(message.id), message);
+      args.tx.create(args.db.collection(inboxCollections.messages).doc(message.id), { ...message, expiresAtMs: null });
       if (message.rewards.length > 0) {
         args.tx.create(args.db.collection(inboxCollections.rewards).doc(message.id), {
           uid: args.uid, messageId: message.id, rewards: message.rewards, claimedAtMs: null,
@@ -186,7 +212,7 @@ export async function markInboxMessageRead(db: Firestore, uid: string, messageId
     if (message.readAtMs === null) {
       message.readAtMs = nowMs;
       summary = nextSummary(summary, -1, 0);
-      tx.update(ref, { readAtMs: nowMs });
+      tx.update(ref, { readAtMs: nowMs, expiresAtMs: inboxMessageExpiry(message) });
       tx.set(summaryRef, { uid, ...summary });
     }
     return { message, summary };
@@ -232,7 +258,7 @@ export async function claimInboxReward(args: {
         canonical.revision = safeInteger(canonical.revision + 1, "ownership revision");
         message.claimedAtMs = nowMs;
         summary = nextSummary(summary, 0, -1);
-        tx.update(messageRef, { claimedAtMs: nowMs });
+        tx.update(messageRef, { claimedAtMs: nowMs, expiresAtMs: inboxMessageExpiry(message) });
         tx.update(rewardRef, { claimedAtMs: nowMs, appliedRevision: canonical.revision });
         tx.set(summaryRef, { uid: args.uid, ...summary });
         tx.set(resolved.canonicalRef, resolved.exists
@@ -247,5 +273,57 @@ export async function claimInboxReward(args: {
     };
     if (!previous) tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result, nowMs }));
     return { message, summary, result };
+  });
+}
+
+/** Removes visible content atomically with its counters and permanent retry receipt.
+ * Unclaimed gifts cannot be removed. onlyExpired rechecks eligibility inside the
+ * transaction for scheduled cleanup; manual retries return the existing receipt.
+ */
+export async function deleteInboxMessage(args: {
+  db: Firestore; uid: string; messageId: string; nowMs?: number; onlyExpired?: boolean;
+}) {
+  const nowMs = safeInteger(args.nowMs ?? Date.now(), "nowMs");
+  return args.db.runTransaction(async (tx) => {
+    await assertAccountActiveInTransaction(tx, args.db, args.uid);
+    const messageRef = args.db.collection(inboxCollections.messages).doc(args.messageId);
+    const receiptRef = args.db.collection(inboxCollections.receipts).doc(args.messageId);
+    const summaryRef = args.db.collection(inboxCollections.summaries).doc(args.uid);
+    const rewardRef = args.db.collection(inboxCollections.rewards).doc(args.messageId);
+    const [messageDoc, receiptDoc, summaryDoc, rewardDoc] = await tx.getAll(messageRef, receiptRef, summaryRef, rewardRef);
+    let summary = readInboxSummary(summaryDoc.data());
+    const result = (deleted: boolean) => ({ messageId: args.messageId, deleted, summary });
+    if (!messageDoc.exists) {
+      if (receiptDoc.exists) {
+        readRemovalReceipt(receiptDoc.data()!, args.messageId, args.uid);
+        return result(!args.onlyExpired);
+      }
+      if (args.onlyExpired) return result(false);
+      throw new HttpsError("not-found", "Message not found.");
+    }
+    const message = decodeSystemMessage(messageDoc.data(), args.messageId, args.uid);
+    const expiresAtMs = inboxMessageExpiry(message);
+    if (args.onlyExpired && (expiresAtMs === null || expiresAtMs > nowMs)) return result(false);
+    if (message.rewards.length > 0 && message.claimedAtMs === null) {
+      throw new HttpsError("failed-precondition", "Claim your gold before deleting this message.");
+    }
+    if (receiptDoc.exists) throw new HttpsError("failed-precondition", "Message already has a removal receipt.");
+    const reward = rewardDoc.data();
+    if (message.rewards.length > 0 && (!reward || reward.uid !== args.uid || reward.messageId !== message.id ||
+        !isDeepStrictEqual(reward.rewards, message.rewards) || reward.claimedAtMs !== message.claimedAtMs)) {
+      throw new HttpsError("failed-precondition", "Reward record does not match this message.");
+    }
+    summary = nextSummary(summary, message.readAtMs === null ? -1 : 0, 0);
+    tx.create(receiptRef, {
+      schemaVersion: 1, uid: args.uid, messageId: message.id,
+      sourceId: message.sourceId, contentHash: contentHash(message),
+      createdAtMs: message.createdAtMs, deletedAtMs: nowMs,
+      claimedAtMs: message.claimedAtMs, goldAmount: message.rewards[0]?.amount ?? 0,
+      appliedRevision: reward ? safeInteger(reward.appliedRevision, "appliedRevision") : null,
+    });
+    tx.delete(messageRef);
+    if (rewardDoc.exists) tx.delete(rewardRef);
+    tx.set(summaryRef, { uid: args.uid, ...summary });
+    return result(true);
   });
 }

@@ -65,6 +65,21 @@ class FirebaseInboxApi implements InboxApi {
   }
 
   @override
+  Future<InboxSummary> deleteMessage({
+    required String userId,
+    required String messageId,
+  }) async {
+    final response = await _source.call('inboxDeleteMessage', {
+      'userId': userId,
+      'messageId': messageId,
+    });
+    if (response['deleted'] != true || response['messageId'] != messageId) {
+      throw const FormatException('Invalid message deletion receipt.');
+    }
+    return InboxSummary.fromJson(response['summary']);
+  }
+
+  @override
   Future<InboxClaimResult> claim({
     required String userId,
     required String messageId,

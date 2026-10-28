@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed inbox retention and player deletion](../archive/2026-10-28/building/inbox_retention.md):
+  protected unclaimed gifts, 30-day cleanup, compact delivery receipts and inbox
+  Delete. Backend/emulator and Flutter checks pass; not deployed.
+
 - [Completed message tooling](../archive/2026-10-28/building/message_tooling.md):
   local developer console for dev/staging/prod, single-player messages and optional
   gold. Backend/emulator and offline browser checks pass; no live delivery performed.

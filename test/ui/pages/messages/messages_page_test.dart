@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -82,11 +83,27 @@ void main() {
         await tester.pumpAndSettle();
         expect(f.app.inboxSummary.unreadCount, 0);
         expect(f.app.inboxSummary.needsAttention, isTrue);
+        expect(
+          tester
+              .widget<AppButton>(
+                find.widgetWithText(AppButton, 'Delete message'),
+              )
+              .onPressed,
+          isNull,
+        );
+        expect(
+          find.textContaining('Claim your gold before deleting'),
+          findsOneWidget,
+        );
         await tester.tap(find.widgetWithText(AppButton, 'Claim'));
         await tester.pumpAndSettle();
         expect(find.widgetWithText(AppButton, 'Claimed'), findsOneWidget);
         expect(f.app.progression.gold, 25);
         expect(f.app.inboxSummary.needsAttention, isFalse);
+        await tester.tap(find.widgetWithText(AppButton, 'Delete message'));
+        await tester.pumpAndSettle();
+        expect(find.text('No messages yet.'), findsOneWidget);
+        expect(f.app.progression.gold, 25);
         expect(tester.takeException(), isNull);
       },
     );
@@ -107,6 +124,84 @@ void main() {
     await tester.tap(find.widgetWithText(AppButton, 'Retry'));
     await tester.pumpAndSettle();
     expect(find.text('No messages yet.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'information can be deleted immediately and failure allows retry',
+    (tester) async {
+      final f = InboxFixture();
+      addTearDown(f.app.dispose);
+      f.inbox.messages = [
+        const InboxMessage(
+          id: 'info',
+          title: 'News',
+          body: 'News body',
+          createdAtMs: 1,
+        ),
+      ];
+      await f.app.bootstrap();
+      await tester.pumpWidget(_app(f));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('News'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Automatically removed 30 days after reading.'),
+        findsOneWidget,
+      );
+      f.inbox.failDelete = true;
+      await tester.tap(find.widgetWithText(AppButton, 'Delete message'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Unable to confirm deletion'), findsOneWidget);
+      f.inbox.failDelete = false;
+      await tester.tap(find.widgetWithText(AppButton, 'Delete message'));
+      await tester.pumpAndSettle();
+      expect(find.text('No messages yet.'), findsOneWidget);
+      expect(f.app.progression.gold, 0);
+    },
+  );
+
+  testWidgets('deleting the loaded page keeps older messages reachable', (
+    tester,
+  ) async {
+    final f = InboxFixture();
+    addTearDown(f.app.dispose);
+    const newer = InboxMessage(
+      id: 'newer',
+      title: 'Latest news',
+      body: 'Latest body',
+      createdAtMs: 2,
+      readAtMs: 2,
+    );
+    const older = InboxMessage(
+      id: 'older',
+      title: 'Earlier news',
+      body: 'Earlier body',
+      createdAtMs: 1,
+    );
+    f.inbox.messages = [newer, older];
+    f.inbox.delayedPage = Completer<InboxPage>()
+      ..complete(
+        InboxPage(
+          messages: [newer],
+          summary: f.inbox.summary,
+          nextCursor: const InboxCursor(createdAtMs: 2, messageId: 'newer'),
+        ),
+      );
+    await f.app.bootstrap();
+    await tester.pumpWidget(_app(f));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Latest news'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(AppButton, 'Delete message'));
+    await tester.pumpAndSettle();
+    expect(find.text('More messages are available.'), findsOneWidget);
+    expect(find.text('No messages yet.'), findsNothing);
+    f.inbox.delayedPage = null;
+    await tester.tap(find.widgetWithText(AppButton, 'Load more'));
+    await tester.pumpAndSettle();
+    expect(find.text('Earlier news'), findsOneWidget);
+    expect(find.text('Latest news'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

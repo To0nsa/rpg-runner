@@ -8,6 +8,8 @@ final class _AppStateInboxController extends _AppStateController {
   bool loading = false;
   String? loadError;
   final Set<String> busyMessages = {};
+  // A page snapshot taken before deletion must not restore removed messages.
+  final Set<String> _deletedMessages = {};
   int _generation = 0;
   Timer? _timer;
   Future<void>? _summaryInFlight;
@@ -42,6 +44,7 @@ final class _AppStateInboxController extends _AppStateController {
     messages = const [];
     _cursor = null;
     busyMessages.clear();
+    _deletedMessages.clear();
     loading = false;
     loadError = null;
   }
@@ -109,15 +112,17 @@ final class _AppStateInboxController extends _AppStateController {
       if (!_current(session.userId, generation)) return;
       // A read or claim may have finished after this page's snapshot was taken.
       final oldById = {for (final message in messages) message.id: message};
-      final incoming = page.messages.map((message) {
-        final old = oldById[message.id];
-        if (old != null &&
-            ((old.readAtMs != null && message.readAtMs == null) ||
-                (old.claimedAtMs != null && message.claimedAtMs == null))) {
-          return old;
-        }
-        return message;
-      });
+      final incoming = page.messages
+          .where((message) => !_deletedMessages.contains(message.id))
+          .map((message) {
+            final old = oldById[message.id];
+            if (old != null &&
+                ((old.readAtMs != null && message.readAtMs == null) ||
+                    (old.claimedAtMs != null && message.claimedAtMs == null))) {
+              return old;
+            }
+            return message;
+          });
       final merged = <String, InboxMessage>{if (more) ...oldById};
       for (final message in incoming) {
         merged[message.id] = message;
@@ -194,6 +199,37 @@ final class _AppStateInboxController extends _AppStateController {
         }
       }
       throw StateError('Unable to claim reward. Please try again.');
+    } finally {
+      if (generation == _generation) {
+        busyMessages.remove(messageId);
+        _notifyListeners();
+      }
+    }
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    if (!available || !busyMessages.add(messageId)) return;
+    final generation = _generation;
+    _notifyListeners();
+    try {
+      final message = messages
+          .where((value) => value.id == messageId)
+          .firstOrNull;
+      if (message?.canClaim ?? false) {
+        throw StateError('Claim your gold before deleting this message.');
+      }
+      final session = await _ensureAuthSession();
+      if (!_current(session.userId, generation)) return;
+      final updatedSummary = await _app._inboxApi!.deleteMessage(
+        userId: session.userId,
+        messageId: messageId,
+      );
+      if (!_current(session.userId, generation)) return;
+      _deletedMessages.add(messageId);
+      messages = List.unmodifiable(
+        messages.where((value) => value.id != messageId),
+      );
+      _applySummary(updatedSummary);
     } finally {
       if (generation == _generation) {
         busyMessages.remove(messageId);

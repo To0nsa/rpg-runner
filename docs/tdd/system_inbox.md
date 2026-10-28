@@ -11,6 +11,7 @@ and the validator are unchanged. Player chat is not implemented.
 | `system_messages/{id}` | Versioned message, recipient, source, immutable text/rewards, creation time, independent read/claim times |
 | `inbox_rewards/{id}` | Snapshotted attachment, recipient, claim receipt and applied ownership revision |
 | `inbox_summaries/{uid}` | Monotonic revision, whole-inbox unread and unclaimed counts |
+| `inbox_receipts/{id}` | Removed-message identity, immutable content hash, original creation time, deletion time and gold claim result; no title/body |
 
 IDs hash recipient plus source identity. Level gifts use `level:<level>`;
 operator messages use `operator:<sourceId>`. Retrying identical delivery is a
@@ -18,9 +19,38 @@ no-op; different contents under the same identity are rejected. Rewards are a
 typed list, currently empty or one positive, JavaScript-safe gold amount.
 Unsupported types fail closed. Issued rewards never change with later tuning.
 
-Messages and receipts have no expiry or user-delete operation in this version.
-Account deletion explicitly removes all three collections in resumable stages.
-Future archival must retain delivery/claim deduplication evidence.
+Unclaimed gifts and unread information have no expiry. Claimed gifts become
+eligible for removal 30 days after successful claim; information becomes eligible
+30 days after its first read. Reading a gift does not start expiry, and retries
+never extend the retention deadline. `expiresAtMs` is a server-owned query field;
+missing legacy values remain valid and are repaired from read/claim timestamps.
+
+Players can delete information or claimed gifts immediately. The delete transaction
+fences account erasure, validates recipient and claim records, removes message and
+attachment, adjusts unread count, increments summary revision, and creates a compact
+receipt. Unclaimed gold is rejected even if a caller bypasses the UI. Repeating
+deletion of an owned receipt succeeds without another counter change; unknown or
+other-player IDs fail. Claimed gold remains in the wallet.
+
+Delivery checks both active messages and removal receipts. The retained hash covers
+recipient, source ID, title, body and rewards. Identical retry is a no-op after
+removal; changed content under the same source identity is rejected. The receipt
+retains gold amount, claim time and applied ownership revision for the account's
+lifetime. Claiming a removed message fails without crediting gold. Account erasure
+explicitly removes all four inbox collections in resumable stages.
+
+`inboxRetentionCleanup` runs hourly in UTC, processing at most 200 indexed due
+messages plus 200 documents in a rotating compatibility sweep. Every deletion
+rechecks actual read/claim eligibility in a transaction, protecting gifts even
+when a stale expiry index says they are due. The sweep repairs legacy/mismatched
+deadlines and removes eligible legacy content; it wraps after a full pass. Its
+`maintenance_state/inbox_retention_v1` checkpoint advances with a revision compare
+and set, so overlapping runs cannot overwrite newer progress. Account-erasure
+barriers are skipped; other document failures are logged and revisited on later
+passes. Counts, backlog saturation and checkpoint advancement are logged.
+The 30-day point is an eligibility deadline; physical removal follows cleanup
+cadence/backlog. Firestore TTL is not enabled, since deletion must update related
+records atomically. Existing single-field indexing supports the expiry query.
 
 ## Level milestone transaction
 
@@ -48,6 +78,7 @@ Unknown request fields, including sender/reward fields, are rejected.
 | `inboxList` | Optional `cursor` | `messages`, `summary`, `nextCursor` |
 | `inboxMarkRead` | `messageId` | `message`, `summary` |
 | `inboxClaimReward` | `messageId`, `commandId`, `expectedRevision` | `message`, `summary`, ownership `result` |
+| `inboxDeleteMessage` | `messageId` | Matching `messageId`, `deleted: true`, current `summary` |
 
 Pages contain at most 20 messages, newest first, then descending document ID
 for timestamp ties. Cursors contain `createdAtMs` and `messageId`; one lookahead
@@ -84,11 +115,19 @@ can retry once with a fresh command ID. Transport uncertainty remains retryable;
 the server receipt prevents double credit. Summary revision checks and
 monotonic message-state merging prevent old pages undoing reads or claims.
 Account replacement, accepted deletion and disposal fence late responses.
+The adapter requires an explicit matching deletion receipt before removing local
+state. Per-message busy state prevents overlapping read/claim/delete actions.
+Account-scoped removed IDs filter older in-flight page responses, preventing
+deleted mail from reappearing. Loading more remains available after deleting all
+currently loaded messages. Failed or lost delete responses preserve retry; deletion
+does not apply speculative counter or wallet changes.
 
 `MessagesPage` reuses `MenuScaffold`, shared tokens, `AppButton`, icon buttons
 and `GoldDisplay`. Landscape list and message text scroll independently; gift
 controls remain visible below the text. Selecting a message marks it read;
 opening the list does not. Failures use player-facing retry text.
+Delete is disabled while gold is unclaimed, with a visible claim-first explanation.
+Eligible messages expose immediate deletion; the body explains the 30-day policy.
 
 `AttentionMarker` is a shared presentation-only component. Its caller supplies
 visibility, accessible meaning and child. Shared tokens control its worn-gold
@@ -147,7 +186,7 @@ delivery. Local confirmations are not read/claim receipts or operator audit logs
 Player availability and deletion are checked atomically at send, not at preview.
 
 The console supports only single-recipient text and optional gold. Reward schema,
-player UI, claims, expiry and deletion behavior are unchanged.
+player claim authority and reward amounts are unchanged.
 
 The privileged CLI accepts a JSON file containing `uid`, `sourceId`, `title`,
 `body` and optional `goldAmount`. Preview is offline:
@@ -170,12 +209,20 @@ route or broadcast campaign service.
 
 ## Extension and release boundaries
 
+Deploy the new callable, scheduler, receipt-aware issuers, account erasure and
+rules before releasing the client Delete action. Restart/rebuild local operator
+consoles and CLI senders before cleanup starts: older privileged issuers do not
+check removal receipts. Use the coordinated release workflow to keep settlement
+issuers consistent through cutover. No separate live backfill is required; the
+bounded compatibility sweep derives deadlines from retained timestamps. Existing
+eligible mail can be removed on the first sweep after deployment. Monitor failed
+documents and saturated expiry batches; a large legacy inbox may require several
+hourly passes. Local verification does not authorize or establish deployment.
+
 Future live chat needs separate conversations, participant authorization,
 delivery/read state, blocking, reporting and abuse controls. Item gifts require
 an implemented ownership handler and compatible reward schema first.
 
-Deploy callables and the inbox index before exposing the client using the
-repository release workflow. Implementation/local tests do not establish live
-deployment. Focused tests cover delivery/claim retries, multiple milestones,
+Focused tests cover delivery/claim retries, multiple milestones,
 no backfill, pagination, deletion, direct-client denial, client races and UI
 layout/accessibility.

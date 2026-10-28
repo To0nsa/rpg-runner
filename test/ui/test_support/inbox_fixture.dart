@@ -91,6 +91,11 @@ class TestInboxApi implements InboxApi {
   bool failRead = false;
   bool loseNextClaimResponse = false;
   bool staleNextClaim = false;
+  bool failDelete = false;
+  bool loseNextDeleteResponse = false;
+  int deleteCalls = 0;
+  Completer<void>? deleteGate;
+  final Set<String> deletedIds = {};
   Completer<InboxPage>? delayedPage;
   Completer<void>? claimGate;
   final List<int> expectedRevisions = [];
@@ -136,6 +141,31 @@ class TestInboxApi implements InboxApi {
     );
     _replace(next);
     return InboxMessageUpdate(message: next, summary: summary);
+  }
+
+  @override
+  Future<InboxSummary> deleteMessage({
+    required String userId,
+    required String messageId,
+  }) async {
+    deleteCalls += 1;
+    if (deleteGate != null) await deleteGate!.future;
+    if (failDelete) throw StateError('Offline');
+    final message = messages.where((m) => m.id == messageId).firstOrNull;
+    if (message?.canClaim ?? false) throw StateError('Unclaimed gift');
+    if (message == null && !deletedIds.contains(messageId)) {
+      throw StateError('Not found');
+    }
+    if (message != null) {
+      messages = messages.where((m) => m.id != messageId).toList();
+      deletedIds.add(messageId);
+      revision += 1;
+    }
+    if (loseNextDeleteResponse) {
+      loseNextDeleteResponse = false;
+      throw StateError('Connection lost after commit');
+    }
+    return summary;
   }
 
   @override

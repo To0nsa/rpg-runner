@@ -7,6 +7,94 @@ import '../test_support/inbox_fixture.dart';
 
 void main() {
   test(
+    'unclaimed gift is protected; claimed gift deletes without changing gold',
+    () async {
+      final f = InboxFixture();
+      addTearDown(f.app.dispose);
+      await f.app.bootstrap();
+      await f.app.loadInbox();
+      await expectLater(f.app.deleteInboxMessage('gift'), throwsStateError);
+      expect(f.inbox.deleteCalls, 0);
+      expect(f.app.inboxMessageBusy('gift'), isFalse);
+      await f.app.claimInboxReward('gift');
+      await f.app.deleteInboxMessage('gift');
+      expect(f.app.inboxMessages, isEmpty);
+      expect(f.app.inboxSummary.needsAttention, isFalse);
+      expect(f.app.progression.gold, 25);
+    },
+  );
+
+  test('failed and lost deletion responses preserve retry; old page cannot restore mail', () async {
+    final f = InboxFixture();
+    addTearDown(f.app.dispose);
+    f.inbox.messages = [
+      const InboxMessage(
+        id: 'info',
+        title: 'News',
+        body: 'News',
+        createdAtMs: 1,
+      ),
+    ];
+    await f.app.bootstrap();
+    await f.app.loadInbox();
+    f.inbox.failDelete = true;
+    await expectLater(f.app.deleteInboxMessage('info'), throwsStateError);
+    expect(f.app.inboxMessages, hasLength(1));
+    f.inbox.failDelete = false;
+    final old = InboxPage(
+      messages: List.of(f.inbox.messages),
+      summary: f.inbox.summary,
+    );
+    f.inbox.delayedPage = Completer<InboxPage>();
+    final loading = f.app.loadInbox();
+    await Future<void>.delayed(Duration.zero);
+    f.inbox.loseNextDeleteResponse = true;
+    await expectLater(f.app.deleteInboxMessage('info'), throwsStateError);
+    expect(f.app.inboxMessages, hasLength(1));
+    await f.app.deleteInboxMessage('info');
+    f.inbox.delayedPage!.complete(old);
+    await loading;
+    expect(f.app.inboxMessages, isEmpty);
+    expect(f.app.inboxSummary.needsAttention, isFalse);
+  });
+
+  test('duplicate delete taps share one request and old-account response is discarded', () async {
+    final f = InboxFixture();
+    addTearDown(f.app.dispose);
+    f.inbox.messages = [
+      const InboxMessage(
+        id: 'info',
+        title: 'News',
+        body: 'News',
+        createdAtMs: 1,
+      ),
+    ];
+    await f.app.bootstrap();
+    await f.app.loadInbox();
+    f.inbox.deleteGate = Completer<void>();
+    final pending = f.app.deleteInboxMessage('info');
+    await Future<void>.delayed(Duration.zero);
+    await f.app.deleteInboxMessage('info');
+    expect(f.inbox.deleteCalls, 1);
+    f.auth.uid = 'replacement';
+    await f.app.bootstrap(force: true);
+    f.inbox.deleteGate!.complete();
+    await pending;
+    expect(f.app.inboxMessages, isEmpty);
+    // A new account may use the same ID; the old account's deletion must not hide it.
+    f.inbox.messages = [
+      const InboxMessage(
+        id: 'info',
+        title: 'New account',
+        body: 'Hello',
+        createdAtMs: 2,
+      ),
+    ];
+    await f.app.loadInbox();
+    expect(f.app.inboxMessages.single.title, 'New account');
+  });
+
+  test(
     'opening inbox does not clear attention; reading gift leaves claim pending',
     () async {
       final f = InboxFixture();

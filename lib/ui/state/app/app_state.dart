@@ -324,6 +324,10 @@ class AppState extends ChangeNotifier {
   Future<void> refreshInboxSummary() => _inboxController.refreshSummary();
   Future<void> markInboxMessageRead(String id) => _inboxController.markRead(id);
 
+  /// Removes mail only after server acknowledgement; unclaimed gifts stay protected.
+  Future<void> deleteInboxMessage(String id) =>
+      _inboxController.deleteMessage(id);
+
   /// Credits a stored gift once and reconciles canonical ownership with queued edits.
   Future<void> claimInboxReward(String id) => _inboxController.claim(id);
 

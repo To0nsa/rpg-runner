@@ -75,6 +75,8 @@ import {
 } from "./leaderboards/callable_handlers.js";
 import { handleGhostLoadManifest } from "./ghosts/callable_handlers.js";
 import { handleInboxRequest } from "./inbox/callable_handlers.js";
+import { maintainInboxRetention } from "./inbox/retention.js";
+import type { InboxOperation } from "./inbox/validators.js";
 import { readDeploymentIdentity } from "./deployment_identity.js";
 
 if (getApps().length === 0) {
@@ -97,8 +99,9 @@ export const inboxLoadSummary = inboxCallable("inboxLoadSummary", "summary");
 export const inboxList = inboxCallable("inboxList", "list");
 export const inboxMarkRead = inboxCallable("inboxMarkRead", "read");
 export const inboxClaimReward = inboxCallable("inboxClaimReward", "claim");
+export const inboxDeleteMessage = inboxCallable("inboxDeleteMessage", "delete");
 
-function inboxCallable(functionName: string, operation: "summary" | "list" | "read" | "claim") {
+function inboxCallable(functionName: string, operation: InboxOperation) {
   return onCall(userCallableAppCheckOptions, async (request) => {
     logAppCheckObservation({ functionName, request });
     requirePlayGamesCallableUser(request.auth);
@@ -540,6 +543,14 @@ export const ownershipIdempotencyRetentionCleanup = onSchedule(
   async () => {
     const result = await maintainOwnershipIdempotencyRetention({ db });
     console.log("ownershipIdempotencyRetentionCleanup", result);
+  },
+);
+
+export const inboxRetentionCleanup = onSchedule(
+  { schedule: "every 60 minutes", timeZone: "Etc/UTC", timeoutSeconds: 540, maxInstances: 1 },
+  async () => {
+    const result = await maintainInboxRetention({ db });
+    logger.info("inboxRetentionCleanup", result);
   },
 );
 

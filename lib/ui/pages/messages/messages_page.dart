@@ -62,6 +62,25 @@ class _MessagesPageState extends State<MessagesPage> {
     }
   }
 
+  Future<void> _delete(InboxMessage message) async {
+    setState(() => _actionError = null);
+    try {
+      await context.read<AppState>().deleteInboxMessage(message.id);
+      if (mounted && _selectedId == message.id) {
+        setState(() {
+          _selectedId = null;
+          _actionError = null;
+        });
+      }
+    } catch (_) {
+      if (mounted && _selectedId == message.id) {
+        setState(
+          () => _actionError = 'Unable to confirm deletion. Please try again.',
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
@@ -131,11 +150,24 @@ class _MessagesPageState extends State<MessagesPage> {
                           ? Center(
                               child: app.inboxLoading
                                   ? const CircularProgressIndicator()
-                                  : Text(
-                                      app.inboxLoadError == null
-                                          ? 'No messages yet.'
-                                          : 'Your messages will appear here.',
-                                      style: ui.text.body,
+                                  : Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          app.inboxHasMore
+                                              ? 'More messages are available.'
+                                              : app.inboxLoadError == null
+                                              ? 'No messages yet.'
+                                              : 'Your messages will appear here.',
+                                          style: ui.text.body,
+                                        ),
+                                        if (app.inboxHasMore)
+                                          AppButton(
+                                            label: 'Load more',
+                                            onPressed: () =>
+                                                app.loadInbox(more: true),
+                                          ),
+                                      ],
                                     ),
                             )
                           : Row(
@@ -215,6 +247,19 @@ class _MessagesPageState extends State<MessagesPage> {
                                                         selected.body,
                                                         style: ui.text.body,
                                                       ),
+                                                      SizedBox(
+                                                        height: ui.space.sm,
+                                                      ),
+                                                      Text(
+                                                        selected.canClaim
+                                                            ? 'Claim your gold before deleting this message. Unclaimed gold does not expire.'
+                                                            : selected.hasReward
+                                                            ? 'Automatically removed 30 days after claiming.'
+                                                            : 'Automatically removed 30 days after reading.',
+                                                        style: ui
+                                                            .text
+                                                            .cardSubtitle,
+                                                      ),
                                                       if (_actionError !=
                                                           null) ...[
                                                         SizedBox(
@@ -244,17 +289,21 @@ class _MessagesPageState extends State<MessagesPage> {
                                                   ),
                                                 ),
                                               ),
-                                              if (selected.hasReward) ...[
-                                                SizedBox(height: ui.space.sm),
-                                                Row(
-                                                  children: [
+                                              SizedBox(height: ui.space.sm),
+                                              Wrap(
+                                                spacing: ui.space.sm,
+                                                runSpacing: ui.space.xs,
+                                                crossAxisAlignment:
+                                                    WrapCrossAlignment.center,
+                                                children: [
+                                                  if (selected.hasReward)
                                                     GoldDisplay(
                                                       gold: selected.goldAmount,
                                                       variant:
                                                           GoldDisplayVariant
                                                               .body,
                                                     ),
-                                                    const Spacer(),
+                                                  if (selected.hasReward)
                                                     AppButton(
                                                       label: selected.canClaim
                                                           ? app.inboxMessageBusy(
@@ -273,9 +322,22 @@ class _MessagesPageState extends State<MessagesPage> {
                                                                 _claim(selected)
                                                           : null,
                                                     ),
-                                                  ],
-                                                ),
-                                              ],
+                                                  AppButton(
+                                                    label: 'Delete message',
+                                                    size: AppButtonSize.sm,
+                                                    variant: AppButtonVariant
+                                                        .secondary,
+                                                    onPressed:
+                                                        selected.canClaim ||
+                                                            app.inboxMessageBusy(
+                                                              selected.id,
+                                                            )
+                                                        ? null
+                                                        : () =>
+                                                              _delete(selected),
+                                                  ),
+                                                ],
+                                              ),
                                             ],
                                           ),
                                   ),
