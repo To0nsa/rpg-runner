@@ -6,7 +6,9 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [System messages and level gifts](gdd/messages.md): manual 25-gold claims for
   newly reached levels, protected inbox deletion, 30-day retention and an attention marker;
   [technical contract and operator sending](tdd/system_inbox.md), including the
-  [local developer message console](../tools/messaging/README.md).
+  [Flutter Admin guide](../tools/admin/README.md).
+- [Shared tools and Admin architecture](tdd/admin_tools.md): editor UI packages,
+  game presentation reuse, durable operator drafts and gated item/skill gifts.
 - [Off-screen actor indicators](tdd/offscreen_indicators.md): left/top bearings,
   distance labels, enemy grouping and viewport-aware HUD placement.
 - [Town and Codex](gdd/codex.md): Théodonis city map, Store, Library,

@@ -1,3 +1,5 @@
+import 'package:game_presentation/catalog_gift.dart';
+
 import '../ownership/loadout_ownership_api.dart';
 
 /// Versioned whole-inbox attention, independent of the loaded page.
@@ -30,31 +32,47 @@ class InboxMessage {
     this.readAtMs,
     this.claimedAtMs,
     this.goldAmount = 0,
+    this.attachments = const [],
   });
   final String id, title, body;
   final int createdAtMs, goldAmount;
   final int? readAtMs, claimedAtMs;
+  final List<CatalogGift> attachments;
   bool get isUnread => readAtMs == null;
-  bool get hasReward => goldAmount > 0;
+  bool get hasReward => goldAmount > 0 || attachments.isNotEmpty;
   bool get canClaim => hasReward && claimedAtMs == null;
 
   factory InboxMessage.fromJson(Object? raw) {
     final json = inboxObject(raw);
-    if (json['schemaVersion'] != 1) {
+    if (![1, 2].contains(json['schemaVersion'])) {
       throw const FormatException('Unsupported message version.');
     }
     final rewards = json['rewards'];
-    if (rewards is! List || rewards.length > 1) {
+    if (rewards is! List ||
+        rewards.length > (json['schemaVersion'] == 1 ? 1 : 9)) {
       throw const FormatException('Invalid rewards.');
     }
     var gold = 0;
+    final attachments = <CatalogGift>[];
     for (final rawReward in rewards) {
       final reward = inboxObject(rawReward);
-      if (reward['kind'] != 'gold') {
-        throw const FormatException('Unsupported reward type.');
+      if (reward['kind'] == 'gold') {
+        if (gold > 0 ||
+            reward.keys.any((key) => !{'kind', 'amount'}.contains(key))) {
+          throw const FormatException('Invalid gold attachment.');
+        }
+        gold = inboxInteger(reward['amount']);
+        if (gold == 0) throw const FormatException('Empty reward.');
+      } else {
+        if (json['schemaVersion'] != 2) {
+          throw const FormatException('Unsupported reward type.');
+        }
+        final gift = CatalogGift.fromJson(reward);
+        if (attachments.any((entry) => entry.key == gift.key)) {
+          throw const FormatException('Duplicate gift.');
+        }
+        attachments.add(gift);
       }
-      gold = inboxInteger(reward['amount']);
-      if (gold == 0) throw const FormatException('Empty reward.');
     }
     if (!json.containsKey('readAtMs') || !json.containsKey('claimedAtMs')) {
       throw const FormatException('Missing message state.');
@@ -71,6 +89,7 @@ class InboxMessage {
           ? null
           : inboxInteger(json['claimedAtMs']),
       goldAmount: gold,
+      attachments: List.unmodifiable(attachments),
     );
   }
 }

@@ -123,3 +123,6 @@ tools/output/tree.txt
 node_modules/
 .pnpm-store/
 node_modules
+
+!tools/admin/windows/runner/resources/
+!tools/admin/windows/runner/resources/app_icon.ico

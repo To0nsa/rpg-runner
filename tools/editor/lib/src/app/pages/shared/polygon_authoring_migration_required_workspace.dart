@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../session/editor_session_controller.dart';
 import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
-import 'editor_workspace_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Read-only route shown when normal terrain source is not on polygon schemas.
 ///
@@ -47,7 +47,7 @@ class PolygonAuthoringMigrationRequiredWorkspace extends StatelessWidget {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
-              child: EditorWorkspaceCard(
+              child: ToolWorkspaceCard(
                 key: const ValueKey<String>(
                   'polygon_authoring_migration_required',
                 ),

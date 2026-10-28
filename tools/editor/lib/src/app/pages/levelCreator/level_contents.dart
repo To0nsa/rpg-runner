@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../chunks/chunk_domain_models.dart';
 import '../../../chunks/chunk_v2_file_data.dart';
-import '../shared/editor_list_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Browses actual authored chunks; filters organize the catalog and do not
 /// change runtime selection. Metadata mutations remain Chunk-domain handoffs.
@@ -121,7 +121,7 @@ class LevelContents extends StatelessWidget {
         for (final chunk in visible)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: EditorListCard(
+            child: ToolListCard(
               key: ValueKey<String>('level_chunk_${chunk.chunkKey}'),
               isSelected: selectedChunkKey == chunk.chunkKey,
               onTap: () => onSelected(chunk.chunkKey),

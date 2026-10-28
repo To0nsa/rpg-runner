@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Shared scene-control strip for prefab-editor scene widgets.
 class PrefabEditorSceneControls extends StatelessWidget {
@@ -38,7 +38,7 @@ class PrefabEditorSceneControls extends StatelessWidget {
       children: [
         topRow,
         if (bottom != null) ...[
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           bottom!,
         ],
       ],

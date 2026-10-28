@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'editor_panel_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Lightweight intro card used by editor routes that expose explanatory copy.
 ///
@@ -18,5 +18,5 @@ class EditorRouteIntroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      EditorPanelCard(title: title, child: Text(description));
+      ToolPanelCard(title: title, child: Text(description));
 }

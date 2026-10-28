@@ -13,6 +13,9 @@ import type { OwnershipCommandResult } from "../ownership/contracts.js";
 import { inboxCollections, type InboxCursor, type InboxSummary, type SystemMessage } from "./contracts.js";
 import { boundedText, safeInteger } from "./validators.js";
 import { inboxMessageExpiry } from "./retention_policy.js";
+import { assertInboxGiftsEnabled, catalogDefinition, inboxRewardKey, parseInboxRewards } from "./gifts.js";
+import { grantCatalogOwnership, normalizeProgressionStore } from "../ownership/store_state.js";
+import type { InboxCatalogReward } from "./contracts.js";
 
 const pageSize = 20;
 export const emptyInboxSummary: InboxSummary = { revision: 0, unreadCount: 0, unclaimedCount: 0 };
@@ -57,19 +60,17 @@ function nextSummary(summary: InboxSummary, unread: number, unclaimed: number): 
 
 export function decodeSystemMessage(raw: DocumentData | undefined, id: string, uid: string): SystemMessage {
   if (!raw || raw.uid !== uid) throw new HttpsError("not-found", "Message not found.");
-  if (raw.schemaVersion !== 1 || raw.id !== id || !Array.isArray(raw.rewards) || raw.rewards.length > 1) {
+  if (![1, 2].includes(raw.schemaVersion) || raw.id !== id) {
     throw new HttpsError("failed-precondition", "Unsupported message format.");
   }
-  const rewards = raw.rewards.map((reward: unknown) => {
-    if (reward === null || typeof reward !== "object" || !("kind" in reward) || reward.kind !== "gold" || !("amount" in reward)) {
-      throw new HttpsError("failed-precondition", "Unsupported reward type.");
-    }
-    const amount = safeInteger(reward.amount, "gold reward");
-    if (amount === 0) throw new HttpsError("failed-precondition", "Invalid gold reward.");
-    return { kind: "gold" as const, amount };
-  });
+  let rewards;
+  try { rewards = parseInboxRewards(raw.rewards); }
+  catch { throw new HttpsError("failed-precondition", "Unsupported reward format."); }
+  if (raw.schemaVersion === 1 && (rewards.length > 1 || rewards.some((reward) => reward.kind !== "gold"))) {
+    throw new HttpsError("failed-precondition", "Unsupported legacy reward format.");
+  }
   return {
-    schemaVersion: 1,
+    schemaVersion: raw.schemaVersion,
     id,
     uid,
     sourceId: boundedText(raw.sourceId, "sourceId", 200),
@@ -87,6 +88,7 @@ export interface SystemMessageDelivery {
   title: string;
   body: string;
   goldAmount?: number;
+  attachments?: InboxCatalogReward[];
 }
 
 /** Prepare all reads before settlement writes; invoke the returned writer in that transaction. */
@@ -102,8 +104,12 @@ export async function prepareSystemMessages(args: {
   const messages = args.deliveries.map((delivery): SystemMessage => {
     const sourceId = boundedText(delivery.sourceId, "sourceId", 200);
     const amount = safeInteger(delivery.goldAmount ?? 0, "goldAmount");
+    const attachments = parseInboxRewards(delivery.attachments ?? []);
+    if (attachments.some((reward) => reward.kind === "gold")) throw new HttpsError("invalid-argument", "Use goldAmount for gold.");
+    attachments.sort((a, b) => inboxRewardKey(a) < inboxRewardKey(b) ? -1 : inboxRewardKey(a) > inboxRewardKey(b) ? 1 : 0);
+    const rewards = parseInboxRewards([...(amount > 0 ? [{ kind: "gold", amount }] : []), ...attachments]);
     return {
-      schemaVersion: 1,
+      schemaVersion: attachments.length > 0 ? 2 : 1,
       id: systemMessageId(args.uid, sourceId),
       uid: args.uid,
       sourceId,
@@ -112,7 +118,7 @@ export async function prepareSystemMessages(args: {
       createdAtMs: safeInteger(args.nowMs, "nowMs"),
       readAtMs: null,
       claimedAtMs: null,
-      rewards: amount > 0 ? [{ kind: "gold", amount }] : [],
+      rewards,
     };
   });
   if (new Set(messages.map((message) => message.id)).size !== messages.length) {
@@ -140,6 +146,7 @@ export async function prepareSystemMessages(args: {
     }
     return false;
   });
+  if (pending.some((message) => message.schemaVersion === 2)) await assertInboxGiftsEnabled(args.tx, args.db);
   const updatedSummary = pending.length === 0 ? null : nextSummary(
     summary,
     pending.length,
@@ -253,8 +260,19 @@ export async function claimInboxReward(args: {
     } else if (message.claimedAtMs === null) {
       if (canonical.revision !== args.expectedRevision) rejectedReason = "staleRevision";
       else {
-        const gold = safeInteger(canonical.progression.gold, "gold balance");
-        canonical.progression.gold = safeInteger(gold + message.rewards[0].amount, "gold balance");
+        for (const attachment of message.rewards) {
+          if (attachment.kind === "gold") {
+            const gold = safeInteger(canonical.progression.gold, "gold balance");
+            canonical.progression.gold = safeInteger(gold + attachment.amount, "gold balance");
+          } else {
+            grantCatalogOwnership({ meta: canonical.meta,
+              selectedCharacterId: attachment.characterId ?? "",
+              offer: catalogDefinition(attachment) });
+          }
+        }
+        // Refresh offers against the new ownership without charging or changing the loadout.
+        normalizeProgressionStore({ progression: canonical.progression, meta: canonical.meta,
+          selection: canonical.selection, userId: args.uid, nowMs });
         canonical.revision = safeInteger(canonical.revision + 1, "ownership revision");
         message.claimedAtMs = nowMs;
         summary = nextSummary(summary, 0, -1);
@@ -305,7 +323,7 @@ export async function deleteInboxMessage(args: {
     const expiresAtMs = inboxMessageExpiry(message);
     if (args.onlyExpired && (expiresAtMs === null || expiresAtMs > nowMs)) return result(false);
     if (message.rewards.length > 0 && message.claimedAtMs === null) {
-      throw new HttpsError("failed-precondition", "Claim your gold before deleting this message.");
+      throw new HttpsError("failed-precondition", "Claim your gifts before deleting this message.");
     }
     if (receiptDoc.exists) throw new HttpsError("failed-precondition", "Message already has a removal receipt.");
     const reward = rewardDoc.data();
@@ -318,7 +336,9 @@ export async function deleteInboxMessage(args: {
       schemaVersion: 1, uid: args.uid, messageId: message.id,
       sourceId: message.sourceId, contentHash: contentHash(message),
       createdAtMs: message.createdAtMs, deletedAtMs: nowMs,
-      claimedAtMs: message.claimedAtMs, goldAmount: message.rewards[0]?.amount ?? 0,
+      claimedAtMs: message.claimedAtMs,
+      goldAmount: message.rewards.find((reward) => reward.kind === "gold")?.amount ?? 0,
+      ...(message.schemaVersion === 2 ? { rewards: message.rewards } : {}),
       appliedRevision: reward ? safeInteger(reward.appliedRevision, "appliedRevision") : null,
     });
     tx.delete(messageRef);

@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Scene-preserving responsive shell used by Prefab editor workspaces.
 ///
@@ -37,31 +37,31 @@ class _PrefabEditorThreePanelLayoutState
     builder: (context, constraints) {
       if (constraints.maxWidth >= _minimumWideWidth) {
         return Row(
-          key: const ValueKey<String>('editor_three_panel_wide'),
+          key: const ValueKey<String>('tool_three_panel_wide'),
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Expanded(child: _inspector()),
-            const SizedBox(width: EditorUiTokens.panelGap),
+            const SizedBox(width: ToolUiTokens.panelGap),
             Expanded(flex: 2, child: _scene()),
-            const SizedBox(width: EditorUiTokens.panelGap),
+            const SizedBox(width: ToolUiTokens.panelGap),
             Expanded(child: _display()),
           ],
         );
       }
 
       return Column(
-        key: const ValueKey<String>('editor_three_panel_narrow'),
+        key: const ValueKey<String>('tool_three_panel_narrow'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Expanded(flex: 3, child: _scene()),
-          const SizedBox(height: EditorUiTokens.panelGap),
+          const SizedBox(height: ToolUiTokens.panelGap),
           Expanded(
             flex: 2,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 Expanded(child: _inspector()),
-                const SizedBox(width: EditorUiTokens.panelGap),
+                const SizedBox(width: ToolUiTokens.panelGap),
                 Expanded(child: _display()),
               ],
             ),

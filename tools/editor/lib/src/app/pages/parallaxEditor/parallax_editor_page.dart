@@ -11,9 +11,7 @@ import '../../../workspace/editor_workspace.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_page_navigation_state.dart';
 import '../shared/editor_scene_view_utils.dart';
-import '../shared/editor_panel_card.dart';
-import '../shared/editor_list_card.dart';
-import '../shared/editor_workspace_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'parallax_asset_file_picker.dart';
 import 'widgets/parallax_preview_view.dart';
 
@@ -268,7 +266,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
         final scene = widget.controller.scene;
         final parallaxScene = scene is ParallaxScene ? scene : null;
 
-        return EditorWorkspaceCard(
+        return ToolWorkspaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -494,7 +492,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     required String workspaceRootPath,
     required bool isSelected,
   }) {
-    return EditorListCard(
+    return ToolListCard(
       key: ValueKey<String>('parallax_layer_entry_${layer.layerKey}'),
       isSelected: isSelected,
       onTap: () {
@@ -787,9 +785,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
   }
 
   Widget _buildPane({required String title, required Widget child}) {
-    return EditorPanelCard(
+    return ToolPanelCard(
       title: title,
-      bodyMode: EditorPanelBodyMode.expanded,
+      bodyMode: ToolPanelBodyMode.expanded,
       child: child,
     );
   }

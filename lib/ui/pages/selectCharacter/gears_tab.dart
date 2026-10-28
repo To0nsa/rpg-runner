@@ -11,7 +11,7 @@ import 'package:runner_core/players/player_character_definition.dart';
 import '../../app/ui_routes.dart';
 import '../../components/app_button.dart';
 import '../../components/app_dialog.dart';
-import '../../components/gameIcon/game_icon.dart';
+import 'package:game_presentation/game_icon.dart';
 import '../../state/app/app_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'gear/gear_picker_candidates_panel.dart';

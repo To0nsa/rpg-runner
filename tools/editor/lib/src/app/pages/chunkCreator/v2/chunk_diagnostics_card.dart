@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/authoring_types.dart';
-import '../../shared/editor_panel_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Read-only summary and details for current Chunk validation issues.
 class ChunkDiagnosticsCard extends StatelessWidget {
@@ -22,7 +22,7 @@ class ChunkDiagnosticsCard extends StatelessWidget {
         ? 'No issues in the current chunk document.'
         : '${issues.length} total · $errorCount error(s) · '
               '$warningCount warning(s) · $infoCount info';
-    return EditorPanelCard(
+    return ToolPanelCard(
       key: const ValueKey<String>('chunk_diagnostics_card'),
       title: 'Diagnostics',
       description: description,

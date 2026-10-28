@@ -18,16 +18,12 @@ import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_axis_aligned_rectangle.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
-import '../../shared/editor_list_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../shared/editor_inline_id_form.dart';
 import '../../shared/editor_owner_draft_state.dart';
-import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_pending_changes_dialog.dart';
-import '../../shared/editor_section_card.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
-import '../../shared/editor_ui_tokens.dart';
-import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_exact_edit_controller.dart';
 import '../../shared/terrain_polygon_rectangle_editor.dart';
@@ -323,7 +319,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       issues,
     );
 
-    return EditorWorkspaceCard(
+    return ToolWorkspaceCard(
       key: const ValueKey<String>('prefab_polygon_workspace'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,7 +328,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             selectedView: _workspaceView,
             onSelected: (view) => unawaited(_selectWorkspaceView(view)),
           ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
+          const SizedBox(height: ToolUiTokens.sectionGap),
           Expanded(
             child: IndexedStack(
               index: _workspaceView.index,
@@ -623,15 +619,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       document: document,
       prefab: prefab,
     );
-    return EditorPanelCard(
+    return ToolPanelCard(
       title: 'Collision scene',
-      bodyMode: EditorPanelBodyMode.expanded,
+      bodyMode: ToolPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Wrap(
-            spacing: EditorUiTokens.controlGap,
-            runSpacing: EditorUiTokens.controlGap,
+            spacing: ToolUiTokens.controlGap,
+            runSpacing: ToolUiTokens.controlGap,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
               Chip(
@@ -654,11 +650,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ),
             ],
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Wrap(
-              spacing: EditorUiTokens.controlGap,
+              spacing: ToolUiTokens.controlGap,
               children: <Widget>[
                 for (final tool in terrainPolygonSceneToolbarTools)
                   ChoiceChip(
@@ -685,7 +681,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ],
             ),
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           if (!canEditCollision)
             const Text(
               'Decoration prefabs remain collider-free; their visual source '
@@ -700,7 +696,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                         'Ctrl+scroll zooms, Enter saves a draft, and Escape '
                         'cancels.',
             ),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -759,8 +755,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           _buildShapeCreationSection(authoring),
-          const SizedBox(height: EditorUiTokens.sectionGap),
-          EditorSectionCard(
+          const SizedBox(height: ToolUiTokens.sectionGap),
+          ToolSectionCard(
             key: const ValueKey<String>('prefab_polygon_shapes_panel'),
             expansionKey: const ValueKey<String>(
               'prefab_polygon_shapes_panel_toggle',
@@ -784,7 +780,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                   )
                 else
                   for (final shape in shapes)
-                    EditorListCard(
+                    ToolListCard(
                       key: ValueKey<String>(
                         'prefab_polygon_shape_${shape.shapeId}',
                       ),
@@ -842,7 +838,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ],
             ),
           ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
+          const SizedBox(height: ToolUiTokens.sectionGap),
           _buildDiagnosticsSection(document, issues),
         ],
       ),
@@ -854,7 +850,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   ) {
     final draft = authoring.state.draft;
     final gesture = authoring.state.gesture;
-    return EditorSectionCard(
+    return ToolSectionCard(
       key: const ValueKey<String>('prefab_polygon_creation_panel'),
       expansionKey: const ValueKey<String>(
         'prefab_polygon_creation_panel_toggle',
@@ -888,7 +884,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
             onChanged: authoring.setNewShapeNameInput,
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           InputDecorator(
             key: const ValueKey<String>(
               'prefab_polygon_creation_mode_selector',
@@ -899,16 +895,16 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               '(from ${authoring.prefab.kind.jsonValue})',
             ),
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           Text('Method', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           if (authoring.prefab.kind == PrefabKind.decoration)
             const Text('Decoration Prefabs do not author collision.')
           else
             Wrap(
               key: const ValueKey<String>('prefab_collision_creation_methods'),
-              spacing: EditorUiTokens.controlGap,
-              runSpacing: EditorUiTokens.controlGap,
+              spacing: ToolUiTokens.controlGap,
+              runSpacing: ToolUiTokens.controlGap,
               children: <Widget>[
                 FilledButton.tonalIcon(
                   key: const ValueKey<String>('prefab_polygon_new_rectangle'),
@@ -954,7 +950,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ],
             ),
           if (draft != null || gesture != null) ...<Widget>[
-            const SizedBox(height: EditorUiTokens.controlGap),
+            const SizedBox(height: ToolUiTokens.controlGap),
             Text(
               draft == null
                   ? 'Drawing rectangle · release to keep the local preview.'
@@ -965,13 +961,13 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
           ],
           if (authoring.hasFitDraft) ...<Widget>[
-            const SizedBox(height: EditorUiTokens.controlGap),
+            const SizedBox(height: ToolUiTokens.controlGap),
             _buildFitDraftEditor(authoring),
           ] else ...<Widget>[
-            const SizedBox(height: EditorUiTokens.controlGap),
+            const SizedBox(height: ToolUiTokens.controlGap),
             Wrap(
-              spacing: EditorUiTokens.controlGap,
-              runSpacing: EditorUiTokens.controlGap,
+              spacing: ToolUiTokens.controlGap,
+              runSpacing: ToolUiTokens.controlGap,
               children: <Widget>[
                 OutlinedButton.icon(
                   key: const ValueKey<String>('prefab_polygon_save_draft'),
@@ -1219,8 +1215,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           style: Theme.of(context).textTheme.titleSmall,
         ),
         Wrap(
-          spacing: EditorUiTokens.controlGap,
-          runSpacing: EditorUiTokens.controlGap,
+          spacing: ToolUiTokens.controlGap,
+          runSpacing: ToolUiTokens.controlGap,
           children: <Widget>[
             OutlinedButton.icon(
               key: const ValueKey<String>('prefab_polygon_duplicate_shape'),
@@ -1264,16 +1260,16 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           ],
         ),
         if (_pendingRefitShapeId == shape.shapeId) ...<Widget>[
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           Text(
             'Choose how visible pixels should replace this shape:',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           Wrap(
             key: const ValueKey<String>('prefab_refit_methods'),
-            spacing: EditorUiTokens.controlGap,
-            runSpacing: EditorUiTokens.controlGap,
+            spacing: ToolUiTokens.controlGap,
+            runSpacing: ToolUiTokens.controlGap,
             children: <Widget>[
               for (final method in <PrefabCollisionCreationMethod>[
                 PrefabCollisionCreationMethod.fitVisibleBounds,
@@ -1300,9 +1296,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ],
           ),
         ],
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         _buildShapeMetadataInspector(authoring, shape),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         _buildVertexInspector(authoring, shape),
       ],
     );
@@ -1339,7 +1335,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             setState(() => _shapeNameDrafts[shape.shapeId] = value);
           },
         ),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         InputDecorator(
           key: const ValueKey<String>('prefab_polygon_metadata_mode'),
           decoration: const InputDecoration(labelText: 'Collision mode'),
@@ -1363,7 +1359,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         .where((issue) => issue.severity == ValidationSeverity.warning)
         .length;
     final infos = issues.length - errors - warnings;
-    return EditorSectionCard(
+    return ToolSectionCard(
       key: const ValueKey<String>('prefab_polygon_diagnostics_panel'),
       expansionKey: const ValueKey<String>(
         'prefab_polygon_diagnostics_panel_toggle',
@@ -1430,7 +1426,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text('Vertices', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         for (final entry in shape.vertices.asMap().entries)
           ListTile(
             key: ValueKey<String>(
@@ -1449,7 +1445,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
           ),
         if (selectedVertexIndex != null) ...<Widget>[
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           TerrainPolygonVertexEditor(
             key: ValueKey<String>(
               'prefab_polygon_vertex_editor_${shape.shapeId}_'
@@ -1481,10 +1477,10 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               }
               return saved;
             },
-            controlGap: EditorUiTokens.controlGap,
+            controlGap: ToolUiTokens.controlGap,
           ),
         ] else if (rectangle != null) ...<Widget>[
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           TerrainPolygonRectangleEditor(
             key: ValueKey<String>(
               'prefab_polygon_rectangle_editor_${shape.shapeId}_'
@@ -1519,10 +1515,10 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                   }
                   return saved;
                 },
-            controlGap: EditorUiTokens.controlGap,
+            controlGap: ToolUiTokens.controlGap,
           ),
         ] else ...<Widget>[
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           FilledButton.icon(
             key: const ValueKey<String>('prefab_polygon_save_edit'),
             onPressed: shapeNameError == null && _hasPendingShapeName(shape)

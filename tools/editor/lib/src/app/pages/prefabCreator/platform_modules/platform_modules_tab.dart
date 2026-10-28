@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../prefabs/models/models.dart';
-import '../../shared/editor_panel_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_section_card.dart';
-import '../../shared/editor_list_card.dart';
-import '../../shared/editor_ui_tokens.dart';
 import '../../shared/platform_module_preview_tile.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
 import '../shared/ui/prefab_editor_atlas_slice_selector.dart';
@@ -161,10 +158,10 @@ class PlatformModulesTab extends StatelessWidget {
               'tool=${selectedModuleSceneTool.label} '
               'slice=${selectedTileSliceId ?? 'none'}';
 
-    return EditorPanelCard(
+    return ToolPanelCard(
       key: const ValueKey<String>('platform_module_scene_card'),
       title: 'Platform Visual',
-      bodyMode: EditorPanelBodyMode.expanded,
+      bodyMode: ToolPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -172,7 +169,7 @@ class PlatformModulesTab extends StatelessWidget {
             title: sceneHeaderTitle,
             subtitle: sceneHeaderSubtitle,
           ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
+          const SizedBox(height: ToolUiTokens.sectionGap),
           Expanded(
             child: _PlatformModuleScenePanel(
               selectedModule: selectedModule,
@@ -253,8 +250,8 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                 ? PrefabEditorModeTone.create
                 : PrefabEditorModeTone.edit,
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
-          EditorSectionCard(
+          const SizedBox(height: ToolUiTokens.controlGap),
+          ToolSectionCard(
             key: const ValueKey<String>('platform_module_advanced_controls'),
             expansionKey: const ValueKey<String>(
               'platform_module_advanced_controls_toggle',
@@ -279,7 +276,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                     labelText: 'Platform ID',
                   ),
                 ),
-                const SizedBox(height: EditorUiTokens.controlGap),
+                const SizedBox(height: ToolUiTokens.controlGap),
                 TextField(
                   key: const ValueKey<String>(
                     'platform_module_tile_size_field',
@@ -291,7 +288,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                     labelText: 'Tile Size (px)',
                   ),
                 ),
-                const SizedBox(height: EditorUiTokens.controlGap),
+                const SizedBox(height: ToolUiTokens.controlGap),
                 PrefabEditorActionRow(
                   children: [
                     FilledButton.icon(
@@ -372,7 +369,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: EditorUiTokens.sectionGap),
+                const SizedBox(height: ToolUiTokens.sectionGap),
                 Text(
                   selectedModule == null
                       ? 'Select a platform from the list to edit it.'
@@ -383,8 +380,8 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
-          EditorSectionCard(
+          const SizedBox(height: ToolUiTokens.sectionGap),
+          ToolSectionCard(
             key: const ValueKey<String>('platform_module_palette_section'),
             expansionKey: const ValueKey<String>(
               'platform_module_palette_section_toggle',
@@ -519,7 +516,7 @@ class _PlatformModuleDisplayPanelState
 
     return SingleChildScrollView(
       key: const ValueKey<String>('platform_module_display_sidebar'),
-      child: EditorSectionCard(
+      child: ToolSectionCard(
         key: const ValueKey<String>('platform_module_library_section'),
         expansionKey: const ValueKey<String>(
           'platform_module_library_section_toggle',
@@ -536,12 +533,12 @@ class _PlatformModuleDisplayPanelState
               secondaryText:
                   'Selected Module: ${widget.selectedModuleId ?? 'none'}',
             ),
-            const SizedBox(height: EditorUiTokens.sectionGap),
+            const SizedBox(height: ToolUiTokens.sectionGap),
             if (widget.modules.isEmpty)
               const PrefabEditorEmptyState(message: 'No platforms yet.')
             else
               for (final module in widget.modules)
-                EditorListCard(
+                ToolListCard(
                   key: ValueKey<String>('platform_module_row_${module.id}'),
                   isSelected: widget.selectedModuleId == module.id,
                   onTap: () => widget.onSelectedModuleChanged(module.id),
@@ -559,7 +556,7 @@ class _PlatformModuleDisplayPanelState
                     tileSlicesById: tileSlicesById,
                   ),
                   trailing: Wrap(
-                    spacing: EditorUiTokens.controlGap,
+                    spacing: ToolUiTokens.controlGap,
                     children: <Widget>[
                       IconButton(
                         key: ValueKey<String>(

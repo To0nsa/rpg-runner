@@ -22,7 +22,9 @@ dev, staging and production apps. Its final candidate and Play release are pendi
 - [System inbox](docs/gdd/messages.md) with information messages, manually
   claimed 25-gold gifts for new levels and a reusable menu attention marker.
 - [Targeted message delivery](docs/tdd/system_inbox.md#operator-delivery) for
-  operator-issued information and gold gifts; existing levels are not backfilled.
+  operator-issued information, gold and existing item/skill gifts through
+  [Flutter Admin](tools/admin/README.md), with explicit environment activation.
+  Existing levels are not backfilled.
 - 2 authored level layouts: `forest`, `field`
 - Generated polygon terrain is the collision, navigation, placement, and
   rendering authority for normal runs and replay validation
@@ -224,14 +226,17 @@ The editor's Build action uses the existing repository generator and reports
 source errors and generated freshness. See the [editor guide](tools/editor/README.md)
 for creation, Save/recovery, inclusion, Play controls, and schema migration.
 
-## Send Player Messages
+## Admin: Messages and Gifts
 
-Sign in once with `corepack pnpm messages:login --account <authorized-email>`;
-this login is private to the messaging tool and leaves other applications' ADC
-unchanged. Run `corepack pnpm messages` from the repository root to open the local
-developer console under `tools/messaging`. Select dev, staging or prod, enter one player
-UID, and preview a message with optional claimable gold before sending. See the
-[message tool guide](tools/messaging/README.md) for credentials and retry recovery.
+Run `corepack pnpm admin` from the repository root to launch the Flutter Windows
+Admin app. Sign in once with `corepack pnpm admin:login --account <authorized-email>`;
+its dedicated login leaves other applications' ADC unchanged. Select dev, staging
+or prod, enter a player UID, and preview text/gold plus existing item/skill gifts
+where the environment's compatible rollout is enabled. Shared packages provide
+the editor's theme/panels and the game's icon/name presentation. See the
+[Admin guide](tools/admin/README.md) for setup, safe retries, draft migration and
+`admin:fixture` offline mode. `corepack pnpm messages` retains the old gold-only
+browser workflow.
 
 ## Deploy A Release
 

@@ -1,0 +1,325 @@
+{
+  "enabled": true,
+  "catalogHash": "9310db4c01d6ff89956a506383aea0d9b6a2da8367e4033cda5252d7af771d36",
+  "entries": [
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "plainsteel"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "waspfang"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "cinderedge"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "basiliskKiss"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "frostbrand"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "stormneedle"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "nullblade"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "sunlitVow"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "roadguard"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "thornbark"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "cinderWard"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "tideguardShell"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "frostlockBuckler"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "ironBastion"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "stormAegis"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "nullPrism"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "warbannerGuard"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "oathwallRelic"
+    },
+    {
+      "kind": "gear",
+      "slot": "accessory",
+      "itemId": "speedBoots"
+    },
+    {
+      "kind": "gear",
+      "slot": "accessory",
+      "itemId": "goldenRing"
+    },
+    {
+      "kind": "gear",
+      "slot": "accessory",
+      "itemId": "teethNecklace"
+    },
+    {
+      "kind": "gear",
+      "slot": "accessory",
+      "itemId": "diamondRing"
+    },
+    {
+      "kind": "gear",
+      "slot": "accessory",
+      "itemId": "ironBoots"
+    },
+    {
+      "kind": "gear",
+      "slot": "accessory",
+      "itemId": "oathBeads"
+    },
+    {
+      "kind": "gear",
+      "slot": "accessory",
+      "itemId": "resilienceCape"
+    },
+    {
+      "kind": "gear",
+      "slot": "accessory",
+      "itemId": "strengthBelt"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "apprenticePrimer"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "bastionCodex"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "emberGrimoire"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "tideAlmanac"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "hexboundLexicon"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "galeFolio"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "nullTestament"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "crownOfFocus"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "iceBolt"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "fireBolt"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "acidBolt"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "darkBolt"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "earthBolt"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "holyBolt"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "waterBolt"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "thunderBolt"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "eloise.arcane_haste"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "eloise.focus"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "eloise.arcane_ward"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "eloise.cleanse"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "eloise.vital_surge"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "eloise.mana_infusion"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "eloise.second_wind"
+    },
+    {
+      "kind": "ability",
+      "slot": "primary",
+      "itemId": "eloise.bloodletter_slash"
+    },
+    {
+      "kind": "ability",
+      "slot": "primary",
+      "itemId": "eloise.bloodletter_cleave"
+    },
+    {
+      "kind": "ability",
+      "slot": "primary",
+      "itemId": "eloise.seeker_slash"
+    },
+    {
+      "kind": "ability",
+      "slot": "secondary",
+      "itemId": "eloise.aegis_riposte"
+    },
+    {
+      "kind": "ability",
+      "slot": "secondary",
+      "itemId": "eloise.shield_block"
+    },
+    {
+      "kind": "ability",
+      "slot": "projectile",
+      "itemId": "eloise.snap_shot"
+    },
+    {
+      "kind": "ability",
+      "slot": "projectile",
+      "itemId": "eloise.quick_shot"
+    },
+    {
+      "kind": "ability",
+      "slot": "projectile",
+      "itemId": "eloise.skewer_shot"
+    },
+    {
+      "kind": "ability",
+      "slot": "projectile",
+      "itemId": "eloise.overcharge_shot"
+    },
+    {
+      "kind": "ability",
+      "slot": "mobility",
+      "itemId": "eloise.dash"
+    },
+    {
+      "kind": "ability",
+      "slot": "mobility",
+      "itemId": "eloise.double_dash"
+    },
+    {
+      "kind": "ability",
+      "slot": "mobility",
+      "itemId": "eloise.roll"
+    },
+    {
+      "kind": "ability",
+      "slot": "jump",
+      "itemId": "eloise.jump"
+    },
+    {
+      "kind": "ability",
+      "slot": "jump",
+      "itemId": "eloise.double_jump"
+    }
+  ],
+  "characters": [
+    "eloise",
+    "eloiseWip"
+  ]
+}

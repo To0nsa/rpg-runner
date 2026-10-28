@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../prefabs/collision_fitting/prefab_collision_fitting.dart';
-import '../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Reports one candidate's local inclusion choice without committing it.
 typedef PrefabFitCandidateChanged = void Function(
@@ -68,7 +68,7 @@ class PrefabFitDraftEditor extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(EditorUiTokens.controlGap),
+        padding: const EdgeInsets.all(ToolUiTokens.controlGap),
         child: Column(
           key: const ValueKey<String>('prefab_fit_draft_editor'),
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -79,7 +79,7 @@ class PrefabFitDraftEditor extends StatelessWidget {
                   : 'Refit $refitShapeId · ${prefabFitMethodLabel(method)}',
               style: Theme.of(context).textTheme.titleSmall,
             ),
-            const SizedBox(height: EditorUiTokens.controlGap),
+            const SizedBox(height: ToolUiTokens.controlGap),
             if (isLoading)
               const LinearProgressIndicator(
                 key: ValueKey<String>('prefab_fit_loading'),
@@ -91,7 +91,7 @@ class PrefabFitDraftEditor extends StatelessWidget {
                 key: const ValueKey<String>('prefab_fit_counts'),
               ),
               if (evidence != null) ...<Widget>[
-                const SizedBox(height: EditorUiTokens.controlGap),
+                const SizedBox(height: ToolUiTokens.controlGap),
                 Text(
                   _fitEvidenceText(method, evidence!),
                   key: const ValueKey<String>('prefab_fit_evidence'),
@@ -101,7 +101,7 @@ class PrefabFitDraftEditor extends StatelessWidget {
                   candidateIds.any(
                     (id) => !includedCandidateIds.contains(id),
                   )) ...<Widget>[
-                const SizedBox(height: EditorUiTokens.controlGap),
+                const SizedBox(height: ToolUiTokens.controlGap),
                 for (final id in candidateIds)
                   CheckboxListTile(
                     key: ValueKey<String>('prefab_fit_component_$id'),
@@ -117,7 +117,7 @@ class PrefabFitDraftEditor extends StatelessWidget {
                   ),
               ],
               if (messages.isNotEmpty) ...<Widget>[
-                const SizedBox(height: EditorUiTokens.controlGap),
+                const SizedBox(height: ToolUiTokens.controlGap),
                 for (final message in messages)
                   Text(
                     message,
@@ -125,14 +125,14 @@ class PrefabFitDraftEditor extends StatelessWidget {
                   ),
               ],
               if (settingsChanged) ...<Widget>[
-                const SizedBox(height: EditorUiTokens.controlGap),
+                const SizedBox(height: ToolUiTokens.controlGap),
                 const Text(
                   'Fit settings changed. Regenerate to review the new result.',
                   style: TextStyle(color: Color(0xFFFFD166)),
                 ),
               ],
             ],
-            const SizedBox(height: EditorUiTokens.controlGap),
+            const SizedBox(height: ToolUiTokens.controlGap),
             Material(
               type: MaterialType.transparency,
               child: ExpansionTile(
@@ -175,10 +175,10 @@ class PrefabFitDraftEditor extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: EditorUiTokens.controlGap),
+            const SizedBox(height: ToolUiTokens.controlGap),
             Wrap(
-              spacing: EditorUiTokens.controlGap,
-              runSpacing: EditorUiTokens.controlGap,
+              spacing: ToolUiTokens.controlGap,
+              runSpacing: ToolUiTokens.controlGap,
               children: <Widget>[
                 OutlinedButton.icon(
                   key: const ValueKey<String>('prefab_fit_regenerate'),

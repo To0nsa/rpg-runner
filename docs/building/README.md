@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed shared Flutter tools and Admin gifts](../archive/2026-10-29/building/admin_tools.md):
+  shared editor UI/game presentation and native Admin; local implementation and
+  verification complete. Item/skill delivery awaits compatible environment rollout.
+
 - [Completed inbox retention and player deletion](../archive/2026-10-28/building/inbox_retention.md):
   protected unclaimed gifts, 30-day cleanup, compact delivery receipts and inbox
   Delete. Backend/emulator and Flutter checks pass; not deployed.

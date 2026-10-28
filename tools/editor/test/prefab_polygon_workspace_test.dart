@@ -7,7 +7,7 @@ import 'package:image/image.dart' as image;
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_navigation.dart';
-import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
@@ -222,7 +222,7 @@ void main() {
       isTrue,
     );
     expect(
-      find.byKey(const ValueKey<String>('editor_three_panel_narrow')),
+      find.byKey(const ValueKey<String>('tool_three_panel_narrow')),
       findsOneWidget,
     );
     expect(find.byType(TabBar), findsNothing);
@@ -368,7 +368,7 @@ void main() {
     tester.view.physicalSize = const Size(1400, 900);
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey<String>('editor_three_panel_wide')),
+      find.byKey(const ValueKey<String>('tool_three_panel_wide')),
       findsOneWidget,
     );
     expect(
@@ -862,7 +862,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey<String>('editor_three_panel_narrow')),
+        find.byKey(const ValueKey<String>('tool_three_panel_narrow')),
         findsOneWidget,
       );
       expect(find.byType(TabBar), findsNothing);
@@ -917,7 +917,7 @@ void main() {
       tester.view.physicalSize = const Size(1400, 1000);
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey<String>('editor_three_panel_wide')),
+        find.byKey(const ValueKey<String>('tool_three_panel_wide')),
         findsOneWidget,
       );
       expect(
@@ -1110,7 +1110,7 @@ void main() {
       await tester.ensureVisible(nameField);
       await tester.enterText(nameField, 'collision_pending');
       expect(_prefabApplyHandler(tester).canSaveEditorPage, isTrue);
-      tester.widget<EditorListCard>(shapeRow).onTap!();
+      tester.widget<ToolListCard>(shapeRow).onTap!();
       await tester.pumpAndSettle();
       expect(
         find.byKey(
@@ -1126,7 +1126,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('collision_pending'), findsOneWidget);
 
-      tester.widget<EditorListCard>(shapeRow).onTap!();
+      tester.widget<ToolListCard>(shapeRow).onTap!();
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(
@@ -1906,7 +1906,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      tester.widget<EditorListCard>(obstacleOwner).onTap!();
+      tester.widget<ToolListCard>(obstacleOwner).onTap!();
       await tester.pump();
       expect(
         find.byKey(
@@ -1914,7 +1914,7 @@ void main() {
         ),
         findsNothing,
       );
-      tester.widget<EditorListCard>(obstacleOwner).onTap!();
+      tester.widget<ToolListCard>(obstacleOwner).onTap!();
       await tester.pump();
       expect(
         find.byKey(
@@ -1961,7 +1961,7 @@ void main() {
       final platformOwner = find.byKey(
         const ValueKey<String>('prefab_polygon_owner_platform'),
       );
-      tester.widget<EditorListCard>(platformOwner).onTap!();
+      tester.widget<ToolListCard>(platformOwner).onTap!();
       await tester.pumpAndSettle();
       expect(
         find.byKey(
@@ -1982,7 +1982,7 @@ void main() {
         findsOneWidget,
       );
 
-      tester.widget<EditorListCard>(platformOwner).onTap!();
+      tester.widget<ToolListCard>(platformOwner).onTap!();
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(
@@ -2040,7 +2040,7 @@ void main() {
       final platformOwner = find.byKey(
         const ValueKey<String>('prefab_polygon_owner_platform'),
       );
-      tester.widget<EditorListCard>(platformOwner).onTap!();
+      tester.widget<ToolListCard>(platformOwner).onTap!();
       await tester.pumpAndSettle();
       expect(
         find.byKey(
@@ -2779,7 +2779,7 @@ void main() {
         const ValueKey<String>('atlas_slice_row_assets_bonus_01'),
       );
       expect(
-        tester.widget<EditorListCard>(createdBonusRow).isSelected,
+        tester.widget<ToolListCard>(createdBonusRow).isSelected,
         isFalse,
       );
       expect(
@@ -3241,7 +3241,7 @@ void main() {
         const ValueKey<String>('atlas_slice_row_assets_obstacle_01'),
       );
       expect(
-        tester.widget<EditorListCard>(createdSliceRow).isSelected,
+        tester.widget<ToolListCard>(createdSliceRow).isSelected,
         isFalse,
       );
       expect(

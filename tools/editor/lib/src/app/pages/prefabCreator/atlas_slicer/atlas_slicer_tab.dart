@@ -10,10 +10,7 @@ import '../../shared/atlas_region_fields.dart';
 import '../../shared/atlas_region_preview_tile.dart';
 import '../../shared/atlas_selection_painter.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_panel_card.dart';
-import '../../shared/editor_section_card.dart';
-import '../../shared/editor_list_card.dart';
-import '../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
 import '../shared/ui/prefab_editor_empty_state.dart';
@@ -139,7 +136,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          EditorSectionCard(
+          ToolSectionCard(
             key: const ValueKey<String>('atlas_slice_source_section'),
             expansionKey: const ValueKey<String>(
               'atlas_slice_source_section_toggle',
@@ -172,9 +169,9 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
               ],
             ),
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           if (isEditing)
-            EditorSectionCard(
+            ToolSectionCard(
               key: const ValueKey<String>('atlas_slice_create_section'),
               title: 'Create slice',
               child: OutlinedButton.icon(
@@ -185,7 +182,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
               ),
             )
           else ...<Widget>[
-            EditorSectionCard(
+            ToolSectionCard(
               key: const ValueKey<String>('atlas_slice_setup_section'),
               expansionKey: const ValueKey<String>(
                 'atlas_slice_setup_section_toggle',
@@ -199,8 +196,8 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                 includeAutomaticOwner: true,
               ),
             ),
-            const SizedBox(height: EditorUiTokens.controlGap),
-            EditorSectionCard(
+            const SizedBox(height: ToolUiTokens.controlGap),
+            ToolSectionCard(
               key: const ValueKey<String>('atlas_slice_selection_section'),
               expansionKey: const ValueKey<String>(
                 'atlas_slice_selection_section_toggle',
@@ -211,7 +208,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
               expanded: widget.hasLocalDraftChanges ? true : null,
               child: _buildSelectionControls(),
             ),
-            const SizedBox(height: EditorUiTokens.controlGap),
+            const SizedBox(height: ToolUiTokens.controlGap),
             _buildActionRow(isEditing: false),
           ],
         ],
@@ -251,7 +248,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
               widget.onSelectedSliceKindChanged(value);
             },
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
         ],
         ValueListenableBuilder<TextEditingValue>(
           valueListenable: widget.sliceIdController,
@@ -283,7 +280,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
             ),
           ),
         ),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         TextField(
           key: const ValueKey<String>('atlas_slice_tags_field'),
           controller: widget.sliceTagsController,
@@ -295,7 +292,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
           ),
         ),
         if (includeAutomaticOwner) ...<Widget>[
-          const SizedBox(height: EditorUiTokens.sectionGap),
+          const SizedBox(height: ToolUiTokens.sectionGap),
           _buildAutomaticOwnerControls(),
         ],
       ],
@@ -313,7 +310,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
           step: widget.zoomStep,
           onChanged: widget.onAtlasZoomChanged,
         ),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         AtlasRegionFields(
           xController: widget.selectionXController,
           yController: widget.selectionYController,
@@ -321,7 +318,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
           heightController: widget.selectionHController,
           onChanged: widget.onSelectionInputsChanged,
         ),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         SwitchListTile.adaptive(
           key: const ValueKey<String>('atlas_auto_slice_toggle'),
           contentPadding: EdgeInsets.zero,
@@ -330,14 +327,14 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
           onChanged: widget.onAutoSliceEnabledChanged,
         ),
         if (widget.autoSliceEnabled) ...<Widget>[
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           AtlasGridControls(
             settings: widget.gridSettings,
             onChanged: widget.onGridSettingsChanged,
           ),
         ],
         if (widget.atlasSize != null) ...<Widget>[
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           Text(
             'Atlas size: '
             '${widget.atlasSize!.width.toInt()}x'
@@ -422,7 +419,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                   : null,
             ),
             if (isPrefabSlice) ...<Widget>[
-              const SizedBox(height: EditorUiTokens.controlGap),
+              const SizedBox(height: ToolUiTokens.controlGap),
               SegmentedButton<PrefabKind>(
                 key: const ValueKey<String>('atlas_corresponding_prefab_kind'),
                 segments: const <ButtonSegment<PrefabKind>>[
@@ -501,22 +498,22 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text('Pattern', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: EditorUiTokens.rowTitleGap),
+                const SizedBox(height: ToolUiTokens.rowTitleGap),
                 _NamingPatternBox(text: pattern),
-                const SizedBox(height: EditorUiTokens.sectionGap),
+                const SizedBox(height: ToolUiTokens.sectionGap),
                 Text(
                   contextLabel,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                const SizedBox(height: EditorUiTokens.rowTitleGap),
+                const SizedBox(height: ToolUiTokens.rowTitleGap),
                 _NamingPatternBox(text: contextualPattern),
-                const SizedBox(height: EditorUiTokens.sectionGap),
+                const SizedBox(height: ToolUiTokens.sectionGap),
                 Text('Example', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: EditorUiTokens.rowTitleGap),
+                const SizedBox(height: ToolUiTokens.rowTitleGap),
                 SelectableText(example),
-                const SizedBox(height: EditorUiTokens.sectionGap),
+                const SizedBox(height: ToolUiTokens.sectionGap),
                 Text(rules),
-                const SizedBox(height: EditorUiTokens.sectionGap),
+                const SizedBox(height: ToolUiTokens.sectionGap),
                 const Text(
                   'This convention is enforced only when creating a new '
                   'slice; existing IDs are kept for compatibility.',
@@ -537,10 +534,10 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
   }
 
   Widget _buildScenePanel() {
-    return EditorPanelCard(
+    return ToolPanelCard(
       key: const ValueKey<String>('atlas_scene_card'),
       title: 'Atlas Slicer View',
-      bodyMode: EditorPanelBodyMode.expanded,
+      bodyMode: ToolPanelBodyMode.expanded,
       child: _buildAtlasCanvas(),
     );
   }
@@ -555,7 +552,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
 
     return SingleChildScrollView(
       key: const ValueKey<String>('atlas_slice_display_sidebar'),
-      child: EditorSectionCard(
+      child: ToolSectionCard(
         key: const ValueKey<String>('atlas_slice_library_section'),
         expansionKey: const ValueKey<String>(
           'atlas_slice_library_section_toggle',
@@ -574,7 +571,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
               const PrefabEditorPanelSummary(
                 noticeText: 'The current selection belongs to another source.',
               ),
-              const SizedBox(height: EditorUiTokens.sectionGap),
+              const SizedBox(height: ToolUiTokens.sectionGap),
             ],
             if (widget.slices.isEmpty)
               PrefabEditorEmptyState(
@@ -594,7 +591,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
   Widget _buildSliceRow(AtlasSliceDef slice) {
     final isSelected = widget.selectedSliceId == slice.id;
 
-    return EditorListCard(
+    return ToolListCard(
       key: ValueKey<String>('atlas_slice_row_${slice.id}'),
       isSelected: isSelected,
       onTap: () => widget.onSelectedSliceChanged(slice.id),
@@ -637,11 +634,11 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
           includeKind: false,
           includeAutomaticOwner: false,
         ),
-        const SizedBox(height: EditorUiTokens.sectionGap),
+        const SizedBox(height: ToolUiTokens.sectionGap),
         Text('Selection', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         _buildSelectionControls(),
-        const SizedBox(height: EditorUiTokens.sectionGap),
+        const SizedBox(height: ToolUiTokens.sectionGap),
         _buildActionRow(isEditing: true, deleteSliceId: slice.id),
       ],
     );
@@ -711,7 +708,7 @@ class _NamingPatternBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(EditorUiTokens.controlGap),
+    padding: const EdgeInsets.all(ToolUiTokens.controlGap),
     color: Theme.of(context).colorScheme.surfaceContainerHighest,
     child: SelectableText(text),
   );

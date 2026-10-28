@@ -9,10 +9,7 @@ import '../../../session/editor_session_controller.dart';
 import '../../../terrain_materials/terrain_material_domain_models.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_page_navigation_state.dart';
-import '../shared/editor_list_card.dart';
-import '../shared/editor_panel_card.dart';
-import '../shared/editor_three_panel_layout.dart';
-import '../shared/editor_workspace_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'terrain_material_dialog.dart';
 import '../shared/terrain_material_preview.dart';
 
@@ -103,8 +100,8 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
     }
 
     final selected = _selectedMaterial(scene);
-    return EditorWorkspaceCard(
-      child: EditorThreePanelLayout(
+    return ToolWorkspaceCard(
+      child: ToolThreePanelLayout(
         firstLabel: 'Materials',
         secondLabel: 'Preview',
         thirdLabel: 'Details',
@@ -121,10 +118,10 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
   Widget _buildMaterialList(
     TerrainMaterialScene scene,
     TerrainMaterialDefinition? selected,
-  ) => EditorPanelCard(
+  ) => ToolPanelCard(
     title: 'Terrain materials',
     description: 'Reusable polygon visuals authored by stable material key.',
-    bodyMode: EditorPanelBodyMode.expanded,
+    bodyMode: ToolPanelBodyMode.expanded,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -165,7 +162,7 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
               : ListView(
                   children: <Widget>[
                     for (final material in scene.materials)
-                      EditorListCard(
+                      ToolListCard(
                         key: ValueKey<String>(
                           'terrain_material_row_${material.key}',
                         ),
@@ -209,10 +206,10 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
   Widget _buildPreview(
     TerrainMaterialScene scene,
     TerrainMaterialDefinition? selected,
-  ) => EditorPanelCard(
+  ) => ToolPanelCard(
     title: 'Composed preview',
     description: 'Fill, edge bands, details, and convex corner/endpoint caps.',
-    bodyMode: EditorPanelBodyMode.scrollable,
+    bodyMode: ToolPanelBodyMode.scrollable,
     trailing: OutlinedButton.icon(
       key: const ValueKey<String>('terrain_material_edit'),
       onPressed: selected == null
@@ -243,10 +240,10 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
               .toList(growable: false);
     final referenced =
         selected != null && scene.referencedMaterialKeys.contains(selected.key);
-    return EditorPanelCard(
+    return ToolPanelCard(
       title: 'Coverage & diagnostics',
       description: 'Exact orientations are explicit; missing bands use fill.',
-      bodyMode: EditorPanelBodyMode.scrollable,
+      bodyMode: ToolPanelBodyMode.scrollable,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[

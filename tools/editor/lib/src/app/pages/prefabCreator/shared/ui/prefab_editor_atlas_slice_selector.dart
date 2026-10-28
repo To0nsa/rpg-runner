@@ -5,8 +5,7 @@ import '../../../../../atlas/atlas_pixel_rect.dart';
 import '../../../../../prefabs/models/models.dart';
 import '../../../shared/atlas_region_preview_tile.dart';
 import '../../../shared/editor_scene_view_utils.dart';
-import '../../../shared/editor_ui_tokens.dart';
-import '../../../shared/editor_visual_catalog.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Presentation contract for the shared slice selector.
 ///
@@ -260,7 +259,7 @@ class _PrefabEditorAtlasSliceSelectorState
             );
           },
         ),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         if (!hasSelectableSlices)
           Text(widget.emptyStateMessage)
         else if (selectedSlice == null)
@@ -282,7 +281,7 @@ class _PrefabEditorAtlasSliceSelectorState
                 width: 72,
                 height: 56,
               ),
-              const SizedBox(width: EditorUiTokens.rowPreviewGap),
+              const SizedBox(width: ToolUiTokens.rowPreviewGap),
               Expanded(
                 child: Text(
                   'Selected: ${selectedSlice.id} · '
@@ -312,7 +311,7 @@ class _PrefabEditorAtlasSliceSelectorState
         ifAbsent: () => 1,
       );
     }
-    return EditorVisualCatalogLayout(
+    return ToolVisualCatalogLayout(
       searchController: _controller,
       searchKey:
           widget.fieldKey ??
@@ -372,7 +371,7 @@ class _PrefabEditorAtlasSliceSelectorState
         final slice = filteredSlices[index];
         final prefabIds = _prefabOwnerIds(slice.id);
         final usageDescription = _usageDescription(prefabIds);
-        return EditorVisualCatalogCard(
+        return ToolVisualCatalogCard(
           key: ValueKey<String>('${widget.optionKeyPrefix}_card_${slice.id}'),
           semanticsLabel:
               '${slice.id}, ${slice.width} by ${slice.height} pixels, '

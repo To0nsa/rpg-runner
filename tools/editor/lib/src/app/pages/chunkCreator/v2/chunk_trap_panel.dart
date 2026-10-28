@@ -6,9 +6,8 @@ import 'package:runner_core/traps/trap_placement.dart';
 import '../../../../atlas/atlas_pixel_rect.dart';
 import '../../../../chunks/chunk_trap_tuning_input.dart';
 import '../../shared/atlas_region_preview_tile.dart';
-import '../../shared/editor_list_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_section_card.dart';
 
 String trapDisplayName(TrapId id) => switch (id) {
   TrapId.spike => 'Spike',
@@ -68,7 +67,7 @@ class ChunkTrapPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey('chunk_trap_creation_panel'),
           expansionKey: const ValueKey('chunk_trap_creation_panel_toggle'),
           title: 'Create trap',
@@ -160,7 +159,7 @@ class ChunkTrapPanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey('chunk_trap_existing_panel'),
           expansionKey: const ValueKey('chunk_trap_existing_panel_toggle'),
           title: 'Existing traps',
@@ -175,7 +174,7 @@ class ChunkTrapPanel extends StatelessWidget {
             children: [
               if (traps.isEmpty) const Text('No traps in this chunk yet.'),
               for (final (index, trap) in traps.indexed) ...[
-                EditorListCard(
+                ToolListCard(
                   key: ValueKey('chunk_trap_placement_$index'),
                   isSelected: trap == selected,
                   onTap: enabled ? () => onSelect(trap) : null,

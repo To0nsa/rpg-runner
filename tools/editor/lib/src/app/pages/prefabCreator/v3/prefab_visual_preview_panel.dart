@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/models/models.dart';
-import '../../shared/editor_panel_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_ui_tokens.dart';
 import '../shared/prefab_polygon_visual_source.dart';
 import '../shared/prefab_visual_catalog_support.dart';
 
@@ -24,10 +23,10 @@ class PrefabVisualPreviewPanel extends StatelessWidget {
   final String workspaceRootPath;
 
   @override
-  Widget build(BuildContext context) => EditorPanelCard(
+  Widget build(BuildContext context) => ToolPanelCard(
     key: const ValueKey<String>('prefab_visual_preview_panel'),
     title: 'Prefab preview',
-    bodyMode: EditorPanelBodyMode.expanded,
+    bodyMode: ToolPanelBodyMode.expanded,
     child: prefab == null
         ? const Center(
             child: Text('Create or select a prefab to preview its visual.'),
@@ -36,8 +35,8 @@ class PrefabVisualPreviewPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Wrap(
-                spacing: EditorUiTokens.controlGap,
-                runSpacing: EditorUiTokens.controlGap,
+                spacing: ToolUiTokens.controlGap,
+                runSpacing: ToolUiTokens.controlGap,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: <Widget>[
                   Chip(
@@ -51,7 +50,7 @@ class PrefabVisualPreviewPanel extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: EditorUiTokens.sectionGap),
+              const SizedBox(height: ToolUiTokens.sectionGap),
               Expanded(
                 child: SizedBox.expand(
                   key: const ValueKey<String>('prefab_visual_preview'),

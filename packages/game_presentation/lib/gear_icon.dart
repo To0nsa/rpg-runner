@@ -1,0 +1,77 @@
+import 'package:flutter/material.dart';
+
+import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:runner_core/spellBook/spell_book_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
+
+import 'ui_icon_coords.dart';
+import 'ui_icon_tile.dart';
+
+const String _spellbookIconSheetPath =
+    'assets/images/icons/gear-icons/sword/transparentIcons.png';
+
+/// Shared gear icon renderer for loadout screens and gear picker UI.
+///
+/// The [id] type depends on [slot]:
+/// - main/offhand -> [WeaponId]
+/// - spellbook -> [SpellBookId]
+/// - accessory -> [AccessoryId]
+class GearIcon extends StatelessWidget {
+  const GearIcon({
+    super.key,
+    required this.slot,
+    required this.id,
+    this.size = 40,
+  });
+
+  final GearSlot slot;
+  final Object id;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget child;
+    switch (slot) {
+      case GearSlot.mainWeapon:
+      case GearSlot.offhandWeapon:
+        final weaponId = id as WeaponId;
+        final spec = uiIconSpecForWeapon(weaponId);
+        final imagePath = spec.imageAssetPath;
+        final coords = spec.coords;
+        if (imagePath != null) {
+          child = Image.asset(imagePath, width: size, height: size);
+        } else if (coords != null) {
+          child = UiIconTile(
+            coords: coords,
+            size: size,
+            assetPath: spec.spriteAssetPath!,
+            tilePx: spec.tilePx,
+          );
+        } else {
+          child = const SizedBox.shrink();
+        }
+        break;
+      case GearSlot.spellBook:
+        final bookId = id as SpellBookId;
+        final coords = uiIconCoordsForSpellBook(bookId);
+        child = coords == null
+            ? const SizedBox.shrink()
+            : UiIconTile(
+                coords: coords,
+                size: size,
+                assetPath: _spellbookIconSheetPath,
+              );
+        break;
+      case GearSlot.accessory:
+        final accessoryId = id as AccessoryId;
+        final coords = uiIconCoordsForAccessory(accessoryId);
+        child = coords == null
+            ? const SizedBox.shrink()
+            : UiIconTile(coords: coords, size: size);
+        break;
+    }
+
+    return SizedBox.square(dimension: size, child: child);
+  }
+}

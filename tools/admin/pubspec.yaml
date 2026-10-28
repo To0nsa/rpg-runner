@@ -1,0 +1,22 @@
+name: lothringen_admin
+description: Lothringen operator tools for player messages and gifts.
+publish_to: none
+version: 0.1.0+1
+environment:
+  sdk: ^3.13.1
+  flutter: '>=3.47.1'
+resolution: workspace
+dependencies:
+  flutter:
+    sdk: flutter
+  tool_ui:
+    path: ../../packages/tool_ui
+  game_presentation:
+    path: ../../packages/game_presentation
+  file_selector: ^1.1.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true

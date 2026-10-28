@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/meta/meta_service.dart';
-import '../../../components/gameIcon/game_icon.dart';
+import 'package:game_presentation/game_icon.dart';
 import '../../../theme/ui_tokens.dart';
 import 'gear_picker_parts.dart';
 

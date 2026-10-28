@@ -13,7 +13,7 @@ runs and Developer Practice grant no gifts. Ordinary run gold remains automatic.
 
 Reading and claiming are separate. Selecting mail marks it read; its gift
 remains pending until Claim succeeds. The button then shows Claimed and the
-wallet updates. A connection retry cannot pay the gift twice. Opening the list
+wallet and ownership update. A connection retry cannot pay the gift twice. Opening the list
 alone does not mark everything read.
 
 The main menu Messages icon shows a small worn-gold dot for unread mail OR
@@ -27,13 +27,18 @@ automatically removed after 30 days from the first read. Cleanup runs periodical
 reading again does not restart the timer.
 
 Players can use **Delete message** to remove information or claimed gift messages
-immediately. Unclaimed gifts have deletion disabled with "Claim your gold before
-deleting this message." Deletion updates inbox attention and leaves claimed gold
-in the wallet. Failed requests can be retried safely.
+immediately. Unclaimed gifts have deletion disabled with a claim-first explanation.
+Deletion updates inbox attention and leaves claimed gold and ownership intact. Failed requests can be retried safely.
 
 The flat level reward is temporary balance policy until individual level rewards
-are designed. Already issued gifts retain their promised amount. Item grants are
-not implemented.
+are designed. Already issued gifts retain their promised amount.
+
+Authorized operators can attach existing equipment, abilities and projectile
+spells to a message alongside optional gold. Gear unlocks are account-wide;
+skills show the character they belong to. Claim grants every attachment together
+and does not equip them. Already-owned unlocks give no duplicate or compensation.
+Gift rows use the same icons and names as the loadout/store. These attachments
+follow the same unlimited-until-claimed and 30-day-after-claim retention policy.
 
 The inbox provides refresh and retry actions. Attention refreshes periodically
 while foregrounded; system mail is not live chat. Future player messaging is

@@ -12,7 +12,7 @@ import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_skill_icon_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
-import 'package:rpg_runner/ui/components/gameIcon/game_icon.dart';
+import 'package:game_presentation/game_icon.dart';
 import 'package:rpg_runner/ui/controls/action_button.dart';
 import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
 import 'package:runner_core/abilities/ability_def.dart';

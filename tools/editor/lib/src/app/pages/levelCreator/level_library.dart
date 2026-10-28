@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../levels/level_domain_models.dart';
-import '../shared/editor_list_card.dart';
-import '../shared/editor_panel_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Compact Level selection; creation is a separate focused action.
 class LevelLibrary extends StatelessWidget {
@@ -37,9 +36,9 @@ class LevelLibrary extends StatelessWidget {
               level.levelId.toLowerCase().contains(query),
         )
         .toList(growable: false);
-    return EditorPanelCard(
+    return ToolPanelCard(
       title: 'Levels',
-      bodyMode: EditorPanelBodyMode.expanded,
+      bodyMode: ToolPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -76,7 +75,7 @@ class LevelLibrary extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final level = visible[index];
                       final count = countFor(level.levelId);
-                      return EditorListCard(
+                      return ToolListCard(
                         key: ValueKey<String>('level_library_${level.levelId}'),
                         isSelected: level.levelId == selectedLevelId,
                         onTap: () => onSelected(level.levelId),

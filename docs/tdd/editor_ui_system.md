@@ -2,25 +2,26 @@
 
 ## Scope
 
-The standalone Flutter editor uses shared presentation primitives under
-`tools/editor/lib/src/app/pages/shared/` for workspace cards and spacing. These
+The standalone Flutter editor and Admin use shared presentation primitives in
+`packages/tool_ui` for theme, workspace cards, catalog controls and spacing.
+See [shared tools architecture](admin_tools.md) for package ownership. These
 widgets own presentation only: route state, validation, commands, history, and
 repository writes remain with their existing page, controller, plugin, and
 store owners.
 
 ## Shared primitives
 
-- `EditorUiTokens` is the single source for workspace padding, panel padding,
+- `ToolUiTokens` is the single source for workspace padding, panel padding,
   gaps, radii, and list-row spacing.
-- `EditorPanelCard` owns the outlined card, title/description/trailing header,
+- `ToolPanelCard` owns the outlined card, title/description/trailing header,
   body padding, optional vertical scrolling, and optional collapse semantics.
-- `EditorSectionCard` groups related inspector controls without creating a
+- `ToolSectionCard` groups related inspector controls without creating a
   second top-level panel. It supports natural-height, presentation-only
   collapse and an optional trailing action while its containing sidebar owns
   scrolling.
-- `EditorListCard` gives owner, catalog, and composition rows one optional
+- `ToolListCard` gives owner, catalog, and composition rows one optional
   selected-state, leading/preview, details, and trailing-action structure.
-- `EditorWorkspaceCard` owns the outer outlined route surface and workspace
+- `ToolWorkspaceCard` owns the outer outlined route surface and workspace
   padding without taking over route sizing or scroll state.
 - `EditorOwnerDraftState<T>` is the neutral create/edit/rename draft-state
   contract shared by Prefab and Chunk. It owns no widgets, domain commands, or
@@ -59,12 +60,12 @@ tool. Pages provide typed view snapshots through `EditorPageNavigationState`;
 returning reloads current sources and restores stable selections without
 retaining draft documents. See [navigation contracts](editor_navigation.md).
 
-`EditorThreePanelLayout` keeps all three subtrees mounted at wide and narrow
+`ToolThreePanelLayout` keeps all three subtrees mounted at wide and narrow
 widths. Narrow tab visibility uses Offstage/TickerMode/ExcludeFocus; it does not
-remount editor state when resizing. `EditorThreePanelController.revealPanel`
+remount editor state when resizing. `ToolThreePanelController.revealPanel`
 reveals a contextual or diagnostic destination without destroying other panels.
 
-`EditorPanelCard` has explicit natural, expanded, and scrollable body modes.
+`ToolPanelCard` has explicit natural, expanded, and scrollable body modes.
 Expanded and scrollable modes require a bounded parent height. Collapsible
 cards require natural-height bodies and delegate overflow to their containing
 sidebar; this prevents nested vertical scroll views from competing for pointer
@@ -80,8 +81,8 @@ rail, and right sidebar. Wide layouts place the rail and bounded sidebar around
 the scene; narrow layouts keep all subtrees mounted while placing them below
 the scene. A four-way `Terrain`, `Prefabs`, `Markers`, and `Layers` segmented
 tab strip stays at the top of the scene. The sidebar is the sole vertical
-scroll owner and mounts only the flat group of sibling `EditorSectionCard`s for
-the active tab; no redundant domain-level `EditorPanelCard` wraps them. Terrain
+scroll owner and mounts only the flat group of sibling `ToolSectionCard`s for
+the active tab; no redundant domain-level `ToolPanelCard` wraps them. Terrain
 contains the creation and existing-shape authoring sections, Prefabs contains
 the visual catalog plus creation and existing-placement sections, Markers
 contains the enemy catalog plus creation and retained-placement sections, and
@@ -129,8 +130,8 @@ and the controlled `ChunkV2MarkerForm`. The expanded retained-marker editor
 composes the same browser with row-local tentative selection. Selecting or
 filtering an enemy creates no revision, history entry, validation event, or
 pending diff.
-Prefab and enemy browsers compose the neutral `EditorVisualCatalogLayout` and
-`EditorVisualCatalogCard` primitives for identical search, filter, count, grid,
+Prefab and enemy browsers compose the neutral `ToolVisualCatalogLayout` and
+`ToolVisualCatalogCard` primitives for identical search, filter, count, grid,
 selection, keyboard, semantics, and card chrome; each browser retains only its
 domain filtering, identity, and thumbnail projection. Selecting an existing
 marker in the list or scene opens one row-local draft. Apply dispatches the
@@ -170,7 +171,7 @@ Pending inspector text prevents source apply until it is resolved.
 
 Existing Prefab-v3 and Chunk-v2 owner metadata uses the same row-local draft
 contract. Selecting an owner expands a reusable typed form directly beneath
-that owner's `EditorListCard`; opening, closing, or editing the form is
+that owner's `ToolListCard`; opening, closing, or editing the form is
 presentation state until Apply dispatches the existing metadata command with
 the captured stable key and before snapshot. A clean re-selection closes the
 editor immediately. A dirty re-selection or owner/level change requests
@@ -280,7 +281,7 @@ collision draft. It presents **Rectangle**, **Polygon**, **Fit visible bounds**,
 direct inline methods. Pointer input, exact fields, and generated
 vertices share one fixed whole-pixel grid, so no precision selector is exposed.
 Retained shapes use
-`EditorListCard`'s detail slot for identity, fixed collision context, lifecycle
+`ToolListCard`'s detail slot for identity, fixed collision context, lifecycle
 actions, and exact geometry; no Prefab collision-metadata modal remains. The mounted exact
 editor and route-local shape-name draft report pending state through
 `TerrainPolygonExactEditController`. Re-click, owner/view navigation, and
@@ -345,7 +346,7 @@ to Files re-reads those Chunk sources and repeats review before the normal
 atomic Prefab/tile write; drift blocks export with Reload guidance.
 
 The **Prefabs and Platforms** and **Collision** workspaces present flat sibling
-`EditorSectionCard`s rather than placing section cards inside redundant panel
+`ToolSectionCard`s rather than placing section cards inside redundant panel
 cards. **Prefabs and Platforms** uses a
 creation sidebar, visual-only center preview, and owner-library sidebar.
 Collision uses a missing-setup/selection sidebar, collision scene, and shape
@@ -363,7 +364,7 @@ stable owner suffix in `sourcePath`, then uses the guarded owner navigation
 path before selecting and centering a retained shape. Unresolvable catalog
 issues remain visible without a misleading focus action.
 
-`PrefabEditorThreePanelLayout` owns the Prefab-specific responsive contract for
+`PrefabToolThreePanelLayout` owns the Prefab-specific responsive contract for
 Prefabs and Platforms, Collision, Atlas, and Platform module. The wide layout
 is `1:2:1`; the
 narrow layout keeps the center preview or scene above two bounded sidebars.
@@ -464,7 +465,7 @@ silently create a parallel platform. The tile palette and existing-platform
 visual library remain independent collapsed sections, and selected rows expand
 their cell context.
 
-`EditorListCard` is the reusable semantics boundary for owner, atlas, module,
+`ToolListCard` is the reusable semantics boundary for owner, atlas, module,
 and composition rows. It reports button and selected state and accepts a
 complete domain label, while nested icon actions retain tooltips. InkWell and
 button traversal provide standard Enter/Space activation; polygon scene
@@ -472,14 +473,14 @@ shortcuts retain Enter-to-save and Escape-to-cancel. Text content wraps inside
 bounded row columns, and full catalog metadata remains available through
 semantic labels or retained tooltips at narrow sidebar widths.
 
-Chunk, Prefab, and Level root workspaces use `EditorWorkspaceCard`. Chunk
+Chunk, Prefab, and Level root workspaces use `ToolWorkspaceCard`. Chunk
 composition is partitioned by the active Chunk workspace tab. Its rows and
 expanded editors or retained dialogs share typed selection and the same
 validated composition command with the scene's direct prefab and marker
 gestures. Terrain, Prefabs, and Markers own explicit primary-input domains.
 Layers is deliberately passive because `TileLayerDef` is metadata-only;
 compiled edges remain a non-interactive visual reference. Chunk and Prefab
-owner and shape rows, plus Chunk composition records, use `EditorListCard`;
+owner and shape rows, plus Chunk composition records, use `ToolListCard`;
 evidence and diagnostic cards remain route-specific because they communicate
 status instead of list ownership.
 Explanatory route-intro cards compose the same panel shell. The fail-closed
@@ -498,7 +499,7 @@ immutable projections and semantic callbacks, not session or store write
 authority.
 
 Parallax uses the shared workspace and bounded panel cards for Layers, Preview,
-and Inspector. Layer rows use `EditorListCard` with their asset thumbnail
+and Inspector. Layer rows use `ToolListCard` with their asset thumbnail
 in the leading slot, preserving selection and edit ownership in the page while
 removing its custom border, fill, and padding implementation.
 

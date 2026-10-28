@@ -57,6 +57,14 @@ state. Reuse checks only for unchanged inputs. Complete producer/consumer change
 together using the [cross-layer workflow](../../.agent/workflows/change-cross-layer-contract.md).
 Record release prerequisites separately from local implementation completion;
 cloud cutover requires the user's release authorization.
+
+Shared tool work routes through [shared tool changes](../../.agent/workflows/change-shared-tools.md).
+Neutral Flutter presentation belongs to `tool_ui`; Core-backed icons/names belong
+to `game_presentation`; editor authoring and Admin delivery state keep separate
+owners. Gift changes compose backend and game-client contract checks, including
+the generated catalog consumer test. Offline fixture success never authorizes
+gift-gate activation or establishes deployed client/backend compatibility.
+
 Release orchestration selects an explicit dev/staging/prod environment through
 the canonical entry point. A successful check or deployment in one project does
 not establish another project's live state. Preserve the selected candidate,

@@ -28,7 +28,7 @@ Widgets should stay focused on presentation and orchestration, not backend or ga
 - `lib/ui/codex/`: discovery thresholds and world-reference prose; combat values
   come from Core catalogs, account progress from backend-settled ownership
 - `lib/ui/hud/` and `lib/ui/controls/`: in-run overlays and input widgets
-- `lib/ui/components/`, `lib/ui/text/`, `lib/ui/icons/`, `lib/ui/theme/`: shared design system pieces
+- `lib/ui/components/`, `lib/ui/text/`, `lib/ui/theme/`: app design system pieces
 - `lib/ui/state/`: `AppState`, auth/profile/ownership/run/board APIs,
   Firebase-backed implementations, and app-state controllers
 - `lib/ui/state/run/`: run-session API, replay-submission spool/coordinator,
@@ -207,3 +207,10 @@ If you change UI architecture or public usage, update:
 ---
 
 For app-level architecture, see `lib/AGENTS.md`. For the backend contract side of profile/ownership/account flows, see `functions/AGENTS.md`.
+
+## Shared game presentation
+
+Item/skill icon renderers and names live in
+[game_presentation](../../packages/game_presentation/AGENTS.md), consumed by the
+game and Admin. Keep asset ownership canonical and backend grants out of these
+widgets. Inbox schema changes also follow [Admin/inbox ownership](../../docs/tdd/admin_tools.md).

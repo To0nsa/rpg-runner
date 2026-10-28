@@ -4,9 +4,19 @@ export interface InboxGoldReward {
   amount: number;
 }
 
+export interface InboxCatalogReward {
+  kind: "gear" | "ability" | "projectileSpell";
+  itemId: string;
+  slot: string;
+  /** Skills target this character permanently, independent of the selected loadout. */
+  characterId?: string;
+}
+
+export type InboxReward = InboxGoldReward | InboxCatalogReward;
+
 /** System mail is separate from future player conversations and run grants. */
 export interface SystemMessage {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   id: string;
   uid: string;
   sourceId: string;
@@ -15,7 +25,7 @@ export interface SystemMessage {
   createdAtMs: number;
   readAtMs: number | null;
   claimedAtMs: number | null;
-  rewards: InboxGoldReward[];
+  rewards: InboxReward[];
 }
 
 /** Whole-inbox counts and revision, updated with every visible mutation. */

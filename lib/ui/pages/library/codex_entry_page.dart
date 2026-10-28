@@ -8,7 +8,7 @@ import 'package:runner_core/levels/level_id.dart';
 import '../../codex/codex_catalog.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app/app_state.dart';
-import '../../text/ability_text.dart';
+import 'package:game_presentation/ability_text.dart';
 import '../../theme/ui_tokens.dart';
 import 'codex_widgets.dart';
 import 'enemy_portrait.dart';

@@ -3,7 +3,7 @@ import 'package:runner_core/enemies/enemy_terrain_profile.dart';
 
 import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_visual_catalog.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'chunk_actor_idle_frame.dart';
 import 'chunk_actor_catalog_thumbnail.dart';
 
@@ -81,7 +81,7 @@ class _ChunkEnemyCatalogBrowserState extends State<ChunkEnemyCatalogBrowser> {
             .toSet()
             .toList(growable: false)
           ..sort((left, right) => left.index.compareTo(right.index));
-    return EditorVisualCatalogLayout(
+    return ToolVisualCatalogLayout(
       searchController: _searchController,
       searchKey: ValueKey<String>('${widget.keyPrefix}_search'),
       searchLabel: 'Search enemies',
@@ -128,7 +128,7 @@ class _ChunkEnemyCatalogBrowserState extends State<ChunkEnemyCatalogBrowser> {
       itemBuilder: (context, index) {
         final enemy = filteredEnemies[index];
         final selected = enemy.markerId == widget.selectedEnemyId;
-        return EditorVisualCatalogCard(
+        return ToolVisualCatalogCard(
           key: ValueKey<String>('${widget.keyPrefix}_card_${enemy.markerId}'),
           semanticsLabel:
               '${enemy.displayName}, ${enemy.roleLabel}, ${enemy.markerId}',

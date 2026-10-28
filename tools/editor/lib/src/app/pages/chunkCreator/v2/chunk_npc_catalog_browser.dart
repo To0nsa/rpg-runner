@@ -3,7 +3,7 @@ import 'package:runner_core/npcs/npc_catalog.dart';
 import 'package:runner_core/npcs/npc_id.dart';
 
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_visual_catalog.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'chunk_actor_catalog_thumbnail.dart';
 import 'chunk_actor_idle_frame.dart';
 
@@ -56,7 +56,7 @@ class _ChunkNpcCatalogBrowserState extends State<ChunkNpcCatalogBrowser> {
           ),
         )
         .toList();
-    return EditorVisualCatalogLayout(
+    return ToolVisualCatalogLayout(
       searchController: _search,
       searchKey: const ValueKey('chunk_npc_search'),
       searchLabel: 'Search NPCs',
@@ -78,7 +78,7 @@ class _ChunkNpcCatalogBrowserState extends State<ChunkNpcCatalogBrowser> {
       itemBuilder: (context, index) {
         final id = ids[index];
         final actor = const NpcCatalog().get(id);
-        return EditorVisualCatalogCard(
+        return ToolVisualCatalogCard(
           key: ValueKey('chunk_npc_card_${id.name}'),
           semanticsLabel: npcDisplayName(id),
           tooltipMessage: npcDisplayName(id),

@@ -53,6 +53,75 @@ void main() {
     ],
   };
 
+  test('version two decodes mixed and item-only gifts with strict duplicate validation', () {
+    final gift = {'kind': 'gear', 'slot': 'mainWeapon', 'itemId': 'waspfang'};
+    final skill = {
+      'kind': 'ability',
+      'slot': 'spell',
+      'itemId': 'eloise.arcane_ward',
+      'characterId': 'eloiseWip',
+    };
+    final decoded = InboxMessage.fromJson({
+      ...message,
+      'schemaVersion': 2,
+      'claimedAtMs': null,
+      'rewards': [
+        {'kind': 'gold', 'amount': 20},
+        gift,
+        skill,
+      ],
+    });
+    expect(decoded.goldAmount, 20);
+    expect(decoded.attachments.map((e) => e.label), [
+      'Waspfang',
+      'Arcane Ward · eloiseWip',
+    ]);
+    expect(decoded.canClaim, isTrue);
+    expect(
+      InboxMessage.fromJson({
+        ...message,
+        'schemaVersion': 2,
+        'claimedAtMs': null,
+        'rewards': [gift],
+      }).canClaim,
+      isTrue,
+    );
+    for (final rewards in [
+      [gift, gift],
+      [
+        {...gift, 'amount': 3},
+      ],
+      [
+        {...skill, 'characterId': null},
+      ],
+      [
+        {...skill, 'characterId': 'missing'},
+      ],
+      [
+        {...skill, 'characterId': 5},
+      ],
+      [
+        {...gift, 'itemId': 'invented'},
+      ],
+    ]) {
+      expect(
+        () => InboxMessage.fromJson({
+          ...message,
+          'schemaVersion': 2,
+          'rewards': rewards,
+        }),
+        throwsFormatException,
+      );
+    }
+    expect(
+      () => InboxMessage.fromJson({
+        ...message,
+        'rewards': [gift],
+      }),
+      throwsFormatException,
+    );
+  });
+
   test(
     'strict message decoding rejects unsupported rewards and malformed amounts',
     () {

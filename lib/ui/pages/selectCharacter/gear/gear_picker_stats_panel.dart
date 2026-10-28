@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/meta/gear_slot.dart';
-import '../../../text/gear_text.dart';
+import 'package:game_presentation/gear_text.dart';
 import '../../../text/semantic_text.dart';
 import '../../../theme/ui_tokens.dart';
 import 'gear_stats_presenter.dart';

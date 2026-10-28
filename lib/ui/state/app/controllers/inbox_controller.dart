@@ -216,7 +216,7 @@ final class _AppStateInboxController extends _AppStateController {
           .where((value) => value.id == messageId)
           .firstOrNull;
       if (message?.canClaim ?? false) {
-        throw StateError('Claim your gold before deleting this message.');
+        throw StateError('Claim your gifts before deleting this message.');
       }
       final session = await _ensureAuthSession();
       if (!_current(session.userId, generation)) return;

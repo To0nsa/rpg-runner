@@ -546,8 +546,8 @@ preview or a client-supplied reward override.
 
 Add an **Encounters** domain in the existing Chunk Creator scene selector. Keep
 the chunk library, scene and contextual sidebar in the current layout. Reuse
-`EditorSectionCard`, `EditorListCard`, `EditorVisualCatalogLayout` and
-`EditorVisualCatalogCard`; do not introduce an encounter route or a second shell
+`ToolSectionCard`, `ToolListCard`, `ToolVisualCatalogLayout` and
+`ToolVisualCatalogCard`; do not introduce an encounter route or a second shell
 toolbar.
 
 The intended authoring journey is:

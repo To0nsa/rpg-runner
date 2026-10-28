@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Stable IndexedStack order for the four Prefab Creator workflows.
 enum PrefabWorkspaceView { prefabs, collision, atlasSlices, platformModules }
@@ -18,8 +18,8 @@ class PrefabWorkspaceViewSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Wrap(
-    spacing: EditorUiTokens.controlGap,
-    runSpacing: EditorUiTokens.controlGap,
+    spacing: ToolUiTokens.controlGap,
+    runSpacing: ToolUiTokens.controlGap,
     children: <Widget>[
       _ViewChip(
         chipKey: const ValueKey<String>('prefab_v3_view_atlas_slices'),

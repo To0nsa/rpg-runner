@@ -63,13 +63,10 @@ import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_inline_id_form.dart';
-import '../../shared/editor_list_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../shared/editor_owner_draft_state.dart';
-import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_pending_changes_dialog.dart';
-import '../../shared/editor_section_card.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../prefabCreator/prefab_creator_navigation.dart';
@@ -678,7 +675,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     }
     _reconcileReloadedOwner(scene);
     final authoring = _authoring;
-    return EditorWorkspaceCard(
+    return ToolWorkspaceCard(
       key: const ValueKey<String>('chunk_authoring_workspace'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -872,10 +869,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     Key? key,
     required String title,
     required String message,
-  }) => EditorPanelCard(
+  }) => ToolPanelCard(
     key: key,
     title: title,
-    bodyMode: EditorPanelBodyMode.expanded,
+    bodyMode: ToolPanelBodyMode.expanded,
     child: Center(child: Text(message)),
   );
 
@@ -884,7 +881,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     required Key expansionKey,
     required String title,
     required String message,
-  }) => EditorSectionCard(
+  }) => ToolSectionCard(
     key: key,
     expansionKey: expansionKey,
     title: title,
@@ -2174,10 +2171,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   Widget _buildScenePanel(
     ChunkV2Scene scene,
     ChunkPolygonAuthoringController authoring,
-  ) => EditorPanelCard(
+  ) => ToolPanelCard(
     key: const ValueKey<String>('chunk_creation_scene'),
     title: 'Chunk creation scene',
-    bodyMode: EditorPanelBodyMode.expanded,
+    bodyMode: ToolPanelBodyMode.expanded,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -2983,7 +2980,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           creationMaterialOptions: creationMaterialOptions,
         ),
         const SizedBox(height: _gap),
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey<String>('chunk_polygon_shapes_panel'),
           expansionKey: const ValueKey<String>(
             'chunk_polygon_shapes_panel_toggle',
@@ -3444,7 +3441,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     required bool selected,
   }) {
     final rectangle = TerrainAxisAlignedRectangle.tryFromShape(shape);
-    return EditorListCard(
+    return ToolListCard(
       key: ValueKey<String>('chunk_polygon_shape_${shape.shapeId}'),
       isSelected: selected,
       onTap: () => _selectOrCloseShape(authoring, shape),

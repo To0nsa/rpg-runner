@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Manual source-region fields shared by atlas authoring workflows.
 class AtlasRegionFields extends StatelessWidget {
@@ -27,15 +27,15 @@ class AtlasRegionFields extends StatelessWidget {
       Row(
         children: [
           _field(xController, 'Selection X', 'x'),
-          const SizedBox(width: EditorUiTokens.controlGap),
+          const SizedBox(width: ToolUiTokens.controlGap),
           _field(yController, 'Selection Y', 'y'),
         ],
       ),
-      const SizedBox(height: EditorUiTokens.controlGap),
+      const SizedBox(height: ToolUiTokens.controlGap),
       Row(
         children: [
           _field(widthController, 'Selection W', 'w'),
-          const SizedBox(width: EditorUiTokens.controlGap),
+          const SizedBox(width: ToolUiTokens.controlGap),
           _field(heightController, 'Selection H', 'h'),
         ],
       ),

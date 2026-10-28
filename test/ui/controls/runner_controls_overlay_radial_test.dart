@@ -1,7 +1,7 @@
 import 'package:rpg_runner/ui/controls/control_resource_usage.dart';
 import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
 import 'package:rpg_runner/ui/controls/control_button_visuals.dart';
-import 'package:rpg_runner/ui/components/gameIcon/game_icon.dart';
+import 'package:game_presentation/game_icon.dart';
 import 'package:rpg_runner/ui/theme/ui_action_button_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

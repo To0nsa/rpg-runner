@@ -16,6 +16,11 @@ Undo/Redo. See the [navigation contract](../../docs/tdd/editor_navigation.md).
 This app is intentionally separate from gameplay runtime authority. Core gameplay
 truth remains in `packages/runner_core/lib/**`.
 
+Theme, tokens, panel cards and catalog controls are shared with the separate
+[Admin app](../admin/README.md) through `packages/tool_ui`. Game icon/name
+presentation lives in `packages/game_presentation`. Editor sessions, history and
+source writes remain editor-owned; see [shared architecture](../../docs/tdd/admin_tools.md).
+
 ## Run
 
 The editor is independently resolved from the root workspace because its

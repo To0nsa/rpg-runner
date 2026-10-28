@@ -9,7 +9,7 @@ import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
-import 'package:rpg_runner/ui/text/gear_text.dart';
+import 'package:game_presentation/gear_text.dart';
 
 void main() {
   group('gear text', () {

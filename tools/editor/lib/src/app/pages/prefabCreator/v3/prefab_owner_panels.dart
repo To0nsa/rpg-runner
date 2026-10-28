@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../shared/editor_inline_id_form.dart';
-import '../../shared/editor_section_card.dart';
-import '../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'prefab_v3_owner_form.dart';
 
 /// Inline creation section whose values remain local until the parent accepts.
@@ -35,7 +34,7 @@ class PrefabOwnerCreateSection extends StatelessWidget {
   final PrefabV3OwnerFormSubmit onSubmit;
 
   @override
-  Widget build(BuildContext context) => EditorSectionCard(
+  Widget build(BuildContext context) => ToolSectionCard(
     key: const ValueKey<String>('prefab_v3_owner_create_section'),
     title: 'Create prefab',
     description: canCreate
@@ -126,17 +125,17 @@ class PrefabOwnerEditDetails extends StatelessWidget {
           'Edit ${currentPrefab.id}',
           style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         Text(
           'prefabKey: ${source.prefabKey} · revision ${source.revision}\n'
           '${source.visualSource.type.jsonValue}:${source.sourceRefId} · '
           '${source.collisionShapes.length} collision shape(s) · '
           '${impact?.placementCount ?? 0} downstream placement(s)',
         ),
-        const SizedBox(height: EditorUiTokens.sectionGap),
+        const SizedBox(height: ToolUiTokens.sectionGap),
         Wrap(
-          spacing: EditorUiTokens.controlGap,
-          runSpacing: EditorUiTokens.controlGap,
+          spacing: ToolUiTokens.controlGap,
+          runSpacing: ToolUiTokens.controlGap,
           children: <Widget>[
             if (_canAuthorCollision(source))
               Tooltip(
@@ -183,7 +182,7 @@ class PrefabOwnerEditDetails extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: EditorUiTokens.sectionGap),
+        const SizedBox(height: ToolUiTokens.sectionGap),
         if (renameActive)
           EditorInlineIdForm(
             key: renameFormKey,

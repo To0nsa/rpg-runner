@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_models.dart';
 import '../../shared/editor_inline_id_form.dart';
-import '../../shared/editor_list_card.dart';
-import '../../shared/editor_section_card.dart';
-import '../../shared/editor_ui_tokens.dart';
-import '../../shared/editor_visual_catalog.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'chunk_owner_preview.dart';
 import 'chunk_owner_order.dart';
 import 'chunk_v2_owner_form.dart';
@@ -71,7 +68,7 @@ class ChunkOwnerListSection extends StatelessWidget {
             .toSet()
             .toList(growable: false)
           ..sort();
-    return EditorSectionCard(
+    return ToolSectionCard(
       key: const ValueKey<String>('chunk_owner_section'),
       title: 'Existing chunk owners',
       collapsible: true,
@@ -80,7 +77,7 @@ class ChunkOwnerListSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          EditorVisualCatalogControls(
+          ToolVisualCatalogControls(
             searchController: searchController,
             searchKey: const ValueKey<String>('chunk_owner_search'),
             searchLabel: 'Search chunk owners',
@@ -153,7 +150,7 @@ class ChunkOwnerListSection extends StatelessWidget {
               if (chunks.isNotEmpty) onSelected(chunks.first);
             },
           ),
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
           if (allChunks.isEmpty)
             const Text(
               'No chunk owners remain in this level. Creation requires one '
@@ -169,7 +166,7 @@ class ChunkOwnerListSection extends StatelessWidget {
               ),
             ),
           for (final chunk in chunks) ...<Widget>[
-            EditorListCard(
+            ToolListCard(
               key: ValueKey<String>('chunk_polygon_owner_${chunk.chunkKey}'),
               isSelected: chunk.chunkKey == selectedChunk?.chunkKey,
               onTap: () => onSelected(chunk),
@@ -181,7 +178,7 @@ class ChunkOwnerListSection extends StatelessWidget {
                       message: 'Pending geometry changed',
                       child: Icon(Icons.circle, size: 12),
                     ),
-                    const SizedBox(width: EditorUiTokens.rowMetadataGap),
+                    const SizedBox(width: ToolUiTokens.rowMetadataGap),
                   ],
                   IconButton(
                     key: ValueKey<String>(
@@ -207,7 +204,7 @@ class ChunkOwnerListSection extends StatelessWidget {
                       '${expandedPrefabShapeCount(chunk.chunkKey)} expanded',
                     ),
                   ),
-                  const SizedBox(width: EditorUiTokens.rowPreviewGap),
+                  const SizedBox(width: ToolUiTokens.rowPreviewGap),
                   ChunkOwnerPreview(
                     key: ValueKey<String>(
                       'chunk_owner_preview_${chunk.chunkKey}',
@@ -273,7 +270,7 @@ class ChunkOwnerCreateSection extends StatelessWidget {
   final EditorInlineIdSubmit onSubmit;
 
   @override
-  Widget build(BuildContext context) => EditorSectionCard(
+  Widget build(BuildContext context) => ToolSectionCard(
     key: const ValueKey<String>('chunk_owner_create_section'),
     title: 'Create chunk owner',
     description: template == null

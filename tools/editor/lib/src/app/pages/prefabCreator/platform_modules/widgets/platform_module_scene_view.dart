@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 import '../../../../../prefabs/models/models.dart';
 import '../../../shared/editor_scene_view_utils.dart';
 import '../../../shared/editor_scene_viewport_frame.dart';
-import '../../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../../shared/editor_viewport_grid_painter.dart';
 import '../../../shared/editor_zoom_controls.dart';
 import '../../../shared/scene_input_utils.dart';
@@ -165,7 +165,7 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
                           ),
                     ),
             ),
-            const SizedBox(height: EditorUiTokens.controlGap),
+            const SizedBox(height: ToolUiTokens.controlGap),
             Expanded(
               child: EditorSceneViewportFrame(
                 width: viewportSize.width,

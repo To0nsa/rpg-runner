@@ -11,13 +11,17 @@ and the validator are unchanged. Player chat is not implemented.
 | `system_messages/{id}` | Versioned message, recipient, source, immutable text/rewards, creation time, independent read/claim times |
 | `inbox_rewards/{id}` | Snapshotted attachment, recipient, claim receipt and applied ownership revision |
 | `inbox_summaries/{uid}` | Monotonic revision, whole-inbox unread and unclaimed counts |
-| `inbox_receipts/{id}` | Removed-message identity, immutable content hash, original creation time, deletion time and gold claim result; no title/body |
+| `inbox_receipts/{id}` | Removed-message identity, immutable content hash, original creation time, deletion time and gift claim result; no title/body |
 
 IDs hash recipient plus source identity. Level gifts use `level:<level>`;
 operator messages use `operator:<sourceId>`. Retrying identical delivery is a
 no-op; different contents under the same identity are rejected. Rewards are a
-typed list, currently empty or one positive, JavaScript-safe gold amount.
-Unsupported types fail closed. Issued rewards never change with later tuning.
+typed list. Schema 1 remains empty or one positive JavaScript-safe gold amount.
+Schema 2 adds up to eight catalog unlocks: `gear` with `slot`/`itemId`, or
+`ability`/`projectileSpell` with `slot`/`itemId`/explicit `characterId`. Unknown
+fields, IDs, slots, characters and duplicate identities fail closed. Catalog
+attachments are sorted by stable identity before persistence/content hashing;
+legacy gold-only hashing is unchanged. Unsupported types fail closed. Issued rewards never change with later tuning.
 
 Unclaimed gifts and unread information have no expiry. Claimed gifts become
 eligible for removal 30 days after successful claim; information becomes eligible
@@ -28,14 +32,14 @@ missing legacy values remain valid and are repaired from read/claim timestamps.
 Players can delete information or claimed gifts immediately. The delete transaction
 fences account erasure, validates recipient and claim records, removes message and
 attachment, adjusts unread count, increments summary revision, and creates a compact
-receipt. Unclaimed gold is rejected even if a caller bypasses the UI. Repeating
+receipt. Any unclaimed gift is rejected even if a caller bypasses the UI. Repeating
 deletion of an owned receipt succeeds without another counter change; unknown or
-other-player IDs fail. Claimed gold remains in the wallet.
+other-player IDs fail. Claimed gold and ownership remain with the player.
 
 Delivery checks both active messages and removal receipts. The retained hash covers
 recipient, source ID, title, body and rewards. Identical retry is a no-op after
 removal; changed content under the same source identity is rejected. The receipt
-retains gold amount, claim time and applied ownership revision for the account's
+retains gold amount, schema-2 reward identities, claim time and applied ownership revision for the account's
 lifetime. Claiming a removed message fails without crediting gold. Account erasure
 explicitly removes all four inbox collections in resumable stages.
 
@@ -87,7 +91,10 @@ pages. Reads are transactionally fenced against account deletion.
 
 Reading decrements unread count once; claiming does not mark mail read.
 Claiming verifies message/attachment consistency, safe-integer gold addition
-and ownership revision. Gold, next canonical revision, claim receipts and
+and ownership revision. Existing catalog grants reuse the store's ownership
+primitive, with fixed character targets, no automatic equip and no compensation
+for an already-owned unlock. Store offers are normalized after ownership changes.
+Gold, unlocks, next canonical revision, claim receipts and
 summary update atomically. Command IDs use the existing compact ownership
 idempotency records/retention; hashes bind recipient, message and expected
 revision. Stale revisions and changed payloads under a reused ID stay rejected.
@@ -126,7 +133,8 @@ does not apply speculative counter or wallet changes.
 and `GoldDisplay`. Landscape list and message text scroll independently; gift
 controls remain visible below the text. Selecting a message marks it read;
 opening the list does not. Failures use player-facing retry text.
-Delete is disabled while gold is unclaimed, with a visible claim-first explanation.
+Item/skill rows reuse `game_presentation` icons and names.
+Delete is disabled while any gift is unclaimed, with a visible claim-first explanation.
 Eligible messages expose immediate deletion; the body explains the 30-day policy.
 
 `AttentionMarker` is a shared presentation-only component. Its caller supplies
@@ -137,8 +145,9 @@ can reuse it when their separate discovery policies are implemented.
 
 ## Operator delivery
 
-The [local message console](../../tools/messaging/README.md) runs from
-`tools/messaging/` with `corepack pnpm messages`. The launcher builds current
+The [Flutter Admin app](../../tools/admin/README.md) runs from
+`tools/admin/` with `corepack pnpm admin`; its gold-only browser compatibility
+console remains available as `corepack pnpm messages`. The launcher builds current
 Functions source. Both console and CLI use `inbox/operator.ts` for input
 validation and explicit-project delivery through `issueSystemMessage`.
 No player-callable issuance route is added.
@@ -149,13 +158,13 @@ the active gcloud project. Each send initializes a named Admin app for that
 explicit project and deletes it afterwards. The console uses a dedicated user
 ADC file outside the repository, under `%APPDATA%/Lothringen/messaging/gcloud`
 on Windows or `~/.config/Lothringen/messaging/gcloud` elsewhere.
-`corepack pnpm messages:login --account <email>` runs gcloud ADC login with a
+`corepack pnpm admin:login --account <email>` runs gcloud ADC login with a
 child-only `CLOUDSDK_CONFIG`, clearing inherited cloud account overrides and
 disabling a fixed quota project. The launcher selects this credential file in
 its own `GOOGLE_APPLICATION_CREDENTIALS` before importing Firebase. Missing or
 incomplete credentials stop startup; it never falls back to shared ADC.
 The saved account email is shown in the launcher and console; credential material
-is never exposed to browser code. Shared ADC and active gcloud configuration
+is never exposed to Flutter or browser code. Shared ADC and active gcloud configuration
 are unchanged. The standalone Functions CLI still uses its caller's ADC.
 Firestore permission-denied and unauthenticated failures return tool-specific
 login recovery guidance. Provider details remain private, and the existing
@@ -164,7 +173,8 @@ draft/source identity is retained for retry. Login does not grant IAM access.
 The HTTP service binds to `127.0.0.1` and validates exact Host, same-origin
 requests, a random per-process bearer token and bounded JSON bodies. It serves
 only fixed local assets with a restrictive CSP, no caching and no CORS access.
-The printed URL supplies the token through its fragment; the browser moves it
+The native child supplies its token to Flutter over a private pipe. For the
+browser, the printed URL supplies the token through its fragment; the browser moves it
 to session storage and removes the fragment. The real launcher rejects a
 Firestore emulator override. A separate in-memory fixture supports UI checks.
 
@@ -185,11 +195,13 @@ with project, recipient and message ID, covering both new and identical prior
 delivery. Local confirmations are not read/claim receipts or operator audit logs.
 Player availability and deletion are checked atomically at send, not at preview.
 
-The console supports only single-recipient text and optional gold. Reward schema,
-player claim authority and reward amounts are unchanged.
+Admin supports single-recipient text, optional gold and existing item/skill
+unlocks. The compatibility browser remains gold-only. Native draft persistence,
+shared packages and the per-environment schema-2 activation gate are defined in
+[Admin architecture](admin_tools.md). No launcher publishes the capability gate.
 
 The privileged CLI accepts a JSON file containing `uid`, `sourceId`, `title`,
-`body` and optional `goldAmount`. Preview is offline:
+`body`, optional `goldAmount` and optional typed `attachments`. Preview is offline:
 
 ```powershell
 corepack pnpm --dir functions build
@@ -220,8 +232,8 @@ documents and saturated expiry batches; a large legacy inbox may require several
 hourly passes. Local verification does not authorize or establish deployment.
 
 Future live chat needs separate conversations, participant authorization,
-delivery/read state, blocking, reporting and abuse controls. Item gifts require
-an implemented ownership handler and compatible reward schema first.
+delivery/read state, blocking, reporting and abuse controls. Item/skill gifts
+require the explicit [compatible-environment activation](admin_tools.md#gifts-and-release-activation).
 
 Focused tests cover delivery/claim retries, multiple milestones,
 no backfill, pagination, deletion, direct-client denial, client races and UI

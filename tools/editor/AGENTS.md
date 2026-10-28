@@ -31,6 +31,11 @@ are ordinary source owners created through the Chunk plugin command and existing
 Undo/Save transaction. Level schema v3 owns elevation step settings; loaders must
 not implicitly migrate old source. Use the explicit migration tool.
 
+Shared theme, tokens, panel cards, catalogs and responsive layouts belong to
+[tool_ui](../../packages/tool_ui/AGENTS.md). Domain sessions, commands, history
+and repository writes stay here. Changes to shared primitives must verify Admin
+and editor consumers; use the [shared-tools workflow](../../.agent/workflows/change-shared-tools.md).
+
 ## Scope And Growth Direction
 
 Keep the editor small, focused, and extensible.

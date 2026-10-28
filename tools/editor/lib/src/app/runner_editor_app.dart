@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 import '../chunks/chunk_domain_plugin.dart';
 import '../entities/entity_domain_plugin.dart';
@@ -53,12 +54,7 @@ class RunnerEditorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'RPG Runner Editor',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          brightness: Brightness.dark,
-          seedColor: const Color(0xFF0EA5E9),
-        ),
-      ),
+      theme: createToolTheme(),
       home: EditorHomePage(controller: controller),
     );
   }

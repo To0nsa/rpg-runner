@@ -124,7 +124,7 @@ export function purchaseStoreOffer(args: {
   }
 
   progression.gold = currentGold - offer.priceGold;
-  grantOwnership({
+  grantCatalogOwnership({
     meta,
     selectedCharacterId: ownershipBefore.selectedCharacterId,
     offer,
@@ -494,10 +494,11 @@ function offerFromDefinition(definition: StoreOfferDefinition): StoreOffer {
   };
 }
 
-function grantOwnership(args: {
+/** Applies a validated catalog unlock to canonical meta; duplicate unlocks are harmless. */
+export function grantCatalogOwnership(args: {
   meta: Record<string, unknown>;
   selectedCharacterId: string;
-  offer: StoreOffer;
+  offer: StoreOfferDefinition;
 }): void {
   switch (args.offer.domain) {
     case "gear":
@@ -517,7 +518,7 @@ function grantOwnership(args: {
   }
 }
 
-function grantGearOwnership(meta: Record<string, unknown>, offer: StoreOffer): void {
+function grantGearOwnership(meta: Record<string, unknown>, offer: StoreOfferDefinition): void {
   const inventory = ensureMap(meta, "inventory");
   switch (offer.slot) {
     case "mainWeapon":

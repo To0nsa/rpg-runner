@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Shared compact summary block used at the top of prefab-editor side panels.
 class PrefabEditorPanelSummary extends StatelessWidget {
@@ -24,7 +24,7 @@ class PrefabEditorPanelSummary extends StatelessWidget {
       children: [
         if (primaryText != null) Text(primaryText!),
         if (primaryText != null && secondaryText != null)
-          const SizedBox(height: EditorUiTokens.controlGap),
+          const SizedBox(height: ToolUiTokens.controlGap),
         if (secondaryText != null)
           Text(secondaryText!, style: theme.textTheme.titleSmall),
         if (noticeText != null) ...[

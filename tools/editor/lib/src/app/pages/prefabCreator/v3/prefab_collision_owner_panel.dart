@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/models/models.dart';
-import '../../shared/editor_list_card.dart';
-import '../../shared/editor_panel_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_section_card.dart';
-import '../../shared/editor_ui_tokens.dart';
 import '../../shared/platform_module_preview_tile.dart';
 import '../shared/prefab_polygon_visual_source.dart';
 import '../shared/prefab_visual_catalog_support.dart';
@@ -57,9 +54,9 @@ class PrefabCollisionOwnerPanel extends StatelessWidget {
             onEditPrefabCollision: onEditPrefabCollision,
             onEditPlatformCollision: onEditPlatformCollision,
           ),
-          const SizedBox(height: EditorUiTokens.sectionGap),
+          const SizedBox(height: ToolUiTokens.sectionGap),
         ],
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey<String>('prefab_collision_library_section'),
           expansionKey: const ValueKey<String>(
             'prefab_collision_library_section_toggle',
@@ -101,10 +98,10 @@ class PrefabCollisionEmptyScene extends StatelessWidget {
   const PrefabCollisionEmptyScene({super.key});
 
   @override
-  Widget build(BuildContext context) => const EditorPanelCard(
+  Widget build(BuildContext context) => const ToolPanelCard(
     key: ValueKey<String>('prefab_collision_scene_empty'),
     title: 'Collision scene',
-    bodyMode: EditorPanelBodyMode.expanded,
+    bodyMode: ToolPanelBodyMode.expanded,
     child: Center(
       child: Text(
         'Create or select an obstacle or platform prefab to edit collision.',
@@ -120,7 +117,7 @@ class PrefabCollisionEmptyInspector extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const SingleChildScrollView(
     key: ValueKey<String>('prefab_collision_sidebar'),
-    child: EditorSectionCard(
+    child: ToolSectionCard(
       title: 'Collision authoring',
       child: Text(
         'Collision shapes and diagnostics appear after selecting an obstacle '
@@ -154,7 +151,7 @@ class _CollisionSetupSection extends StatelessWidget {
     final tileSlicesById = <String, AtlasSliceDef>{
       for (final slice in document.tileData.tileSlices) slice.id: slice,
     };
-    return EditorSectionCard(
+    return ToolSectionCard(
       key: const ValueKey<String>('prefab_collision_setup_section'),
       title: 'Collision setup needed',
       description:
@@ -169,7 +166,7 @@ class _CollisionSetupSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           for (final module in modules)
-            EditorListCard(
+            ToolListCard(
               key: ValueKey<String>('prefab_unpaired_platform_${module.id}'),
               onTap: module.cells.isEmpty
                   ? null
@@ -208,7 +205,7 @@ class _CollisionSetupSection extends StatelessWidget {
               ),
             ),
           for (final prefab in prefabs)
-            EditorListCard(
+            ToolListCard(
               key: ValueKey<String>(
                 'prefab_missing_collision_${prefab.prefabKey}',
               ),

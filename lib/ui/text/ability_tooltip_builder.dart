@@ -5,8 +5,8 @@ import 'package:runner_core/combat/status/status.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 
 import 'ability_tag_resolver.dart';
-import 'ability_text.dart';
-import 'gear_text.dart';
+import 'package:game_presentation/ability_text.dart';
+import 'package:game_presentation/gear_text.dart';
 import 'semantic_text.dart';
 
 class AbilityCostLine {

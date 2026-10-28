@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Shared choice-chip group used for compact prefab-editor selectors.
 class PrefabEditorChoiceChipGroup<T> extends StatelessWidget {
@@ -22,8 +22,8 @@ class PrefabEditorChoiceChipGroup<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: EditorUiTokens.controlGap,
-      runSpacing: EditorUiTokens.controlGap,
+      spacing: ToolUiTokens.controlGap,
+      runSpacing: ToolUiTokens.controlGap,
       children: [
         for (final item in items)
           ChoiceChip(

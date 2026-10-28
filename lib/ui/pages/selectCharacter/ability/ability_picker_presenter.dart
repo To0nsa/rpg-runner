@@ -21,7 +21,7 @@ import 'package:runner_core/spellBook/spell_book_catalog.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_catalog.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
-import '../../../text/gear_text.dart';
+import 'package:game_presentation/gear_text.dart';
 
 const AbilityCatalog _abilityCatalog = AbilityCatalog();
 const ProjectileCatalog _projectileCatalog = ProjectileCatalog();

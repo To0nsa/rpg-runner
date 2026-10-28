@@ -24,10 +24,8 @@ import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_page_navigation_state.dart';
 import '../shared/authored_playtest_session.dart';
 import '../parallaxEditor/widgets/parallax_preview_view.dart';
-import '../shared/editor_workspace_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../chunkCreator/v2/chunk_composition_preview.dart';
-import '../shared/editor_three_panel_layout.dart';
-import '../shared/editor_panel_card.dart';
 import 'level_appearance.dart';
 import 'level_contents.dart';
 import 'level_content_projection.dart';
@@ -133,8 +131,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   );
   String? _previewSeedError;
   final AuthoredPlaytestSession _playtest = AuthoredPlaytestSession();
-  final EditorThreePanelController _panelController =
-      EditorThreePanelController();
+  final ToolThreePanelController _panelController =
+      ToolThreePanelController();
   String? _diagnosticFieldKey;
   bool _showSample = false;
   bool _preparingSample = false;
@@ -760,7 +758,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       );
     }
     final level = _viewRestoreNotice == null ? scene.activeLevel : null;
-    return EditorWorkspaceCard(
+    return ToolWorkspaceCard(
       child: Column(
         children: [
           if (widget.controller.loadError != null)
@@ -769,7 +767,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             Text(widget.controller.exportError!),
           if (_viewRestoreNotice != null) Text(_viewRestoreNotice!),
           Expanded(
-            child: EditorThreePanelLayout(
+            child: ToolThreePanelLayout(
               controller: _panelController,
               key: const ValueKey<String>('level_workspace_layout'),
               firstLabel: 'Levels',
@@ -965,14 +963,14 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         const SizedBox(height: 8),
         Flexible(
           flex: 4,
-          child: EditorPanelCard(
+          child: ToolPanelCard(
             key: const ValueKey<String>('level_persistent_preview'),
             title: _showSample
                 ? 'Sampled run'
                 : selectedChunk == null
                 ? 'Level preview'
                 : 'Chunk preview · ${selectedChunk.chunkKey}',
-            bodyMode: EditorPanelBodyMode.expanded,
+            bodyMode: ToolPanelBodyMode.expanded,
             trailing: IconButton(
               tooltip: 'Refresh content',
               onPressed: _loadingContent

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/models/models.dart';
-import '../../shared/editor_section_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'prefab_owner_catalog_browser.dart';
 
 /// Searchable Prefab library shell with an optional row-local owner editor.
@@ -30,7 +30,7 @@ class PrefabLibraryPanel extends StatelessWidget {
     final ownerEditorOpen = expandedPrefab != null;
     return SingleChildScrollView(
       key: const ValueKey<String>('prefab_owner_sidebar'),
-      child: EditorSectionCard(
+      child: ToolSectionCard(
         key: const ValueKey<String>('prefab_owner_library_section'),
         expansionKey: const ValueKey<String>(
           'prefab_owner_library_section_toggle',

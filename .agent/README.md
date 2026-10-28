@@ -24,6 +24,9 @@ links are relative to their containing file.
 | Run/replay/board contracts | [Protocol](../packages/run_protocol/AGENTS.md) |
 | Shared source compilation | [Content pipeline](../packages/runner_content_pipeline/AGENTS.md) |
 | Terrain render contracts | [Materials](../packages/terrain_materials/AGENTS.md) |
+| Shared Flutter tool theme, panels and catalogs | [Tool UI](../packages/tool_ui/AGENTS.md) |
+| Shared game icons, labels and gift display values | [Game presentation](../packages/game_presentation/AGENTS.md) |
+| Admin app, local service and gift tooling | [Admin](../tools/admin/AGENTS.md) |
 | Firebase backend; root Firestore rules/indexes | [Functions](../functions/AGENTS.md) |
 | Replay validation and projection | [Worker](../services/replay_validator/AGENTS.md) |
 | Content editor | [Editor](../tools/editor/AGENTS.md); [domain details](references/editor-authoring.md) |
@@ -45,6 +48,7 @@ rules even when the source owner's instructions are outside that path's ancestry
 | --- | --- |
 | Multiple milestones, resuming work, or authorized collaboration | [Coordinate work](workflows/coordinate-work.md) |
 | Wire payload, callable, persistence or settlement change | [Change a cross-layer contract](workflows/change-cross-layer-contract.md) |
+| Shared editor/Admin presentation or operator gifts | [Change shared tools](workflows/change-shared-tools.md) |
 | Add/reorder a simulation system | [Add Core system](workflows/add-core-system.md) |
 | Add persistent ECS state | [Create ECS component](workflows/create-ecs-component.md) |
 | Command/tick/order/determinism change | [Change simulation contract](workflows/change-core-simulation-contract.md) |
@@ -72,12 +76,15 @@ codes before treating later results as evidence.
 | Functions | Repository root | `corepack pnpm --dir functions build`; `corepack pnpm --dir functions test` (compiled emulator suite) |
 | Validator | `services/replay_validator` | `dart analyze`; `dart test <target>` |
 | Editor | `tools/editor` | `dart analyze <changed-path>`; `flutter test <target>` |
+| Admin | `tools/admin` | `dart analyze`; `flutter test`; `flutter build windows --no-pub` for native changes |
+| Admin service/catalog | Repository root | `corepack pnpm admin:test:service`; `node tools/admin/service/catalog.mjs --check-fixture` |
+| Shared Flutter packages | Owning `packages/<package>` | `dart analyze`; `flutter test <target>` plus affected editor/Admin/game consumers |
 | Generated content | Repository root | `dart run tool/generate_chunk_runtime_data.dart --dry-run`; relevant `test/tool` targets |
 | Asset manifest | Repository root | `dart run tool/sync_assets.dart --check` |
 | Agent guidance | Repository root | `node tools/agents/check.mjs`; `node --test tools/agents/check.test.mjs` when checker changes |
 | Release tooling | Repository root | Required mocked tests in [release instructions](../tools/release/AGENTS.md) |
 
-Resolve the root Pub workspace at the root, and independent editor/worker apps
+Resolve the root Pub workspace (including Admin) at the root, and independent editor/worker apps
 in their own directories. Running pure-package tests from their owning directory
 avoids accidentally invoking the Flutter root package's test configuration.
 Package-specific invariant checks still apply (for example protocol AOT probes,

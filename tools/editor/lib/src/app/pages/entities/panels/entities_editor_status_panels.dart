@@ -6,9 +6,9 @@ part of '../entities_editor_page.dart';
 /// panel selections (`_selectedDiffPath`, `_selectedArtifactTitle`).
 extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
   Widget _buildValidationPanel() {
-    return EditorPanelCard(
+    return ToolPanelCard(
       title: 'Validation',
-      bodyMode: EditorPanelBodyMode.expanded,
+      bodyMode: ToolPanelBodyMode.expanded,
       child: widget.controller.issues.isEmpty
           ? const Text('No validation issues.')
           : ListView.builder(
@@ -36,9 +36,9 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
     final diffError = widget.controller.pendingChangesError;
     final selectedDiff = _selectedDiff(pendingChanges);
 
-    return EditorPanelCard(
+    return ToolPanelCard(
       title: 'Pending File Diff',
-      bodyMode: EditorPanelBodyMode.expanded,
+      bodyMode: ToolPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -95,9 +95,9 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
     final exportError = widget.controller.exportError;
     final artifact = _selectedArtifact(exportResult);
 
-    return EditorPanelCard(
+    return ToolPanelCard(
       title: 'Save result',
-      bodyMode: EditorPanelBodyMode.expanded,
+      bodyMode: ToolPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

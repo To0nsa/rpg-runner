@@ -14,13 +14,12 @@ import '../../../session/editor_session_controller.dart';
 import 'inspector/entity_inspector_panel.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_page_navigation_state.dart';
-import '../shared/editor_panel_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../shared/editor_scene_viewport_frame.dart';
 import '../shared/editor_scene_view_utils.dart';
 import '../shared/editor_viewport_grid_painter.dart';
 import '../shared/scene_input_utils.dart';
 import '../shared/editor_zoom_controls.dart';
-import '../shared/editor_workspace_card.dart';
 
 // Entities page library root.
 //
@@ -290,7 +289,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
         final visibleEntries = entityScene == null
             ? const <EntityEntry>[]
             : _filteredEntries(entityScene.entries);
-        return EditorWorkspaceCard(
+        return ToolWorkspaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -386,9 +385,9 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     required EntityScene scene,
     required List<EntityEntry> visibleEntries,
   }) {
-    return EditorPanelCard(
+    return ToolPanelCard(
       title: 'Entries',
-      bodyMode: EditorPanelBodyMode.expanded,
+      bodyMode: ToolPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -554,7 +553,7 @@ class _ErrorPanel extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) => EditorPanelCard(
+  Widget build(BuildContext context) => ToolPanelCard(
     title: 'Workspace Load Failed',
     color: const Color(0xFF3F1F1F),
     child: Text(message),

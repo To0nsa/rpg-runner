@@ -5,7 +5,7 @@ import '../../../../prefabs/models/models.dart';
 import '../../prefabCreator/shared/prefab_polygon_visual_source.dart';
 import '../../prefabCreator/shared/prefab_visual_catalog_support.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_visual_catalog.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Searchable visual catalog for choosing a Prefab-v3 owner in Chunk authoring.
 ///
@@ -108,7 +108,7 @@ class _ChunkPrefabCatalogBrowserState extends State<ChunkPrefabCatalogBrowser> {
     final sortedKinds = availableKinds.toList(growable: false)
       ..sort((left, right) => left.jsonValue.compareTo(right.jsonValue));
 
-    return EditorVisualCatalogLayout(
+    return ToolVisualCatalogLayout(
       searchController: _searchController,
       searchKey: ValueKey<String>('${widget.keyPrefix}_search'),
       searchLabel: 'Search prefabs',
@@ -157,7 +157,7 @@ class _ChunkPrefabCatalogBrowserState extends State<ChunkPrefabCatalogBrowser> {
         final tagText = prefab.tags.isEmpty
             ? 'No tags'
             : prefab.tags.join(', ');
-        return EditorVisualCatalogCard(
+        return ToolVisualCatalogCard(
           key: ValueKey<String>('${widget.keyPrefix}_card_${prefab.prefabKey}'),
           semanticsLabel:
               '${prefab.id}, ${prefabCatalogKindLabel(prefab.kind)}, tags $tagText',

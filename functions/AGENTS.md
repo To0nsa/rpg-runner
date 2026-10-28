@@ -11,7 +11,7 @@ and account deletion workflows.
 Current domains:
 
 - `src/inbox/`: server-issued system messages, whole-inbox attention, manual
-  gold claims and targeted operator delivery. Level gifts are issued atomically
+  gold/catalog-unlock claims and targeted operator delivery. Level gifts are issued atomically
   by run settlement; their receipts are separate from replay reward grants.
 - `src/ownership/`: canonical ownership state, command validation, command execution, idempotency, Firestore paths/defaults
 - `src/profile/`: remote player profile loading and updates, display-name uniqueness
@@ -261,3 +261,12 @@ Do not leave the app and backend on different protocol versions in the same repo
 ---
 
 For app-side consumers of these callables, see `lib/ui/AGENTS.md`.
+
+## Admin gifts
+
+The [Admin app](../tools/admin/AGENTS.md) consumes the inbox operator API.
+Use the existing store catalog and `grantCatalogOwnership`; do not create a
+parallel inventory path. Preserve schema-1 hashes and receipt retries, validate
+schema-2 rewards, target skills explicitly, and gate only new schema-2 issuance.
+Claims of retained gifts must remain available when the rollout gate is disabled.
+See [Admin activation](../docs/tdd/admin_tools.md#gifts-and-release-activation).

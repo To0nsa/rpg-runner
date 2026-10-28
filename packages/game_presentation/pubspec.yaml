@@ -1,0 +1,17 @@
+name: game_presentation
+description: Shared game icon rendering and display names.
+publish_to: none
+version: 0.1.0
+environment:
+  sdk: ^3.13.1
+  flutter: '>=3.47.1'
+resolution: workspace
+dependencies:
+  flutter:
+    sdk: flutter
+  runner_core:
+    path: ../runner_core
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

@@ -4,16 +4,21 @@
   "version": "0.0.0",
   "packageManager": "pnpm@11.22.0",
   "scripts": {
-    "messages": "corepack pnpm --dir functions build && node tools/messaging/start.mjs",
-    "messages:login": "node tools/messaging/login.mjs",
-    "messages:test": "corepack pnpm --dir functions build && node --test tools/messaging/test/*.test.mjs",
-    "messages:test:browser": "corepack pnpm --dir functions build && node tools/messaging/test/browser_smoke.mjs",
+    "messages": "corepack pnpm --dir functions build && node tools/admin/service/start.mjs",
+    "messages:login": "node tools/admin/service/login.mjs",
+    "messages:test": "corepack pnpm --dir functions build && node --test tools/admin/service/test/*.test.mjs",
+    "messages:test:browser": "corepack pnpm --dir functions build && node tools/admin/service/test/browser_smoke.mjs",
     "functions:build": "corepack pnpm --filter rpg-runner-functions run build",
     "functions:serve": "corepack pnpm --filter rpg-runner-functions run serve",
     "functions:shell": "corepack pnpm --filter rpg-runner-functions run shell",
     "functions:deploy": "corepack pnpm --filter rpg-runner-functions run deploy",
     "functions:test": "corepack pnpm --filter rpg-runner-functions run test",
     "release": "powershell -NoProfile -File tools/release/release.ps1",
-    "release:test": "powershell -NoProfile -File tools/release/test_release.ps1 && powershell -NoProfile -File tools/release/test_release_integration.ps1 && powershell -NoProfile -File tools/release/test_release_cache.ps1"
+    "release:test": "powershell -NoProfile -File tools/release/test_release.ps1 && powershell -NoProfile -File tools/release/test_release_integration.ps1 && powershell -NoProfile -File tools/release/test_release_cache.ps1",
+    "admin:login": "node tools/admin/service/login.mjs",
+    "admin:test:service": "corepack pnpm --dir functions build && node --test tools/admin/service/test/*.test.mjs",
+    "admin": "powershell -NoProfile -File tools/admin/run.ps1",
+    "admin:fixture": "powershell -NoProfile -File tools/admin/run.ps1 -Fixture",
+    "admin:build": "powershell -NoProfile -File tools/admin/run.ps1 -Build"
   }
 }

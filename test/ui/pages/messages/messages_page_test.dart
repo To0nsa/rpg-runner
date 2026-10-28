@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:game_presentation/catalog_gift.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -252,6 +253,59 @@ void main() {
     await tester.ensureVisible(find.widgetWithText(AppButton, 'Claim'));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'item-only gifts show shared labels and protect deletion until claim',
+    (tester) async {
+      tester.view.physicalSize = const Size(844, 390);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final f = InboxFixture();
+      addTearDown(f.app.dispose);
+      f.inbox.messages = [
+        InboxMessage(
+          id: 'items',
+          title: 'Equipment',
+          body: 'A gift.',
+          createdAtMs: 1,
+          attachments: [
+            CatalogGift.fromJson({
+              'kind': 'gear',
+              'slot': 'mainWeapon',
+              'itemId': 'waspfang',
+            }),
+          ],
+        ),
+      ];
+      await f.app.bootstrap();
+      await tester.pumpWidget(_app(f));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Equipment'));
+      await tester.pumpAndSettle();
+      expect(find.text('Waspfang'), findsOneWidget);
+      expect(
+        find.textContaining('Unclaimed gifts do not expire'),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<AppButton>(find.widgetWithText(AppButton, 'Delete message'))
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.widgetWithText(AppButton, 'Claim'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(AppButton, 'Claimed'), findsOneWidget);
+      expect(
+        tester
+            .widget<AppButton>(find.widgetWithText(AppButton, 'Delete message'))
+            .onPressed,
+        isNotNull,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   if (Platform.environment['INBOX_CAPTURE'] == '1') {
     testWidgets('capture inbox for visual review', (tester) async {

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:runner_core/terrain/water_region.dart';
 
-import '../../shared/editor_list_card.dart';
-import '../../shared/editor_section_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../shared/terrain_polygon_exact_edit_controller.dart';
 import '../../shared/terrain_polygon_rectangle_editor.dart';
 import 'chunk_water_edit_draft.dart';
@@ -37,7 +36,7 @@ class ChunkWaterPanel extends StatelessWidget {
     children: [
       creationCard,
       const SizedBox(height: 12),
-      EditorSectionCard(
+      ToolSectionCard(
         key: const ValueKey('chunk_water_regions_panel'),
         expansionKey: const ValueKey('chunk_water_regions_panel_toggle'),
         title: 'Existing water regions',
@@ -60,7 +59,7 @@ class ChunkWaterPanel extends StatelessWidget {
                 ),
               ),
             for (final region in regions) ...[
-              EditorListCard(
+              ToolListCard(
                 key: ValueKey('chunk_water_region_${region.id}'),
                 isSelected: region.id == selectedId,
                 onTap: enabled ? () => onSelect(region) : null,

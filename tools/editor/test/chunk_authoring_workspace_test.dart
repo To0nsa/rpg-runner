@@ -25,7 +25,7 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_visual_source.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_v2_composition_forms.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_navigation.dart';
-import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
@@ -2217,7 +2217,7 @@ void main() {
       tester.widget<SegmentedButton<ChunkSceneDomain>>(domainSelector).selected,
       <ChunkSceneDomain>{ChunkSceneDomain.prefabs},
     );
-    expect(tester.widget<EditorListCard>(prefabCard).isSelected, isTrue);
+    expect(tester.widget<ToolListCard>(prefabCard).isSelected, isTrue);
     expect(
       find.byKey(
         const ValueKey<String>(
@@ -2295,7 +2295,7 @@ void main() {
                 .painter!
             as ChunkScenePrefabSelectionPainter;
     expect(prefabPainter.selectedPrefabKey, 'prefab_rock|95|10|0');
-    expect(tester.widget<EditorListCard>(prefabCard).isSelected, isTrue);
+    expect(tester.widget<ToolListCard>(prefabCard).isSelected, isTrue);
     expect(
       find.byKey(
         const ValueKey<String>(
@@ -2356,7 +2356,7 @@ void main() {
       tester.widget<SegmentedButton<ChunkSceneDomain>>(domainSelector).selected,
       <ChunkSceneDomain>{ChunkSceneDomain.markers},
     );
-    expect(tester.widget<EditorListCard>(markerCard).isSelected, isTrue);
+    expect(tester.widget<ToolListCard>(markerCard).isSelected, isTrue);
     final markerInlineEditor = find.byKey(
       const ValueKey<String>('chunk_v2_marker_inline_editor_hashash|40|5|0'),
     );
@@ -2375,7 +2375,7 @@ void main() {
     expect(harness.session.pendingChanges.hasChanges, isFalse);
     await tester.tap(markerCard);
     await tester.pump();
-    expect(tester.widget<EditorListCard>(markerCard).isSelected, isFalse);
+    expect(tester.widget<ToolListCard>(markerCard).isSelected, isFalse);
     expect(markerInlineEditor, findsNothing);
     final clearedMarkerPainter =
         tester
@@ -3974,7 +3974,7 @@ void main() {
       final ownerRow = find.byKey(
         const ValueKey<String>('chunk_polygon_owner_forest_chunk'),
       );
-      tester.widget<EditorListCard>(ownerRow).onTap?.call();
+      tester.widget<ToolListCard>(ownerRow).onTap?.call();
       await tester.pump();
       expect(
         find.byKey(
@@ -4784,7 +4784,7 @@ void main() {
       'forest',
     );
 
-    tester.widget<EditorListCard>(ownerRow).onTap!();
+    tester.widget<ToolListCard>(ownerRow).onTap!();
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
     expect(

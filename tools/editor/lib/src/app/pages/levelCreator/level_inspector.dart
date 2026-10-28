@@ -4,7 +4,7 @@ import 'package:runner_core/track/chunk_pattern_tier.dart';
 import '../../../chunks/chunk_domain_models.dart';
 import '../../../chunks/chunk_v2_file_data.dart';
 import '../../../levels/level_domain_models.dart';
-import '../shared/editor_panel_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Contextual settings use coordinator-owned buffers so switching the visible
 /// panel never creates another editable document or drops unfinished input.
@@ -61,13 +61,13 @@ class LevelInspector extends StatelessWidget {
   final Map<String, double> boundaryHeights;
 
   @override
-  Widget build(BuildContext context) => EditorPanelCard(
+  Widget build(BuildContext context) => ToolPanelCard(
     title: segment != null
         ? 'Section settings'
         : chunk != null
         ? 'Chunk settings'
         : 'Level settings',
-    bodyMode: EditorPanelBodyMode.expanded,
+    bodyMode: ToolPanelBodyMode.expanded,
     trailing: segment != null || chunk != null
         ? IconButton(
             tooltip: 'Show level settings',

@@ -1,3 +1,5 @@
+import 'package:game_presentation/catalog_gift.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -252,7 +254,11 @@ class _MessagesPageState extends State<MessagesPage> {
                                                       ),
                                                       Text(
                                                         selected.canClaim
-                                                            ? 'Claim your gold before deleting this message. Unclaimed gold does not expire.'
+                                                            ? selected
+                                                                      .attachments
+                                                                      .isEmpty
+                                                                  ? 'Claim your gold before deleting this message. Unclaimed gold does not expire.'
+                                                                  : 'Claim your gifts before deleting this message. Unclaimed gifts do not expire.'
                                                             : selected.hasReward
                                                             ? 'Automatically removed 30 days after claiming.'
                                                             : 'Automatically removed 30 days after reading.',
@@ -260,6 +266,19 @@ class _MessagesPageState extends State<MessagesPage> {
                                                             .text
                                                             .cardSubtitle,
                                                       ),
+                                                      for (final gift
+                                                          in selected
+                                                              .attachments)
+                                                        _GiftRow(gift: gift),
+                                                      if (selected
+                                                          .attachments
+                                                          .isNotEmpty)
+                                                        Text(
+                                                          'Already-owned gifts grant no duplicate unlock or compensation.',
+                                                          style: ui
+                                                              .text
+                                                              .cardSubtitle,
+                                                        ),
                                                       if (_actionError !=
                                                           null) ...[
                                                         SizedBox(
@@ -296,7 +315,7 @@ class _MessagesPageState extends State<MessagesPage> {
                                                 crossAxisAlignment:
                                                     WrapCrossAlignment.center,
                                                 children: [
-                                                  if (selected.hasReward)
+                                                  if (selected.goldAmount > 0)
                                                     GoldDisplay(
                                                       gold: selected.goldAmount,
                                                       variant:
@@ -404,8 +423,13 @@ class _MessageTile extends StatelessWidget {
                   _messageDate(message.createdAtMs),
                   style: ui.text.cardSubtitle,
                 ),
-                if (message.hasReward)
+                if (message.goldAmount > 0)
                   Text('${message.goldAmount} gold', style: ui.text.body),
+                if (message.attachments.isNotEmpty)
+                  Text(
+                    '${message.attachments.length} item / skill gifts',
+                    style: ui.text.body,
+                  ),
                 if (state.isNotEmpty)
                   Text(
                     state,
@@ -443,4 +467,21 @@ class _MessagePanel extends StatelessWidget {
 String _messageDate(int milliseconds) {
   final date = DateTime.fromMillisecondsSinceEpoch(milliseconds).toLocal();
   return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+}
+
+/// Attachment artwork and names are shared with loadout screens and Admin.
+class _GiftRow extends StatelessWidget {
+  const _GiftRow({required this.gift});
+  final CatalogGift gift;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.symmetric(vertical: context.ui.space.xs),
+    child: Row(
+      children: [
+        gift.item.icon(size: 32),
+        SizedBox(width: context.ui.space.sm),
+        Expanded(child: Text(gift.label, style: context.ui.text.body)),
+      ],
+    ),
+  );
 }

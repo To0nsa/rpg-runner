@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../shared/editor_section_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Shared Terrain/Water creation layout. Callers own tool state and commits;
 /// supported geometry determines which draw actions are presented.
@@ -41,7 +41,7 @@ class ChunkShapeCreationCard extends StatelessWidget {
   final String saveLabel;
 
   @override
-  Widget build(BuildContext context) => EditorSectionCard(
+  Widget build(BuildContext context) => ToolSectionCard(
     key: ValueKey('${keyPrefix}_creation_panel'),
     expansionKey: ValueKey('${keyPrefix}_creation_panel_toggle'),
     title: title,

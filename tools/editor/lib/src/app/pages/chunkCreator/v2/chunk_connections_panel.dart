@@ -4,7 +4,7 @@ import 'package:runner_core/collision/terrain/terrain_boundary_signature.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../levels/level_domain_models.dart';
-import '../../shared/editor_section_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'chunk_composition_preview.dart';
 
 String chunkBoundaryLabel(TerrainBoundarySignature? boundary, LevelDef level) {
@@ -91,7 +91,7 @@ class _ChunkConnectionsPanelState extends State<ChunkConnectionsPanel> {
     final preview = matches
         .where((chunk) => chunk.chunkKey == _previewKey)
         .firstOrNull;
-    return EditorSectionCard(
+    return ToolSectionCard(
       title: 'Connections',
       collapsible: true,
       expanded: widget.expanded,

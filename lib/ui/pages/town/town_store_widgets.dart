@@ -10,13 +10,13 @@ import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 
 import '../../components/app_button.dart';
-import '../../components/gameIcon/game_icon.dart';
+import 'package:game_presentation/game_icon.dart';
 import '../../components/gold_display.dart';
 import '../../state/ownership/progression_state.dart';
 import '../../text/ability_tooltip_builder.dart';
 import '../../text/ability_tooltip_context_helper.dart';
-import '../../text/ability_text.dart';
-import '../../text/gear_text.dart';
+import 'package:game_presentation/ability_text.dart';
+import 'package:game_presentation/gear_text.dart';
 import '../../text/semantic_text.dart';
 import '../../theme/ui_tokens.dart';
 import '../../theme/ui_town_store_theme.dart';

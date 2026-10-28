@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/models/models.dart';
-import '../../shared/editor_list_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_ui_tokens.dart';
-import '../../shared/editor_visual_catalog.dart';
 import '../shared/prefab_polygon_visual_source.dart';
 import '../shared/prefab_visual_catalog_support.dart';
 
@@ -123,7 +121,7 @@ class _PrefabOwnerCatalogBrowserState extends State<PrefabOwnerCatalogBrowser> {
       for (final impact in widget.downstreamImpacts) impact.prefabKey: impact,
     };
 
-    final controls = EditorVisualCatalogControls(
+    final controls = ToolVisualCatalogControls(
       searchController: _searchController,
       searchKey: const ValueKey<String>('prefab_owner_catalog_search'),
       searchLabel: 'Search prefabs',
@@ -191,12 +189,12 @@ class _PrefabOwnerCatalogBrowserState extends State<PrefabOwnerCatalogBrowser> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         controls,
-        const SizedBox(height: EditorUiTokens.sectionGap),
+        const SizedBox(height: ToolUiTokens.sectionGap),
         if (filteredPrefabs.isEmpty)
           const Padding(
             key: ValueKey<String>('prefab_owner_catalog_empty'),
             padding: EdgeInsets.symmetric(
-              vertical: EditorUiTokens.panelPadding,
+              vertical: ToolUiTokens.panelPadding,
             ),
             child: Text(
               'No prefabs match the current search and filters.',
@@ -228,7 +226,7 @@ class _PrefabOwnerCatalogBrowserState extends State<PrefabOwnerCatalogBrowser> {
         '${_statusLabel(prefab.status)} · ${prefab.collisionShapes.length} '
         'collision shape(s) · ${impact?.placementCount ?? 0} placement(s) '
         'in ${impact?.referencingChunkKeys.length ?? 0} chunk(s)\n$tagText';
-    return EditorListCard(
+    return ToolListCard(
       key: ValueKey<String>('prefab_polygon_owner_${prefab.prefabKey}'),
       isSelected: selected,
       onTap: widget.enabled ? () => widget.onSelected(prefab) : null,

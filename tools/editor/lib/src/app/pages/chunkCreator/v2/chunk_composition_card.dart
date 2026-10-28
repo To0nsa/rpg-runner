@@ -13,8 +13,7 @@ import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../prefabCreator/v3/prefab_owner_order.dart';
-import '../../shared/editor_list_card.dart';
-import '../../shared/editor_section_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import '../../prefabCreator/prefab_creator_navigation.dart';
 import 'chunk_enemy_catalog_browser.dart';
 import 'chunk_prefab_catalog_browser.dart';
@@ -143,7 +142,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
           tieOrder: index,
         ),
     ]..sort(_compareVisualStackEntries);
-    return EditorSectionCard(
+    return ToolSectionCard(
       key: const ValueKey<String>('chunk_visual_stack_preview'),
       title: 'Visual stack preview · bottom → top',
       description:
@@ -192,7 +191,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
     emptyMessage: 'No tile layer metadata.',
     children: <Widget>[
       for (final layer in chunk.tileLayers)
-        EditorListCard(
+        ToolListCard(
           key: ValueKey<String>('chunk_v2_layer_${layer.id}'),
           trailing: _EditDeleteActions(
             editKey: 'chunk_v2_layer_edit_${layer.id}',
@@ -239,7 +238,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey<String>('chunk_prefab_catalog_section'),
           title: 'Prefab library',
           description:
@@ -265,7 +264,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
                 ),
         ),
         const SizedBox(height: 12),
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey<String>('chunk_prefab_creation_panel'),
           title: 'Create prefab placement',
           description:
@@ -291,7 +290,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
                 ),
         ),
         const SizedBox(height: 12),
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey<String>('chunk_prefab_placements_section'),
           title: 'Existing prefab placements',
           description: placements.isEmpty
@@ -314,7 +313,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     for (final selection in placements) ...<Widget>[
-                      EditorListCard(
+                      ToolListCard(
                         key: ValueKey<String>(
                           'chunk_v2_placement_${selection.selectionKey}',
                         ),
@@ -364,7 +363,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey<String>('chunk_enemy_catalog_section'),
           title: 'Enemy library',
           description:
@@ -384,7 +383,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
           ),
         ),
         const SizedBox(height: 12),
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey<String>('chunk_marker_creation_panel'),
           title: 'Create enemy marker',
           description:
@@ -409,7 +408,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
           ),
         ),
         const SizedBox(height: 12),
-        EditorSectionCard(
+        ToolSectionCard(
           key: const ValueKey<String>('chunk_enemy_markers_section'),
           title: 'Existing enemy markers',
           description: markers.isEmpty
@@ -432,7 +431,7 @@ final class _ChunkCompositionCardState extends State<ChunkCompositionCard> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     for (final selection in markers) ...<Widget>[
-                      EditorListCard(
+                      ToolListCard(
                         key: ValueKey<String>(
                           'chunk_v2_marker_${selection.selectionKey}',
                         ),
@@ -948,7 +947,7 @@ final class _CompositionSection extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => EditorSectionCard(
+  Widget build(BuildContext context) => ToolSectionCard(
     key: ValueKey<String>(sectionKey),
     title: title,
     collapsible: true,

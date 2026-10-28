@@ -2,7 +2,7 @@
 
 Repository instructions for **Lothringen: The Long Run**, a Flutter + Flame
 runner with deterministic Dart gameplay, Firebase Functions, a Cloud Run replay
-validator, and a standalone content editor.
+validator, editor and Admin tools.
 
 ## Start here
 
@@ -34,6 +34,9 @@ milestones, sessions, or explicitly authorized collaborators.
 | `packages/runner_content_pipeline/` | Explicit authored source strings to typed Core runtime data; no repository I/O |
 | `packages/run_protocol/` | Pure-Dart run/replay/board/leaderboard wire contracts |
 | `packages/terrain_materials/` | Pure-Dart terrain render-material source contracts |
+| `packages/tool_ui/` | Shared Flutter tool presentation |
+| `packages/game_presentation/` | Core-backed icons and names |
+| `tools/admin/` | Operator UI and isolated local service |
 | `lib/game/` | Flame rendering and input/controller bridge |
 | `lib/ui/` | App shell, menus, HUD, local state and backend adapters |
 | `functions/src/` | Authenticated profile, ownership, run-session, board and account authority |
@@ -55,7 +58,7 @@ determinism, authentication, compatibility, revision, and idempotency checks int
 
 ## Development environment
 
-The app and `packages/*` share the root Pub workspace and `pubspec.lock`. Run
+The app, `tools/admin` and `packages/*` share the root Pub workspace and `pubspec.lock`. Run
 `flutter pub get` and workspace dependency changes at the root; never create
 member lockfiles. `tools/editor` and `services/replay_validator` are independent
 apps with their own checked-in lockfiles. Resolve the editor with Flutter from

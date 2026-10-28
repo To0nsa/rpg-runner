@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../atlas/atlas_grid.dart';
-import 'editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Editable, session-only grid settings shared by atlas pickers.
 ///
@@ -60,11 +60,11 @@ class _AtlasGridControlsState extends State<AtlasGridControls> {
       Row(
         children: [
           _field(0, 'Cell W', 'cell_width'),
-          const SizedBox(width: EditorUiTokens.controlGap),
+          const SizedBox(width: ToolUiTokens.controlGap),
           _field(1, 'Cell H', 'cell_height'),
         ],
       ),
-      const SizedBox(height: EditorUiTokens.controlGap),
+      const SizedBox(height: ToolUiTokens.controlGap),
       Semantics(
         expanded: _advancedExpanded,
         child: TextButton.icon(
@@ -82,25 +82,25 @@ class _AtlasGridControlsState extends State<AtlasGridControls> {
         ),
       ),
       if (_advancedExpanded) ...<Widget>[
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         Row(
           children: [
             _field(2, 'Origin X', 'origin_x'),
-            const SizedBox(width: EditorUiTokens.controlGap),
+            const SizedBox(width: ToolUiTokens.controlGap),
             _field(3, 'Origin Y', 'origin_y'),
           ],
         ),
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         Row(
           children: [
             _field(4, 'Gutter X', 'gutter_x'),
-            const SizedBox(width: EditorUiTokens.controlGap),
+            const SizedBox(width: ToolUiTokens.controlGap),
             _field(5, 'Gutter Y', 'gutter_y'),
           ],
         ),
       ],
       if (_error != null) ...[
-        const SizedBox(height: EditorUiTokens.controlGap),
+        const SizedBox(height: ToolUiTokens.controlGap),
         Text(
           _error!,
           style: TextStyle(color: Theme.of(context).colorScheme.error),

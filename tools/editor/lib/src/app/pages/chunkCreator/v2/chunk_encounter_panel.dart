@@ -9,8 +9,7 @@ import 'package:runner_core/track/chunk_pattern.dart';
 import '../../../../chunks/chunk_encounter_edit.dart';
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_marker_authoring_catalog.dart';
-import '../../shared/editor_list_card.dart';
-import '../../shared/editor_section_card.dart';
+import 'package:tool_ui/tool_ui.dart';
 import 'chunk_encounter_gesture.dart';
 import 'chunk_enemy_catalog_browser.dart';
 import 'chunk_npc_catalog_browser.dart';
@@ -65,7 +64,7 @@ class ChunkEncounterPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        EditorSectionCard(
+        ToolSectionCard(
           title: 'Create encounter',
           collapsible: true,
           description: 'Rescue · one complete group in this chunk',
@@ -92,7 +91,7 @@ class ChunkEncounterPanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        EditorSectionCard(
+        ToolSectionCard(
           title:
               'Encounters (${groups.length}/${EncounterLimits.maxEncountersPerChunk})',
           child: Column(
@@ -103,7 +102,7 @@ class ChunkEncounterPanel extends StatelessWidget {
                   'Create an encounter, then place its NPCs and enemies.',
                 ),
               for (final entry in groups) ...[
-                EditorListCard(
+                ToolListCard(
                   key: ValueKey('chunk_encounter_group_${entry.id}'),
                   isSelected: selected == ChunkEncounterSelection(entry.id),
                   onTap: enabled
@@ -118,7 +117,7 @@ class ChunkEncounterPanel extends StatelessWidget {
                   for (final member in [...entry.npcs, ...entry.enemies])
                     Padding(
                       padding: const EdgeInsets.only(left: 12),
-                      child: EditorListCard(
+                      child: ToolListCard(
                         key: ValueKey(
                           'chunk_encounter_member_${entry.id}_${member.id}',
                         ),
@@ -151,7 +150,7 @@ class ChunkEncounterPanel extends StatelessWidget {
         ),
         if (group != null) ...[
           const SizedBox(height: 12),
-          EditorSectionCard(
+          ToolSectionCard(
             title: 'Add participants',
             collapsible: true,
             description: 'Choose a card, then use Place and click the scene. Y follows terrain support.',

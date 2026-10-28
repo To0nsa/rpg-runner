@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
 import '../../../components/app_button.dart';
-import '../../../components/gameIcon/game_icon.dart';
-import '../../../text/ability_text.dart';
+import 'package:game_presentation/game_icon.dart';
+import 'package:game_presentation/ability_text.dart';
 import '../../../text/ability_tooltip_builder.dart';
 import '../../../text/semantic_text.dart';
 import '../../../theme/ui_tokens.dart';

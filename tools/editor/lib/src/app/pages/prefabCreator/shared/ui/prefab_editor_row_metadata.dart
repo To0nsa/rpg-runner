@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/editor_ui_tokens.dart';
+import 'package:tool_ui/tool_ui.dart';
 
 /// Shared title + metadata stack used by prefab-editor list rows.
 class PrefabEditorRowMetadata extends StatelessWidget {
@@ -33,8 +33,8 @@ class PrefabEditorRowMetadata extends StatelessWidget {
         for (var i = 0; i < lines.length; i += 1) ...[
           SizedBox(
             height: i == 0
-                ? EditorUiTokens.rowTitleGap
-                : EditorUiTokens.rowMetadataGap,
+                ? ToolUiTokens.rowTitleGap
+                : ToolUiTokens.rowMetadataGap,
           ),
           Text(lines[i]),
         ],
