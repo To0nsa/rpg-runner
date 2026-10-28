@@ -178,6 +178,10 @@ try {
   const configuration = await api('/api/environments');
   environments = configuration.environments;
   $('test-banner').hidden = !configuration.offlineTest;
+  if (configuration.operatorAccount) {
+    $('operator-account').textContent = `Messaging account: ${configuration.operatorAccount}`;
+    $('operator-account').hidden = false;
+  }
   for (const environment of environments) {
     const option = document.createElement('option');
     option.value = environment.name;

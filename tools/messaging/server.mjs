@@ -46,10 +46,10 @@ async function readJson(request) {
 function publicError(error) {
   if (error instanceof ConsoleRequestError) return { status: error.status, message: error.message };
   if (error.code === 7 || error.code === 'permission-denied') {
-    return { status: 403, message: 'Firestore denied access to the selected project. The tool uses Application Default Credentials (ADC), which can belong to a different account than your gcloud login. Run gcloud auth application-default login with an authorized account, restart the console, then retry this same delivery.' };
+    return { status: 403, message: 'Firestore denied access to the selected project. Check that the messaging account shown above has access to this environment. To change the tool login, run corepack pnpm messages:login --account <authorized-email>, restart the console, then retry this same delivery.' };
   }
   if (error.code === 16 || error.code === 'unauthenticated' || error.code === 'app/invalid-credential') {
-    return { status: 401, message: 'The tool could not authenticate with Application Default Credentials (ADC). Run gcloud auth application-default login with an authorized account, restart the console, then retry this same delivery.' };
+    return { status: 401, message: 'The messaging login could not authenticate. Run corepack pnpm messages:login --account <authorized-email>, restart the console, then retry this same delivery. Other applications\' default credentials are unchanged.' };
   }
   const domainStatus = { 'invalid-argument': 400, 'not-found': 404,
     'already-exists': 409, 'failed-precondition': 409 }[error.code];
@@ -58,7 +58,7 @@ function publicError(error) {
 }
 
 /** Local privileged console. The injected delivery adapter is for offline tests only. */
-export async function startConsole({ environments, port = 0, deliver = sendOperatorMessage, offlineTest = false }) {
+export async function startConsole({ environments, port = 0, deliver = sendOperatorMessage, offlineTest = false, operatorAccount }) {
   const token = randomBytes(32).toString('hex');
   const previews = new Map();
   let origin;
@@ -85,7 +85,7 @@ export async function startConsole({ environments, port = 0, deliver = sendOpera
       }
       if (request.headers.authorization !== `Bearer ${token}`) throw fail(403, 'Open the console using the URL printed by the launcher.');
       if (request.method === 'GET' && request.url === '/api/environments') {
-        json(200, { environments, offlineTest });
+        json(200, { environments, offlineTest, operatorAccount });
         return;
       }
       if (request.method !== 'POST') throw fail(404, 'Unknown console endpoint.');

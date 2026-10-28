@@ -5,6 +5,7 @@
   "packageManager": "pnpm@11.22.0",
   "scripts": {
     "messages": "corepack pnpm --dir functions build && node tools/messaging/start.mjs",
+    "messages:login": "node tools/messaging/login.mjs",
     "messages:test": "corepack pnpm --dir functions build && node --test tools/messaging/test/*.test.mjs",
     "messages:test:browser": "corepack pnpm --dir functions build && node tools/messaging/test/browser_smoke.mjs",
     "functions:build": "corepack pnpm --filter rpg-runner-functions run build",

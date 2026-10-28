@@ -11,6 +11,7 @@ From the repository root, with Node 24 and the existing pnpm dependencies:
 
 ```powershell
 corepack pnpm install --frozen-lockfile
+corepack pnpm messages:login --account your-authorized-email@example.com
 corepack pnpm messages
 ```
 
@@ -20,24 +21,32 @@ the server. To use a different port, run `corepack pnpm messages --port 8768`.
 The console binds only to loopback. The URL's random session token authorizes
 local requests; use the new printed URL after restarting the server.
 
-Preview works without cloud credentials and makes no Firebase calls. Sending
-uses [Application Default Credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc)
-on the local machine, with Firestore access to the selected project. For local
-development, configure them with `gcloud auth application-default login`.
-Existing authorized service-account credentials also work. A normal gcloud or
-Firebase CLI login alone is not ADC. Credentials stay in the Node process.
-The tool does not grant IAM access or deploy the player inbox.
+The one-time login requires the Google Cloud CLI and a browser sign-in with an
+account authorized for the game projects. For this workstation, use
+`corepack pnpm messages:login --account lothringen.rpg@gmail.com`.
+The launcher and browser show the saved messaging account.
 
-If sending reports **Firestore denied access**, the ADC account lacks access to
-the selected project. The tool now identifies this separately from connection
-failures. Your active gcloud account and ADC account can differ; successful
-gcloud commands do not establish that the tool's credentials work. Run
-`gcloud auth application-default login` and select an account authorized for
-that environment, then restart the console, open the new printed URL and
-preview/retry the existing draft. This command replaces the local default ADC
-credentials, which other local applications may also use. An explicit
-`GOOGLE_APPLICATION_CREDENTIALS` file takes precedence and must be corrected
-separately. See [ADC troubleshooting](https://cloud.google.com/docs/authentication/troubleshoot-adc).
+The login helper gives only its child gcloud process a dedicated
+[`CLOUDSDK_CONFIG`](https://docs.cloud.google.com/sdk/docs/configurations)
+directory: `%APPDATA%/Lothringen/messaging/gcloud` on Windows, or
+`~/.config/Lothringen/messaging/gcloud` elsewhere. The console selects that
+directory's `application_default_credentials.json` through a process-only
+[`GOOGLE_APPLICATION_CREDENTIALS`](https://docs.cloud.google.com/docs/authentication/application-default-credentials)
+override. Shared ADC, active gcloud configuration, parent-shell variables and
+other applications' logins are unchanged. Credentials stay outside the repository
+and browser; the console refuses to start if its dedicated login is missing or
+incomplete, with no fallback to another account. Do not commit credential files.
+
+Preview makes no Firebase calls. Sending uses the dedicated account's Firestore
+access to the selected project. The login does not grant IAM access or deploy
+the player inbox. The helper disables a fixed quota project so resource usage
+belongs to the selected project rather than another local application's project.
+
+If sending reports **Firestore denied access**, check that the displayed account
+has access to the selected environment. For an expired or different login, rerun
+`corepack pnpm messages:login --account <authorized-email>`, restart the console,
+open its new printed URL and preview/retry the existing draft. This replaces only
+the messaging login. Keep the same browser and port to restore the saved draft.
 
 ## Send a message
 

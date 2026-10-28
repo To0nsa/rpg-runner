@@ -107,12 +107,20 @@ No player-callable issuance route is added.
 The console requires dev/staging/prod selection and reads the project mapping
 from `tools/release/environments.json`. It never derives the target from ADC or
 the active gcloud project. Each send initializes a named Admin app for that
-explicit project and deletes it afterwards. Local ADC provides operator
-Firestore authority; credentials are not exposed to browser code.
-Firestore permission-denied and unauthenticated failures return explicit ADC
-recovery guidance instead of the generic uncertain-delivery error. Provider
-credential details remain private, and the existing draft/source identity is
-retained for retry. The tool never switches accounts or grants IAM access.
+explicit project and deletes it afterwards. The console uses a dedicated user
+ADC file outside the repository, under `%APPDATA%/Lothringen/messaging/gcloud`
+on Windows or `~/.config/Lothringen/messaging/gcloud` elsewhere.
+`corepack pnpm messages:login --account <email>` runs gcloud ADC login with a
+child-only `CLOUDSDK_CONFIG`, clearing inherited cloud account overrides and
+disabling a fixed quota project. The launcher selects this credential file in
+its own `GOOGLE_APPLICATION_CREDENTIALS` before importing Firebase. Missing or
+incomplete credentials stop startup; it never falls back to shared ADC.
+The saved account email is shown in the launcher and console; credential material
+is never exposed to browser code. Shared ADC and active gcloud configuration
+are unchanged. The standalone Functions CLI still uses its caller's ADC.
+Firestore permission-denied and unauthenticated failures return tool-specific
+login recovery guidance. Provider details remain private, and the existing
+draft/source identity is retained for retry. Login does not grant IAM access.
 
 The HTTP service binds to `127.0.0.1` and validates exact Host, same-origin
 requests, a random per-process bearer token and bounded JSON bodies. It serves

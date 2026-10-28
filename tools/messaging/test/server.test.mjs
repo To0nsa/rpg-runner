@@ -81,7 +81,7 @@ test('invalid messages and unregistered destinations never send', async (t) => {
   assert.equal(large.status, 413);
 });
 
-test('credential errors explain ADC recovery without leaking provider details and retain retry identity', async (t) => {
+test('credential errors explain tool login recovery without leaking provider details and retain retry identity', async (t) => {
   for (const [code, expectedStatus] of [[7, 403], ['permission-denied', 403], [16, 401], ['unauthenticated', 401], ['app/invalid-credential', 401]]) {
     const sends = [];
     const f = await fixture(t, async (projectId, input) => {
@@ -92,7 +92,8 @@ test('credential errors explain ADC recovery without leaking provider details an
     const { body: preview } = await f.call('/api/preview', { environment: 'dev', message });
     const failure = await f.call('/api/send', { previewId: preview.previewId });
     assert.equal(failure.status, expectedStatus);
-    assert.match(failure.body.error, /gcloud auth application-default login/);
+    assert.match(failure.body.error, /corepack pnpm messages:login --account/);
+    assert.doesNotMatch(failure.body.error, /gcloud auth application-default login/);
     assert.doesNotMatch(failure.body.error, /private provider/);
     assert.equal((await f.call('/api/send', { previewId: preview.previewId })).status, 200);
     assert.deepEqual(sends[0], sends[1]);

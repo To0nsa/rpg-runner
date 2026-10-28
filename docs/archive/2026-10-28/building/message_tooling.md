@@ -62,3 +62,34 @@ Subsequent browser regression checks also passed with that access.
 
 Operator credentials, live inbox deployment and real-player end-to-end delivery
 were not verified. No deployment or live message was requested or performed.
+
+## Follow-up: isolated messaging login
+
+Source: dedicated-login changes based on `7b93af41`, in the same commit as this
+section. The user requested keeping the existing shared ADC for another project.
+The console now selects its own per-user credential file, with a dedicated
+`messages:login --account <email>` command, explicit account display, and no
+fallback to shared ADC. The Functions CLI and inbox transaction are unchanged.
+
+Checks from the repository root:
+
+- `node --test tools/messaging/test/auth.test.mjs tools/messaging/test/server.test.mjs`:
+  eight passed. Includes child-process identity isolation, preservation of shared
+  credential bytes, missing/corrupt dedicated credentials, safe recovery messages,
+  immutable previews and same-delivery retries.
+- `node tools/messaging/test/browser_smoke.mjs`: passed against the in-memory
+  sender, including account display and all previous recovery/layout cases.
+  Preview screenshot inspected; no live writes or external browser requests.
+- Login with an invalid email and launcher with an invalid port both reject
+  with exit 1 before contacting Google.
+- `git diff --check`: passed. No new package or backend source changes.
+- Dedicated gcloud login launched using `node tools/messaging/login.mjs --account
+  lothringen.rpg@gmail.com`; browser consent remains pending at this checkpoint.
+  SHA-256 comparison confirms the shared ADC and gcloud active-configuration
+  selector remain byte-for-byte unchanged. Live access through the new credential
+  file and console restart remain pending sign-in. No message was sent.
+
+Context7 was unavailable. Authentication behavior was checked against the
+official [gcloud login reference](https://docs.cloud.google.com/sdk/gcloud/reference/auth/application-default/login),
+[configuration documentation](https://docs.cloud.google.com/sdk/docs/configurations)
+and [ADC search order](https://docs.cloud.google.com/docs/authentication/application-default-credentials).

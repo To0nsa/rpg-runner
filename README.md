@@ -226,8 +226,10 @@ for creation, Save/recovery, inclusion, Play controls, and schema migration.
 
 ## Send Player Messages
 
-Run `corepack pnpm messages` from the repository root to open the local developer
-console under `tools/messaging`. Select dev, staging or prod, enter one player
+Sign in once with `corepack pnpm messages:login --account <authorized-email>`;
+this login is private to the messaging tool and leaves other applications' ADC
+unchanged. Run `corepack pnpm messages` from the repository root to open the local
+developer console under `tools/messaging`. Select dev, staging or prod, enter one player
 UID, and preview a message with optional claimable gold before sending. See the
 [message tool guide](tools/messaging/README.md) for credentials and retry recovery.
 

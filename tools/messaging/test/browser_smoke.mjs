@@ -20,7 +20,8 @@ const output = resolve(dirname(fileURLToPath(import.meta.url)), '../../../build/
 await mkdir(output, { recursive: true });
 const profile = await mkdtemp(resolve(output, 'chrome-'));
 const fake = fakeDelivery();
-const consoleServer = await startConsole({ environments: await loadEnvironments(), deliver: fake.deliver, offlineTest: true });
+const consoleServer = await startConsole({ environments: await loadEnvironments(), deliver: fake.deliver,
+  offlineTest: true, operatorAccount: 'test-operator@example.com' });
 const errors = [];
 const pending = new Map();
 let browser;
@@ -94,6 +95,8 @@ try {
   await until('composer ready', async () => (await status()).includes('Choose an environment'));
   assert.equal(await evaluate(`document.getElementById('environment').value`), '');
   assert.equal(await evaluate(`document.getElementById('test-banner').hidden`), false);
+  assert.equal(await evaluate(`document.getElementById('operator-account').textContent`), 'Messaging account: test-operator@example.com');
+  assert.equal(await evaluate(`document.getElementById('operator-account').hidden`), false);
   await fill('environment', 'dev');
   await fill('uid', 'retry-player');
   await fill('title', '<script>alert(1)</script>');
