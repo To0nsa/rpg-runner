@@ -84,10 +84,17 @@ Checks from the repository root:
   with exit 1 before contacting Google.
 - `git diff --check`: passed. No new package or backend source changes.
 - Dedicated gcloud login launched using `node tools/messaging/login.mjs --account
-  lothringen.rpg@gmail.com`; browser consent remains pending at this checkpoint.
+  lothringen.rpg@gmail.com`; browser consent completed successfully. The helper
+  confirmed that the dedicated file belongs to the requested account.
+- Live read-only verification after sign-in used `configureMessagingCredentials`,
+  a named Firebase Admin app for `rpg-runner-d7add`, and `getAll` for the target
+  player profile and original delivery's message/reward documents. Access and
+  profile existence were confirmed; the original delivery was still absent.
   SHA-256 comparison confirms the shared ADC and gcloud active-configuration
-  selector remain byte-for-byte unchanged. Live access through the new credential
-  file and console restart remain pending sign-in. No message was sent.
+  selector remain byte-for-byte unchanged. No message was sent by the agent.
+- `node tools/messaging/start.mjs` passed dedicated credential validation but
+  found port 8766 occupied by the existing console. No process was stopped or
+  replaced; the user reported that it was working.
 
 Context7 was unavailable. Authentication behavior was checked against the
 official [gcloud login reference](https://docs.cloud.google.com/sdk/gcloud/reference/auth/application-default/login),
