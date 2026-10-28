@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "packageManager": "pnpm@11.22.0",
   "scripts": {
+    "messages": "corepack pnpm --dir functions build && node tools/messaging/start.mjs",
+    "messages:test": "corepack pnpm --dir functions build && node --test tools/messaging/test/*.test.mjs",
+    "messages:test:browser": "corepack pnpm --dir functions build && node tools/messaging/test/browser_smoke.mjs",
     "functions:build": "corepack pnpm --filter rpg-runner-functions run build",
     "functions:serve": "corepack pnpm --filter rpg-runner-functions run serve",
     "functions:shell": "corepack pnpm --filter rpg-runner-functions run shell",

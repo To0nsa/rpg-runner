@@ -224,6 +224,13 @@ The editor's Build action uses the existing repository generator and reports
 source errors and generated freshness. See the [editor guide](tools/editor/README.md)
 for creation, Save/recovery, inclusion, Play controls, and schema migration.
 
+## Send Player Messages
+
+Run `corepack pnpm messages` from the repository root to open the local developer
+console under `tools/messaging`. Select dev, staging or prod, enter one player
+UID, and preview a message with optional claimable gold before sending. See the
+[message tool guide](tools/messaging/README.md) for credentials and retry recovery.
+
 ## Deploy A Release
 
 Use the [coordinated release workflow](docs/tdd/deployment_workflow.md) for

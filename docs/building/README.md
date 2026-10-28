@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed message tooling](../archive/2026-10-28/building/message_tooling.md):
+  local developer console for dev/staging/prod, single-player messages and optional
+  gold. Backend/emulator and offline browser checks pass; no live delivery performed.
+
 - [Board lifecycle and account deletion](board_lifecycle_cleanup.md): bounded
   erasure batches, current-window provisioning, obsolete-board retirement and
   authorized pre-release dev cleanup.

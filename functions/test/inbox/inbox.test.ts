@@ -5,6 +5,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { loadOrCreateCanonicalState } from "../../src/ownership/canonical_store.js";
 import { handleInboxRequest } from "../../src/inbox/callable_handlers.js";
 import { inboxCollections } from "../../src/inbox/contracts.js";
+import { sendOperatorMessage } from "../../src/inbox/operator.js";
 import { issueSystemMessage, claimInboxReward, markInboxMessageRead, listInbox, loadInboxSummary } from "../../src/inbox/store.js";
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error("Use the Firestore emulator.");
@@ -24,6 +25,25 @@ after(async () => { await deleteApp(app); });
 async function deliver(sourceId = "test-gift", goldAmount = 25) {
   return issueSystemMessage({ db, uid, nowMs, delivery: { sourceId, goldAmount, title: "A gift", body: "Your gold is ready." } });
 }
+
+test("operator adapter delivers once, preserves claim flow and fences invalid recipients", async () => {
+  const input = { uid, sourceId: "operator-retry", title: "Gift", body: "Thank you.", goldAmount: 40 };
+  const projectId = "demo-rpg-runner-inbox-tests";
+  const messageId = await sendOperatorMessage(projectId, input);
+  assert.equal(await sendOperatorMessage(projectId, input), messageId);
+  const inbox = await listInbox(db, uid);
+  assert.equal(inbox.messages.length, 1);
+  assert.equal(inbox.messages[0].sourceId, "operator:operator-retry");
+  assert.equal((await loadOrCreateCanonicalState({ db, uid })).progression.gold, 0);
+  const claimed = await claimInboxReward({ db, uid, messageId, commandId: "operator-claim", expectedRevision: 0 });
+  assert.equal(claimed.result.canonicalState.progression.gold, 40);
+  await sendOperatorMessage(projectId, input);
+  assert.equal((await loadInboxSummary(db, uid)).unclaimedCount, 0);
+  await assert.rejects(sendOperatorMessage(projectId, { ...input, goldAmount: 41 }), { code: "already-exists" });
+  await assert.rejects(sendOperatorMessage(projectId, { ...input, uid: "missing-player" }), { code: "not-found" });
+  await db.collection("account_deletion_requests").doc(uid).set({ uid, state: "requested" });
+  await assert.rejects(sendOperatorMessage(projectId, { ...input, sourceId: "deleted" }), { code: "failed-precondition" });
+});
 
 test("delivery retries preserve contents and whole-inbox attention", async () => {
   const ids = await Promise.all([deliver(), deliver()]);

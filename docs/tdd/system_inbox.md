@@ -98,6 +98,45 @@ can reuse it when their separate discovery policies are implemented.
 
 ## Operator delivery
 
+The [local message console](../../tools/messaging/README.md) runs from
+`tools/messaging/` with `corepack pnpm messages`. The launcher builds current
+Functions source. Both console and CLI use `inbox/operator.ts` for input
+validation and explicit-project delivery through `issueSystemMessage`.
+No player-callable issuance route is added.
+
+The console requires dev/staging/prod selection and reads the project mapping
+from `tools/release/environments.json`. It never derives the target from ADC or
+the active gcloud project. Each send initializes a named Admin app for that
+explicit project and deletes it afterwards. Local ADC provides operator
+Firestore authority; credentials are not exposed to browser code.
+
+The HTTP service binds to `127.0.0.1` and validates exact Host, same-origin
+requests, a random per-process bearer token and bounded JSON bodies. It serves
+only fixed local assets with a restrictive CSP, no caching and no CORS access.
+The printed URL supplies the token through its fragment; the browser moves it
+to session storage and removes the fragment. The real launcher rejects a
+Firestore emulator override. A separate in-memory fixture supports UI checks.
+
+Preview is offline and stores an immutable normalized request in server memory,
+bound to the selected project, UID and delivery identity. Send accepts only its
+preview ID; altered fields or unknown previews are rejected. Preview entries
+expire after 30 minutes; in-flight delivery is allowed to finish. The process keeps
+at most 128 entries; expired idle entries are reclaimed at preview creation.
+Concurrent sends share a promise, successful receipts are cached for the preview
+lifetime, and failures allow retry with the same request.
+Backend delivery identities remain authoritative across process restarts.
+
+Any composer edit invalidates the visible preview. A send attempt locks the draft;
+new deliveries require New message and a new source identity. Browser local
+storage and JSON draft download/restore preserve environment and delivery ID
+for recovery. Imported drafts must be previewed. Success shows a confirmation
+with project, recipient and message ID, covering both new and identical prior
+delivery. Local confirmations are not read/claim receipts or operator audit logs.
+Player availability and deletion are checked atomically at send, not at preview.
+
+The console supports only single-recipient text and optional gold. Reward schema,
+player UI, claims, expiry and deletion behavior are unchanged.
+
 The privileged CLI accepts a JSON file containing `uid`, `sourceId`, `title`,
 `body` and optional `goldAmount`. Preview is offline:
 
