@@ -66,6 +66,10 @@ Task enqueue configuration uses:
   code 400 with structured status `FAILED_PRECONDITION`. The repository treats
   only that exact structured status, plus 409/412, as contention; unrelated
   HTTP 400 input errors are not reclassified.
+- The shared Firestore value decoder preserves empty maps and arrays when REST
+  omits their nested `fields` or `values` member. Empty collections remain
+  distinct from null, including an accepted run's empty Codex enemy-kill map;
+  leaderboard and ghost readers must retain those valid results.
 
 Accepted pre-lease states are intentionally permissive:
 - `uploaded`

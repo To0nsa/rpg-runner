@@ -93,12 +93,15 @@ Object? decodeFirestoreValue(firestore.Value value) {
   if (value.bytesValue != null) {
     return value.bytesValue;
   }
-  if (value.arrayValue?.values != null) {
-    return value.arrayValue!.values!
-        .map<Object?>(decodeFirestoreValue)
-        .toList(growable: false);
+  // Firestore omits members inside empty collection values. The containing
+  // value still identifies an array/map, distinct from an explicit null.
+  if (value.arrayValue != null) {
+    return value.arrayValue!.values
+            ?.map<Object?>(decodeFirestoreValue)
+            .toList(growable: false) ??
+        <Object?>[];
   }
-  if (value.mapValue?.fields != null) {
+  if (value.mapValue != null) {
     return decodeFirestoreFields(value.mapValue!.fields);
   }
   return null;
