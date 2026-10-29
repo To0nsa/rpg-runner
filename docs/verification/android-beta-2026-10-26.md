@@ -1,6 +1,8 @@
 # Android beta execution evidence
 
-Status: in progress, October 27, 2026. No new game backend deployed yet.
+Status: in progress, October 29, 2026. Frozen c8b is deployed to dev and staging;
+bounded dev-device smoke passed. Play-delivered staging acceptance and production
+deployment remain open. Dated sections below retain their historical scope.
 The active checklist is [android_beta_release.md](../building/android_beta_release.md).
 
 ## External secret storage and staging OAuth (October 27)
@@ -2252,3 +2254,71 @@ Final evidence under `.tmp/beta-checks/`:
 The frozen checkout remains clean. No browser, Play upload or production runtime
 deployment was used. Play-delivered authentication/attestation, device acceptance
 and reviewer-account handoff remain open and continue to gate production.
+
+## October 29 connected-phone dev smoke
+
+Live checks ran from `C:\dev\rpg_runner` against `rpg-runner-d7add` on the owner's
+OnePlus CPH2465, Android 15/API 35, ARM64, with a 2400x1080 landscape display.
+Source remained frozen at `c8b353a6e332bad701b6c044d4d138cc17e64b85`; no runtime
+code or release artifacts changed. The dev package is `com.example.rpg_runner.dev`,
+version 1 / `1.0.0-dev`, targeting API 36.
+
+`adb devices -l` confirmed an authorized USB device. `pm path`, installed-package
+metadata and `apksigner verify --print-certs` verified the existing package and
+matching signer before `adb -s <device> install -r --no-incremental <dev-apk>`
+returned Success at `17:44:56.2637295Z`. Account/data and first-install time were
+preserved. Readback of the installed APK's SHA-256 matched the canonical artifact:
+`ce0aa0e2d08106cb13000de644939b8b3e8a15d4e768b93e2735663de077d376`.
+The temporary old APK copy was removed after hash verification (184,126,366 bytes);
+canonical artifacts and the legacy package were retained. Staging/prod are absent.
+
+`adb shell am start -W -n com.example.rpg_runner.dev/com.example.rpg_runner.MainActivity`
+opened the existing signed-in hub with 1,134 gold. The owner was asked to play a
+short Competitive run and try movement/jump/attack, then replied "finished".
+Read-only `.tmp/beta-checks/observe_dev_phone_c8b.mjs` queried Firestore sessions,
+validated records, grants, ownership and projections; screenshots independently
+confirmed the visible wallet and leaderboard. Both observed Forest runs used
+compatibility `2026.10.21`, `rules-v2`, `score-v4`, `ghost-v1`:
+
+| Check | Owner's run | Brief ghost-launch run |
+| --- | --- | --- |
+| Run ID | `run_9a519e8c7ca4f7dff8e84610e5b3143da65291e1` | `run_9258536689af1e269b7a0df90614136f774b94c9` |
+| Score / distance / end reason | 480 / 65 m / `gaveUp` | 15 / 0 m / `fellBehindCamera` |
+| Validation and grant | accepted / `validated_settled` | accepted / `validated_settled` |
+| Gold / applied grant count | 2 / exactly 1 | 0 / exactly 1 |
+| Validated replay generation | `1793296123560494` | `1793296354442528` |
+
+The owner's run settled at `17:48:43.940Z`; the wallet increased to 1,136 and
+progression to 21/124 XP. `KEYCODE_HOME` followed by activity launch, then an
+explicit `am force-stop` and cold relaunch, retained the account and balance.
+Server readback after relaunch confirmed the first grant still applied once.
+These transitions were tested after settlement, not during a pending upload.
+
+Competitive Forest leaderboard loaded the existing 9,750-point, 888 m best
+(`run_ade711be3a6aefb24569d0ad1e86d56c1ee6f3d3`). VS Ghost launched successfully;
+a screenshot shows the translucent ghost moving separately from the player.
+The three-second idle check run ended naturally, was collected and settled for
+zero gold. Both new scores correctly left the higher best and exposed ghost
+unchanged, including pinned ghost generation `1793126913215742`. Playback may
+have used the existing cache; this does not prove a fresh network download.
+
+Cold launch/relaunch reported 1,090/1,159 ms. Scoped PID-filtered AndroidRuntime/
+Flutter error captures contained no error lines; exit-info since installation
+showed only the requested force-stop. PSS snapshots were 236,301 KB at startup,
+277,731 KB after the owner's run, 524,972 KB during ghost playback and 313,095 KB
+at the final hub. These are bounded observations, not sustained memory/frame-time
+acceptance. The owner supplied no separate qualitative controls/performance report.
+
+The final device summary was recorded at `2026-10-29T17:55:47.6805088Z`. The app
+was left at the hub with 1,136 gold and both grant IDs applied once. One issued
+ticket, `run_5a31d07a5750f9494d706387f15ca0b6d229bcb2`, remained untouched;
+no device-session cancellations or data resets were performed. Evidence lives in
+`.tmp/beta-checks/device-c8b-20261029/`: `summary.json`, `install.json`, timestamped
+observations, sanitized error captures and screenshots including
+`ghost-playback.png` and `final-hub.png`.
+
+This exercised the existing dev sign-in and configured debug App Check provider.
+Fresh Play Games sign-in, Play-delivered staging/prod identities and integrity,
+offline/pending-submission recovery, incompatible-update rehearsal and sustained
+multi-device QA remain open. No browser, Play upload or production deployment
+was used. Production remains gated on non-waived staging acceptance.

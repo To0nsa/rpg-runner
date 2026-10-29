@@ -43,7 +43,21 @@ Guarded dev Deploy passed at 17:13 UTC and ResumeIssuance at 17:18 UTC. Final
 and issuer `runsessioncreate-00077-kj5` healthy with its pause override absent.
 The 1,134-gold wallet, five settled rewards and existing best/ghost remain intact.
 Worker readiness/private access and unauthenticated callable rejection passed;
-the mutation lock and cutover record are cleared. No unfinished runs remain.
+the mutation lock and cutover record are cleared. No unfinished runs remained
+at that pre-device checkpoint.
+
+Connected-phone dev smoke completed at 17:55 UTC on the owner's OnePlus CPH2465
+(Android 15/API 35). The exact c8b dev APK replaced the older installation while
+preserving its data and signed-in account. The owner's Competitive run uploaded,
+validated and settled once for 2 gold (1,134 -> 1,136). Background/foreground and
+force-stop/relaunch after settlement retained that balance. The leaderboard loaded
+the existing best and visibly played its ghost; the brief ghost-launch run also
+validated/settled, for 0 gold. Scoped error captures showed no AndroidRuntime or
+Flutter errors. The phone is back at the hub. One newly issued ticket remains
+untouched; the earlier cancellation authorization was not extended to device runs.
+Evidence: `.tmp/beta-checks/device-c8b-20261029/summary.json` and the linked
+verification record. Fresh Play authentication/attestation, pending/offline
+recovery and sustained device performance remain open.
 
 Previous October 28 continuation: the owner requested all remaining work that can proceed
 without browser access, then requested a safe pause. The in-flight dev APK build
@@ -74,7 +88,8 @@ Dev version 1 APK verification passed at 21:56 UTC, SHA-256
 All three native artifacts and all three immutable images are retained. Dev and
 staging now run the corrected c8b image; production runtime remains undeployed.
 The CLI's existing cloud login cannot access the Play publishing API: both apps
-return HTTP 403 for insufficient OAuth scope. No Android device is attached.
+return HTTP 403 for insufficient OAuth scope. The connected Android phone has
+completed the bounded dev checks above; staging/prod are not installed.
 
 Previous bcb CLI progress: dev and production Prepare passed; staging preparation and
 both destination images remain verified. All ten production validation components
@@ -834,6 +849,8 @@ Execution: agent, repository/CLI plus Firebase and Play Console in Chrome.
   production installation for the owner when the former release package changes
   backend; do not build local-state migration code just to preserve owner data.
   Verify Auth, outbox, replay spool and ghost cache state cannot cross environments.
+  October 29: the exact c8b dev APK is installed and its existing account/data
+  retained. Staging/prod side-by-side installation and isolation remain open.
 - [x] Retain the working dev registration/certificates in the existing Firebase
   project. Register staging/production packages and proper signing certificates
   in their own projects; resolve OAuth conflicts through the Phase 1 identity plan.
@@ -919,8 +936,11 @@ Play-delivered device QA and candidate acceptance.
   catch-up, leaderboard and ghost retrieval, account deletion and pending-run
   recovery after disconnect, app restart and background/foreground transitions.
   October 29 c8b backend drill passes acceptance/settlement, all ranked projections,
-  pinned ghost digest checks and duplicate-delivery wallet invariants. Client/Play
-  authentication, upload-grant use and lifecycle recovery remain untested.
+  pinned ghost digest checks and duplicate-delivery wallet invariants. The connected
+  dev client also passed upload/acceptance, once-only settlement, wallet readback,
+  leaderboard loading, visible ghost playback and post-settlement background/
+  restart recovery. Fresh Play authentication, Play-delivered staging acceptance,
+  fresh ghost download and offline/pending-submission recovery remain untested.
 - [ ] Verify wrong-environment identities/tokens fail, unauthorized access remains
   blocked, and dev/staging tests leave production accounts/resources unchanged.
 - [x] Implement and test the single-version release policy before the first beta
@@ -958,6 +978,10 @@ Play-delivered device QA and candidate acceptance.
 - [ ] Check loading, controls, device performance/memory, crashes and ANRs on
   representative Android devices. Fix beta blockers; prior release waivers are
   historical evidence and do not automatically carry into beta acceptance.
+  October 29 OnePlus CPH2465 dev smoke had no errors in scoped PID captures;
+  cold launch/relaunch took 1,090/1,159 ms. Short runs and memory snapshots do not
+  establish sustained performance. The owner replied "finished" without a
+  separate qualitative controls/performance report; this gate remains open.
 - [ ] Record the accepted candidate and unresolved defects/limits. Commit
   independently validated milestones without including unrelated worktree edits.
 
@@ -1190,10 +1214,12 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: complete Play upload/publication and the physical-device acceptance
-matrix when browser/device access is available. Dev cutover, the four authorized
-cancellations and preservation checks are complete; final CLI checkpoint:
+Next action: when Play publishing access is available, upload/publish the frozen
+staging candidate to its internal track, install it through Play on the connected
+phone and complete staging acceptance. Dev cutover, the four authorized
+cancellations and preservation checks are complete; pre-device CLI checkpoint:
 `.tmp/beta-checks/candidate-c8b-cli-checkpoint-after-dev-20261029.json`.
+Connected dev-device results: `.tmp/beta-checks/device-c8b-20261029/summary.json`.
 Reuse the frozen c8b artifacts and keep unrelated subsequent main-branch changes
 out of this release. The dedicated reviewer account still needs to be supplied.
 Deploy production only after non-waived staging acceptance.
