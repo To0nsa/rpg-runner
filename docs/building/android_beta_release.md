@@ -41,8 +41,9 @@ are eligible for validation and reuse. Staging acceptance continues to use c8b.
   `db378bc84ea5a6fc94ae13e56af36899826027c44ad9908eb1c9cb8f4b822f33`.
   Package/resources/signature, three ABIs, 16 KB alignment and all 3,750 packaged
   navigation graphs passed. The existing worker image was verified and reused.
-- [ ] Verify reusable image, pause issuance, review drain and complete dev cutover.
-- [ ] Install/verify the dev APK and record final live/artifact evidence.
+- [x] Verify reusable image, pause issuance, review drain and complete dev cutover.
+- [x] Install/verify the dev APK and record final live/artifact evidence.
+- [ ] Complete the fresh build-2 phone gameplay/replay smoke.
 
 The 19:37 UTC inventory found seven accepted/settled runs and 1,136 gold, with
 one outstanding ticket from the earlier phone smoke. Read-only inspection at
@@ -59,9 +60,21 @@ Cutover checkpoint: canonical PauseIssuance succeeded after all preparation and
 APK checks. The fresh cancellation guard stopped without mutation because a
 second issued ticket appeared at 20:13:23 UTC while preparation was running.
 Read-only inspection at 21:03:34 UTC confirmed both tickets have no upload lease,
-replay object, validation or reward. The first remains authorized for cancellation;
-the additional ticket requires the owner's separately requested answer. Issuance
-is paused under this source's cutover record and the queues remain running.
+replay object, validation or reward. The owner separately approved the additional
+ticket. Fresh checks guarded cancellation of exactly those two tickets at
+21:24:32 UTC; all other sessions, validations, grants and profiles were verified
+unchanged. The next live inventory retained seven settled runs, 1,136 gold and
+three active boards. Canonical Deploy completed at 21:33:21 UTC and issuance
+resumed at 21:38:36 UTC. Final inspection verified all 32 Functions ACTIVE, both
+queues RUNNING, all three boards active, the exact worker image Ready at 100%
+traffic, matching Hosting bytes and cleared release locks.
+
+Build 2 was installed on the owner's OnePlus at 21:39:30 UTC with existing data
+preserved; the installed APK hash matches the verified artifact. Existing login,
+new inbox controls and fresh authenticated ticket issuance work. The phone
+appeared to be in use and then disconnected before further gameplay/log checks.
+Fresh replay completion and post-update error-log inspection remain unrun.
+See [dev release evidence](../verification/dev-app-2026-10-29.md).
 
 ### Frozen c8b staging acceptance
 

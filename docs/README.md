@@ -25,6 +25,10 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   acceptance, required updates and Play testing; execution underway with
   environment routing and isolation checks. One shared deployment workflow and
   no player-data migration.
+- [Latest dev app release](verification/dev-app-2026-10-29.md): source `285ef4f4`
+  deployed to dev and Android build 2 installed with existing data preserved;
+  levels and gameplay tuple unchanged. Fresh gameplay smoke remains pending
+  after the phone disconnected.
 - [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
   lifecycle/input fixes, event-retention cleanup, full local checks and 18
   mixed-input replay cases pass. Finalized authoring is deployed in `2026.10.7`;
