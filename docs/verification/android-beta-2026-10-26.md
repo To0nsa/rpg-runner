@@ -3,7 +3,8 @@
 Status: in progress, October 29, 2026. Frozen c8b is deployed to dev and staging;
 bounded dev-device smoke passed. Play-delivered staging acceptance and production
 deployment remain open. Staging version 1 is published to the owner-only internal
-track. Dated sections below retain their historical scope.
+track and installed through Play; owner sign-in and enforced real Play Integrity
+pass. Dated sections below retain their historical scope.
 The active checklist is [android_beta_release.md](../building/android_beta_release.md).
 
 ## External secret storage and staging OAuth (October 27)
@@ -2367,3 +2368,44 @@ under `build/playwright-mcp/`, and the separate
 `.tmp/beta-checks/device-staging-c8b-20261029/` directory. No source/artifact changes
 or account resets were made. Play-installed sign-in, attestation and run acceptance
 remain pending and continue to gate production.
+
+## October 29 staging Play installation and first authentication
+
+After the owner unlocked the connected OnePlus CPH2465 (Android 15/API 35),
+`adb shell am start -W -a android.intent.action.VIEW` opened the staging listing
+in `com.android.vending`. Install and Play were selected in the phone's Play
+Store. Installation completed at `2026-10-29T18:44:48Z`. No APK was sideloaded.
+The app remains separate from the existing dev installation and its data.
+
+From `C:\dev\rpg_runner`, `adb shell pm list packages -i` and scoped
+`dumpsys package` report installer/initiator `com.android.vending`, version code
+1 and version name `1.0.0-staging`. This device's generated APK reports minimum
+API 32 and target API 36; the uploaded bundle's Play metadata reports minimum
+API 24. `pm path` identified the installed base APK, which was pulled only for
+verification. Android build-tools 36.0.0 `apksigner verify --print-certs` passed
+with the registered Play distribution SHA-256
+`6272ea6a975b3a59283153010be2ad3f53e958897e34fd034a797d8acbbd842f`, distinct
+from the upload key. It reported two unknown additional v3 attributes; signature
+verification returned exit 0. The frozen source and uploaded AAB are unchanged.
+
+First-launch logs confirm a non-empty Play Games server-auth-code response.
+The app reached first-profile naming and then the hub using the owner's existing
+Google account. The new staging profile started at level 1, 0/100 XP and zero
+gold; its display name is Toonsa. This is a fresh staging profile, not a separate
+fresh Google tester account.
+
+Client `app_check_startup` reports release/Android, provider `play_integrity`,
+token acquisition `available`, failure `none`, Firebase app
+`1:943085064373:android:51c288ba51386d01572efc`. Scoped `gcloud logging read`
+observations since installation confirm `authenticated`, `verified` and
+`rolloutMode=enforce` for profile/loadout/inbox calls and `runSessionCreate`.
+Ten allowlisted observations were saved at the first checkpoint; no token or
+raw authentication payload was retained. Initial current-process diagnostics
+contained zero fatal/unhandled exceptions and PSS 203,157 KB. This bounded
+snapshot does not establish sustained performance or diagnostics acceptance.
+
+Evidence: `.tmp/beta-checks/device-staging-c8b-20261029/` contains `install.json`,
+`installed-package.txt`, `first-launch-diagnostics.json`,
+`app-check-observations.json`, timestamped server observations and phone
+screenshots. Competitive is selected, awaiting the owner's short run. Production
+remains gated on the remaining non-waived staging acceptance checks.

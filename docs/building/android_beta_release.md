@@ -20,6 +20,16 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 29, 2026
 
+Staging version 1 installed from the phone's Play Store at 18:44:48 UTC on the
+OnePlus CPH2465 (Android 15/API 35). Installer `com.android.vending`, version
+`1.0.0-staging` and the registered Play distribution certificate were verified.
+First-launch Play Games authentication succeeded, created an independent staging
+profile with zero gold, and reached the hub. The release client acquired a real
+Play Integrity token; server observations confirm authenticated, verified App Check
+under `enforce` for the staging Firebase app. Competitive is selected, awaiting
+the owner's short run. A separate fresh Google tester account and the remaining acceptance
+gates still block production. Evidence: `.tmp/beta-checks/device-staging-c8b-20261029/`.
+
 Staging version 1 is published to its owner-only Play internal track at 18:28 UTC
 (20:28 Helsinki). Restarting only the dedicated `rpg-runner` Chrome session,
 with explicit owner approval, restored Playwright access. The frozen c8b AAB's
@@ -27,8 +37,8 @@ SHA-256 was rechecked before upload; Play accepted it with mapping/native symbol
 attached and reported Ready to release. Track `4701264247659999845` is Active,
 release `1.0.0-staging (1) - c8b353a6` is Available to internal testers, Not reviewed.
 The existing tester list contains only the owner; opt-in succeeded. Web installation
-reached Google's identity-verification prompt, so phone installation/acceptance
-remains pending while the owner unlocks the device. No production publication or
+reached Google's identity-verification prompt; installation subsequently completed
+directly through the unlocked phone's Play Store. No production publication or
 runtime deployment occurred. Evidence: `.tmp/beta-checks/play-staging-c8b-20261029.json`.
 
 October 29 continuation: the owner resumed the saved c8b candidate. Fresh staging
@@ -101,7 +111,8 @@ All three native artifacts and all three immutable images are retained. Dev and
 staging now run the corrected c8b image; production runtime remains undeployed.
 The CLI's existing cloud login cannot access the Play publishing API: both apps
 return HTTP 403 for insufficient OAuth scope. The connected Android phone has
-completed the bounded dev checks above; staging/prod are not installed.
+completed the bounded dev checks above and now has staging installed through Play;
+production is not installed.
 
 Previous bcb CLI progress: dev and production Prepare passed; staging preparation and
 both destination images remain verified. All ten production validation components
@@ -945,8 +956,10 @@ Play-delivered device QA and candidate acceptance.
 - [ ] Install the staging release through its separate Play internal track. Verify
   real Play Integrity and Play Games sign-in, including a fresh tester account.
   Version 1 / c8b was published to the owner-only internal track on October 29
-  at 18:28 UTC; the owner opted in. Play installation and device acceptance remain
-  pending. Fresh issuer readback confirms App Check rollout mode `enforce`.
+  at 18:28 UTC; the owner opted in and installed through Play at 18:44:48 UTC.
+  Play signer/version, first staging Play Games sign-in and real Play Integrity
+  under enforced App Check pass. A separate fresh Google tester account remains
+  untested; the existing owner's new staging profile does not cover that gate.
 - [ ] Exercise issuance, replay upload/acceptance, exactly-once rewards, wallet
   catch-up, leaderboard and ghost retrieval, account deletion and pending-run
   recovery after disconnect, app restart and background/foreground transitions.
@@ -1229,8 +1242,8 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: install the published staging version 1 through Play on the unlocked
-connected phone and complete staging acceptance. Dev cutover, the four authorized
+Next action: finish the Play-installed staging run/reward and lifecycle checks,
+then complete the remaining staging acceptance gates. Dev cutover, the four authorized
 cancellations and preservation checks are complete; pre-device CLI checkpoint:
 `.tmp/beta-checks/candidate-c8b-cli-checkpoint-after-dev-20261029.json`.
 Connected dev-device results: `.tmp/beta-checks/device-c8b-20261029/summary.json`.
