@@ -32,8 +32,10 @@ its ghost loads and plays visibly, and background/foreground plus force-stop/
 relaunch after settlement preserve 40 gold and 46/100 XP. Final 19:05 UTC readback
 confirms both the owner run and the brief zero-gold ghost test settled once;
 the owner's best remains unchanged. Scoped logs show no fatal/unhandled exception,
-and exit-info contains only the requested force-stop. A separate fresh Google
-tester account, offline/pending recovery and the remaining acceptance gates still
+and exit-info contains only the requested force-stop. The owner subsequently
+confirmed responsive movement/jump/attack with no noticeable stuttering during
+the Play-installed run. A separate fresh Google tester account, offline/pending
+recovery and the remaining acceptance gates still
 block production. Evidence: `.tmp/beta-checks/device-staging-c8b-20261029/summary.json`.
 
 Staging version 1 is published to its owner-only Play internal track at 18:28 UTC
@@ -1022,7 +1024,9 @@ Play-delivered device QA and candidate acceptance.
   Staging's Play-installed 2:14 owner run also validated successfully. Scoped
   captures show no fatal/unhandled exception and package exit-info shows only the
   requested force-stop. Cold activity relaunch took 1,465 ms; this excludes the
-  remaining app initialization. Qualitative feedback was requested separately.
+  remaining app initialization. The owner subsequently confirmed responsive
+  movement/jump/attack and no noticeable stuttering in the staging run. This
+  completes that run's qualitative check; sustained and broader device QA remain open.
 - [ ] Record the accepted candidate and unresolved defects/limits. Commit
   independently validated milestones without including unrelated worktree edits.
 

@@ -2459,8 +2459,10 @@ Current-process log snapshots before/after restart contain zero fatal/unhandled
 exceptions. Package-scoped exit-info contains only the requested force-stop, no
 crash/ANR entry. PSS was 237,036 KB after the owner run, 285,321 KB before restart
 and 226,338 KB afterward. These samples and one 2:14 run do not establish sustained
-or representative multi-device performance. The owner said "finished"; separate
-controls/stuttering feedback was requested and remains pending at this checkpoint.
+or representative multi-device performance. In the subsequent qualitative
+follow-up, the owner confirmed movement, jump and attack were responsive with
+no noticeable stuttering in the Play-installed staging run. This is owner-reported
+evidence for that run, not instrumented frame-time or multi-device acceptance.
 
 Two issued, unsubmitted tickets remain untouched: initial Practice ticket
 `run_cc0e4cdb262189f7849c4ca26812cdaad024ee7e` and post-restart Competitive ticket
