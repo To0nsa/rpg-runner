@@ -54,7 +54,9 @@ the seven completed runs, settled grants and 1,136 gold, and reject a changed
 ticket set or any new upload/validation evidence.
 Preparation passed locally with Node 24.16.0. Evidence is under the frozen
 checkout's `.tmp/releases/rpg-runner-d7add/60ed92d85cc12ae202b96448f5fdcb4e7c95cd9eefb91e369506581d51b74055/`.
-Typed gift activation remains subject to compatible-client rollout evidence.
+The owner subsequently authorized [controlled dev gift activation](../verification/admin-dev-gifts-2026-10-29.md).
+The gate and 63-entry catalog are live for compatible dev build 2 recipients;
+staging/prod still require their own compatible-client rollout evidence.
 
 Cutover checkpoint: canonical PauseIssuance succeeded after all preparation and
 APK checks. The fresh cancellation guard stopped without mutation because a

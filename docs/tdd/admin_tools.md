@@ -81,8 +81,8 @@ issuance inside the transaction. Existing identical delivery retries and claims
 remain valid when issuance is disabled. Direct clients cannot read/write the gate.
 A local preview is not compatibility evidence and cannot enable gifts.
 
-For an **authorized release**, deploy the schema-2 readers/claim handlers and
-receipt-aware issuers first; release the compatible game client and establish
+For an **authorized staging/prod release**, deploy the schema-2 readers/claim
+handlers and receipt-aware issuers first; release the compatible game client and establish
 that older clients cannot access schema-2 inboxes (required-update rollout plus
 supported-client acceptance). Rebuild/restart privileged tools from that same
 source. Generate the exact activation record offline with
@@ -90,6 +90,15 @@ source. Generate the exact activation record offline with
 that record to the explicitly selected project's document through the authorized
 release operation, recording source, client version, project and live checks.
 This implementation does not publish the record or authorize a deployment.
+
+For controlled dev use, the owner may explicitly authorize activation after
+matching backend deployment and compatible client installation are verified.
+Use that compatible build for every gift recipient. Minimum inbox-client version
+enforcement is not implemented, so this dev activation does not establish
+older-client exclusion or satisfy staging/prod acceptance. The
+[October 29 dev activation](../verification/admin-dev-gifts-2026-10-29.md) records
+the exact source, installed build, configuration and live catalog readback.
+
 Changing the catalog hash requires renewed rollout evidence. Do not retire IDs
 or decoders while retained gifts may reference them. Disable new issuance before
 rollback; do not roll back schema-2 readers while schema-2 messages remain.
