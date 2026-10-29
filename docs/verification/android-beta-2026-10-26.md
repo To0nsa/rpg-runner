@@ -2477,3 +2477,20 @@ Evidence remains in `.tmp/beta-checks/device-staging-c8b-20261029/`: updated
 hub. Production remains undeployed pending the other non-waived acceptance gates,
 including separate fresh tester/reviewer accounts, offline/pending recovery,
 incompatible-update rehearsal, diagnostics and broader device QA.
+
+## October 29 unused Play draft removal
+
+At the owner's request, removed the unused Long Run draft app
+`4975420968170292531` from developer account `8150014461378797161`. Before
+deletion, the home-page row identified it as Draft, last updated March 10, with
+no package shown; its View link matched the recorded empty legacy listing.
+The separate staging and production rows had their expected packages and IDs.
+The draft-specific Delete action opened the non-restorable deletion confirmation;
+confirmation completed at approximately 20:14 UTC (22:14 Helsinki).
+
+Fresh console readback shows exactly two apps: staging
+`4975698862921375548` / `com.lothringen.longrun.staging`, still Internal testing,
+and production `4975092661531994619` / `com.lothringen.longrun`, still Draft.
+No dev Play app was created. No Firebase project, backend, device installation,
+tester membership or retained release was changed by this cleanup. Historical
+sections above describe the old draft before its removal.

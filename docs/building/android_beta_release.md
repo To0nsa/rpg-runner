@@ -1149,6 +1149,12 @@ be published and checked before release.
 
 Execution: agent via canonical release CLI, Chrome and physical-device checks.
 
+- [ ] Complete the owner's requested dev readiness work before production
+  deployment or Play publication. The owner added this prerequisite on October 29.
+  Dev remains on direct APK delivery; staging supplies Play internal-testing
+  coverage. Preserve the existing dev release checkpoint and staging acceptance
+  gates. The unused March Play draft was deleted at the owner's request;
+  staging and production are the two retained Play listings.
 - [ ] Prepare live artifacts from the exact staging-accepted commit, dependency
   locks and gameplay/content. Revalidate environment inputs and the new
   production project's state. Reuse valid source evidence,

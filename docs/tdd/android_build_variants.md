@@ -12,9 +12,10 @@ signing inputs fail instead of falling back to the debug key.
 | prod | release | `com.lothringen.longrun` | Long Run | `lothringen-long-run-prod` |
 
 Separate staging and production Play listings reserve the branded packages.
-Production listing `4975092661531994619` replaces the role of the old empty draft;
-that draft and its earlier configuration remain intact. Play distribution setup
-and installed-app acceptance remain open in the
+Production listing `4975092661531994619` replaces the role of the old empty draft
+`4975420968170292531`, which the owner requested deleting on October 29, 2026.
+Deletion is verified; the console retains only staging and production. Dev uses
+direct APK installation. Remaining Play distribution and acceptance work is in the
 [active checklist](../building/android_beta_release.md). This table describes
 source configuration, not three accepted or published installations.
 
