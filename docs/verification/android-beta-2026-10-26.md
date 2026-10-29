@@ -2,7 +2,8 @@
 
 Status: in progress, October 29, 2026. Frozen c8b is deployed to dev and staging;
 bounded dev-device smoke passed. Play-delivered staging acceptance and production
-deployment remain open. Dated sections below retain their historical scope.
+deployment remain open. Staging version 1 is published to the owner-only internal
+track. Dated sections below retain their historical scope.
 The active checklist is [android_beta_release.md](../building/android_beta_release.md).
 
 ## External secret storage and staging OAuth (October 27)
@@ -2322,3 +2323,47 @@ Fresh Play Games sign-in, Play-delivered staging/prod identities and integrity,
 offline/pending-submission recovery, incompatible-update rehearsal and sustained
 multi-device QA remain open. No browser, Play upload or production deployment
 was used. Production remains gated on non-waived staging acceptance.
+
+## October 29 staging Play internal publication
+
+After explicit approval to close/reopen only the dedicated `rpg-runner` Chrome
+session, the profile lock was released and Playwright connected successfully.
+The existing Play Console sign-in remained usable. Native browser inventory still
+did not expose Chrome; this recovery used the configured Playwright integration.
+The main worktree was clean at `05cb638c`; the frozen c8b checkout remained clean.
+
+From `C:\dev\rpg_runner`, `Get-FileHash -Algorithm SHA256` reverified the canonical
+staging AAB as `f9db4dd6d2b15ca406b37c322450ad607c1a61d96019ed4d9ab1cf4a4b291699`
+before upload to staging app `4975698862921375548` under developer
+`8150014461378797161`. The existing draft had no artifact attached. The existing
+Toonsa tester list was inspected and contained exactly the owner account; its
+membership and selection were unchanged.
+
+Play processed version code 1 / `1.0.0-staging`, minimum API 24, target API 36,
+three ABIs, with ReTrace mapping and native debug symbols attached. Review showed
+Ready to release, no blocking findings and an estimated 121 MB fresh download.
+Published the named release `1.0.0-staging (1) - c8b353a6` to internal track
+`4701264247659999845`. Confirmation completed at `2026-10-29T18:28:09.562Z`;
+readback showed Active and Available to internal testers, released at 20:28
+Helsinki, Not reviewed, with the temporary package-based unreviewed display name.
+No production release or wider distribution was performed.
+
+The owner account accepted its existing invitation at `18:29:04.075Z`; readback
+confirmed tester status. Opt-in URL:
+`https://play.google.com/apps/internaltest/4701264247659999845`.
+The Play listing was reachable and offered installation on the known OnePlus
+CPH2465. The web installation flow stopped at Google's identity-verification
+prompt before installation was verified. The phone was asleep/locked; the owner
+was asked to unlock it for installation directly through its Play Store.
+
+The read-only staging observer at `18:27:10.547Z` found zero profiles/run sessions
+before device testing. `gcloud run services describe runsessioncreate
+--project=lothringen-long-run-staging --region=europe-west1` read back Ready
+revision `runsessioncreate-00007-rwp` and `APP_CHECK_ROLLOUT_MODE=enforce`.
+These are setup/baseline observations, not evidence of a successful device verdict.
+
+Local evidence: `.tmp/beta-checks/play-staging-c8b-20261029.json`, browser snapshots
+under `build/playwright-mcp/`, and the separate
+`.tmp/beta-checks/device-staging-c8b-20261029/` directory. No source/artifact changes
+or account resets were made. Play-installed sign-in, attestation and run acceptance
+remain pending and continue to gate production.

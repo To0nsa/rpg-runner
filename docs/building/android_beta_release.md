@@ -1,7 +1,8 @@
 # Android beta release with dev, staging and production
 
-Status: resumed at the owner's request on October 29, 2026 (Helsinki), continuing
-without browser access; started October 26, 2026. This is the
+Status: resumed at the owner's request on October 29, 2026 (Helsinki); browser
+access restored for initial Play publication, with CLI/API preferred where
+available. Started October 26, 2026. This is the
 active checklist for reusing the existing project for development, creating
 isolated staging and production backends, and releasing an Android beta through
 Google Play. Team expansion and internal release-candidate testing make staging
@@ -18,6 +19,17 @@ and internal/closed Play publication. Public rollout remains excluded. Complete
 reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 29, 2026
+
+Staging version 1 is published to its owner-only Play internal track at 18:28 UTC
+(20:28 Helsinki). Restarting only the dedicated `rpg-runner` Chrome session,
+with explicit owner approval, restored Playwright access. The frozen c8b AAB's
+SHA-256 was rechecked before upload; Play accepted it with mapping/native symbols
+attached and reported Ready to release. Track `4701264247659999845` is Active,
+release `1.0.0-staging (1) - c8b353a6` is Available to internal testers, Not reviewed.
+The existing tester list contains only the owner; opt-in succeeded. Web installation
+reached Google's identity-verification prompt, so phone installation/acceptance
+remains pending while the owner unlocks the device. No production publication or
+runtime deployment occurred. Evidence: `.tmp/beta-checks/play-staging-c8b-20261029.json`.
 
 October 29 continuation: the owner resumed the saved c8b candidate. Fresh staging
 inspection confirms the exact corrected image Ready at 100% traffic, both queues
@@ -932,6 +944,9 @@ Play-delivered device QA and candidate acceptance.
   passed deployment on October 28 at 21:25 UTC; acceptance is still pending.
 - [ ] Install the staging release through its separate Play internal track. Verify
   real Play Integrity and Play Games sign-in, including a fresh tester account.
+  Version 1 / c8b was published to the owner-only internal track on October 29
+  at 18:28 UTC; the owner opted in. Play installation and device acceptance remain
+  pending. Fresh issuer readback confirms App Check rollout mode `enforce`.
 - [ ] Exercise issuance, replay upload/acceptance, exactly-once rewards, wallet
   catch-up, leaderboard and ghost retrieval, account deletion and pending-run
   recovery after disconnect, app restart and background/foreground transitions.
@@ -1214,14 +1229,13 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: when Play publishing access is available, upload/publish the frozen
-staging candidate to its internal track, install it through Play on the connected
-phone and complete staging acceptance. Dev cutover, the four authorized
+Next action: install the published staging version 1 through Play on the unlocked
+connected phone and complete staging acceptance. Dev cutover, the four authorized
 cancellations and preservation checks are complete; pre-device CLI checkpoint:
 `.tmp/beta-checks/candidate-c8b-cli-checkpoint-after-dev-20261029.json`.
 Connected dev-device results: `.tmp/beta-checks/device-c8b-20261029/summary.json`.
 Reuse the frozen c8b artifacts and keep unrelated subsequent main-branch changes
 out of this release. The dedicated reviewer account still needs to be supplied.
 Deploy production only after non-waived staging acceptance.
-No Play bundle has been uploaded/released. Do not repeat completed setup or treat
-local validation as live acceptance.
+Staging publication is complete; production Play publication remains open. Do not
+repeat completed setup or treat local validation/publication as device acceptance.
