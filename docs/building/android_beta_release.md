@@ -1,7 +1,7 @@
 # Android beta release with dev, staging and production
 
-Status: paused at the owner's request on October 28, 2026 (Helsinki), after work without
-browser access; started October 26, 2026. Resume only when the owner asks. This is the
+Status: resumed at the owner's request on October 29, 2026 (Helsinki), continuing
+without browser access; started October 26, 2026. This is the
 active checklist for reusing the existing project for development, creating
 isolated staging and production backends, and releasing an Android beta through
 Google Play. Team expansion and internal release-candidate testing make staging
@@ -17,13 +17,29 @@ setup, use of the existing billing account, deployments, maintenance/pause/resum
 and internal/closed Play publication. Public rollout remains excluded. Complete
 reviewable preparation and retain all non-waived acceptance gates.
 
-## Execution checkpoint - October 28, 2026
+## Execution checkpoint - October 29, 2026
 
-October 28 continuation: the owner requested all remaining work that can proceed
+October 29 continuation: the owner resumed the saved c8b candidate. Fresh staging
+inspection confirms the exact corrected image Ready at 100% traffic, both queues
+running and all three current boards active. Final readback confirms zero
+run sessions/profiles/projections, no active deletion and three expected completed
+deletion tombstones. The corrected five-replay drill passed:
+all runs accepted/settled, all three ranked projections and pinned ghosts verified,
+duplicate delivery left the exact 7-gold wallet/revision unchanged, and the bounded
+resource/queue checks passed. Final real-clock test-account/data/artifact cleanup
+was verified at 16:24 UTC, with the intended compact deletion tombstone retained
+and the mutation lock released.
+Main was clean at `3f4955b9` when resuming; its newer Admin work remains outside
+this candidate.
+Dev's fresh inventory contains four valid issued tickets, expiring October 29
+between 19:49 and 21:18 Helsinki time. Cutover is blocked until those runs finish
+or expire; dev remains online and its data is preserved.
+
+Previous October 28 continuation: the owner requested all remaining work that can proceed
 without browser access, then requested a safe pause. The in-flight dev APK build
 completed and the temporary account's real-clock cleanup was verified. No retry
-drill or dev cutover was started after the pause request. Resume the corrected
-frozen c8b candidate only on the owner's instruction.
+drill or dev cutover was started after the pause request. The owner resumed on
+October 29; the frozen c8b candidate remains the release source.
 Play-delivered staging acceptance still gates production deployment. Browser-only
 configuration/publication and the dedicated reviewer-account handoff remain open.
 
@@ -41,7 +57,8 @@ at 21:30 UTC, with queues running and the cutover record cleared. The first c8b
 five-case drill stopped before dispatch because its fixture changed the legacy
 runType without updating runMode. Local checks reproduce that rejection and
 confirm the corrected sequence. Account/data/artifact deletion was verified at
-21:57 UTC after the real quiet period. The fresh retry drill remains unstarted.
+21:57 UTC after the real quiet period. The separate October 29 retry passed;
+its own test-account/data cleanup passed on October 29 at 16:24 UTC.
 Dev version 1 APK verification passed at 21:56 UTC, SHA-256
 `ce0aa0e2d08106cb13000de644939b8b3e8a15d4e768b93e2735663de077d376`.
 All three native artifacts and all three immutable images are retained. Dev's
@@ -853,7 +870,8 @@ Execution: agent for configuration/builds; user for protected credential handlin
 - [ ] Add a repeatable Android preparation/build path tied to frozen source,
   environment, compatibility tuple, toolchain, navigation assets and version
   code. Extend existing CI/release components to include Android sources, native
-  configuration and toolchain inputs; current client-build evidence is web-only.
+  configuration and toolchain inputs. Canonical native preparation/build and all
+  three c8b artifacts now pass; Play acceptance/promotion remains separate.
   Keep signing credentials protected and promote the same verified production
   AAB across Play tracks. Staging/prod bundles have different identities; record
   the accepted commit and environment-specific build inputs for both.
@@ -890,6 +908,9 @@ Play-delivered device QA and candidate acceptance.
 - [ ] Exercise issuance, replay upload/acceptance, exactly-once rewards, wallet
   catch-up, leaderboard and ghost retrieval, account deletion and pending-run
   recovery after disconnect, app restart and background/foreground transitions.
+  October 29 c8b backend drill passes acceptance/settlement, all ranked projections,
+  pinned ghost digest checks and duplicate-delivery wallet invariants. Client/Play
+  authentication, upload-grant use and lifecycle recovery remain untested.
 - [ ] Verify wrong-environment identities/tokens fail, unauthorized access remains
   blocked, and dev/staging tests leave production accounts/resources unchanged.
 - [x] Implement and test the single-version release policy before the first beta
@@ -921,6 +942,9 @@ Play-delivered device QA and candidate acceptance.
   staging capacity result and an explicit tester list; no wider rollout or
   invitations are inferred. This cap does not satisfy any Google-required
   closed-testing qualification period or tester count.
+  October 29 five-submission burst passes its declared latency/resource limits
+  and drains both queues. Actual terminal ticks range from 211 to 1,800; this is
+  short-run backend evidence, not sustained/full-run capacity acceptance.
 - [ ] Check loading, controls, device performance/memory, crashes and ANRs on
   representative Android devices. Fix beta blockers; prior release waivers are
   historical evidence and do not automatically carry into beta acceptance.
@@ -1156,11 +1180,10 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action after the owner resumes: run the corrected five-submission staging
-drill through `.tmp/beta-checks/staging_c8b_smoke_retry.ps1` and preserve its
-separate evidence. Verify projections, pinned ghost downloads, duplicate rewards,
-bounded metrics and real-clock account cleanup. Then inspect dev's live state and
-perform its guarded cutover, preserving owner data. Reuse the frozen c8b artifacts
+Next action: dev cutover is blocked by four still-valid issued runs. Inspect again
+after they complete or expire and require a drained inventory before
+pause/deploy/resume. Preserve owner data;
+do not cancel runs or reset data to make the gate pass. Reuse the frozen c8b artifacts
 and keep unrelated subsequent main-branch changes out of this release. Continue Play
 upload/publication and physical-device acceptance matrix when browser/device
 access is available. Deploy production only after non-waived staging acceptance.

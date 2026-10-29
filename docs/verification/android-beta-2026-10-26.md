@@ -2022,3 +2022,129 @@ requires non-waived staging acceptance; no Play upload/publication occurred.
 Cleanup lock `1793224608441765` was released. Both in-flight commands exited 0.
 The safe pause is recorded in `candidate-c8b-pause-checkpoint.json`; frozen
 source is clean, the retry state does not exist, and no release action remains running.
+
+## October 29 CLI continuation
+
+The owner resumed the saved checkpoint, retaining the no-browser scope. Main is
+clean at `3f4955b9` with newer Admin changes; the clean frozen release checkout
+remains `c8b353a6e332bad701b6c044d4d138cc17e64b85`. Canonical staging Inspect passed
+at `2026-10-29T16:02:28.032Z`: worker `replay-validator-00002-27j` is Ready at 100%
+traffic on the verified `sha256:9c81113febe223d1e399d12bdaa8253131e71a1df901611852d47b00b42edd80`
+image, both queues are RUNNING, all three expected current boards are active,
+zero runs/profiles/projections remain, and the two prior deletion requests are
+compact completed tombstones. Evidence: `candidate-c8b-staging-resume-inspect-20261029.log`
+and the canonical release inventory/worker/queues/scheduler readbacks.
+
+The retry helper's read-only HTTP/Auth check passed at
+`2026-10-29T16:05:01.610Z`: zero Auth users, authorized readiness 200, anonymous
+worker 403 and unauthenticated callable 401. Evidence:
+`candidate-c8b-staging-http-inspection-20261029.json`. The corrected five-replay
+drill was then started with its separate retry state/log paths.
+
+Free disk had fallen below 1 GB. Completed dev build intermediates were removed
+at `2026-10-29T16:03:33.5768879Z`, recovering 1,290,265,765 bytes; all nine retained
+artifact/evidence hashes matched and frozen source stayed clean. Only the reviewed
+candidate's `build/app/intermediates` and `.dart_tool/flutter_build` were removed.
+Free disk after cleanup was 2,245,718,016 bytes. Evidence:
+`candidate-c8b-dev-completed-intermediate-cleanup-{plan,result}.json`.
+
+Context7 is now available, but two scoped Cloud Monitoring queries returned no
+matching documentation. Google's official
+[metric reference](https://docs.cloud.google.com/monitoring/api/metrics_gcp_p_z#run)
+and [distribution schema](https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/TypedValue#Distribution)
+confirm minute sampling, up to 120 seconds visibility delay, allocation units and
+bucket upper-bound semantics. Before dispatch, the ignored metrics helper was
+updated to retain raw responses, accept the three documented histogram layouts,
+and require a full sampling-plus-visibility delay after its fixed observation
+window. Original resource and latency limits are unchanged. These are short-drill
+resource measurements, not billing totals or full-run capacity acceptance.
+
+The corrected live drill passed at `2026-10-29T16:08:34.827Z`. It submitted five
+payloads concurrently through the actual task queue; snapshots observed up to
+five concurrent dispatches and both queues drained. All runs were accepted and
+settled within the predeclared 60-second observed limit:
+
+| Case | Seed | Actual terminal tick | End reason | Gold | Observed settlement |
+| --- | --- | ---: | --- | ---: | ---: |
+| Practice Field | 15 | 1,800 | gaveUp | 3 | 4.042 s |
+| Competitive Field | 871327128 | 1,047 | fellIntoGap | 2 | 4.116 s |
+| Practice Forest | 7 | 494 | fellIntoGap | 0 | 4.056 s |
+| Competitive Forest | 1884823297 | 903 | fellBehindCamera | 2 | 4.106 s |
+| Weekly Field | 1933856514 | 211 | fellIntoGap | 0 | 12.015 s |
+
+Each input stream contained 1,800 frames; four runs naturally ended earlier.
+All five have an empty Codex enemy-kill map, directly exercising the original
+Firestore projection regression. All three ranked boards produced the exact
+run's best/top10 entry and an active exposed ghost before the declared deadline.
+Downloaded Storage generations `1793290085140759`, `1793290085159526` and
+`1793290086809339` passed the actual Dart codec's recomputed digest/run-ID checks.
+Duplicate private-worker delivery and settlement returned already-settled outcomes;
+wallet gold stayed exactly 7, each grant appeared once, and revision stayed 9.
+Evidence: `candidate-c8b-staging-smoke-retry.json`, its run log and
+`candidate-c8b-staging-drill-summary.json`. This is real backend/domain/queue
+coverage; Play sign-in, attestation, client upload grants, lifecycle recovery,
+full combat and full-run capacity are not established by these short fixtures.
+
+Cleanup entered real `quiet_wait` at `2026-10-29T16:09:10.004Z`; mutation lock
+`1793290035934565` was released. Final post-quiet-period verification is recorded below.
+
+Cloud metrics passed after the documented visibility delay. Fixed observation
+window `16:06:00Z` to `16:10:34.827Z`, read at `16:14:37.155Z`: 11 memory samples
+with a 20% histogram upper bound versus the 85% limit; 69.82485960933984 CPU-seconds
+versus 300; 12.35 GiB-seconds versus 150; 13 worker requests and zero 5xx. Both
+queues were RUNNING and empty. All six metric responses were complete and referred
+only to `replay-validator-00002-27j`. Evidence:
+`candidate-c8b-staging-smoke-retry-metrics{-raw,}.json` and
+`candidate-c8b-staging-metrics-response-check.json`. The window includes duplicate
+validation and nearby requests. Allocation is a bounded resource-cost proxy,
+not the complete bill or sustained load/capacity proof.
+
+Fresh dev Inspect passed at `2026-10-29T16:09:31.482Z`. Its unchanged serving
+worker is `replay-validator-00059-ssr`; the newest Function deployment remains
+October 27. Ten sessions comprise five validated, one expired and four issued;
+all five accepted grants are settled and no quarantined/stale settlement exists.
+The four issued tickets are still valid, expiring between
+`2026-10-29T17:49:25.396Z` and `2026-10-29T19:18:28.347Z`
+(19:49–21:18 Helsinki). Canonical drain rules therefore block c8b dev cutover.
+No PauseIssuance, cancellation or data reset was performed; dev remains online.
+Evidence: `candidate-c8b-dev-resume-inspect-20261029.log` and its canonical inventory.
+
+Read-only operational checks also confirm all 31 expected alert policies enabled
+with a usable project-local email channel in each of staging/prod; actual incident
+delivery remains untested. Production Cloud Run inventory is empty. Both managed
+production backups are READY; the newer snapshot is October 28 at
+`21:41:12.845107Z`, expiring November 4, alongside the preceding October 27 backup.
+Backup presence does not replace the already-recorded synthetic restore rehearsal.
+Evidence: `candidate-c8b-monitoring-readback-20261029.json`,
+`candidate-c8b-prod-services-20261029.json`, `candidate-c8b-prod-backups-20261029.json`.
+
+Play's read-only API still returns 403 / `ACCESS_TOKEN_SCOPE_INSUFFICIENT` for both
+packages at `16:12:16.9178553Z`; no Play changes occurred. ADB inventory at
+`16:12:19.5751286Z` still has no attached device. Evidence:
+`play-api-cli-access-20261029.json`, `candidate-c8b-adb-availability-20261029.json`.
+
+Staging scaling readback confirms concurrency 1, maximum 10 instances and startup
+CPU boost enabled on revision `replay-validator-00002-27j`, with the earlier
+fresh resource readback confirming 1 CPU / 512 MiB. Both queues permit five
+concurrent dispatches at five dispatches/second. Production's canonical requested
+worker settings are the same, but no production runtime exists to establish live
+scaling or capacity equivalence. Evidence:
+`candidate-c8b-staging-resource-limits-20261029.json`.
+
+Post-quiet-period cleanup passed at `2026-10-29T16:24:57.669Z`. Auth, ownership,
+run/reward/validation records, board best/top10/ghost references and recorded
+Storage payloads were verified absent; only the intended compact 30-day tombstone
+remains. Cleanup lock `1793291093547837` was released and the command exited 0.
+Evidence: `candidate-c8b-staging-smoke-retry-cleanup.log` and the updated retry
+state/summary. No test fixture remains live. Dev's final readback at
+`2026-10-29T16:23:04.171Z` still has the same four valid issued tickets and no
+quarantined settlement; its cutover remains blocked and issuance stays online.
+
+Final canonical staging Inspect at `2026-10-29T16:26:27.689Z` confirms zero run sessions,
+ownership profiles, player bests, ghost manifests and active deletions; three
+compact completed tombstones and all three current boards remain. Both queues
+are RUNNING and the same corrected worker revision is Ready. Evidence:
+`candidate-c8b-staging-final-inspect-20261029.log` and
+`candidate-c8b-cli-checkpoint-20261029.json`. The frozen checkout is clean.
+Only the two release documents changed in the main worktree; no new app/runtime
+implementation or production deployment was performed in this continuation.
