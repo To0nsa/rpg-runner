@@ -20,6 +20,51 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 29, 2026
 
+### Latest-code dev release
+
+The owner requested a dev release of the latest code on October 29, with levels
+unchanged. Source is frozen at `285ef4f491f9eef6c2ea605a7ee7d709f534a69e`.
+Compared with the deployed c8b source, this adds inbox deletion/retention and
+typed item/skill gifts plus shared presentation packages. Core, authored levels,
+navigation routes and worker inputs are unchanged; gameplay remains `2026.10.21`.
+Canonical Plan selects Coordinated because client/backend and inbox contracts
+both changed. The existing exact worker image and client navigation artifacts
+are eligible for validation and reuse. Staging acceptance continues to use c8b.
+
+- [x] Clean frozen source, canonical Plan and fresh dev inventory.
+- [x] Canonical Prepare: client 1,356 passed / 1 skipped, backend 282 passed,
+  Core 2,290 passed, protocol 133 passed, content pipeline 99 passed, terrain 25
+  passed, current advisory audit and generated freshness passed. The release web
+  smoke passed; all 3,750 client navigation graphs were reused with zero rebuilt.
+  Unchanged validator/AOT evidence was verified and reused.
+- [x] Inspected dev Android version 2 APK, completed 20:58:58 UTC; SHA-256
+  `db378bc84ea5a6fc94ae13e56af36899826027c44ad9908eb1c9cb8f4b822f33`.
+  Package/resources/signature, three ABIs, 16 KB alignment and all 3,750 packaged
+  navigation graphs passed. The existing worker image was verified and reused.
+- [ ] Verify reusable image, pause issuance, review drain and complete dev cutover.
+- [ ] Install/verify the dev APK and record final live/artifact evidence.
+
+The 19:37 UTC inventory found seven accepted/settled runs and 1,136 gold, with
+one outstanding ticket from the earlier phone smoke. Read-only inspection at
+19:40 UTC verified that ticket has no replay object, upload lease, validation or
+reward. Its expiry is October 30 at 17:45 UTC. The owner explicitly authorized
+cancelling this single unused ticket during cutover. The operation must preserve
+the seven completed runs, settled grants and 1,136 gold, and reject a changed
+ticket set or any new upload/validation evidence.
+Preparation passed locally with Node 24.16.0. Evidence is under the frozen
+checkout's `.tmp/releases/rpg-runner-d7add/60ed92d85cc12ae202b96448f5fdcb4e7c95cd9eefb91e369506581d51b74055/`.
+Typed gift activation remains subject to compatible-client rollout evidence.
+
+Cutover checkpoint: canonical PauseIssuance succeeded after all preparation and
+APK checks. The fresh cancellation guard stopped without mutation because a
+second issued ticket appeared at 20:13:23 UTC while preparation was running.
+Read-only inspection at 21:03:34 UTC confirmed both tickets have no upload lease,
+replay object, validation or reward. The first remains authorized for cancellation;
+the additional ticket requires the owner's separately requested answer. Issuance
+is paused under this source's cutover record and the queues remain running.
+
+### Frozen c8b staging acceptance
+
 October 29 autonomous follow-up: the Play-installed client recovered a completed
 offline 170-point run through background/foreground and an offline cold start,
 then uploaded/settled it exactly once after reconnect and Retry. Existing 40 gold
