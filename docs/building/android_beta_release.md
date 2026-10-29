@@ -26,9 +26,15 @@ OnePlus CPH2465 (Android 15/API 35). Installer `com.android.vending`, version
 First-launch Play Games authentication succeeded, created an independent staging
 profile with zero gold, and reached the hub. The release client acquired a real
 Play Integrity token; server observations confirm authenticated, verified App Check
-under `enforce` for the staging Firebase app. Competitive is selected, awaiting
-the owner's short run. A separate fresh Google tester account and the remaining acceptance
-gates still block production. Evidence: `.tmp/beta-checks/device-staging-c8b-20261029/`.
+under `enforce` for the staging Firebase app. The owner's Competitive run passed:
+9,235 points, 822 m and 40 gold applied once. The leaderboard displays that best,
+its ghost loads and plays visibly, and background/foreground plus force-stop/
+relaunch after settlement preserve 40 gold and 46/100 XP. Final 19:05 UTC readback
+confirms both the owner run and the brief zero-gold ghost test settled once;
+the owner's best remains unchanged. Scoped logs show no fatal/unhandled exception,
+and exit-info contains only the requested force-stop. A separate fresh Google
+tester account, offline/pending recovery and the remaining acceptance gates still
+block production. Evidence: `.tmp/beta-checks/device-staging-c8b-20261029/summary.json`.
 
 Staging version 1 is published to its owner-only Play internal track at 18:28 UTC
 (20:28 Helsinki). Restarting only the dedicated `rpg-runner` Chrome session,
@@ -967,8 +973,11 @@ Play-delivered device QA and candidate acceptance.
   pinned ghost digest checks and duplicate-delivery wallet invariants. The connected
   dev client also passed upload/acceptance, once-only settlement, wallet readback,
   leaderboard loading, visible ghost playback and post-settlement background/
-  restart recovery. Fresh Play authentication, Play-delivered staging acceptance,
-  fresh ghost download and offline/pending-submission recovery remain untested.
+  restart recovery. Play-installed staging now also passes owner sign-in, enforced
+  attestation, upload/acceptance, once-only 40-gold settlement, leaderboard and
+  first-install ghost retrieval/playback, plus post-settlement background/restart
+  recovery. Offline/pending-submission recovery and device account deletion remain
+  open; no owner account was deleted or reset.
 - [ ] Verify wrong-environment identities/tokens fail, unauthorized access remains
   blocked, and dev/staging tests leave production accounts/resources unchanged.
 - [x] Implement and test the single-version release policy before the first beta
@@ -1010,6 +1019,10 @@ Play-delivered device QA and candidate acceptance.
   cold launch/relaunch took 1,090/1,159 ms. Short runs and memory snapshots do not
   establish sustained performance. The owner replied "finished" without a
   separate qualitative controls/performance report; this gate remains open.
+  Staging's Play-installed 2:14 owner run also validated successfully. Scoped
+  captures show no fatal/unhandled exception and package exit-info shows only the
+  requested force-stop. Cold activity relaunch took 1,465 ms; this excludes the
+  remaining app initialization. Qualitative feedback was requested separately.
 - [ ] Record the accepted candidate and unresolved defects/limits. Commit
   independently validated milestones without including unrelated worktree edits.
 
@@ -1242,8 +1255,10 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: finish the Play-installed staging run/reward and lifecycle checks,
-then complete the remaining staging acceptance gates. Dev cutover, the four authorized
+Next action: complete the remaining staging acceptance gates: offline/pending
+recovery, fresh Google tester/reviewer accounts, incompatible-update rehearsal,
+diagnostics and representative device QA. The Play-installed owner run/reward,
+leaderboard, ghost and post-settlement lifecycle checks pass. Dev cutover, the four authorized
 cancellations and preservation checks are complete; pre-device CLI checkpoint:
 `.tmp/beta-checks/candidate-c8b-cli-checkpoint-after-dev-20261029.json`.
 Connected dev-device results: `.tmp/beta-checks/device-c8b-20261029/summary.json`.

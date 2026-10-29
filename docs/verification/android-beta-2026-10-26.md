@@ -3,8 +3,9 @@
 Status: in progress, October 29, 2026. Frozen c8b is deployed to dev and staging;
 bounded dev-device smoke passed. Play-delivered staging acceptance and production
 deployment remain open. Staging version 1 is published to the owner-only internal
-track and installed through Play; owner sign-in and enforced real Play Integrity
-pass. Dated sections below retain their historical scope.
+track and installed through Play; owner sign-in, enforced real Play Integrity,
+run/reward, leaderboard/ghost and post-settlement restart checks pass. Dated
+sections below retain their historical scope.
 The active checklist is [android_beta_release.md](../building/android_beta_release.md).
 
 ## External secret storage and staging OAuth (October 27)
@@ -2409,3 +2410,68 @@ Evidence: `.tmp/beta-checks/device-staging-c8b-20261029/` contains `install.json
 `app-check-observations.json`, timestamped server observations and phone
 screenshots. Competitive is selected, awaiting the owner's short run. Production
 remains gated on the remaining non-waived staging acceptance checks.
+
+## October 29 staging Play run, ghost and restart smoke
+
+Continued from clean main `37da62e6` after the owner reported the phone run
+finished. Tested source remains frozen c8b, staging Play version 1. All commands
+ran from `C:\dev\rpg_runner`; phone interaction used scoped ADB commands, and
+the existing read-only observer queried only staging. No source or artifact
+changed, and no additional browser access was needed.
+
+| Observation | Owner Competitive run | Brief ghost-playback check |
+| --- | --- | --- |
+| Run ID | `run_fe47ed1a3a9eb43c70af62963aa63a7d29e38d31` | `run_77dc8b6580e3bcd96c16108b94c8be0a0b54a1b5` |
+| Level / mode | Forest (Val Outpost) / Competitive | Forest / Competitive |
+| Score / distance / end reason | 9,235 / 822 m / `fellBehindCamera` | 15 / 0 m / `fellBehindCamera` |
+| Validation / grant | accepted / `validated_settled` | accepted / `validated_settled` |
+| Gold / applied grant count | 40 / exactly 1 | 0 / exactly 1 |
+| Validated replay generation | `1793300393052847` | `1793300592105743` |
+
+The owner run's canonical replay SHA-256 is
+`31ca9e37a203b9b3d01d321e958063b7642edbe969ff75b4b621cff3fdc2c790`.
+It updated at `18:59:53.337Z`; readback confirms the new staging wallet increased
+from zero to 40 gold. The app shows level 1, 46/100 XP. The Competitive leaderboard
+displays rank 1 of 1, score 9,235, 822 m and duration 02:14. The player best,
+top-ten projection and exposed active ghost all reference this run, with promoted
+ghost generation `1793300398302962`.
+
+VS Ghost fetched its manifest and launched successfully. `ghost-visible.png`
+shows the outlined ghost overlapping at the start; `ghost-end.png` shows it
+separately airborne to the right of the idle player. This was the first ghost
+launch in a fresh staging installation, for a run created after installation.
+Together with the frozen cache's download-before-write path, this supports a fresh
+download; no independent HTTP trace or private app-cache inspection was captured.
+The three-second idle test ended naturally and settled for zero gold, leaving the
+owner's best and ghost unchanged. App Check logs confirm verified, authenticated
+requests under `enforce` for upload grant, finalize, status, leaderboard and ghost
+manifest calls.
+
+After both runs settled, `KEYCODE_HOME` followed by activity launch restored the
+leaderboard. Returning to the hub, `am force-stop` followed by `am start -W`
+relaunched the staging app and preserved the same account, 40 gold and 46 XP.
+Android reported cold activity launch 1,465 ms; this is not time to the fully
+initialized hub. Final observer readback at `19:05:18.103Z` retained revision 4
+and exactly one application of each grant. Restart startup again acquired a Play
+Integrity token successfully; fresh server observations remained verified.
+
+Current-process log snapshots before/after restart contain zero fatal/unhandled
+exceptions. Package-scoped exit-info contains only the requested force-stop, no
+crash/ANR entry. PSS was 237,036 KB after the owner run, 285,321 KB before restart
+and 226,338 KB afterward. These samples and one 2:14 run do not establish sustained
+or representative multi-device performance. The owner said "finished"; separate
+controls/stuttering feedback was requested and remains pending at this checkpoint.
+
+Two issued, unsubmitted tickets remain untouched: initial Practice ticket
+`run_cc0e4cdb262189f7849c4ca26812cdaad024ee7e` and post-restart Competitive ticket
+`run_fa60486b9e935ffc360f04ffb6160a4f2b7c7830`. No cancellation, account deletion,
+data reset or phone connectivity change occurred. These lifecycle checks ran
+after settlement and do not cover offline or pending-submission recovery.
+
+Evidence remains in `.tmp/beta-checks/device-staging-c8b-20261029/`: updated
+`summary.json`, timestamped observations, `app-check-after-run.json`,
+`app-check-ghost.json`, `app-check-after-restart.json`, scoped diagnostic snapshots,
+`cold-relaunch.txt`, `exit-info.txt` and screenshots. The phone is at the staging
+hub. Production remains undeployed pending the other non-waived acceptance gates,
+including separate fresh tester/reviewer accounts, offline/pending recovery,
+incompatible-update rehearsal, diagnostics and broader device QA.
