@@ -20,6 +20,25 @@ reviewable preparation and retain all non-waived acceptance gates.
 
 ## Execution checkpoint - October 29, 2026
 
+October 29 autonomous follow-up: the Play-installed client recovered a completed
+offline 170-point run through background/foreground and an offline cold start,
+then uploaded/settled it exactly once after reconnect and Retry. Existing 40 gold
+and the best/ghost stayed unchanged. This run earned zero gold; positive pending
+payout and mid-upload interruption remain separate cases. A bounded burst of five
+full 8,063-tick owner-replay fixtures passed live staging validation/settlement
+in 4.1-4.4 seconds each, exactly-once 200 test-account gold, queue drain and
+resource limits, with existing player records unchanged. Test-account/data/artifact
+cleanup was verified at 21:01 UTC after the required 15-minute quiet period; the
+staging mutation lock was released.
+One intentional native crash reached Crashlytics with a readable stack. Actual
+same-day staging alert/recovery emails were verified in the owner's mailbox.
+Anonymous/malformed requests were rejected; valid cross-project token testing
+was blocked by App Check token-creation permission. No roles were changed.
+There is no separate disposable Google account yet. Fresh tester/reviewer access,
+device deletion, actual incompatible Play update, sustained/multiple-device
+gameplay, remaining recovery/security cases and Dart stack symbolication remain
+open. See the [autonomous acceptance evidence](../verification/android-beta-2026-10-26.md#october-29-autonomous-staging-acceptance).
+
 Staging version 1 installed from the phone's Play Store at 18:44:48 UTC on the
 OnePlus CPH2465 (Android 15/API 35). Installer `com.android.vending`, version
 `1.0.0-staging` and the registered Play distribution certificate were verified.
@@ -978,8 +997,10 @@ Play-delivered device QA and candidate acceptance.
   restart recovery. Play-installed staging now also passes owner sign-in, enforced
   attestation, upload/acceptance, once-only 40-gold settlement, leaderboard and
   first-install ghost retrieval/playback, plus post-settlement background/restart
-  recovery. Offline/pending-submission recovery and device account deletion remain
-  open; no owner account was deleted or reset.
+  recovery. The later offline 170-point run survived background/foreground and
+  cold restart, then uploaded and settled once after reconnect/Retry. It earned
+  zero gold; positive pending payout, mid-upload interruption and device account
+  deletion remain open. No owner account was deleted or reset.
 - [ ] Verify wrong-environment identities/tokens fail, unauthorized access remains
   blocked, and dev/staging tests leave production accounts/resources unchanged.
 - [x] Implement and test the single-version release policy before the first beta
@@ -1265,9 +1286,12 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: complete the remaining staging acceptance gates: offline/pending
-recovery, fresh Google tester/reviewer accounts, incompatible-update rehearsal,
-diagnostics and representative device QA. The Play-installed owner run/reward,
+Next action: complete fresh Google tester/reviewer access, device account deletion,
+the actual incompatible-update rehearsal, sustained/representative device QA and
+the remaining positive-payout/mid-upload recovery, cross-project token and Dart
+diagnostics cases. The completed offline result recovered through restart, the
+longer-replay burst passed, and native crash capture/alert delivery were observed.
+The Play-installed owner run/reward,
 leaderboard, ghost and post-settlement lifecycle checks pass. Dev cutover, the four authorized
 cancellations and preservation checks are complete; pre-device CLI checkpoint:
 `.tmp/beta-checks/candidate-c8b-cli-checkpoint-after-dev-20261029.json`.

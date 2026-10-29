@@ -2494,3 +2494,105 @@ and production `4975092661531994619` / `com.lothringen.longrun`, still Draft.
 No dev Play app was created. No Firebase project, backend, device installation,
 tester membership or retained release was changed by this cleanup. Historical
 sections above describe the old draft before its removal.
+
+## October 29 autonomous staging acceptance
+
+The owner asked the agent to perform the remaining tests and explicitly made the
+connected phone available, including temporary Wi-Fi/mobile-data interruption.
+No separate disposable Google tester account is available yet. Tests retain the
+Play-installed c8b staging version 1 and its deployed worker/issuer; no candidate
+or production deployment changed. Dev preparation continues independently.
+
+### Offline result and restart recovery
+
+Started Competitive Forest online, disabled mobile data before gameplay, and
+confirmed Wi-Fi was already off and Android had no default network. The actual
+client completed 30 m / 170 points / four seconds, ending in a gap. Collected its
+score, backgrounded/restored the app, then force-stopped and cold-started while
+offline. The cold start correctly displayed the connection/retry screen.
+At 20:34 UTC, server run `run_dddd8a6b7089303a7b2bdb323dabf5f8c31d00c5`
+remained issued with no upload/grant. After mobile data was restored and Retry
+was pressed with connectivity established, that same replay uploaded and was
+accepted/settled at 20:35:33 UTC. Its digest is
+`071c1ae89e4c21225c3c12d878a05842b764c9ca19f24e9248d71e9f0d1fa6fb`.
+
+Further cold restarts and the controlled crash below retained exactly one
+applied grant. The 20:52 UTC readback confirms 40 gold, canonical revision 5,
+and the original 9,235-point best/ghost. This run earned zero gold: it proves
+durable result recovery but does not separately demonstrate a positive pending
+payout or a disconnect partway through an upload. Device account deletion is
+still untested. Original settings were restored: Wi-Fi off, mobile data on.
+
+### Bounded longer-replay load
+
+Commands ran from the repository through ignored
+`.tmp/beta-checks/staging_c8b_long_drill.ps1 -Action source|run|metrics|cleanup`,
+which checks the clean frozen c8b source and preparation, selects staging, and
+uses its mutation lock for test-account writes and cleanup. The source fixture
+is the owner's generation-pinned accepted 2:14 replay; the Dart protocol codec
+verifies its digest and requires identical seed, tick rate, character and loadout
+before rebinding its commands to newly issued test-account tickets.
+
+At 20:44 UTC, five concurrent Competitive Forest submissions each replayed all
+8,063 ticks and produced 9,235 points, 822 m and 40 gold. Observed settlement
+latencies were 4,096-4,416 ms against a declared 60-second limit. The synthetic
+account received exactly 200 gold; duplicate validation/settlement changed
+neither its progression nor revision. Hashes of existing players' ownership,
+sessions, grants and validated records were unchanged during the isolated drill.
+Both queues drained. Minute-sampled metrics showed zero worker 5xx, a 20% memory
+upper bound against 85%, 48.805 CPU-seconds against 300, and 7.562 GiB-seconds
+against 150. Allocation measurements are not billed-cost totals. This establishes
+one bounded five-submission burst on staging's existing scaling, not sustained
+traffic, every level/loadout, or an expanded tester population.
+
+After the real-clock 15-minute signed-upload quiet period, the application
+deletion workflow completed. At 21:01 UTC, verified absence of the temporary Auth
+user, ownership, sessions, grants, validated records, board best/ghost/view
+entries and all recorded replay artifacts. Only the intended compact deletion
+tombstone remains. The staging mutation lock was released. Cleanup fenced replay
+objects to this test account; no owner account was deleted or reset.
+
+### Diagnostics, alerts and isolation
+
+At 20:47:43 UTC, deliberately induced one native VM crash with
+`adb shell am crash com.lothringen.longrun.staging`, then restarted the app.
+Crashlytics upload returned HTTP 200. Firebase Console shows one event for
+`1.0.0-staging (1)`, OnePlus/Android 15, with readable `ActivityThread.java:2469`
+and following native frames. Issue `60b276352ba43b1763298aa997723cd1` is explicitly
+`RemoteServiceException$CrashedByAdbException: shell-induced crash`; it is QA
+evidence, not a spontaneous product failure. Dart application-frame symbolication
+is not exercised by this native exception.
+
+All 31 staging alert policies remain enabled with the owner's configured email
+channel. Browser readback of that mailbox confirms the earlier same-day
+settlement fallback alert and recovery, at 18:11 and 18:26 Helsinki. Incident
+`0.oee7xvi4oyeg` recovered to zero below the 5% threshold after 14 minutes
+14 seconds. This verifies an actual delivery/recovery path without asserting
+that every policy was individually triggered. Stop rollout for real client
+crashes/ANRs, auth/attestation regressions, settlement invariant failures, stale
+rewards, or the configured settlement latency/fallback limits; the owner receives
+and reviews these alerts.
+
+Anonymous and malformed-App-Check callable requests returned 401; unauthenticated
+worker readiness returned 403. Server-token creation for a cross-project App
+Check test returned `app-check/permission-denied`; no roles, keys or enforcement
+were changed. Valid cross-environment token/identity rejection therefore remains
+unverified. Production readback still has zero Auth users, root collections and
+Functions. Staging still serves c8b at 100%, with App Check enforced and no
+release lock/cutover record after the load drill.
+
+Seven issued/unsubmitted owner tickets remain at 20:51 UTC; the latest expires
+October 30 at 20:47:57 UTC. They were not cancelled. An actual incompatible
+old/new Play update rehearsal still requires its prepared next candidate and
+the drain/cancellation decision. No update gate was simulated by editing live
+compatibility configuration. Fresh Google tester/reviewer access, device account
+deletion, sustained/multiple-device gameplay and the remaining recovery/security/
+Dart-diagnostics cases stay open; production remains gated.
+
+Evidence: `.tmp/beta-checks/candidate-c8b-staging-long-drill*.json`,
+`staging-security-20261029.json`, `staging-alert-delivery-20261029.json`,
+`staging-cutover-readonly-20261029.json`, and the existing device folder's
+`recovery-*.json`, `autonomous-final-observation.json`,
+`controlled-crash.json`, `crash-console-readback.json`, scoped diagnostics and
+screenshots. These are live observations; none substitutes for fresh-account,
+multi-device or Play update acceptance.
