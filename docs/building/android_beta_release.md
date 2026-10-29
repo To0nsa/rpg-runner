@@ -31,9 +31,19 @@ was verified at 16:24 UTC, with the intended compact deletion tombstone retained
 and the mutation lock released.
 Main was clean at `3f4955b9` when resuming; its newer Admin work remains outside
 this candidate.
-Dev's fresh inventory contains four valid issued tickets, expiring October 29
-between 19:49 and 21:18 Helsinki time. Cutover is blocked until those runs finish
-or expire; dev remains online and its data is preserved.
+The owner subsequently explicitly authorized cancelling dev's four outstanding
+runs. Canonical PauseIssuance passed at 16:57 UTC after rebuilding the prepared
+issuer with its pause gate because managed cleanup removed the old image.
+All four tickets were verified unsubmitted and atomically cancelled at 16:58 UTC
+under the dev mutation lock. Readback verified the other six sessions, five
+settled rewards, five validated records and both existing profiles unchanged.
+Guarded dev Deploy passed at 17:13 UTC and ResumeIssuance at 17:18 UTC. Final
+17:20 UTC checks confirm the exact image Ready at 100% traffic on
+`replay-validator-00060-lcd`, both queues RUNNING, three current boards active,
+and issuer `runsessioncreate-00077-kj5` healthy with its pause override absent.
+The 1,134-gold wallet, five settled rewards and existing best/ghost remain intact.
+Worker readiness/private access and unauthenticated callable rejection passed;
+the mutation lock and cutover record are cleared. No unfinished runs remain.
 
 Previous October 28 continuation: the owner requested all remaining work that can proceed
 without browser access, then requested a safe pause. The in-flight dev APK build
@@ -61,8 +71,8 @@ confirm the corrected sequence. Account/data/artifact deletion was verified at
 its own test-account/data cleanup passed on October 29 at 16:24 UTC.
 Dev version 1 APK verification passed at 21:56 UTC, SHA-256
 `ce0aa0e2d08106cb13000de644939b8b3e8a15d4e768b93e2735663de077d376`.
-All three native artifacts and all three immutable images are retained. Dev's
-existing runtime remains unchanged; production runtime remains undeployed.
+All three native artifacts and all three immutable images are retained. Dev and
+staging now run the corrected c8b image; production runtime remains undeployed.
 The CLI's existing cloud login cannot access the Play publishing API: both apps
 return HTTP 403 for insufficient OAuth scope. No Android device is attached.
 
@@ -1180,12 +1190,12 @@ Repository execution references: [deployment workflow](../tdd/deployment_workflo
 [abuse controls](../tdd/callable_abuse_controls.md) and
 [level traversal workflow](../../.agent/workflows/test-level-traversal.md).
 
-Next action: dev cutover is blocked by four still-valid issued runs. Inspect again
-after they complete or expire and require a drained inventory before
-pause/deploy/resume. Preserve owner data;
-do not cancel runs or reset data to make the gate pass. Reuse the frozen c8b artifacts
-and keep unrelated subsequent main-branch changes out of this release. Continue Play
-upload/publication and physical-device acceptance matrix when browser/device
-access is available. Deploy production only after non-waived staging acceptance.
+Next action: complete Play upload/publication and the physical-device acceptance
+matrix when browser/device access is available. Dev cutover, the four authorized
+cancellations and preservation checks are complete; final CLI checkpoint:
+`.tmp/beta-checks/candidate-c8b-cli-checkpoint-after-dev-20261029.json`.
+Reuse the frozen c8b artifacts and keep unrelated subsequent main-branch changes
+out of this release. The dedicated reviewer account still needs to be supplied.
+Deploy production only after non-waived staging acceptance.
 No Play bundle has been uploaded/released. Do not repeat completed setup or treat
 local validation as live acceptance.

@@ -2148,3 +2148,107 @@ are RUNNING and the same corrected worker revision is Ready. Evidence:
 `candidate-c8b-cli-checkpoint-20261029.json`. The frozen checkout is clean.
 Only the two release documents changed in the main worktree; no new app/runtime
 implementation or production deployment was performed in this continuation.
+
+## October 29 owner-authorized dev cancellation and c8b cutover
+
+After the earlier blocked checkpoint, the owner explicitly authorized cancelling
+the outstanding dev runs. Source remains clean frozen commit
+`c8b353a6e332bad701b6c044d4d138cc17e64b85`, with dev source digest
+`3c1b12893ebba736a70ab1f8931451de1ba81df65a2dde51a6fa5039873be529`.
+No account reset or production deployment was included.
+
+From the main repository, `pwsh -NoProfile -File
+.tmp/beta-checks/cutover_c8b.ps1 -Environment dev -Action PauseIssuance`
+invoked canonical `tools/release/release.ps1` from the frozen checkout and exited 0.
+The old issuer image had been removed by managed cleanup, so the supported
+recovery rebuilt only the prepared issuer with `release-paused` explicitly set.
+Healthy serving revision `runsessioncreate-00075-naw` was verified at 100% traffic;
+pause completed at `2026-10-29T16:57:07Z`. The source-bound cutover record remained
+and mutation lock `1793292760217554` was released. Both queues were left running
+while validation and settlement drained.
+
+The ignored helper `.tmp/beta-checks/cancel_dev_c8b.ps1` ran `-Action inspect`,
+`apply`, then `verify` from the main repository; each exited 0. Review required
+exactly four issued sessions on `2026.10.21`, no upload/validation lease or finalized
+payload, no corresponding reward/validated record, and verified absence of each
+replay object in dev's configured bucket. Apply reacquired the dev mutation lock,
+verified the frozen source, cutover owner and healthy paused serving revision,
+and reread the same records inside a Firestore read-write transaction. Document
+update-time preconditions and the exact reviewed set guarded its atomic commit.
+
+Commit succeeded at `2026-10-29T16:58:26.721119Z`: exactly four sessions became
+`cancelled`, with terminal/update timestamps and an owner-authorization message;
+the retry timestamp was cleared. No documents or replay objects were deleted.
+Mutation lock `1793293088245689` was released. At `16:58:53.497Z`, readback verified
+all ten sessions terminal, the six other sessions unchanged, all five settled
+reward grants and five validated records unchanged, and the existing ownership
+and player profiles unchanged. Only the five declared session fields changed.
+Reviewed set SHA-256:
+`5b6706cea186c67e6416ffc7ed73eaa3d99a8c45a73a508c2e81f53ea213b153`.
+Evidence under `.tmp/beta-checks/`: `candidate-c8b-pauseissuance-dev.log`,
+`candidate-c8b-dev-cancellation-{plan,result,verified}.json` and the corresponding
+`inspect`, `apply`, `verify` logs. The operational helper passed Node syntax
+validation; no runtime implementation changed.
+
+The first canonical dev Deploy passed source/image/pause/drain checks and paused
+both queues, then failed during local Firebase function discovery at 17:00 UTC
+with `TypeError: fetch failed`, before uploading the backend. No backend/worker/
+Hosting checkpoint was recorded. The release lock `1793293168623230` was released and
+the source-bound maintenance record retained. Both PowerShell HTTP and the pinned
+Node 24 fetch subsequently read the same complete local manifest successfully
+(HTTP 200, 12,104 bytes). The failed CLI had left its discovery server orphaned;
+after verifying its exact frozen-checkout identity and absent parent, only that
+process was stopped, allowing the failed command to exit 1. The unchanged
+canonical Deploy was then retried. Evidence: `candidate-c8b-deploy-dev.log`,
+`candidate-c8b-dev-discovery-recovery.json`, and the separate timestamped retry log.
+
+The retry `cutover_c8b.ps1 -Environment dev -Action Deploy` exited 0. Backend
+Functions/rules/indexes completed at `17:09:40.1357524Z`, worker configuration at
+`17:12:24.9369773Z`, and Hosting/full Deploy at `17:13:19.7151682Z` on October 29.
+All 4,487 prepared Hosting files were published. Mutation lock
+`1793293525745176` was released; issuance and both queues remained paused.
+The immutable image remains
+`sha256:9c81113febe223d1e399d12bdaa8253131e71a1df901611852d47b00b42edd80`.
+
+Canonical dev Inspect before resume exited 0. Its `17:14:18.855Z` inventory
+confirms four cancelled, one expired and five validated sessions; five settled
+grants and the existing 1,134-gold balance; three active current boards and zero
+missing boards. Worker `replay-validator-00060-lcd` is Ready and serves 100% of
+traffic with the exact prepared digest. Evidence:
+`candidate-c8b-deploy-dev-retry-20261029T170440Z.log`,
+`candidate-c8b-dev-before-resume-inspect-20261029.log`,
+`candidate-c8b-dev-before-resume-inventory-20261029.json`, and canonical
+`release.json`/`worker.json`.
+
+Guarded `cutover_c8b.ps1 -Environment dev -Action ResumeIssuance` exited 0 and
+recorded restored issuance at `2026-10-29T17:18:42.6365743Z`.
+The canonical action rechecked the exact Ready
+worker/traffic, current boards and drained inventory, and downloaded live Hosting
+JavaScript to verify it matched the prepared artifact. Both queues resumed, the
+issuer was deployed, the temporary compatibility override was removed and the
+source-bound cutover record cleared. Baseline verification completed at
+`17:18:55.7780169Z`; mutation lock `1793294111836032` was released. Live/prepared
+Hosting SHA-256:
+`7c08d5b9078fd8bd6336ed2ab6dd3ff7ac9552ce2f037820df49756819765423`.
+
+Final canonical Inspect and `.tmp/beta-checks/verify_dev_c8b_http.ps1` exited 0.
+The `17:20:00.021Z` inventory still has four cancelled, one expired and five
+validated sessions; all five rewards are settled, with no stale/quarantined
+settlement or invalid ownership. The 1,134-gold wallet, existing valid player best
+and ghost remain. Both queues are RUNNING and all three current boards active.
+At `17:20:15.0571691Z`, authorized worker readiness returned 200, anonymous worker
+access 403 and unauthenticated session creation 401. Both `_release/cutover.json`
+and `_release/mutation-lock.json` returned 404. Separate live issuer readback at
+`17:20:45.7875873Z` verified `runsessioncreate-00077-kj5` healthy at 100% traffic
+with no temporary pause override.
+
+Final evidence under `.tmp/beta-checks/`:
+`candidate-c8b-resumeissuance-dev.log`,
+`candidate-c8b-dev-post-cutover-inspect-20261029.log`,
+`candidate-c8b-dev-post-cutover-inventory-20261029.json`,
+`candidate-c8b-dev-http-final-20261029.{log,json}`,
+`candidate-c8b-dev-issuer-final-20261029.json`, and
+`candidate-c8b-cli-checkpoint-after-dev-20261029.json`.
+The frozen checkout remains clean. No browser, Play upload or production runtime
+deployment was used. Play-delivered authentication/attestation, device acceptance
+and reviewer-account handoff remain open and continue to gate production.
