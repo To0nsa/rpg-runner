@@ -13,6 +13,10 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   distance labels, enemy grouping and viewport-aware HUD placement.
 - [Town and Codex](gdd/codex.md): Théodonis city map, Store, Library,
   enemy/level discoveries and Éloïse's opening; [persistence contract](tdd/codex.md).
+- [Hall of Honour achievements](building/achievements.md): working design for a
+  new Town destination, five milestones, expandable completion history and gold
+  claimed in the achievements menu. Thresholds and details remain under discussion;
+  not implemented.
 - [Player progression](gdd/player_progression.md): account level and lifetime
   combat stats; [implementation contract](tdd/player_progression.md).
 - [Prepared navigation and reward completion](tdd/prepared_navigation.md): trusted

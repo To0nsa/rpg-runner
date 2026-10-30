@@ -1,5 +1,10 @@
 # Current Implementation Plans
 
+- [Hall of Honour achievements](achievements.md): design in progress for five
+  initial milestones, direct gold claims, expandable rows and completion dates.
+  Next: define qualifying runs and historical progress, then refine tuning and
+  remaining UI decisions. Implementation has not started.
+
 - [Completed shared Flutter tools and Admin gifts](../archive/2026-10-29/building/admin_tools.md):
   shared editor UI/game presentation and native Admin; local implementation and
   verification complete. Item/skill delivery awaits compatible environment rollout.
