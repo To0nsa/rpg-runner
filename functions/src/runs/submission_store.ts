@@ -9,6 +9,7 @@ import { getStorage } from "firebase-admin/storage";
 import * as logger from "firebase-functions/logger";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { measureRewardStage, logRewardTiming } from "./reward_timing.js";
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
 import {
   defaultRunActiveUploadGrantsLimit,
@@ -330,9 +331,8 @@ export async function finalizeRunSessionUpload(
     );
   }
 
-  const storageMetadata = await args.dependencies.objectStore.loadMetadata({
-    objectPath,
-  });
+  const storageMetadata = await measureRewardStage(args.runSessionId, "upload_metadata",
+    () => args.dependencies.objectStore.loadMetadata({ objectPath }));
   if (storageMetadata.contentLengthBytes > replayUploadMaxBytes) {
     throw new HttpsError(
       "failed-precondition",
@@ -368,89 +368,95 @@ export async function finalizeRunSessionUpload(
     .collection(rewardGrantsCollection)
     .doc(args.runSessionId);
 
-  const finalizeTransaction = await args.db.runTransaction(async (tx) => {
-    await assertAccountActiveInTransaction(tx, args.db, args.uid);
-    const session = await loadRunSessionForUpdate(tx, runSessionRef);
-    assertRunSessionOwner(session, args.uid);
-    const rewardGrantSnapshot = await tx.get(rewardGrantRef);
-    if (shouldExpireBeforeFinalize(session, nowMs)) {
-      writeExpiredRunSessionTransition({
-        tx,
-        runSessionRef,
-        rewardGrantRef,
-        rewardGrantSnapshot,
-        nowMs,
-        message: "Run session expired before finalize completed.",
-      });
-      return { expired: true, shouldEnqueue: false };
-    }
+  const finalizeTransaction = await measureRewardStage(
+    args.runSessionId, "finalize_commit",
+    () => args.db.runTransaction(async (tx) => {
+      await assertAccountActiveInTransaction(tx, args.db, args.uid);
+      const session = await loadRunSessionForUpdate(tx, runSessionRef);
+      assertRunSessionOwner(session, args.uid);
+      const rewardGrantSnapshot = await tx.get(rewardGrantRef);
+      if (shouldExpireBeforeFinalize(session, nowMs)) {
+        writeExpiredRunSessionTransition({
+          tx,
+          runSessionRef,
+          rewardGrantRef,
+          rewardGrantSnapshot,
+          nowMs,
+          message: "Run session expired before finalize completed.",
+        });
+        return { expired: true, shouldEnqueue: false };
+      }
 
-    if (
-      session.state !== "issued" &&
-      session.state !== "uploading" &&
-      session.state !== "uploaded" &&
-      session.state !== "pending_validation"
-    ) {
-      throw new HttpsError(
-        "failed-precondition",
-        `runSession ${args.runSessionId} is ${session.state} and cannot be finalized.`,
-      );
-    }
-
-    const nextUploadedReplay: UploadedReplayRecord = {
-      objectPath,
-      canonicalSha256: args.canonicalSha256,
-      contentLengthBytes: args.contentLengthBytes,
-      contentType,
-      storageGeneration: storageMetadata.generation,
-      finalizedAtMs: nowMs,
-    };
-    if (session.uploadedReplay) {
-      assertFinalizeMetadataMatches(session.uploadedReplay, nextUploadedReplay);
-    }
-
-    const nextState: RunSessionState =
-      session.state === "pending_validation" ? "pending_validation" : "uploaded";
-    const shouldEnqueue = nextState === "uploaded";
-
-    tx.set(
-      runSessionRef,
-      {
-        state: nextState,
-        updatedAtMs: nowMs,
-        uploadedReplay: nextUploadedReplay,
-        provisionalSummary: args.provisionalSummary ?? null,
-      },
-      { merge: true },
-    );
-
-    if (!rewardGrantSnapshot.exists && isProvisionalRewardCreationEnabled()) {
-      tx.set(rewardGrantRef, {
-        runSessionId: args.runSessionId,
-        uid: args.uid,
-        ...(session.mode ? { mode: session.mode } : {}),
-        ...(session.boardId ? { boardId: session.boardId } : {}),
-        ...(session.boardKey ? { boardKey: session.boardKey } : {}),
-        lifecycleState: "provisional_created",
-        goldAmount: readProvisionalGoldAmount(args.provisionalSummary),
-        createdAtMs: nowMs,
-        updatedAtMs: nowMs,
-        provisionalSummary: args.provisionalSummary ?? null,
-        validatedRunRef: `${validatedRunsCollection}/${args.runSessionId}`,
-      });
-    } else {
-      const rewardGrantData = rewardGrantSnapshot.data() as
-        | Record<string, unknown>
-        | undefined;
-      const rewardUid = requireOptionalString(rewardGrantData?.uid);
-      if (rewardUid && rewardUid !== args.uid) {
+      if (
+        session.state !== "issued" &&
+        session.state !== "uploading" &&
+        session.state !== "uploaded" &&
+        session.state !== "pending_validation"
+      ) {
         throw new HttpsError(
           "failed-precondition",
-          "reward grant uid does not match authenticated run owner.",
+          `runSession ${args.runSessionId} is ${session.state} and cannot be finalized.`,
         );
       }
-    }
-    return { expired: false, shouldEnqueue };
+
+      const nextUploadedReplay: UploadedReplayRecord = {
+        objectPath,
+        canonicalSha256: args.canonicalSha256,
+        contentLengthBytes: args.contentLengthBytes,
+        contentType,
+        storageGeneration: storageMetadata.generation,
+        finalizedAtMs: nowMs,
+      };
+      if (session.uploadedReplay) {
+        assertFinalizeMetadataMatches(session.uploadedReplay, nextUploadedReplay);
+      }
+
+      const nextState: RunSessionState =
+        session.state === "pending_validation" ? "pending_validation" : "uploaded";
+      const shouldEnqueue = nextState === "uploaded";
+
+      tx.set(
+        runSessionRef,
+        {
+          state: nextState,
+          updatedAtMs: nowMs,
+          uploadedReplay: nextUploadedReplay,
+          provisionalSummary: args.provisionalSummary ?? null,
+        },
+        { merge: true },
+      );
+
+      if (!rewardGrantSnapshot.exists && isProvisionalRewardCreationEnabled()) {
+        tx.set(rewardGrantRef, {
+          runSessionId: args.runSessionId,
+          uid: args.uid,
+          ...(session.mode ? { mode: session.mode } : {}),
+          ...(session.boardId ? { boardId: session.boardId } : {}),
+          ...(session.boardKey ? { boardKey: session.boardKey } : {}),
+          lifecycleState: "provisional_created",
+          goldAmount: readProvisionalGoldAmount(args.provisionalSummary),
+          createdAtMs: nowMs,
+          updatedAtMs: nowMs,
+          provisionalSummary: args.provisionalSummary ?? null,
+          validatedRunRef: `${validatedRunsCollection}/${args.runSessionId}`,
+        });
+      } else {
+        const rewardGrantData = rewardGrantSnapshot.data() as
+          | Record<string, unknown>
+          | undefined;
+        const rewardUid = requireOptionalString(rewardGrantData?.uid);
+        if (rewardUid && rewardUid !== args.uid) {
+          throw new HttpsError(
+            "failed-precondition",
+            "reward grant uid does not match authenticated run owner.",
+          );
+        }
+      }
+      return { expired: false, shouldEnqueue };
+    }),
+  );
+  logRewardTiming(args.runSessionId, "finalize_result", {
+    expired: finalizeTransaction.expired, shouldEnqueue: finalizeTransaction.shouldEnqueue,
   });
   if (finalizeTransaction.expired) {
     throwExpiredBeforeFinalize();
@@ -458,9 +464,10 @@ export async function finalizeRunSessionUpload(
 
   if (finalizeTransaction.shouldEnqueue) {
     try {
-      await args.dependencies.taskDispatcher.enqueueRunValidationTask({
-        runSessionId: args.runSessionId,
-      });
+      await measureRewardStage(args.runSessionId, "validation_enqueue",
+        () => args.dependencies.taskDispatcher.enqueueRunValidationTask({
+          runSessionId: args.runSessionId,
+        }));
     } catch (error) {
       throw toTaskEnqueueHttpsError(error);
     }

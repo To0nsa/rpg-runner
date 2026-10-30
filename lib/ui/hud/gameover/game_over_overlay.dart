@@ -45,6 +45,7 @@ class GameOverOverlay extends StatefulWidget {
     required this.tickHz,
     this.provisionalGoldEarned,
     this.verifiedGold,
+    this.rewardRevision,
     this.runSubmissionStatus,
     this.replaySubmissionJournaled = true,
     this.replaySubmissionJournalError,
@@ -65,6 +66,7 @@ class GameOverOverlay extends StatefulWidget {
   final int tickHz;
   final int? provisionalGoldEarned;
   final int? verifiedGold;
+  final int? rewardRevision;
   final RunSubmissionStatus? runSubmissionStatus;
   final bool replaySubmissionJournaled;
   final String? replaySubmissionJournalError;
@@ -155,6 +157,8 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                   ),
                   GoldDisplay(
                     gold: verifiedGold,
+                    rewardRevision: widget.rewardRevision,
+                    rewardSurface: 'game_over',
                     variant: GoldDisplayVariant.body,
                   ),
                 ],

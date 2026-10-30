@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'reward_value_paint.dart';
 import '../theme/ui_tokens.dart';
 
 enum GoldDisplayVariant { body, headline }
@@ -9,10 +10,14 @@ class GoldDisplay extends StatelessWidget {
     super.key,
     required this.gold,
     this.label,
+    this.rewardRevision,
+    this.rewardSurface = 'account',
     this.variant = GoldDisplayVariant.headline,
   });
 
   final int gold;
+  final int? rewardRevision;
+  final String rewardSurface;
   final String? label;
   final GoldDisplayVariant variant;
 
@@ -33,26 +38,33 @@ class GoldDisplay extends StatelessWidget {
     };
 
     final resolvedLabel = label;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (resolvedLabel != null && resolvedLabel.isNotEmpty) ...[
-          Flexible(
-            child: Text(
-              resolvedLabel,
-              style: ui.text.body.copyWith(color: ui.colors.textMuted),
+    return RewardValuePaint(
+      revision: rewardRevision,
+      metric: 'gold',
+      value: gold,
+      target: gold,
+      surface: rewardSurface,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (resolvedLabel != null && resolvedLabel.isNotEmpty) ...[
+            Flexible(
+              child: Text(
+                resolvedLabel,
+                style: ui.text.body.copyWith(color: ui.colors.textMuted),
+              ),
             ),
+            SizedBox(width: ui.space.sm),
+          ],
+          Text(gold.toString(), style: valueStyle),
+          SizedBox(width: ui.space.xs),
+          Icon(
+            Icons.monetization_on,
+            color: ui.colors.accentStrong,
+            size: iconSize,
           ),
-          SizedBox(width: ui.space.sm),
         ],
-        Text(gold.toString(), style: valueStyle),
-        SizedBox(width: ui.space.xs),
-        Icon(
-          Icons.monetization_on,
-          color: ui.colors.accentStrong,
-          size: iconSize,
-        ),
-      ],
+      ),
     );
   }
 }

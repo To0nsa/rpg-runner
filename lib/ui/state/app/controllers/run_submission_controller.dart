@@ -24,6 +24,13 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     if (_foreground == foreground) return;
     _foreground = foreground;
     _scheduler.setForeground(foreground);
+    for (final id in _runSubmissionStatuses.keys) {
+      if (!_acknowledged.contains(id)) {
+        RunRewardDiagnostics.instance.emit(id, 'lifecycle', {
+          'foreground': foreground,
+        });
+      }
+    }
     // Bootstrap owns sign-in; lifecycle recovery must not retry a failed login.
     if (foreground && _bootstrapped) {
       unawaited(_resumePendingRunSubmissions());
@@ -35,6 +42,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     _scheduler.clear();
     _inFlight.clear();
     _acknowledged.clear();
+    RunRewardDiagnostics.instance.clear();
     _app._latestVerifiedReward = null;
     _discovery = null;
   }
@@ -133,6 +141,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
       return known;
     }
     _scheduler.track(runSessionId);
+    RunRewardDiagnostics.instance.emit(runSessionId, 'submission_pump');
     final status = known?.isRewardFinal == true
         ? known!
         : await _runSubmissionCoordinator.refreshRunSessionStatus(
@@ -195,6 +204,11 @@ final class _AppStateRunSubmissionController extends _AppStateController {
       );
       if (!_isCurrent(session, generation)) return;
       for (final status in statuses) {
+        RunRewardDiagnostics.instance.emit(
+          status.runSessionId,
+          'spool_recovered',
+          {'phase': status.phase.name, 'retryAtMs': status.nextRetryAtMs},
+        );
         _runSubmissionStatuses.putIfAbsent(status.runSessionId, () => status);
         _scheduler.track(
           status.runSessionId,
@@ -218,10 +232,18 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     if (!shouldRefreshCanonical) {
       return;
     }
+    final finalIds = statuses
+        .where((s) => s.isRewardFinal)
+        .map((s) => s.runSessionId)
+        .toList();
     try {
-      final canonical = await _ownershipApi.loadCanonicalState(
-        userId: session.userId,
-        sessionId: session.sessionId,
+      final canonical = await RunRewardDiagnostics.instance.measure(
+        finalIds.first,
+        'canonical_fetch',
+        () => _ownershipApi.loadCanonicalState(
+          userId: session.userId,
+          sessionId: session.sessionId,
+        ),
       );
       if (!_isCurrent(session, generation)) return;
       if (canonical.revision >= _ownershipRevision) {
@@ -231,6 +253,14 @@ final class _AppStateRunSubmissionController extends _AppStateController {
         );
       }
       if (!_isCurrent(session, generation)) return;
+      for (final id in finalIds) {
+        RunRewardDiagnostics.instance.canonical(
+          id,
+          revision: _ownershipRevision,
+          gold: _app._progression.gold,
+          xp: _app._progression.playerProgress.totalXp,
+        );
+      }
       for (final status in statuses.where((status) => status.isRewardFinal)) {
         await _runSubmissionCoordinator.acknowledgeFinalReward(
           runSessionId: status.runSessionId,
@@ -238,6 +268,10 @@ final class _AppStateRunSubmissionController extends _AppStateController {
         if (!_isCurrent(session, generation)) return;
         if (_acknowledged.add(status.runSessionId)) {
           _app._latestVerifiedReward = status;
+          RunRewardDiagnostics.instance.emit(
+            status.runSessionId,
+            'receipt_acknowledged',
+          );
         }
       }
       unawaited(_app.refreshInboxSummary());

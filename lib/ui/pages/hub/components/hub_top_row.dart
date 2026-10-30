@@ -15,10 +15,12 @@ class HubTopRow extends StatefulWidget {
     required this.gold,
     this.playerProgress,
     this.animateXpFrom,
+    this.rewardRevision,
   });
 
   final String displayName;
   final int gold;
+  final int? rewardRevision;
   final PlayerProgress? playerProgress;
   final int? animateXpFrom;
 
@@ -109,12 +111,18 @@ class _HubTopRowState extends State<HubTopRow> {
               child: PlayerLevelBar(
                 progress: widget.playerProgress!,
                 animateFromTotalXp: widget.animateXpFrom,
+                rewardRevision: widget.rewardRevision,
               ),
             ),
           ] else
             const Spacer(),
           SizedBox(width: ui.space.sm),
-          GoldDisplay(gold: widget.gold, variant: GoldDisplayVariant.headline),
+          GoldDisplay(
+            gold: widget.gold,
+            rewardRevision: widget.rewardRevision,
+            rewardSurface: 'hub',
+            variant: GoldDisplayVariant.headline,
+          ),
           SizedBox(width: ui.space.md),
           Container(
             width: ui.sizes.dividerThickness,

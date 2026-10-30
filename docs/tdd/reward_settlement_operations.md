@@ -4,6 +4,64 @@ This document describes the implemented operational contract for verified run
 rewards. It applies to the Functions settlement authority, the Cloud Run replay
 validator, and the Firestore documents they share.
 
+## Per-run timing diagnostics
+
+Client, Functions and validator emit JSON `event = run_reward_timing`, schema 1,
+correlated by `runSessionId`. Each process supplies a `clockId`, increasing
+`sequence`, `monoUs` and `utcMs`. Measured stages have paired `span` IDs,
+`started` and `completed`/`failed` outcomes, and monotonic `durationUs`. A completed
+operation can be an idempotent no-op; use the separate result/state event to
+determine acceptance or payout. A missing end event means incomplete evidence,
+not a zero-duration operation. Retried requests get distinct spans; worker stages
+after lease acquisition include the validation attempt.
+
+Client logging is enabled by default in the dev flavor (including release APKs)
+and can be overridden with `--dart-define=RUN_REWARD_TRACE=true|false`. Other
+flavors default off. Output goes to the app's local console/logcat, not Firebase
+Analytics or an uploaded player log. Capture before playing; logcat rotation and
+process death can lose evidence. Backend phase events use structured Cloud
+Logging and are always enabled. No per-tick or per-frame log stream is emitted.
+
+| Owner | Stages / meaning |
+| --- | --- |
+| Client | `run_end`; `local_replay_save` covers recorder finalization, encoding/compression and file save; `local_journal` covers auth and durable spool insertion; `spool_write` includes the persisted step, attempt and retry time. |
+| Client | `submission_pump`, `spool_recovered`, `lifecycle`; `upload_grant`, `upload`, `finalize`, `status_poll` and `status_received`; `submission_failure` includes retryability. |
+| Functions | `grant_handler`, `finalize_handler`, `status_handler` start after payload parsing and UID matching; they include account/quota checks and domain operations. `upload_metadata`, `finalize_commit`, `finalize_result`, `validation_enqueue` separate storage inspection, durable transaction completion and task creation. |
+| Validator | `lease_acquire`, `replay_load_decode` (parent), `replay_download`, `replay_decompress`, `replay_json`, `replay_protocol_digest`, `replay_contract`, `replay_compute` (parent including Core setup/scoring), `replay_simulation` (tick loop), `archive_account_fence`, `replay_archive`, `handoff_commit`. |
+| Settlement | Validator `settlement_request` observes the actual dispatch, with `settlement_response` for its result. Functions `settlement_commit` ends after the transaction returns; `settlement_result` distinguishes `settled` from duplicate/no-op outcomes and includes delivery source and transaction attempts. Existing rejection, fallback and repair metrics remain authoritative for those paths. |
+| Client completion | `canonical_fetch`, `canonical_applied` (current account revision), `receipt_acknowledged`, then `gold_frame` / `xp_frame` and `gold_target_frame` / `xp_target_frame`. |
+
+Frame observations wrap only the canonical hub account values and Game Over
+wallet. Pending run gold and store prices cannot satisfy them. They require a
+painted, current route in the foreground and an exact canonical revision/target
+match. The target event means the displayed integer reached the canonical total;
+XP can emit its first frame while still counting up. These are Flutter
+post-paint frame observations, not GPU presentation timestamps or proof of human
+attention. Framework callbacks run after the rendering pipeline flushes; see
+[Flutter's post-frame contract](https://api.flutter.dev/flutter/scheduler/SchedulerBinding/addPostFrameCallback.html).
+Pending presentation correlations are capped at 64 and cleared on account reset.
+An unpainted revision superseded by another account update can remain unobserved;
+do not label the missing sample as instant completion. Disposing or covering a
+screen cannot create a visible-update event.
+
+Compare `monoUs` only within the same `clockId`. Parent spans overlap their
+children and must not be added together. UTC differences across client/server
+need clock-offset uncertainty; across server instances they are wall-clock
+approximations. Pair enqueue/lease events with Cloud Tasks and Cloud Run request
+and startup logs: the gap includes dispatch scheduling, startup and handler
+entry and is not pure queue time. Task execution may start before the enqueue
+RPC returns. Startup before application entry cannot be measured by in-process
+timers. Stored `finalizedAtMs`, `settledAtMs` and pending-age values are application
+markers, not Firestore commit timestamps; completed transaction spans establish
+commit acknowledgement. Existing aggregate settlement durations now use a
+monotonic clock; the historical metric fields and their meanings remain intact.
+
+Logging failures are swallowed at the sink boundary without changing operation
+results or errors. Diagnostic data contains no UID, auth/session token, signed
+URL, replay content or arbitrary exception message. Run IDs belong in log
+payloads, never metric labels. Instrumentation overhead is included in observed
+latency and must be considered when comparing instrumented and older samples.
+
 ## Authority and delivery
 
 `settleAcceptedRunSession` is the only code path that changes canonical

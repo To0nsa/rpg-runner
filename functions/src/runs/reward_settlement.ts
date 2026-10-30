@@ -1,7 +1,9 @@
+import { performance } from "node:perf_hooks";
 import type { Firestore } from "firebase-admin/firestore";
 import { isDeepStrictEqual } from "node:util";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { measureRewardStage, logRewardTiming } from "./reward_timing.js";
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
 import { applyRunDiscoveries } from "../ownership/run_discoveries.js";
 import { applyPlayerProgress } from "../ownership/player_progress.js";
@@ -60,7 +62,7 @@ export async function settleAcceptedRunSession(args: {
   deliverySource?: SettlementDeliverySource;
 }): Promise<AcceptedRunSettlementOutcome> {
   const nowMs = args.nowMs ?? Date.now();
-  const startedAtMs = Date.now();
+  const startedAtMs = performance.now();
   const deliverySource = args.deliverySource ?? "immediate";
   let pendingAgeMs: number | undefined;
   let transactionAttempts = 0;
@@ -75,33 +77,66 @@ export async function settleAcceptedRunSession(args: {
     .doc(args.runSessionId);
 
   try {
-    const outcome = await args.db.runTransaction(async (tx) => {
-      transactionAttempts += 1;
-      const [sessionSnapshot, validatedRunSnapshot, rewardGrantSnapshot] =
-        await Promise.all([
-          tx.get(sessionRef),
-          tx.get(validatedRunRef),
-          tx.get(rewardGrantRef),
-        ]);
-      if (!sessionSnapshot.exists) {
-        return "not_ready";
-      }
+    const outcome = await measureRewardStage(
+      args.runSessionId, "settlement_commit",
+      () => args.db.runTransaction(async (tx) => {
+        transactionAttempts += 1;
+        const [sessionSnapshot, validatedRunSnapshot, rewardGrantSnapshot] =
+          await Promise.all([
+            tx.get(sessionRef),
+            tx.get(validatedRunRef),
+            tx.get(rewardGrantRef),
+          ]);
+        if (!sessionSnapshot.exists) {
+          return "not_ready";
+        }
 
-      const session = sessionSnapshot.data() as Record<string, unknown>;
-      const state = readRequiredString(session.state, "run session state");
-      if (state !== "validated" && state !== "settlement_pending") {
-        return "not_ready";
-      }
-      const uid = readRequiredString(session.uid, "run session uid");
-      await assertAccountActiveInTransaction(tx, args.db, uid);
-      if (state === "validated") {
+        const session = sessionSnapshot.data() as Record<string, unknown>;
+        const state = readRequiredString(session.state, "run session state");
+        if (state !== "validated" && state !== "settlement_pending") {
+          return "not_ready";
+        }
+        const uid = readRequiredString(session.uid, "run session uid");
+        await assertAccountActiveInTransaction(tx, args.db, uid);
+        if (state === "validated") {
+          assertAcceptedValidatedRun({
+            runSessionId: args.runSessionId,
+            uid,
+            data: validatedRunSnapshot.data() as Record<string, unknown> | undefined,
+            exists: validatedRunSnapshot.exists,
+          });
+          assertSettledRewardGrant({
+            runSessionId: args.runSessionId,
+            uid,
+            data: rewardGrantSnapshot.data() as Record<string, unknown> | undefined,
+            exists: rewardGrantSnapshot.exists,
+          });
+          assertMatchingSettlementContext({
+            runSessionId: args.runSessionId,
+            session,
+            validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
+            rewardGrant: rewardGrantSnapshot.data() as Record<string, unknown>,
+          });
+          const resolvedCanonical = await resolveCanonicalStateForTransaction({
+            db: args.db,
+            tx,
+            uid,
+          });
+          assertCanonicalAppliedGrant({
+            runSessionId: args.runSessionId,
+            canonical: resolvedCanonical.canonical,
+          });
+          return "already_settled";
+        }
+        pendingAgeMs = durationSinceMs(session.settlementPendingAtMs, nowMs);
+
         assertAcceptedValidatedRun({
           runSessionId: args.runSessionId,
           uid,
           data: validatedRunSnapshot.data() as Record<string, unknown> | undefined,
           exists: validatedRunSnapshot.exists,
         });
-        assertSettledRewardGrant({
+        assertPendingRewardGrant({
           runSessionId: args.runSessionId,
           uid,
           data: rewardGrantSnapshot.data() as Record<string, unknown> | undefined,
@@ -113,116 +148,89 @@ export async function settleAcceptedRunSession(args: {
           validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
           rewardGrant: rewardGrantSnapshot.data() as Record<string, unknown>,
         });
+
         const resolvedCanonical = await resolveCanonicalStateForTransaction({
           db: args.db,
           tx,
           uid,
         });
-        assertCanonicalAppliedGrant({
-          runSessionId: args.runSessionId,
-          canonical: resolvedCanonical.canonical,
+        const previousProgress = resolvedCanonical.canonical.progression.playerProgress;
+        const previousXp = previousProgress && typeof previousProgress === "object" && !Array.isArray(previousProgress)
+          ? previousProgress.totalXp : 0;
+        const playerChanged = applyPlayerProgress({
+          progression: resolvedCanonical.canonical.progression,
+          validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
+          session,
         });
-        return "already_settled";
-      }
-      pendingAgeMs = durationSinceMs(session.settlementPendingAtMs, nowMs);
-
-      assertAcceptedValidatedRun({
-        runSessionId: args.runSessionId,
-        uid,
-        data: validatedRunSnapshot.data() as Record<string, unknown> | undefined,
-        exists: validatedRunSnapshot.exists,
-      });
-      assertPendingRewardGrant({
-        runSessionId: args.runSessionId,
-        uid,
-        data: rewardGrantSnapshot.data() as Record<string, unknown> | undefined,
-        exists: rewardGrantSnapshot.exists,
-      });
-      assertMatchingSettlementContext({
-        runSessionId: args.runSessionId,
-        session,
-        validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
-        rewardGrant: rewardGrantSnapshot.data() as Record<string, unknown>,
-      });
-
-      const resolvedCanonical = await resolveCanonicalStateForTransaction({
-        db: args.db,
-        tx,
-        uid,
-      });
-      const previousProgress = resolvedCanonical.canonical.progression.playerProgress;
-      const previousXp = previousProgress && typeof previousProgress === "object" && !Array.isArray(previousProgress)
-        ? previousProgress.totalXp : 0;
-      const playerChanged = applyPlayerProgress({
-        progression: resolvedCanonical.canonical.progression,
-        validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
-        session,
-      });
-      const nextProgress = resolvedCanonical.canonical.progression.playerProgress;
-      const nextXp = nextProgress && typeof nextProgress === "object" && !Array.isArray(nextProgress)
-        ? nextProgress.totalXp : 0;
-      // Prepare inbox reads before grant reconciliation starts transaction writes.
-      let writeLevelMessages: () => void;
-      try {
-        writeLevelMessages = await prepareSystemMessages({ db: args.db, tx, uid, nowMs,
-          deliveries: playerChanged && typeof previousXp === "number" && typeof nextXp === "number"
-            ? levelUpDeliveries(previousXp, nextXp) : [] });
-      } catch (error) {
-        if (error instanceof HttpsError) {
-          throw new SettlementInvariantViolationError("Persisted level gift state is inconsistent.");
+        const nextProgress = resolvedCanonical.canonical.progression.playerProgress;
+        const nextXp = nextProgress && typeof nextProgress === "object" && !Array.isArray(nextProgress)
+          ? nextProgress.totalXp : 0;
+        // Prepare inbox reads before grant reconciliation starts transaction writes.
+        let writeLevelMessages: () => void;
+        try {
+          writeLevelMessages = await prepareSystemMessages({ db: args.db, tx, uid, nowMs,
+            deliveries: playerChanged && typeof previousXp === "number" && typeof nextXp === "number"
+              ? levelUpDeliveries(previousXp, nextXp) : [] });
+        } catch (error) {
+          if (error instanceof HttpsError) {
+            throw new SettlementInvariantViolationError("Persisted level gift state is inconsistent.");
+          }
+          throw error;
         }
-        throw error;
-      }
-      const reconciled = await reconcilePendingRewardGrantsForTransaction({
-        db: args.db,
-        tx,
-        uid,
-        canonicalState: resolvedCanonical.canonical,
-        nowMs,
-        settlementGrantId: args.runSessionId,
-      });
-      const discoveriesChanged = applyRunDiscoveries({
-        progression: reconciled.canonicalState.progression,
-        validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
-        session,
-      });
-      writeLevelMessages();
-      if ((discoveriesChanged || playerChanged) && !reconciled.canonicalChanged) {
-        reconciled.canonicalState.revision += 1;
-        reconciled.canonicalChanged = true;
-      }
-      if (resolvedCanonical.exists && reconciled.canonicalChanged) {
-        // Replace canonical object fields so migrated Codex kills disappear.
-        tx.update(
-          resolvedCanonical.canonicalRef,
-          canonicalMergeWriteData(uid, reconciled.canonicalState),
-        );
-      } else if (!resolvedCanonical.exists) {
+        const reconciled = await reconcilePendingRewardGrantsForTransaction({
+          db: args.db,
+          tx,
+          uid,
+          canonicalState: resolvedCanonical.canonical,
+          nowMs,
+          settlementGrantId: args.runSessionId,
+        });
+        const discoveriesChanged = applyRunDiscoveries({
+          progression: reconciled.canonicalState.progression,
+          validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
+          session,
+        });
+        writeLevelMessages();
+        if ((discoveriesChanged || playerChanged) && !reconciled.canonicalChanged) {
+          reconciled.canonicalState.revision += 1;
+          reconciled.canonicalChanged = true;
+        }
+        if (resolvedCanonical.exists && reconciled.canonicalChanged) {
+          // Replace canonical object fields so migrated Codex kills disappear.
+          tx.update(
+            resolvedCanonical.canonicalRef,
+            canonicalMergeWriteData(uid, reconciled.canonicalState),
+          );
+        } else if (!resolvedCanonical.exists) {
+          tx.set(
+            resolvedCanonical.canonicalRef,
+            canonicalWriteData(uid, reconciled.canonicalState),
+          );
+        }
         tx.set(
-          resolvedCanonical.canonicalRef,
-          canonicalWriteData(uid, reconciled.canonicalState),
+          sessionRef,
+          {
+            state: "validated",
+            updatedAtMs: nowMs,
+            terminalAtMs: nowMs,
+            settledAtMs: nowMs,
+            settlementMessage: "Reward settled.",
+            message: null,
+          },
+          { merge: true },
         );
-      }
-      tx.set(
-        sessionRef,
-        {
-          state: "validated",
-          updatedAtMs: nowMs,
-          terminalAtMs: nowMs,
-          settledAtMs: nowMs,
-          settlementMessage: "Reward settled.",
-          message: null,
-        },
-        { merge: true },
-      );
-      return "settled";
+        return "settled";
+      }),
+    );
+    logRewardTiming(args.runSessionId, "settlement_result", {
+      deliverySource, outcome, transactionAttempts,
     });
     logSettlementMetric({
       event: "settlement_transaction",
       runSessionId: args.runSessionId,
       deliverySource,
       outcome,
-      durationMs: Date.now() - startedAtMs,
+      durationMs: Math.round(performance.now() - startedAtMs),
       pendingAgeMs,
       transactionAttempts,
     });
@@ -237,7 +245,7 @@ export async function settleAcceptedRunSession(args: {
         runSessionId: args.runSessionId,
         deliverySource,
         outcome: "invariant_violation",
-        durationMs: Date.now() - startedAtMs,
+        durationMs: Math.round(performance.now() - startedAtMs),
         pendingAgeMs,
         transactionAttempts,
         errorClass: settlementErrorClass(error),
@@ -248,7 +256,7 @@ export async function settleAcceptedRunSession(args: {
       event: "settlement_transaction_failure",
       runSessionId: args.runSessionId,
       deliverySource,
-      durationMs: Date.now() - startedAtMs,
+      durationMs: Math.round(performance.now() - startedAtMs),
       transactionAttempts,
       errorClass: settlementErrorClass(error),
     });

@@ -14,6 +14,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/enums.dart';
 
+import 'run/run_reward_diagnostics.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
 import '../game/input/runner_gameplay_action.dart';
@@ -569,6 +570,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       return;
     }
     _runSubmissionRunSessionId = _runSessionId;
+    RunRewardDiagnostics.instance.emit(_runSessionId, 'run_end');
     setState(() {
       _runReplayJournaled = false;
       _runReplayJournalInFlight = true;
@@ -598,14 +600,22 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
     try {
       final summary = _buildReplayProvisionalSummary(event);
-      final finalized = await recorder.finalize(clientSummary: summary);
-      final journaledStatus = await appState.journalRunReplay(
-        runSessionId: _runSessionId,
-        runMode: _runMode,
-        replayArtifactId: finalized.replayArtifactId,
-        canonicalSha256: finalized.replayBlob.canonicalSha256,
-        contentLengthBytes: finalized.contentLengthBytes,
-        provisionalSummary: summary,
+      final finalized = await RunRewardDiagnostics.instance.measure(
+        _runSessionId,
+        'local_replay_save',
+        () => recorder.finalize(clientSummary: summary),
+      );
+      final journaledStatus = await RunRewardDiagnostics.instance.measure(
+        _runSessionId,
+        'local_journal',
+        () => appState.journalRunReplay(
+          runSessionId: _runSessionId,
+          runMode: _runMode,
+          replayArtifactId: finalized.replayArtifactId,
+          canonicalSha256: finalized.replayBlob.canonicalSha256,
+          contentLengthBytes: finalized.contentLengthBytes,
+          provisionalSummary: summary,
+        ),
       );
       if (!mounted) return;
       setState(() {
@@ -979,6 +989,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                         tickHz: _controller.tickHz,
                         provisionalGoldEarned: _provisionalGoldEarned,
                         verifiedGold: _verifiedGoldForGameOver(),
+                        rewardRevision: _maybeAppState()?.ownershipRevision,
                         runSubmissionStatus: _runSubmissionStatus,
                         replaySubmissionJournaled: _runReplayJournaled,
                         replaySubmissionJournalError: _runReplayJournalError,

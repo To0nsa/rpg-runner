@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { measureRewardStage } from "./reward_timing.js";
 import { assertAccountActive } from "../account/deletion_guard.js";
 import { consumeUserQuota } from "../abuse/quota.js";
 import {
@@ -127,24 +128,26 @@ export async function handleRunSessionCreateUploadGrant(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
-  await assertAccountActive(db, uid);
-  const nowMs = captureAuthorityTimeMs(clock);
-  await consumeUserQuota({
-    db,
-    uid,
-    route: "upload_grant",
-    nowMs,
+  return measureRewardStage(runSessionId, "grant_handler", async () => {
+    await assertAccountActive(db, uid);
+    const nowMs = captureAuthorityTimeMs(clock);
+    await consumeUserQuota({
+      db,
+      uid,
+      route: "upload_grant",
+      nowMs,
+    });
+    const result = await createRunSessionUploadGrant({
+      db,
+      uid,
+      runSessionId,
+      nowMs,
+      dependencies: dependencies ?? createDefaultRunSubmissionDependencies(),
+    });
+    return {
+      uploadGrant: result.uploadGrant,
+    };
   });
-  const result = await createRunSessionUploadGrant({
-    db,
-    uid,
-    runSessionId,
-    nowMs,
-    dependencies: dependencies ?? createDefaultRunSubmissionDependencies(),
-  });
-  return {
-    uploadGrant: result.uploadGrant,
-  };
 }
 
 export async function handleRunSessionFinalizeUpload(
@@ -169,30 +172,32 @@ export async function handleRunSessionFinalizeUpload(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
-  await assertAccountActive(db, uid);
-  const nowMs = captureAuthorityTimeMs(clock);
-  await consumeUserQuota({
-    db,
-    uid,
-    route: "finalize_replay_bytes",
-    units: contentLengthBytes,
-    nowMs,
+  return measureRewardStage(runSessionId, "finalize_handler", async () => {
+    await assertAccountActive(db, uid);
+    const nowMs = captureAuthorityTimeMs(clock);
+    await consumeUserQuota({
+      db,
+      uid,
+      route: "finalize_replay_bytes",
+      units: contentLengthBytes,
+      nowMs,
+    });
+    const result = await finalizeRunSessionUpload({
+      db,
+      uid,
+      runSessionId,
+      canonicalSha256,
+      contentLengthBytes,
+      contentType,
+      objectPath,
+      provisionalSummary,
+      nowMs,
+      dependencies: dependencies ?? createDefaultRunSubmissionDependencies(),
+    });
+    return {
+      submissionStatus: result.submissionStatus,
+    };
   });
-  const result = await finalizeRunSessionUpload({
-    db,
-    uid,
-    runSessionId,
-    canonicalSha256,
-    contentLengthBytes,
-    contentType,
-    objectPath,
-    provisionalSummary,
-    nowMs,
-    dependencies: dependencies ?? createDefaultRunSubmissionDependencies(),
-  });
-  return {
-    submissionStatus: result.submissionStatus,
-  };
 }
 
 export async function handleRunSessionLoadStatus(
@@ -208,21 +213,23 @@ export async function handleRunSessionLoadStatus(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
-  await assertAccountActive(db, uid);
-  await consumeUserQuota({
-    db,
-    uid,
-    route: "run_status",
-    nowMs: captureAuthorityTimeMs(clock),
+  return measureRewardStage(runSessionId, "status_handler", async () => {
+    await assertAccountActive(db, uid);
+    await consumeUserQuota({
+      db,
+      uid,
+      route: "run_status",
+      nowMs: captureAuthorityTimeMs(clock),
+    });
+    const result = await loadRunSessionSubmissionStatus({
+      db,
+      uid,
+      runSessionId,
+    });
+    return {
+      submissionStatus: result.submissionStatus,
+    };
   });
-  const result = await loadRunSessionSubmissionStatus({
-    db,
-    uid,
-    runSessionId,
-  });
-  return {
-    submissionStatus: result.submissionStatus,
-  };
 }
 
 async function loadBoardManifestWithProvisioningFallback(args: {

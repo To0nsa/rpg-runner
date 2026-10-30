@@ -31,6 +31,7 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:run_protocol/loadout_digest.dart';
 
+import '../../run/run_reward_diagnostics.dart';
 import '../../app/ui_routes.dart';
 import '../../app/app_runtime_policy.dart';
 import '../../run/run_startup_diagnostics.dart';

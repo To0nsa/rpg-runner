@@ -10,6 +10,38 @@ Implemented contracts: [prepared navigation](../tdd/prepared_navigation.md) and
 [reward completion](../tdd/reward_settlement_operations.md). The evidence below
 records the original investigation; it is not a production performance claim.
 
+## October 30 diagnostic instrumentation and dev rollout
+
+The owner authorized code changes and the necessary dev deployment on October 30.
+The worktree was clean at `dced382b` before this change. Phone installation waits
+for reconnection; backend preparation and deployment can proceed independently.
+
+Acceptance criteria: correlate each run across local replay save, durable spool,
+grant/upload/finalize, task enqueue, validation lease/download/decode/simulation,
+committed handoff/settlement, status polling, canonical refresh and account-value
+paint (including XP catch-up). Use monotonic durations within a process, explicit
+start/completion/failure and bounded diagnostic memory. Preserve gameplay,
+authentication, revisions, retries, deletion fencing and once-only grants. Never
+log credentials, player identity, signed URLs or replay contents.
+
+- [x] Instrument client, Functions and worker; document timing semantics.
+- [ ] Verify failure isolation, hidden-route/animation observations and existing
+  submission/settlement behavior; prepare a frozen dev release.
+- [ ] Build and benchmark the final worker image, perform the guarded dev cutover,
+  and build the instrumented dev APK.
+- [ ] Install after phone reconnection and capture correlated live runs.
+
+The [initial phone evidence](../verification/reward-latency-phone-2026-10-30.md)
+records two accepted runs before instrumentation. Local validation: Functions
+build and all 282 emulator tests passed; validator analysis, 301 service tests,
+97 final worker tests and executable compilation passed. Focused client state,
+diagnostic and hub tests passed initially; a later import-formatting edit changed
+the XP separator's encoding, which the repeated hub tests caught. The separator
+was restored and all 11 affected widget/diagnostic checks passed.
+Final client analysis is clean. Release preparation must still run its own
+source-bound gates from the frozen LF checkout; a root working-copy Plan reports
+a simulation hash mismatch against that LF baseline and is not release evidence.
+
 ## Recommendation
 
 Use trusted, prepared navigation artifacts with a rotating Practice seed pool,

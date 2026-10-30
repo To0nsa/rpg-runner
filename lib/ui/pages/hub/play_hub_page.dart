@@ -134,6 +134,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                         ? 'Guest'
                         : profile.displayName,
                     gold: gold,
+                    rewardRevision: appState.ownershipRevision,
                     playerProgress: appState.isDeveloperMode
                         ? null
                         : progression.playerProgress,

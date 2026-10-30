@@ -2,6 +2,7 @@ import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/submission_status.dart'
     show SubmissionRewardStatus;
 
+import '../../run/run_reward_diagnostics.dart';
 import 'local_replay_artifact_store.dart';
 import 'pending_run_submission.dart';
 import 'run_session_api.dart';
@@ -45,7 +46,16 @@ class RunSubmissionCoordinator {
   final Set<Future<void>> _spoolMutations = <Future<void>>{};
 
   Future<void> _persistSubmission({required PendingRunSubmission submission}) =>
-      _mutateSpool(() => _spoolStore.upsert(submission: submission));
+      RunRewardDiagnostics.instance.measure(
+        submission.runSessionId,
+        'spool_write',
+        () => _mutateSpool(() => _spoolStore.upsert(submission: submission)),
+        fields: {
+          'step': submission.step.name,
+          'attempt': submission.attemptCount,
+          'retryAtMs': submission.nextAttemptAtMs,
+        },
+      );
 
   Future<void> _removeSubmission({required String runSessionId}) =>
       _mutateSpool(() => _spoolStore.remove(runSessionId: runSessionId));
@@ -239,10 +249,14 @@ class RunSubmissionCoordinator {
       );
       await _persistSubmission(submission: pending);
 
-      final uploadGrant = await _runSessionApi.createUploadGrant(
-        userId: userId,
-        sessionId: sessionId,
-        runSessionId: runSessionId,
+      final uploadGrant = await RunRewardDiagnostics.instance.measure(
+        runSessionId,
+        'upload_grant',
+        () => _runSessionApi.createUploadGrant(
+          userId: userId,
+          sessionId: sessionId,
+          runSessionId: runSessionId,
+        ),
       );
 
       pending = pending.copyWith(
@@ -252,11 +266,15 @@ class RunSubmissionCoordinator {
       );
       await _persistSubmission(submission: pending);
 
-      await _replayUploader.uploadReplay(
-        uploadGrant: uploadGrant,
-        replayArtifactId: pending.replayArtifactId,
-        contentLengthBytes: pending.contentLengthBytes,
-        contentType: pending.contentType,
+      await RunRewardDiagnostics.instance.measure(
+        runSessionId,
+        'upload',
+        () => _replayUploader.uploadReplay(
+          uploadGrant: uploadGrant,
+          replayArtifactId: pending.replayArtifactId,
+          contentLengthBytes: pending.contentLengthBytes,
+          contentType: pending.contentType,
+        ),
       );
 
       pending = pending.copyWith(
@@ -266,15 +284,19 @@ class RunSubmissionCoordinator {
       );
       await _persistSubmission(submission: pending);
 
-      final submissionStatus = await _runSessionApi.finalizeUpload(
-        userId: userId,
-        sessionId: sessionId,
-        runSessionId: runSessionId,
-        canonicalSha256: pending.canonicalSha256,
-        contentLengthBytes: pending.contentLengthBytes,
-        contentType: pending.contentType,
-        objectPath: uploadGrant.objectPath,
-        provisionalSummary: pending.provisionalSummary,
+      final submissionStatus = await RunRewardDiagnostics.instance.measure(
+        runSessionId,
+        'finalize',
+        () => _runSessionApi.finalizeUpload(
+          userId: userId,
+          sessionId: sessionId,
+          runSessionId: runSessionId,
+          canonicalSha256: pending.canonicalSha256,
+          contentLengthBytes: pending.contentLengthBytes,
+          contentType: pending.contentType,
+          objectPath: uploadGrant.objectPath,
+          provisionalSummary: pending.provisionalSummary,
+        ),
       );
 
       if (submissionStatus.isTerminal) {
@@ -314,6 +336,11 @@ class RunSubmissionCoordinator {
         verificationDelayedThresholdMs: verificationDelayedThresholdMs,
       );
     } catch (error) {
+      RunRewardDiagnostics.instance.emit(runSessionId, 'submission_failure', {
+        'step': pending.step.name,
+        'attempt': pending.attemptCount,
+        'retryable': _isRetryableError(error),
+      });
       final failedAtMs = _clock();
       if (!_isRetryableError(error)) {
         await _removeSubmission(runSessionId: runSessionId);
@@ -442,11 +469,19 @@ class RunSubmissionCoordinator {
     required PendingRunSubmission? pendingSubmission,
   }) async {
     final nowMs = _clock();
-    final status = await _runSessionApi.loadSubmissionStatus(
-      userId: userId,
-      sessionId: sessionId,
-      runSessionId: runSessionId,
+    final status = await RunRewardDiagnostics.instance.measure(
+      runSessionId,
+      'status_poll',
+      () => _runSessionApi.loadSubmissionStatus(
+        userId: userId,
+        sessionId: sessionId,
+        runSessionId: runSessionId,
+      ),
     );
+    RunRewardDiagnostics.instance.emit(runSessionId, 'status_received', {
+      'state': status.state.name,
+      'reward': status.reward?.status.name,
+    });
     if (status.isTerminal) {
       if (status.reward?.status != SubmissionRewardStatus.finalReward) {
         await _removeSubmission(runSessionId: runSessionId);

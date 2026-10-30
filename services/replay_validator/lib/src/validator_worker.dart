@@ -24,6 +24,7 @@ import 'package:run_protocol/validated_run.dart';
 import 'package:run_protocol/codex_run_progress.dart';
 import 'package:run_protocol/player_run_stats.dart';
 
+import 'reward_timing.dart';
 import 'account_deletion_fence.dart';
 import 'board_repository.dart';
 import 'metrics.dart';
@@ -148,8 +149,12 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       );
     }
 
-    final lease = await runSessionRepository.acquireValidationLease(
-      runSessionId: normalizedRunSessionId,
+    final lease = await RewardTiming.instance.measure(
+      normalizedRunSessionId,
+      'lease_acquire',
+      () => runSessionRepository.acquireValidationLease(
+        runSessionId: normalizedRunSessionId,
+      ),
     );
     if (lease.status != RunSessionLeaseStatus.acquired ||
         lease.session == null) {
@@ -248,12 +253,28 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       );
       _validateTicketIdentityAndCompatibility(session);
       _validateTicketBoardWindow(session: session);
-      final replayBlob = await _loadAndDecodeReplayBlob(session);
-      _validateReplayAgainstSession(replayBlob: replayBlob, session: session);
+      final replayBlob = await RewardTiming.instance.measure(
+        normalizedRunSessionId,
+        'replay_load_decode',
+        () => _loadAndDecodeReplayBlob(session),
+        attempt: attempt,
+      );
+      RewardTiming.instance.measureSync(
+        normalizedRunSessionId,
+        'replay_contract',
+        () => _validateReplayAgainstSession(
+          replayBlob: replayBlob,
+          session: session,
+        ),
+        attempt: attempt,
+      );
 
-      final replayedRun = _replayDeterministically(
-        replayBlob: replayBlob,
-        session: session,
+      final replayedRun = RewardTiming.instance.measureSync(
+        normalizedRunSessionId,
+        'replay_compute',
+        () =>
+            _replayDeterministically(replayBlob: replayBlob, session: session),
+        attempt: attempt,
       );
       final sourceStorageGeneration = session.uploadedReplay.storageGeneration;
       if (sourceStorageGeneration == null) {
@@ -262,7 +283,12 @@ class DeterministicValidatorWorker implements ValidatorWorker {
           'Storage generation.',
         );
       }
-      await runSessionRepository.assertAccountActive(uid: session.uid);
+      await RewardTiming.instance.measure(
+        normalizedRunSessionId,
+        'archive_account_fence',
+        () => runSessionRepository.assertAccountActive(uid: session.uid),
+        attempt: attempt,
+      );
       if (_clockMs() >= session.validationLease!.expiresAtMs) {
         return await _recordStaleLeaseRetry(
           runSessionId: normalizedRunSessionId,
@@ -271,10 +297,15 @@ class DeterministicValidatorWorker implements ValidatorWorker {
           operation: 'archive creation',
         );
       }
-      final archivedReplay = await validatedReplayArchiver.archive(
-        runSessionId: normalizedRunSessionId,
-        sourceObjectPath: session.uploadedReplay.objectPath,
-        sourceStorageGeneration: sourceStorageGeneration,
+      final archivedReplay = await RewardTiming.instance.measure(
+        normalizedRunSessionId,
+        'replay_archive',
+        () => validatedReplayArchiver.archive(
+          runSessionId: normalizedRunSessionId,
+          sourceObjectPath: session.uploadedReplay.objectPath,
+          sourceStorageGeneration: sourceStorageGeneration,
+        ),
+        attempt: attempt,
       );
       onArchived(archivedReplay);
       final acceptedRun = replayedRun.withReplayArtifact(
@@ -282,9 +313,14 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         replayStorageGeneration: archivedReplay.storageGeneration,
       );
       try {
-        await runSessionRepository.handoffAcceptedRunForSettlement(
-          validatedRun: acceptedRun,
-          validationLeaseToken: validationLeaseToken,
+        await RewardTiming.instance.measure(
+          normalizedRunSessionId,
+          'handoff_commit',
+          () => runSessionRepository.handoffAcceptedRunForSettlement(
+            validatedRun: acceptedRun,
+            validationLeaseToken: validationLeaseToken,
+          ),
+          attempt: attempt,
         );
       } on StaleValidationLeaseException {
         return await _recordStaleLeaseRetry(
@@ -511,9 +547,16 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       attempt: attempt,
     );
     try {
-      final outcome = await settlementDispatcher.dispatch(
-        runSessionId: runSessionId,
+      final outcome = await RewardTiming.instance.measure(
+        runSessionId,
+        'settlement_request',
+        () => settlementDispatcher.dispatch(runSessionId: runSessionId),
+        attempt: attempt,
       );
+      RewardTiming.instance.emit(runSessionId, 'settlement_response', {
+        'attempt': attempt,
+        'result': outcome.name,
+      });
       await metrics.recordDispatch(
         runSessionId: runSessionId,
         status: ValidationDispatchStatus.accepted.name,
@@ -680,10 +723,15 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     }
     final LoadedReplay loaded;
     try {
-      loaded = await replayLoader.loadReplay(
-        runSessionId: session.runSessionId,
-        objectPath: session.uploadedReplay.objectPath,
-        storageGeneration: storageGeneration,
+      loaded = await RewardTiming.instance.measure(
+        session.runSessionId,
+        'replay_download',
+        () => replayLoader.loadReplay(
+          runSessionId: session.runSessionId,
+          objectPath: session.uploadedReplay.objectPath,
+          storageGeneration: storageGeneration,
+        ),
+        attempt: session.validationAttempt,
       );
     } on ReplayPayloadTooLargeException {
       throw const _ValidationRejectedException(
@@ -722,10 +770,25 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         message: 'Replay blob exceeds the compressed-size limit.',
       );
     }
-    final decodedBytes = await _maybeDecompressGzip(loaded.bytes);
-    final decodedJson = _decodeJsonObject(decodedBytes);
+    final decodedBytes = await RewardTiming.instance.measure(
+      session.runSessionId,
+      'replay_decompress',
+      () => _maybeDecompressGzip(loaded.bytes),
+      attempt: session.validationAttempt,
+    );
+    final decodedJson = RewardTiming.instance.measureSync(
+      session.runSessionId,
+      'replay_json',
+      () => _decodeJsonObject(decodedBytes),
+      attempt: session.validationAttempt,
+    );
     try {
-      return ReplayBlobV1.fromJson(decodedJson, verifyDigest: true);
+      return RewardTiming.instance.measureSync<ReplayBlobV1>(
+        session.runSessionId,
+        'replay_protocol_digest',
+        () => ReplayBlobV1.fromJson(decodedJson, verifyDigest: true),
+        attempt: session.validationAttempt,
+      );
     } on FormatException catch (error) {
       throw _ValidationRejectedException(
         reason: 'protocol_invalid',
@@ -1023,12 +1086,17 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       equippedLoadoutOverride: loadout,
     );
 
-    final simulation = runReplaySimulation(
-      core: core,
-      totalTicks: replayBlob.totalTicks,
-      commandStream: replayBlob.commandStream,
-      onCheckpoint: (_) =>
-          _throwIfSimulationDeadlineExceeded(simulationStartedAtMicros),
+    final simulation = RewardTiming.instance.measureSync(
+      session.runSessionId,
+      'replay_simulation',
+      () => runReplaySimulation(
+        core: core,
+        totalTicks: replayBlob.totalTicks,
+        commandStream: replayBlob.commandStream,
+        onCheckpoint: (_) =>
+            _throwIfSimulationDeadlineExceeded(simulationStartedAtMicros),
+      ),
+      attempt: session.validationAttempt,
     );
     var runEnded = simulation.runEnded;
 
