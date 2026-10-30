@@ -19,8 +19,35 @@ import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_status.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
+import 'package:rpg_runner/ui/run/run_reward_diagnostics.dart';
 
 void main() {
+  test(
+    'disposing app services cannot attribute a new account paint to an old run',
+    () {
+      final previous = RunRewardDiagnostics.instance;
+      final output = <String>[];
+      final diagnostics = RunRewardDiagnostics(enabled: true, sink: output.add);
+      RunRewardDiagnostics.instance = diagnostics;
+      addTearDown(() => RunRewardDiagnostics.instance = previous);
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _StaticOwnershipApi(),
+      );
+      diagnostics.canonical('old-account-run', revision: 2, gold: 9, xp: 10);
+      app.dispose();
+      output.clear();
+      diagnostics.painted(
+        revision: 2,
+        metric: 'gold',
+        value: 9,
+        target: 9,
+        surface: 'hub',
+      );
+      expect(output, isEmpty);
+    },
+  );
+
   test(
     'final receipts survive a failed wallet refresh and are acknowledged once',
     () async {

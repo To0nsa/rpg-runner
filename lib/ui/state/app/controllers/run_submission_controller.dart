@@ -50,6 +50,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
   void dispose() {
     _generation += 1;
     _scheduler.dispose();
+    RunRewardDiagnostics.instance.clear();
   }
 
   Future<int?> _pump(String id) async {
