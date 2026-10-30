@@ -34,9 +34,10 @@ log credentials, player identity, signed URLs or replay contents.
   document the requirement for every agent and validate release tooling.
 - [x] Build and benchmark the final worker image.
 - [x] Build and verify the instrumented dev APK.
-- [ ] Perform the guarded dev cutover and verify service/queue/board state.
+- [x] Perform the guarded dev cutover and verify service/queue/board state.
 - [x] Install after phone reconnection and verify package/hash and hub startup.
-- [ ] Capture correlated live runs after the dev backend cutover.
+- [ ] Capture correlated live runs after the dev backend cutover; phone
+  reconnection is required before starting the prepared capture.
 
 The [initial phone evidence](../verification/reward-latency-phone-2026-10-30.md)
 records two accepted runs before instrumentation. Local validation: Functions
@@ -99,9 +100,19 @@ since that inventory. All five lack uploaded replay/lease/validation/grant
 evidence; their expected replay objects returned 404. This cannot rule out
 unsubmitted local play. Their IDs and update timestamps are retained in
 `.tmp/reward-issued-review.json`.
-No ticket cancellation is authorized by this release request; prepare artifacts
-before asking for any separately required cancellation approval. Issuance remains
-enabled while preparation runs.
+After artifacts passed, the owner explicitly approved cancelling exactly those
+five tickets and completing the dev deployment. Issuance was paused; a fresh
+review verified the exact set. The guarded transaction cancelled all five at
+18:52:47 UTC. Verification confirmed every other session, grant, validated run
+and both account profiles unchanged, including a repeated check after backend
+deployment. Functions, worker and Hosting were deployed by 19:03 UTC; issuance
+resumed at 19:08:32 UTC. Final live checks confirmed all 32 Functions active,
+the exact-image worker revision `replay-validator-00062-hml` Ready at 100% traffic,
+both queues RUNNING, all three current boards valid, all nine settled grants
+retained and 3,149 canonical gold. The issuer's healthy serving revision has no
+pause override; the verified baseline and normal lock cleanup are recorded.
+The phone was reauthorized during deployment but disconnected again before
+capture; no instrumented end-to-end run or latency improvement is claimed yet.
 
 ## Recommendation
 

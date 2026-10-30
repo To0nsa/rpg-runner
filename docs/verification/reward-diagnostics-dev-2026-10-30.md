@@ -57,7 +57,8 @@ The game-only screenshot is
 `.tmp/reward-latency-instrumented-20261030/installed-hub.png`.
 This startup check is not an instrumented reward-completion run.
 At 18:39 UTC, `adb devices` reported no connected device; the next live capture
-requires reconnection.
+required reconnection. The owner subsequently reconnected and authorized USB
+debugging; Android again reported dev version code 3 before cutover.
 
 The follow-up candidate's `android-reuse.json` retains the original APK source
 and proves matching Android component inputs
@@ -87,7 +88,27 @@ generated-terrain fixture without combat objectives, not live reward latency.
 Canonical `ImageStatus -Environment dev` verified SUCCESS, benchmark evidence
 and the immutable image identity, and recorded `imageVerified: true` in the
 frozen candidate's release manifest.
-No backend cutover has occurred. Issuance remains enabled.
+The owner subsequently approved cancellation of exactly the five reviewed tickets
+and completion of the dev deployment. Canonical PauseIssuance verified healthy
+revision `runsessioncreate-00081-tgr` serving 100% of traffic with the explicit
+pause gate before backend deployment began.
+
+The coordinated dev rollout completed: Functions at 18:58 UTC, worker at 19:02
+UTC, Hosting at 19:03 UTC, and issuance restored at 19:08:32 UTC. Worker revision
+`replay-validator-00062-hml` is Ready and serves 100% of traffic with the exact
+benchmarked digest above. The deployed web `main.dart.js` SHA-256 is
+`d6eb922569388b04ee922ee95c77b6670b9609f1c041855d39453b811ca5a95f`.
+The verified dev baseline was saved at 19:08:43 UTC; the cutover and mutation
+locks were released normally. No staging/prod mutation occurred.
+
+Final canonical Inspect at 19:09 UTC found all 32 Functions active, both replay
+queues RUNNING, all three expected boards active, and no pending/quarantined
+settlement. The 21 sessions are nine validated, eleven cancelled (six pre-existing
+plus the five authorized here), and one expired. All nine settled grants remain;
+canonical gold is 3,149. Direct issuer readback at 19:10 UTC verified healthy
+revision `runsessioncreate-00083-447`, 100% traffic and no temporary compatibility
+override. Final summaries are `.tmp/reward-release-final-summary.json` and
+`.tmp/reward-release-issuer-resumed.json`.
 
 Read-only Inspect at 17:37 UTC found nine accepted/settled runs, three issued
 tickets, no pending/quarantined settlement, and no identity/evidence mismatch.
@@ -98,15 +119,24 @@ objects returned 404. Their exact IDs and document timestamps are retained in
 `.tmp/reward-issued-review.json`. This does not establish whether an offline run
 exists on a device. Cancelling these tickets prevents later submission and requires
 separate owner authorization under the release workflow. Approval was requested
-after final-image verification and is pending; none has been given.
-The guarded cancellation helper has only been syntax-checked, not executed.
+after final-image verification and explicitly granted for those five tickets.
+The guarded helper reviewed the unchanged exact set after issuance paused and
+committed the five cancellations atomically at 18:52:47 UTC with document
+update-time preconditions. Fresh verification confirmed all sessions terminal
+and identical hashes for every other session, all nine grants/validated runs,
+and both account profiles. No reward or profile document was written.
+The same protected-document verification passed again after backend deployment.
+The plan, mutation result and verification evidence are retained as
+`.tmp/reward-release-20261030-cancellation-{plan,result,verified}.json`.
 Canonical Inspect at 18:36 UTC confirmed 21 sessions (five issued, nine validated,
 six cancelled, one expired), nine settled grants, 3,149 canonical gold and no
 pending/quarantined settlement or run identity/evidence mismatch.
 
-After the guarded dev cutover, capture a new live run before claiming that all
-stage events correlate correctly. A finite app-scoped logcat helper is prepared
-under `.tmp/reward-latency-instrumented-20261030/`. A bounded client-only capture
+Capture a new live run before claiming that all stage events correlate correctly.
+The phone disconnected again before the final rollout completed. A fresh finite
+app-scoped logcat capture is prepared under `.tmp/reward-latency-live-20261030/`,
+reusing the checked capture/report helpers, but has not started; reconnection and
+a player run remain required. A bounded earlier client-only capture
 started at 17:54 UTC while the previous backend was live, then stopped without
 a run-end timing event after the owner redirected work to graph reuse. It avoided
 continuous screenshots and recorded process changes; missing events and
