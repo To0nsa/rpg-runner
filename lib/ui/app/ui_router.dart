@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../pages/messages/messages_page.dart';
 import 'package:flutter/services.dart';
 
 import '../bootstrap/loader_page.dart';
@@ -8,9 +7,11 @@ import '../components/placeholder_page.dart';
 import '../pages/hub/play_hub_page.dart';
 import '../pages/hub/run_start_bootstrap_page.dart';
 import '../pages/leaderboards/leaderboards_page.dart';
+import '../pages/messages/messages_page.dart';
 import '../pages/town/town_page.dart';
 import '../pages/town/town_store_page.dart';
 import '../pages/library/library_page.dart';
+import '../pages/achievements/achievements_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/options/options_page.dart';
 import '../pages/selectLevel/level_setup_page.dart';
@@ -66,6 +67,8 @@ class UiRouter {
         return _pageRoute(settings, const TownStorePage());
       case UiRoutes.library:
         return _pageRoute(settings, const LibraryPage());
+      case UiRoutes.achievements:
+        return _pageRoute(settings, const AchievementsPage());
       case UiRoutes.messages:
         return _pageRoute(settings, const MessagesPage());
       case UiRoutes.runBootstrap:

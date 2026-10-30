@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:game_presentation/ability_text.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/combat/damage_type.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
@@ -8,7 +9,7 @@ import 'package:runner_core/levels/level_id.dart';
 import '../../codex/codex_catalog.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app/app_state.dart';
-import 'package:game_presentation/ability_text.dart';
+import '../../text/number_format.dart';
 import '../../theme/ui_tokens.dart';
 import 'codex_widgets.dart';
 import 'enemy_portrait.dart';
@@ -62,8 +63,8 @@ class CodexEntryPage extends StatelessWidget {
                 title: 'Entry locked',
                 subtitle: 'Bestiary',
                 paragraphs: [
-                  'Defeat ${codexNumber(target)} to reveal its attacks, resistances and field notes.',
-                  '${codexNumber(current)} / ${codexNumber(target)} defeated.',
+                  'Defeat ${formatCount(target)} to reveal its attacks, resistances and field notes.',
+                  '${formatCount(current)} / ${formatCount(target)} defeated.',
                 ],
               ),
       ),
@@ -94,8 +95,8 @@ class CodexLevelDetails extends StatelessWidget {
       title: 'Entry locked',
       subtitle: title,
       paragraphs: [
-        'Reach ${codexNumber(target)} points in one Competitive run on $title to reveal its history.',
-        '${codexNumber(current)} / ${codexNumber(target)} best Competitive score.',
+        'Reach ${formatCount(target)} points in one Competitive run on $title to reveal its history.',
+        '${formatCount(current)} / ${formatCount(target)} best Competitive score.',
       ],
     );
   }

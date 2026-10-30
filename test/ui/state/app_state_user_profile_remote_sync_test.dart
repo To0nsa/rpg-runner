@@ -260,7 +260,7 @@ class _StaticAuthApi implements AuthApi {
   Future<void> clearSession() async {}
 }
 
-class _NoopOwnershipApi implements LoadoutOwnershipApi {
+class _NoopOwnershipApi extends LoadoutOwnershipApi {
   _NoopOwnershipApi({this.loadCanonicalError, this.loadGate});
 
   final Future<void>? loadGate;

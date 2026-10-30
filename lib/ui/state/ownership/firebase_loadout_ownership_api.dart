@@ -70,6 +70,11 @@ class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
+  Future<OwnershipCommandResult> claimAchievements(
+    ClaimAchievementsCommand command,
+  ) => _executeCommand(command);
+
+  @override
   Future<OwnershipCommandResult> refreshStore(RefreshStoreCommand command) {
     return _executeCommand(command);
   }

@@ -384,7 +384,7 @@ class _StaticAuthApi implements AuthApi {
       ensureAuthenticatedSession();
 }
 
-class _NoopOwnershipApi implements LoadoutOwnershipApi {
+class _NoopOwnershipApi extends LoadoutOwnershipApi {
   _NoopOwnershipApi({required this.gold, this.playerProgress});
 
   final int gold;

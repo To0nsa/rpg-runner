@@ -70,6 +70,7 @@ part 'controllers/boards_controller.dart';
 part 'controllers/run_start_controller.dart';
 part 'controllers/developer_controller.dart';
 part 'controllers/inbox_controller.dart';
+part 'controllers/achievements_controller.dart';
 
 const String _defaultGameCompatVersion = '2026.10.21';
 
@@ -232,12 +233,14 @@ class AppState extends ChangeNotifier {
     _boardsController = _AppStateBoardsController(this);
     _runStartController = _AppStateRunStartController(this);
     _inboxController = _AppStateInboxController(this);
+    _achievementsController = _AppStateAchievementsController(this);
   }
 
   final Random _random = Random();
   final AuthApi? _onlineAuthApi;
   final InboxApi? _inboxApi;
   late final _AppStateInboxController _inboxController;
+  late final _AppStateAchievementsController _achievementsController;
   AuthApi get _authApi =>
       _onlineAuthApi ??
       (throw StateError('Account actions are unavailable in Developer mode.'));
@@ -303,6 +306,11 @@ class AppState extends ChangeNotifier {
       LevelRegistry.isAvailable(_defaultWeeklyFeaturedLevelId);
   MetaState get meta => _meta;
   ProgressionState get progression => _progression;
+  bool get achievementsAvailable => _achievementsController.available;
+  bool get achievementsClaiming => _achievementsController.claiming;
+  Future<void> refreshAchievements() => _achievementsController.refresh();
+  Future<void> claimAchievements({String? achievementId}) =>
+      _achievementsController.claim(achievementId);
   UserProfile get profile => _profile;
   AuthSession get authSession => _authSession;
   String get profileId => _profileId;
@@ -668,6 +676,7 @@ class AppState extends ChangeNotifier {
     if (userChanged) {
       _runSubmissionController.resetAccount();
       _inboxController.resetAccount();
+      _achievementsController.resetAccount();
       _ownershipFlushTimer?.cancel();
       _ownershipFlushTimer = null;
       _ownershipSyncStatus = OwnershipSyncStatus.idle;
@@ -744,6 +753,7 @@ class AppState extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _inboxController.resetAccount();
+    _achievementsController.resetAccount();
     _runSubmissionController.dispose();
     _ownershipFlushTimer?.cancel();
     _ownershipFlushTimer = null;

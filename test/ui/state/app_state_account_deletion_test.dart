@@ -249,7 +249,7 @@ class _StaticUserProfileRemoteApi implements UserProfileRemoteApi {
   }
 }
 
-class _NoopOwnershipApi implements LoadoutOwnershipApi {
+class _NoopOwnershipApi extends LoadoutOwnershipApi {
   _NoopOwnershipApi({required this.profileId});
 
   final String profileId;

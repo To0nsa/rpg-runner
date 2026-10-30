@@ -231,7 +231,7 @@ class _StaticAuthApi implements AuthApi {
   Future<void> clearSession() async {}
 }
 
-class _RecordingOwnershipApi implements LoadoutOwnershipApi {
+class _RecordingOwnershipApi extends LoadoutOwnershipApi {
   int _revision = 0;
   int setSelectionCalls = 0;
   SelectionState _selection = SelectionState.defaults;

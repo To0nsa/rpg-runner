@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../components/map_label_button.dart';
+import '../../components/attention_marker.dart';
 import '../../theme/ui_tokens.dart';
 import '../../theme/ui_world_palette.dart';
 import 'map_callout.dart';
@@ -13,9 +14,13 @@ class TownMap extends StatelessWidget {
     super.key,
     required this.onStorePressed,
     required this.onLibraryPressed,
+    required this.onAchievementsPressed,
+    this.hasAchievementRewards = false,
   });
   final VoidCallback onStorePressed;
   final VoidCallback onLibraryPressed;
+  final VoidCallback onAchievementsPressed;
+  final bool hasAchievementRewards;
   static const assetPath = 'assets/Théodonis.jpg';
 
   @override
@@ -24,6 +29,8 @@ class TownMap extends StatelessWidget {
       viewport: constraints.biggest,
       onStorePressed: onStorePressed,
       onLibraryPressed: onLibraryPressed,
+      onAchievementsPressed: onAchievementsPressed,
+      hasAchievementRewards: hasAchievementRewards,
     ),
   );
 }
@@ -33,9 +40,13 @@ class _TownMapViewport extends StatefulWidget {
     required this.viewport,
     required this.onStorePressed,
     required this.onLibraryPressed,
+    required this.onAchievementsPressed,
+    required this.hasAchievementRewards,
   });
   final Size viewport;
   final VoidCallback onStorePressed, onLibraryPressed;
+  final VoidCallback onAchievementsPressed;
+  final bool hasAchievementRewards;
 
   @override
   State<_TownMapViewport> createState() => _TownMapViewportState();
@@ -130,21 +141,41 @@ class _TownMapViewportState extends State<_TownMapViewport> {
                     'town-library-marker',
                     at(.47, .405),
                   ),
+                  (
+                    at(.22, .77),
+                    'Hall of Honour',
+                    Icons.account_balance,
+                    widget.onAchievementsPressed,
+                    'town-achievements-marker',
+                    // Southern courtyard building selected by the owner.
+                    at(.395, .708),
+                  ),
                 ])
                   MapCallout(
                     anchor: service.$6,
                     labelCenter: service.$1,
                     visibleMap: visibleMap,
-                    child: MapLabelButton(
-                      key: ValueKey(service.$5),
-                      label: service.$2,
-                      icon: service.$3,
-                      onPressed: service.$4,
+                    child: AttentionMarker(
+                      visible:
+                          service.$5 == 'town-achievements-marker' &&
+                          widget.hasAchievementRewards,
+                      semanticLabel: 'Achievement rewards available',
+                      child: MapLabelButton(
+                        key: ValueKey(service.$5),
+                        label: service.$2,
+                        icon: service.$3,
+                        onPressed: service.$4,
+                      ),
                     ),
                   ),
                 for (final service in [
                   (at(.35, .49), 'Store marker', widget.onStorePressed),
                   (at(.47, .405), 'Library marker', widget.onLibraryPressed),
+                  (
+                    at(.395, .708),
+                    'Hall of Honour marker',
+                    widget.onAchievementsPressed,
+                  ),
                 ])
                   Positioned(
                     left: service.$1.dx - ui.sizes.tapTarget / 2,

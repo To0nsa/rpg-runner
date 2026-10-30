@@ -61,6 +61,9 @@ dev, staging and production apps. Its final candidate and Play release are pendi
   score grants XP toward an accelerating level curve capped at 30, while one
   shared per-enemy defeat record serves Library unlocks and Profile totals;
   Profile also shows runs and damage dealt/taken
+- [Hall of Honour](docs/gdd/12_achievements.md): five achievements from verified
+  runs reaching 10 metres or 10 seconds, next-target rows, expandable dated
+  history and manually claimed gold. Implemented locally; not deployed.
 - Debug-only Developer Practice with persistent local loadouts and all playable
   equipment/abilities, using the existing menus without backend run sessions
 - In-game HUD, pause, game-over, and scoring, with left/top off-screen player

@@ -1,5 +1,9 @@
 # Player progression and combat statistics
 
+[Achievements](achievements.md) reuse this verified settlement path and Library
+defeat evidence, with separate counters for their 10-metre-or-10-second natural
+run eligibility. They do not backfill these historical lifetime totals.
+
 ## Authority and data flow
 
 Core records actual HP lost in `DamageSystem`'s post-mitigation callback.

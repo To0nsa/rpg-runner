@@ -319,7 +319,7 @@ class _StaticAuthApi implements AuthApi {
       ensureAuthenticatedSession();
 }
 
-class _StaticOwnershipApi implements LoadoutOwnershipApi {
+class _StaticOwnershipApi extends LoadoutOwnershipApi {
   _StaticOwnershipApi()
     : _canonical = OwnershipCanonicalState(
         profileId: 'profile_static',

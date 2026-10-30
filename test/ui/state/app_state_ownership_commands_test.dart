@@ -61,7 +61,7 @@ void main() {
   );
 }
 
-class _RecordingOwnershipApi implements LoadoutOwnershipApi {
+class _RecordingOwnershipApi extends LoadoutOwnershipApi {
   int _revision = 0;
   final MetaService _metaService = const MetaService();
 

@@ -7,7 +7,39 @@ import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
+import '../../support/achievement_fixtures.dart';
+
 void main() {
+  test(
+    'achievement claims send only the identity and decode confirmed history',
+    () async {
+      final source = _FakeFirebaseLoadoutOwnershipSource();
+      source.commandResponse = achievementResult(
+        achievementCanonical('claimed', revision: 2, gold: 175),
+      ).toJson();
+      final api = FirebaseLoadoutOwnershipApi(source: source);
+      final result = await api.claimAchievements(
+        const ClaimAchievementsCommand(
+          userId: 'u1',
+          sessionId: 's1',
+          expectedRevision: 1,
+          commandId: 'claim-1',
+          achievementId: null,
+        ),
+      );
+      expect(source.lastCommand!.type, 'claimAchievements');
+      expect(source.lastCommand!.payloadToJson(), {'achievementId': null});
+      expect(result.canonicalState.progression.gold, 175);
+      expect(
+        result.canonicalState.progression.achievements.hasRewards,
+        isFalse,
+      );
+      expect(
+        result.canonicalState.progression.achievements.toJson(),
+        achievementFixture('claimed'),
+      );
+    },
+  );
   test('loadCanonicalState decodes wrapped canonical payload', () async {
     final source = _FakeFirebaseLoadoutOwnershipSource();
     final expected = OwnershipCanonicalState(

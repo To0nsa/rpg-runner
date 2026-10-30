@@ -1,7 +1,7 @@
 # Achievement System Design (V1)
 
 > Archived on 2026-10-30 as a superseded design proposal, not implemented
-> behavior. The [Hall of Honour working design](../../../building/achievements.md)
+> behavior. The [implemented Hall of Honour design](../../../gdd/12_achievements.md)
 > owns the current direction and open questions. The original 24-achievement
 > catalog below is retained as an idea backlog; its "ship now" language is not
 > a current scope commitment. Metric availability, local Practice authority,

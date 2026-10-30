@@ -451,7 +451,7 @@ AuthSession _playGamesLinkedSession() {
   );
 }
 
-class _NoopOwnershipApi implements LoadoutOwnershipApi {
+class _NoopOwnershipApi extends LoadoutOwnershipApi {
   _NoopOwnershipApi({this.gold = 0, this.playerProgress, this.enemyDefeats});
 
   final int gold;

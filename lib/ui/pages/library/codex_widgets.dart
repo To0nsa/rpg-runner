@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../components/ui_progress_animator.dart';
+import '../../components/progress_meter.dart';
+import '../../text/number_format.dart';
 import '../../state/presentation/library_progress_tracker.dart';
 import '../../theme/ui_tokens.dart';
 
@@ -96,7 +98,7 @@ class _CodexEntryTileState extends State<CodexEntryTile>
     final unlocked = widget.current >= widget.requiredProgress;
     final concealed = widget.concealUntilUnlocked && !unlocked;
     final count =
-        '${codexNumber(widget.current)} / ${codexNumber(widget.requiredProgress)}';
+        '${formatCount(widget.current)} / ${formatCount(widget.requiredProgress)}';
     return Padding(
       padding: EdgeInsets.only(bottom: ui.space.xs),
       child: Semantics(
@@ -159,57 +161,17 @@ class _CodexEntryTileState extends State<CodexEntryTile>
                               builder: (context, _) {
                                 final shown = _progressAnimation.value;
                                 final shownCount =
-                                    '${codexNumber(shown)} / ${codexNumber(widget.requiredProgress)}';
+                                    '${formatCount(shown)} / ${formatCount(widget.requiredProgress)}';
                                 final open =
                                     unlocked &&
                                     shown >= widget.requiredProgress;
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(
-                                    ui.radii.sm,
-                                  ),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Positioned.fill(
-                                        child: ColoredBox(
-                                          color: ui.colors.background,
-                                        ),
-                                      ),
-                                      Positioned.fill(
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: FractionallySizedBox(
-                                            widthFactor:
-                                                shown / widget.requiredProgress,
-                                            heightFactor: 1,
-                                            child: ColoredBox(
-                                              color: ui.colors.accentStrong
-                                                  .withValues(alpha: .35),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: ui.space.xs,
-                                          vertical: ui.space.xs,
-                                        ),
-                                        child: FittedBox(
-                                          fit: BoxFit.scaleDown,
-                                          child: Text(
-                                            open
-                                                ? 'Open'
-                                                : concealed
-                                                ? 'Defeat $shownCount to unlock'
-                                                : shownCount,
-                                            style: ui.text.body.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                return ProgressMeter(
+                                  fraction: shown / widget.requiredProgress,
+                                  label: open
+                                      ? 'Open'
+                                      : concealed
+                                      ? 'Defeat $shownCount to unlock'
+                                      : shownCount,
                                 );
                               },
                             ),
@@ -279,8 +241,3 @@ class CodexReadingView extends StatelessWidget {
     );
   }
 }
-
-String codexNumber(int value) => value.toString().replaceAllMapped(
-  RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-  (match) => '${match[1]},',
-);

@@ -559,7 +559,7 @@ class _CountingOwnershipOutboxStore implements OwnershipOutboxStore {
   }
 }
 
-class _RecordingOwnershipApi implements LoadoutOwnershipApi {
+class _RecordingOwnershipApi extends LoadoutOwnershipApi {
   int loadCanonicalCalls = 0;
   int _revision = 0;
   int setSelectionCalls = 0;
@@ -746,7 +746,7 @@ class _OrderingOwnershipApi extends _RecordingOwnershipApi {
   }
 }
 
-class _StaleThenAcceptAbilityOwnershipApi implements LoadoutOwnershipApi {
+class _StaleThenAcceptAbilityOwnershipApi extends LoadoutOwnershipApi {
   int _revision = 0;
   bool _returnedStaleOnce = false;
   int setAbilitySlotCalls = 0;

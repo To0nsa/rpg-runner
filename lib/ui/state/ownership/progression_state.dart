@@ -1,3 +1,4 @@
+import 'achievement_progress.dart';
 import 'codex_progress.dart';
 import 'enemy_defeats.dart';
 import 'player_progress.dart';
@@ -325,6 +326,7 @@ class ProgressionState {
     this.codex = CodexProgress.empty,
     this.enemyDefeats = EnemyDefeats.empty,
     this.playerProgress = PlayerProgress.empty,
+    this.achievements = AchievementProgress.empty,
   });
 
   final int gold;
@@ -333,6 +335,7 @@ class ProgressionState {
   final CodexProgress codex;
   final EnemyDefeats enemyDefeats;
   final PlayerProgress playerProgress;
+  final AchievementProgress achievements;
 
   static const ProgressionState initial = ProgressionState(
     gold: 0,
@@ -347,6 +350,7 @@ class ProgressionState {
     CodexProgress? codex,
     EnemyDefeats? enemyDefeats,
     PlayerProgress? playerProgress,
+    AchievementProgress? achievements,
   }) {
     return ProgressionState(
       gold: gold ?? this.gold,
@@ -355,6 +359,7 @@ class ProgressionState {
       codex: codex ?? this.codex,
       enemyDefeats: enemyDefeats ?? this.enemyDefeats,
       playerProgress: playerProgress ?? this.playerProgress,
+      achievements: achievements ?? this.achievements,
     );
   }
 
@@ -366,6 +371,7 @@ class ProgressionState {
       'codex': codex.toJson(),
       'enemyDefeats': enemyDefeats.toJson(),
       'playerProgress': playerProgress.toJson(),
+      'achievements': achievements.toJson(),
     };
   }
 
@@ -398,6 +404,7 @@ class ProgressionState {
         legacyCodexKills: CodexProgress.legacyKillsFromJson(json['codex']),
       ),
       playerProgress: PlayerProgress.fromJson(json['playerProgress']),
+      achievements: AchievementProgress.fromJson(json['achievements']),
     );
   }
 }

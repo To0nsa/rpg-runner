@@ -512,7 +512,7 @@ class _FakeFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   }
 }
 
-class _SessionScopedOwnershipApi implements LoadoutOwnershipApi {
+class _SessionScopedOwnershipApi extends LoadoutOwnershipApi {
   _SessionScopedOwnershipApi({required this.profileId});
 
   final String profileId;

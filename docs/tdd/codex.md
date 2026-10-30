@@ -100,6 +100,7 @@ Routes:
 
 - `/meta/town`: city map with city-service callouts, pan/zoom and reset.
 - `/meta/town/store`: the existing store, preserving purchase/refresh behavior.
+- `/meta/town/hall-of-honour`: [achievements and direct gold claims](achievements.md).
 - `/meta/town/library`: Bestiary, Locations and opening Journal sections on a
   left-side icon rail.
 - Enemy entry routes are pushed within Library. The Locations map opens modal
@@ -110,7 +111,9 @@ Routes:
 Locked Bestiary rows conceal names; their idle portraits appear after the first
 defeat. Each `CodexEntryTile` owns a presentation-only
 `UiProgressAnimator`, shared with the hub XP bar for count interpolation and
-timing. A session-only `LibraryProgressTracker` on `AppState` records the last
+timing. Its labelled fill uses `ProgressMeter`, shared with achievements;
+Library retains ownership of animation and unlock semantics. A session-only
+`LibraryProgressTracker` on `AppState` records the last
 presented value per entry and resets its history when the active account key
 changes. `LibraryPage` passes whether Bestiary is active, so the `IndexedStack`
 retains scroll and map state. First observations appear

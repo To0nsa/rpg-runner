@@ -243,7 +243,7 @@ class _StaticUserProfileRemoteApi implements UserProfileRemoteApi {
   }
 }
 
-class _NoopOwnershipApi implements LoadoutOwnershipApi {
+class _NoopOwnershipApi extends LoadoutOwnershipApi {
   final OwnershipCanonicalState _canonical = OwnershipCanonicalState(
     profileId: defaultOwnershipProfileId,
     revision: 0,

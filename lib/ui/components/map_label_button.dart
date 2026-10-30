@@ -33,13 +33,15 @@ class MapLabelButton extends StatelessWidget {
         children: [
           Icon(icon, size: 22, shadows: mapLabelShadows),
           SizedBox(width: ui.space.xxs),
-          Text(
-            label,
-            style: ui.text.headline.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: UiWorldPalette.mist200,
-              shadows: mapLabelShadows,
+          Flexible(
+            child: Text(
+              label,
+              style: ui.text.headline.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: UiWorldPalette.mist200,
+                shadows: mapLabelShadows,
+              ),
             ),
           ),
         ],

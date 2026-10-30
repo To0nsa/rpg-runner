@@ -106,7 +106,7 @@ void main() {
   });
 }
 
-class _RevisionedOwnershipApi implements LoadoutOwnershipApi {
+class _RevisionedOwnershipApi extends LoadoutOwnershipApi {
   _RevisionedOwnershipApi({required String profileId})
     : _canonicalByUser = <String, OwnershipCanonicalState>{
         'u1': OwnershipCanonicalState(

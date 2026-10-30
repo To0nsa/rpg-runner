@@ -669,7 +669,7 @@ class _RecordingRunSessionApi implements RunSessionApi {
   }
 }
 
-class _NoopOwnershipApi implements LoadoutOwnershipApi {
+class _NoopOwnershipApi extends LoadoutOwnershipApi {
   int _revision = 0;
   SelectionState _selection = SelectionState.defaults;
   final MetaService _metaService = const MetaService();

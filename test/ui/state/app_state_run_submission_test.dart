@@ -845,7 +845,7 @@ class _StaticAuthApi implements AuthApi {
   Future<AuthSession> reauthenticateForSensitiveOperation() async => _session;
 }
 
-class _StaticOwnershipApi implements LoadoutOwnershipApi {
+class _StaticOwnershipApi extends LoadoutOwnershipApi {
   _StaticOwnershipApi() : _canonical = _canonicalWithGold(gold: 0, revision: 1);
 
   OwnershipCanonicalState _canonical;

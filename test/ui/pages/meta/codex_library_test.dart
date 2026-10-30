@@ -394,7 +394,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.byType(TownMap), findsOneWidget);
-      expect(find.byType(MapLabelButton), findsNWidgets(2));
+      expect(find.byType(MapLabelButton), findsNWidgets(3));
       await tester.tap(find.byKey(const ValueKey('town-store-marker')));
       await tester.pumpAndSettle();
       expect(find.byType(TownStorePage), findsOneWidget);

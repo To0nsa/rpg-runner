@@ -21,6 +21,7 @@ class UiRoutes {
   static const String town = '/meta/town';
   static const String townStore = '/meta/town/store';
   static const String library = '/meta/town/library';
+  static const String achievements = '/meta/town/hall-of-honour';
   static const String messages = '/meta/messages';
   static const String runBootstrap = '/run/bootstrap';
   static const String run = '/run';

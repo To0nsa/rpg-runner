@@ -164,6 +164,7 @@ final class _AppStateAuthProfileController extends _AppStateController {
 
     _acceptedDeletionResult = result;
     _app._inboxController.resetAccount();
+    _app._achievementsController.resetAccount();
     _app._runSubmissionController.resetAccount();
     _ownershipFlushTimer?.cancel();
     _ownershipFlushTimer = null;

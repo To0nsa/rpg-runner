@@ -1060,7 +1060,7 @@ RunTicket _practiceTicket() {
   );
 }
 
-class _ScriptedOwnershipApi implements LoadoutOwnershipApi {
+class _ScriptedOwnershipApi extends LoadoutOwnershipApi {
   _ScriptedOwnershipApi(this._canonical);
 
   OwnershipCanonicalState _canonical;

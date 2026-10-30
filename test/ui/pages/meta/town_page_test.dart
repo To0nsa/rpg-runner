@@ -371,7 +371,7 @@ class _StaticAuthApi implements AuthApi {
   Future<void> clearSession() async {}
 }
 
-class _ScriptedOwnershipApi implements LoadoutOwnershipApi {
+class _ScriptedOwnershipApi extends LoadoutOwnershipApi {
   _ScriptedOwnershipApi({required OwnershipCanonicalState canonical})
     : _canonical = canonical;
 

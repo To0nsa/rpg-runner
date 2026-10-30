@@ -7,6 +7,7 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
+
 import 'progression_state.dart';
 import 'selection_state.dart';
 
@@ -393,6 +394,23 @@ class PurchaseStoreOfferCommand extends OwnershipCommand {
   }
 }
 
+/// Claims server-earned tiers; null selects all achievements. No amount or date
+/// is sent by the client. Per-tier receipts make retries safe across command IDs.
+class ClaimAchievementsCommand extends OwnershipCommand {
+  const ClaimAchievementsCommand({
+    required super.userId,
+    required super.sessionId,
+    required super.expectedRevision,
+    required super.commandId,
+    this.achievementId,
+  });
+  final String? achievementId;
+  @override
+  String get type => 'claimAchievements';
+  @override
+  Map<String, Object?> payloadToJson() => {'achievementId': achievementId};
+}
+
 class RefreshStoreCommand extends OwnershipCommand {
   const RefreshStoreCommand({
     required super.userId,
@@ -421,6 +439,12 @@ class RefreshStoreCommand extends OwnershipCommand {
 
 /// Ownership API boundary used by [AppState].
 abstract class LoadoutOwnershipApi {
+  Future<OwnershipCommandResult> claimAchievements(
+    ClaimAchievementsCommand command,
+  ) {
+    throw UnimplementedError('claimAchievements is not implemented.');
+  }
+
   Future<OwnershipCanonicalState> loadCanonicalState({
     required String userId,
     required String sessionId,
