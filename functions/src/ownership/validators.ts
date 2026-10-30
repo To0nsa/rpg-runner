@@ -83,6 +83,14 @@ function validateCommandPayload(
   type: OwnershipCommandEnvelope["type"],
   payload: Record<string, unknown>,
 ): void {
+  if (type === "claimAchievements") {
+    if (Object.keys(payload).some((key) => key !== "achievementId") ||
+        (payload.achievementId !== null &&
+          (typeof payload.achievementId !== "string" || payload.achievementId.length > 64))) {
+      throw new HttpsError("invalid-argument", "Expected only achievementId (string or null).");
+    }
+    return;
+  }
   if (type === "purchaseStoreOffer") {
     requireNonEmptyString(payload.offerId, "command.payload.offerId");
     return;

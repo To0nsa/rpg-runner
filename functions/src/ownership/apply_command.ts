@@ -1,4 +1,5 @@
 import { isPlayerEquippableProjectileId } from "./projectile_spells.js";
+import { claimAchievementGold } from "./achievements.js";
 import type {
   JsonObject,
   OwnershipCanonicalState,
@@ -39,6 +40,7 @@ export type ApplyCommandResult =
 export function applyOwnershipCommand(
   canonical: OwnershipCanonicalState,
   command: OwnershipCommandEnvelope,
+  nowMs = Date.now(),
 ): ApplyCommandResult {
   const state = normalizeCanonicalState(
     canonical,
@@ -51,6 +53,14 @@ export function applyOwnershipCommand(
   }
 
   switch (command.type) {
+    case "claimAchievements": {
+      if (Object.keys(payload).some((key) => key !== "achievementId") ||
+          (payload.achievementId !== null && typeof payload.achievementId !== "string")) {
+        return rejected("invalidCommand");
+      }
+      return claimAchievementGold(state.progression, payload.achievementId, nowMs)
+        ? accepted(state) : rejected("invalidCommand");
+    }
     case "setSelection":
       return applySetSelection(state, payload);
     case "resetOwnership":

@@ -115,7 +115,7 @@ export async function executeOwnershipCommand(args: {
       return rejected;
     }
 
-    const applyResult = applyOwnershipCommand(canonical, command);
+    const applyResult = applyOwnershipCommand(canonical, command, nowMs);
     if (!applyResult.accepted) {
       const rejected = rejectResult(canonical, applyResult.rejectedReason);
       if (shouldPersistCanonicalBeforeCommand) {

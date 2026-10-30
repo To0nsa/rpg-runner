@@ -6,6 +6,8 @@ import { FieldValue, getFirestore, type Firestore } from "firebase-admin/firesto
 import type { CloudTasksClient } from "@google-cloud/tasks";
 
 import { loadOrCreateCanonicalState } from "../../src/ownership/canonical_store.js";
+import { executeOwnershipCommand } from "../../src/ownership/command_executor.js";
+import { readAchievementProgress } from "../../src/ownership/achievements.js";
 import {
   ImmediateSettlementDispatchRequestError,
   dispatchImmediateSettlement,
@@ -435,6 +437,88 @@ test("legacy Codex kills transfer once to the shared defeat map", async () => {
     damageDealt100: 50, damageTaken100: 5,
   });
   assert.equal((await profileRef.get()).get("progression.codex.enemyKills"), undefined);
+});
+
+test("achievements settle once in every mode without historical credit", async () => {
+  const initial = await loadOrCreateCanonicalState({ db, uid });
+  await db.collection("ownership_profiles").doc(`${uid}__${initial.profileId}`).update({
+    "progression.playerProgress.acceptedRuns": 999,
+    "progression.enemyDefeats.byEnemy.grojib": 9999,
+  });
+  for (const mode of ["practice", "competitive", "weekly"] as const) {
+    const runSessionId = await seedCodexRun(mode, "forest", 100, { grojib: 10 });
+    await db.collection("validated_runs").doc(runSessionId).update({
+      distanceMeters: 10, durationSeconds: 0, endedReason: "playerDied",
+      playerRunStats: { schemaVersion: 1, damageDealt100: 1, damageTaken100: 1 },
+    });
+    const outcomes = await Promise.all([
+      settleAcceptedRunSession({ db, runSessionId, nowMs }),
+      settleAcceptedRunSession({ db, runSessionId, nowMs: nowMs + 1 }),
+    ]);
+    assert.deepEqual(outcomes.sort(), ["already_settled", "settled"]);
+  }
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  const progress = readAchievementProgress(canonical.progression.achievements);
+  assert.deepEqual(progress.entries.map((entry) => entry.value), [3, 10, 30, 0, 30]);
+  assert.equal(canonical.progression.gold, 3, "achievement rewards are not automatic");
+  assert.ok(progress.entries[0].tiers[0].achievedAtMs! >= nowMs);
+  assert.equal(progress.entries[0].tiers[0].claimedAtMs, null);
+});
+
+test("achievement claims enforce revision, identity, deletion and durable payment receipts", async () => {
+  const runSessionId = await seedCodexRun("practice", "forest", 100, { grojib: 30 });
+  await db.collection("validated_runs").doc(runSessionId).update({
+    distanceMeters: 1500, durationSeconds: 120, endedReason: "fellIntoGap",
+    playerRunStats: { schemaVersion: 1, damageDealt100: 1, damageTaken100: 1 },
+  });
+  assert.equal(await settleAcceptedRunSession({ db, runSessionId, nowMs }), "settled");
+  let canonical = await loadOrCreateCanonicalState({ db, uid });
+  const command = {
+    type: "claimAchievements" as const, userId: uid, sessionId: "session",
+    commandId: "achievement_claim", expectedRevision: canonical.revision,
+    payload: { achievementId: null },
+  };
+  const first = await executeOwnershipCommand({ db, uid, command, nowMs: nowMs + 100 });
+  assert.equal(first.rejectedReason, null);
+  assert.equal(first.canonicalState.progression.gold, 176);
+  const repeated = await executeOwnershipCommand({ db, uid, command, nowMs: nowMs + 200 });
+  assert.equal(repeated.replayedFromIdempotency, true);
+  assert.equal(repeated.canonicalState.progression.gold, 176);
+  const mismatch = await executeOwnershipCommand({ db, uid,
+    command: { ...command, payload: { achievementId: "slayer" } }, nowMs });
+  assert.equal(mismatch.rejectedReason, "idempotencyKeyReuseMismatch");
+  const stale = await executeOwnershipCommand({ db, uid,
+    command: { ...command, commandId: "stale_claim" }, nowMs });
+  assert.equal(stale.rejectedReason, "staleRevision");
+  canonical = await loadOrCreateCanonicalState({ db, uid });
+  const concurrent = await Promise.all(["new_claim_1", "new_claim_2"].map((commandId) =>
+    executeOwnershipCommand({ db, uid,
+      command: { ...command, commandId, expectedRevision: canonical.revision }, nowMs: nowMs + 300 })));
+  assert.equal(concurrent.filter((result) => result.rejectedReason === "staleRevision").length, 1);
+  canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(canonical.progression.gold, 176, "fresh command IDs cannot repay claimed tiers");
+  const tiers = readAchievementProgress(canonical.progression.achievements).entries[1].tiers;
+  assert.equal(tiers[0].achievedAtMs, nowMs);
+  assert.equal(tiers[0].claimedAtMs, nowMs + 100);
+  const spoof = await executeOwnershipCommand({ db, uid,
+    command: { ...command, userId: "other", commandId: "spoof", expectedRevision: canonical.revision } });
+  assert.equal(spoof.rejectedReason, "forbidden");
+  await db.collection("account_deletion_requests").doc(uid).set({ state: "requested" });
+  await assert.rejects(executeOwnershipCommand({ db, uid,
+    command: { ...command, commandId: "after_deletion", expectedRevision: canonical.revision } }));
+});
+
+test("invalid achievement evidence rolls back run gold and terminal settlement", async () => {
+  const runSessionId = await seedCodexRun("practice", "forest", 100, { grojib: 1 });
+  await db.collection("validated_runs").doc(runSessionId).update({
+    distanceMeters: -1, durationSeconds: 10, endedReason: "playerDied",
+    playerRunStats: { schemaVersion: 1, damageDealt100: 1, damageTaken100: 1 },
+  });
+  assert.equal(await settleAcceptedRunSession({ db, runSessionId, nowMs }), "invariant_violation");
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(canonical.progression.gold, 0);
+  assert.equal(readAchievementProgress(canonical.progression.achievements).entries[0].value, 0);
+  assert.equal((await db.collection("run_sessions").doc(runSessionId).get()).get("state"), "settlement_pending");
 });
 
 async function seedCodexRun(

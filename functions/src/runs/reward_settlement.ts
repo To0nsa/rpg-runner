@@ -1,3 +1,4 @@
+import { applyRunAchievements } from "../ownership/achievements.js";
 import { performance } from "node:perf_hooks";
 import type { Firestore } from "firebase-admin/firestore";
 import { isDeepStrictEqual } from "node:util";
@@ -190,8 +191,13 @@ export async function settleAcceptedRunSession(args: {
           validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
           session,
         });
+        const achievementsChanged = applyRunAchievements({
+          progression: reconciled.canonicalState.progression,
+          validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
+          nowMs,
+        });
         writeLevelMessages();
-        if ((discoveriesChanged || playerChanged) && !reconciled.canonicalChanged) {
+        if ((discoveriesChanged || playerChanged || achievementsChanged) && !reconciled.canonicalChanged) {
           reconciled.canonicalState.revision += 1;
           reconciled.canonicalChanged = true;
         }

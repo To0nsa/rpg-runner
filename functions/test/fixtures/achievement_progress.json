@@ -1,0 +1,377 @@
+{
+  "empty": {
+    "schemaVersion": 1,
+    "entries": [
+      {
+        "id": "firstSteps",
+        "value": 0,
+        "tiers": [
+          {
+            "threshold": 1,
+            "goldAmount": 25,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 10,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 50,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "marathoner",
+        "value": 0,
+        "tiers": [
+          {
+            "threshold": 500,
+            "goldAmount": 25,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 1000,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 2500,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "roadWarrior",
+        "value": 0,
+        "tiers": [
+          {
+            "threshold": 1000,
+            "goldAmount": 25,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 10000,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 50000,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "stillStanding",
+        "value": 0,
+        "tiers": [
+          {
+            "threshold": 300,
+            "goldAmount": 25,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 3600,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 18000,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "slayer",
+        "value": 0,
+        "tiers": [
+          {
+            "threshold": 25,
+            "goldAmount": 25,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 250,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 2500,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      }
+    ]
+  },
+  "earned": {
+    "schemaVersion": 1,
+    "entries": [
+      {
+        "id": "firstSteps",
+        "value": 1,
+        "tiers": [
+          {
+            "threshold": 1,
+            "goldAmount": 25,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 10,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 50,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "marathoner",
+        "value": 1500,
+        "tiers": [
+          {
+            "threshold": 500,
+            "goldAmount": 25,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 1000,
+            "goldAmount": 75,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 2500,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "roadWarrior",
+        "value": 1500,
+        "tiers": [
+          {
+            "threshold": 1000,
+            "goldAmount": 25,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 10000,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 50000,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "stillStanding",
+        "value": 120,
+        "tiers": [
+          {
+            "threshold": 300,
+            "goldAmount": 25,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 3600,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 18000,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "slayer",
+        "value": 30,
+        "tiers": [
+          {
+            "threshold": 25,
+            "goldAmount": 25,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 250,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 2500,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      }
+    ]
+  },
+  "claimed": {
+    "schemaVersion": 1,
+    "entries": [
+      {
+        "id": "firstSteps",
+        "value": 1,
+        "tiers": [
+          {
+            "threshold": 1,
+            "goldAmount": 25,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": 1793404800000
+          },
+          {
+            "threshold": 10,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 50,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "marathoner",
+        "value": 1500,
+        "tiers": [
+          {
+            "threshold": 500,
+            "goldAmount": 25,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": 1793404800000
+          },
+          {
+            "threshold": 1000,
+            "goldAmount": 75,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": 1793404800000
+          },
+          {
+            "threshold": 2500,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "roadWarrior",
+        "value": 1500,
+        "tiers": [
+          {
+            "threshold": 1000,
+            "goldAmount": 25,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": 1793404800000
+          },
+          {
+            "threshold": 10000,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 50000,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "stillStanding",
+        "value": 120,
+        "tiers": [
+          {
+            "threshold": 300,
+            "goldAmount": 25,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 3600,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 18000,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      },
+      {
+        "id": "slayer",
+        "value": 30,
+        "tiers": [
+          {
+            "threshold": 25,
+            "goldAmount": 25,
+            "achievedAtMs": 1793404740000,
+            "claimedAtMs": 1793404800000
+          },
+          {
+            "threshold": 250,
+            "goldAmount": 75,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          },
+          {
+            "threshold": 2500,
+            "goldAmount": 150,
+            "achievedAtMs": null,
+            "claimedAtMs": null
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -11,6 +11,7 @@ export const ownershipCommandTypes = [
   "awardRunGold",
   "purchaseStoreOffer",
   "refreshStore",
+  "claimAchievements",
 ] as const;
 
 export type OwnershipCommandType = (typeof ownershipCommandTypes)[number];
@@ -23,6 +24,7 @@ export const clientOwnershipCommandTypes = [
   "setProjectileSpell",
   "purchaseStoreOffer",
   "refreshStore",
+  "claimAchievements",
 ] as const satisfies readonly OwnershipCommandType[];
 
 export type ClientOwnershipCommandType =

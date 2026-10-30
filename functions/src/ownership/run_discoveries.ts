@@ -32,7 +32,7 @@ export function applyRunDiscoveries(args: {
     levelId !== args.session.levelId
   ) fail("Run discovery evidence does not match the accepted run ticket.");
 
-  const runDefeats = counts(evidence.enemyKills, "run enemy defeats");
+  const runDefeats = readRunEnemyDefeats(evidence);
   const codex = args.progression.codex === undefined
     ? initialCodexProgress()
     : record(args.progression.codex, "Codex progression");
@@ -67,6 +67,13 @@ export function applyRunDiscoveries(args: {
   args.progression.enemyDefeats = { schemaVersion: 1, byEnemy };
   args.progression.codex = { schemaVersion: 2, competitiveBestScores };
   return true;
+}
+
+/** Shared replay evidence for Library discoveries, lifetime stats and milestones. */
+export function readRunEnemyDefeats(raw: unknown): Record<string, number> {
+  const evidence = record(raw, "run discovery evidence");
+  if (evidence.schemaVersion !== 1) fail("Unsupported run discovery evidence.");
+  return counts(evidence.enemyKills, "run enemy defeats");
 }
 
 function record(value: unknown, name: string): Record<string, unknown> {

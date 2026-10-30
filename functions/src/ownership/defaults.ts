@@ -1,3 +1,4 @@
+import { initialAchievementProgress, readAchievementProgress } from "./achievements.js";
 import type {
   CanonicalDocument,
   JsonObject,
@@ -117,6 +118,7 @@ export function starterProgression(args: {
     codex: initialCodexProgress(),
     enemyDefeats: initialEnemyDefeats(),
     playerProgress: initialPlayerProgress(),
+    achievements: initialAchievementProgress(),
   } satisfies JsonObject);
   normalizeProgressionStore({
     progression,
@@ -181,6 +183,7 @@ export function normalizeCanonicalState(
   const progression = isJsonObject(candidate.progression)
     ? structuredClone(candidate.progression)
     : fallback.progression;
+  progression.achievements = readAchievementProgress(progression.achievements);
   normalizeProgressionStore({
     progression,
     meta,
