@@ -16,7 +16,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Hall of Honour achievements](gdd/12_achievements.md): five milestones from
   qualifying verified runs, expandable completion dates and direct gold claims
   in the selected Town building; [technical contract](tdd/achievements.md).
-  Implemented locally; not deployed.
+  [Deployed to dev](verification/achievements-dev-2026-10-30.md); Android build 4
+  is verified and ready to install. Live device acceptance remains pending.
 - [Player progression](gdd/player_progression.md): account level and lifetime
   combat stats; [implementation contract](tdd/player_progression.md).
 - [Prepared navigation and reward completion](tdd/prepared_navigation.md): trusted
@@ -29,10 +30,10 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   acceptance, required updates and Play testing; execution underway with
   environment routing and isolation checks. One shared deployment workflow and
   no player-data migration.
-- [Latest dev app release](verification/dev-app-2026-10-29.md): source `285ef4f4`
-  deployed to dev and Android build 2 installed with existing data preserved;
-  levels and gameplay tuple unchanged. Fresh gameplay smoke remains pending
-  after the phone disconnected.
+- [Latest dev app release](verification/achievements-dev-2026-10-30.md): source
+  `8a094efb` deployed to dev with Hall of Honour achievements, reusing the worker
+  image, navigation graphs and six unchanged validation components. Android
+  build 4 is verified; installation and live gameplay smoke await the phone.
 - [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
   lifecycle/input fixes, event-retention cleanup, full local checks and 18
   mixed-input replay cases pass. Finalized authoring is deployed in `2026.10.7`;

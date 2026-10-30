@@ -4,6 +4,9 @@ Date: 2026-10-30. Backend source: `8aae7711`. Client source: the Hall of Honour
 implementation committed with this record. This is local/emulated evidence;
 no deployment or physical-device acceptance was performed.
 
+Subsequent deployment and full release checks are recorded in
+[the dev release evidence](achievements-dev-2026-10-30.md).
+
 ## Commands and results
 
 From the repository root:

@@ -1,6 +1,8 @@
 # Hall of Honour achievements
 
-Implemented locally on 2026-10-30; not deployed. See the
+Implemented on 2026-10-30. Dev backend/web are deployed and Android build 4 is
+verified; device installation and live menu acceptance remain pending. See the
+[release evidence](../verification/achievements-dev-2026-10-30.md) and
 [technical contract](../tdd/achievements.md).
 
 The **Hall of Honour** opens from the southern courtyard building on the

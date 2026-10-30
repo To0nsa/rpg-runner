@@ -2,7 +2,9 @@
 
 - [Completed Hall of Honour achievements](../archive/2026-10-30/building/achievements.md):
   five verified milestones, direct gold claims, next-target rows and expandable
-  completion dates. Local backend/client checks pass; not deployed. See the
+  completion dates. [Dev deployment](../verification/achievements-dev-2026-10-30.md)
+  is complete; the [release checklist](achievements_dev_release.md) retains
+  Android installation and live menu acceptance. See the
   [GDD](../gdd/12_achievements.md) for the selected defaults and future ideas.
 
 - [Completed shared Flutter tools and Admin gifts](../archive/2026-10-29/building/admin_tools.md):

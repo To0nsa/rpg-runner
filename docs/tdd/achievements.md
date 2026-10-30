@@ -1,7 +1,9 @@
 # Achievement settlement and claims
 
-Implemented locally on 2026-10-30; not deployed. Player-facing rules and tuning
-live in the [Hall of Honour GDD](../gdd/12_achievements.md).
+Implemented on 2026-10-30. Dev backend/web are deployed; Android build 4 passed
+inspection and awaits installation/device acceptance. See the
+[release evidence](../verification/achievements-dev-2026-10-30.md).
+Player-facing rules and tuning live in the [Hall of Honour GDD](../gdd/12_achievements.md).
 
 ## Ownership and reuse
 
@@ -130,7 +132,9 @@ the artwork is unchanged. Long shared map labels wrap in narrow viewports.
 The backend reader/claim implementation must be deployed before the new client
 expects claims. No new replay fields or Core compatibility version are required
 by this feature itself. Release preparation must still account for any other
-changes in the selected candidate. Deployment is outside this implementation.
+changes in the selected candidate. The dev rollout used the coordinated
+release workflow with unchanged Core and replay-wire sources and the existing
+worker image; backend settlement changes still require coordinated cutover.
 
 The TypeScript producer test compares real evaluator/claim output with
 `functions/test/fixtures/achievement_progress.json`; Dart decoding and UI tests
