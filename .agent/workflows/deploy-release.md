@@ -45,6 +45,11 @@ Play-delivered authentication/attestation are separate acceptance gates.
    Otherwise Prepare runs the same checks locally. Review component logs and
    the successful manifest; use Rebuild
    only when a matching preparation must deliberately be repeated.
+   Check reuse for every component, not only navigation. Keep existing verified
+   client/native artifacts and test evidence when their inputs, toolchain,
+   environment/signing and bytes match; retain their original source provenance
+   and the match evidence. Unrelated commit changes do not justify rebuilding.
+   Explain a concrete mismatch or missing proof before expensive repeat work.
 3. Run Inspect if cloud access is available. If an installed gcloud reports no
    account, check process Windows app-data paths and access to the existing
    credential cache before requesting another login. Use the approved shell
@@ -55,6 +60,13 @@ Play-delivered authentication/attestation are separate acceptance gates.
    Play Games smoke. Do not run pause/image/resume stages for those scopes.
    For Coordinated scope, once image upload/build is authorized, run BuildImage
    and poll ImageStatus.
+   BuildImage automatically seeds navigation from the same environment's previous
+   verified image. Its live successful build and strict benchmark must match the
+   recorded digest. The current producer validates/reuses exact-key graph bytes
+   and builds only missing/changed/corrupt pieces; worker-only changes must not
+   start from an empty pack. Inspect the seed identity and built/reused counts.
+   No prior baseline means initial generation; missing or mismatched provenance
+   for an existing baseline blocks instead of silently discarding its pack.
    For identical worker inputs across environments, finish one image first, then
    use `BuildImage -Environment staging -ReuseImageFrom dev` and later
    `BuildImage -Environment prod -ReuseImageFrom staging`. Each copy runs the

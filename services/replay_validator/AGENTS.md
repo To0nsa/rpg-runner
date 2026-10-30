@@ -145,6 +145,11 @@ tools/release/release.ps1 for coordinated releases. Preparation is reusable only
 with matching source/toolchain/artifact hashes. Cloud Build must benchmark the
 exact final image at one CPU and 512 MiB before it is published; keep its Dart
 dependency resolution locked to the independent service lockfile.
+Reuse the previous verified image's navigation pack across worker-only changes.
+The release entry point provides its immutable image as the Docker seed; the
+current producer validates graph keys/digests and regenerates only missing,
+changed or corrupt pieces. Do not rebuild an unchanged pack for logging or
+settlement changes, or infer validity from level design alone.
 The worker cutover runs while normal issuance and both queues are paused.
 The matching issuer is restored only after worker/web identity and board
 readiness are verified. Mocked release tests do not establish live readiness.

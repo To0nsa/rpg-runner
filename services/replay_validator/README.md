@@ -140,23 +140,19 @@ gameplay compatibility change.
 
 ## Build Container Image
 
-Run from repository root (`c:\dev\rpg_runner`):
+After Prepare, run from the frozen release checkout:
 
-```bash
-PROJECT_ID="rpg-runner-d7add"
-IMAGE_TAG="europe-west1-docker.pkg.dev/${PROJECT_ID}/replay/replay-validator:$(date +%Y%m%d-%H%M%S)"
-
-gcloud builds submit \
-  . \
-  --project="${PROJECT_ID}" \
-  --config=services/replay_validator/cloudbuild.yaml \
-  --substitutions=_IMAGE_URI="${IMAGE_TAG}"
-
-# Deploy only the immutable digest reported by Artifact Registry.
-IMAGE_DIGEST="$(gcloud artifacts docker images describe "${IMAGE_TAG}" \
-  --format='value(image_summary.digest)')"
-IMAGE_URI="${IMAGE_TAG%:*}@${IMAGE_DIGEST}"
+```powershell
+.\tools\release\release.ps1 -Environment dev -Action BuildImage
+.\tools\release\release.ps1 -Environment dev -Action ImageStatus
 ```
+
+BuildImage verifies the selected environment's previous image and passes its
+immutable digest as the navigation seed. Existing exact-key graph bytes are
+validated and reused, including across worker logging/settlement changes. Only
+missing, changed or corrupt pieces are generated. The first deployment starts
+an initial pack; missing provenance for an existing baseline blocks. The release
+record retains seed identity and the new image's strict benchmark evidence.
 
 ## Deploy To Cloud Run
 
@@ -414,8 +410,9 @@ Healthy signals:
 
 ## Prepared navigation
 
-The Docker build generates trusted navigation pieces from
-`functions/src/runs/navigation_routes.json` into `/navigation`. The worker uses
+The Docker build seeds and validates existing navigation pieces, then generates
+only missing or changed pieces for `functions/src/runs/navigation_routes.json`
+into `/navigation`. The worker uses
 on-demand graphs with a 32 MiB byte cache; missing or invalid pieces use the same
 Core builder. `NAVIGATION_ARTIFACT_DIRECTORY` overrides the directory for local
 measurements. No client-supplied graph data is trusted. See the

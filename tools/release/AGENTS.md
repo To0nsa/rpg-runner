@@ -46,6 +46,18 @@ Do not assume a previously used release checklist is the current target.
   Existing handler policy/identity drift blocks. Keep ordinary defaults strict.
 - Keep successful preparation bound to source/toolchain/artifact evidence.
   Production stage checkpoints must never outlive their matching artifacts.
+- Check reusable component evidence before running builds or suites. Reuse
+  verified unchanged outputs even when unrelated source changed, retaining the
+  artifact's original provenance and the input-match proof. Rebuild/retest only
+  for relevant input/toolchain/configuration changes, missing/corrupt evidence,
+  or explicit required live gates; state the reason before expensive work.
+- BuildImage must seed navigation from the selected environment's previous
+  verified immutable image when available, independently of worker code changes.
+  Verify its build/benchmark provenance; let the current producer check exact
+  graph keys/digests and generate only missing, changed or corrupt pieces. Never
+  discard a valid pack to simplify a build. Missing provenance blocks reuse;
+  explain the specific cache miss before a fresh generation. Record seed image
+  identity and built/reused counts. Keep the strict final-image benchmark.
 - Web builds are optimized local Practice hosts with no Firebase configuration.
   Bundle CanvasKit with --no-web-resources-cdn and require web_smoke.mjs against
   the built artifact before caching client-build evidence. Chrome and Node are

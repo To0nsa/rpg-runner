@@ -84,10 +84,18 @@ content release, with explicit traversal and coverage checks.
 ## Release and evidence
 
 Web release preparation generates client assets. Mobile builds must run the same
-`--client` command first. Docker generates the worker pack with its independent
-locked Dart resolution. Generated binary packs are ignored by Git. Plan/producer
+`--client` command first. Docker seeds the worker pack from the selected
+environment's previous verified immutable image through the release entry
+point. Its independent locked Dart producer validates the current source
+revision and exact-key pieces, reuses matching bytes, and generates only
+missing/changed/corrupt graphs. It still enumerates the current routes and
+publishes their complete manifest. Worker-only changes, including logging and
+settlement, do not justify an empty-pack rebuild. The first deployment has no
+seed; an existing baseline with missing or mismatched provenance blocks reuse
+instead of silently starting an expensive fresh pack. Generated binary packs
+are ignored by Git. Plan/producer
 changes invalidate both consumers' cached release evidence; coordinated cutover
-is required. Cloud Build allows 60 minutes including the final-image benchmark
+is required. Cloud Build allows 120 minutes including the final-image benchmark
 at one CPU/512 MiB. Startup probes use a one-second interval/timeout and 60-failure
 allowance. Minimum instances and billing settings are unchanged.
 

@@ -166,7 +166,8 @@ function Get-ImageStatus {
   $imageDirectory = Join-Path $cacheRoot "images/$ProjectId/$Region"
   New-Item -ItemType Directory -Force -Path $imageDirectory | Out-Null
   @{ workerInputs = $inputs.worker; buildId = $state.buildId; imageTag = $state.imageTag; imageUri = $state.imageUri;
-     reusedImage = $(if ($state.PSObject.Properties.Name -contains 'reusedImage') { $state.reusedImage } else { $null }) } |
+     reusedImage = $(if ($state.PSObject.Properties.Name -contains 'reusedImage') { $state.reusedImage } else { $null });
+     navigationSeed = $(if ($state.PSObject.Properties.Name -contains 'navigationSeed') { $state.navigationSeed } else { $null }) } |
     ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $imageDirectory "$($inputs.worker).json") -Encoding utf8
   $json | Set-Content -LiteralPath (Join-Path $evidenceDirectory "cloud-build.json") -Encoding utf8
   Write-Host $script:state.imageUri
@@ -464,8 +465,10 @@ if ($Action -eq "BuildImage") {
     if ($imageRecord.workerInputs -ne $inputs.worker) { throw "Worker image cache input mismatch." }
     $state.buildId = $imageRecord.buildId
     $state.imageTag = $imageRecord.imageTag
-    if ($imageRecord.PSObject.Properties.Name -contains 'reusedImage') {
-      $state | Add-Member -NotePropertyName reusedImage -NotePropertyValue $imageRecord.reusedImage -Force
+    foreach ($provenance in @('reusedImage', 'navigationSeed')) {
+      if ($imageRecord.PSObject.Properties.Name -contains $provenance) {
+        $state | Add-Member -NotePropertyName $provenance -NotePropertyValue $imageRecord.$provenance -Force
+      }
     }
     Save-ReleaseState
   }
@@ -475,6 +478,7 @@ if ($Action -eq "BuildImage") {
   }
   $tag = "$Region-docker.pkg.dev/$ProjectId/replay/replay-validator:release-$($sourceDigest.Substring(0,12))-$([DateTime]::UtcNow.ToString('yyyyMMddHHmmss'))"
   $reusedImage = $null
+  $navigationSeed = $null
   if ($ReuseImageFrom) {
     $sourceDefinition = Get-ReleaseEnvironmentDefinition $root $ReuseImageFrom
     $reusedImage = Get-ReleaseReusableImage $root $cacheRoot $sourceDefinition $inputs.worker
@@ -483,8 +487,12 @@ if ($Action -eq "BuildImage") {
     $buildJson = Invoke-ReleaseGcloud @('builds','submit','--no-source',"--project=$ProjectId",'--region=global',
       "--config=$copyConfig",'--async','--format=json') 'submit'
   } else {
+    $navigationSeed = Get-ReleaseNavigationSeed $root $cacheRoot $definition $baseline
+    $navigationImage = if ($navigationSeed) { $navigationSeed.imageUri } else { 'navigation-empty' }
+    if ($navigationSeed) { Write-Host "Reusing navigation from verified image $navigationImage; only missing or changed pieces are generated." }
+    else { Write-Host 'No verified deployment baseline exists; generating the initial navigation pack.' }
     $buildJson = Invoke-ReleaseGcloud @("builds", "submit", ".", "--project=$ProjectId", "--region=global",
-      "--config=services/replay_validator/cloudbuild.yaml", "--substitutions=_IMAGE_URI=$tag", "--async", "--format=json") "submit"
+      "--config=services/replay_validator/cloudbuild.yaml", "--substitutions=_IMAGE_URI=$tag,_NAVIGATION_CACHE_IMAGE=$navigationImage", "--async", "--format=json") "submit"
   }
   $build = $buildJson | ConvertFrom-Json
   if ((Get-ReleaseSourceDigest $root $ProjectId) -ne $sourceDigest) {
@@ -497,6 +505,7 @@ if ($Action -eq "BuildImage") {
   $state.imageUri = ""
   $state.imageVerified = $false
   $state | Add-Member -NotePropertyName reusedImage -NotePropertyValue $reusedImage -Force
+  $state | Add-Member -NotePropertyName navigationSeed -NotePropertyValue $navigationSeed -Force
   Save-ReleaseState
   Write-Host "Started Cloud Build $($state.buildId). Run ImageStatus; preparation need not be repeated."
   return

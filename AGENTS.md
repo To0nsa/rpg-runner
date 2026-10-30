@@ -1,8 +1,6 @@
 # AGENTS.md
 
-Repository instructions for **Lothringen: The Long Run**, a Flutter + Flame
-runner with deterministic Dart gameplay, Firebase Functions, a Cloud Run replay
-validator, editor and Admin tools.
+Instructions for **Lothringen: The Long Run**.
 
 ## Start here
 
@@ -88,8 +86,10 @@ invariant or release gate makes a check mandatory.
 - Cross-layer changes need checks on each affected side of the contract.
 - Run full suites for broad impact, explicit requests, or required release gates.
   Explain unusually expensive checks before starting them.
-- Reuse evidence for unchanged code. Record command, working directory, result,
-  and tested source; distinguish failures, unrun checks, mocks and live evidence.
+- Reuse verified artifacts (including navigation) and test evidence when inputs,
+  toolchain/config, environment/signing and hashes match. New commits alone do
+  not invalidate reuse. Explain rebuilds; record command, directory, result and
+  source; distinguish live, mocked, failed and unrun checks.
 
 For geometry, assembly, enemy movement or navigation, follow
 [level traversal](.agent/workflows/test-level-traversal.md). Verify generated

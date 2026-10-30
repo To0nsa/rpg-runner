@@ -1,11 +1,15 @@
-# Includes offline navigation preparation and the exact final-image benchmark.
+# Validates/reuses existing navigation and benchmarks the exact final image.
 timeout: 7200s
+substitutions:
+  _NAVIGATION_CACHE_IMAGE: navigation-empty
 steps:
   - name: gcr.io/cloud-builders/docker
     args:
       - build
       - -f
       - services/replay_validator/Dockerfile
+      - --build-arg
+      - NAVIGATION_CACHE_IMAGE=${_NAVIGATION_CACHE_IMAGE}
       - -t
       - ${_IMAGE_URI}
       - .

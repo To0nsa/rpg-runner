@@ -40,6 +40,22 @@ function Get-ReleaseReusableImage {
     workerInputs=$WorkerInputs;imageUri=$record.imageUri;digest=$digest}
 }
 
+function Get-ReleaseNavigationSeed {
+  param([string]$Root, [string]$CacheRoot, [object]$Definition, [object]$Baseline)
+  if ($null -eq $Baseline) { return $null }
+  if ($Baseline.projectId -ne $Definition.projectId -or $Baseline.region -ne $Definition.region) {
+    throw 'Navigation seed baseline belongs to another environment.'
+  }
+  # Worker code can change without changing graph keys. Reuse the previous
+  # benchmarked pack; the current producer still validates exact keys/bytes and
+  # regenerates only missing, changed or corrupt pieces for the current routes.
+  $seed = Get-ReleaseReusableImage $Root $CacheRoot $Definition $Baseline.inputs.worker
+  if ($seed.imageUri -cne $Baseline.workerImage) {
+    throw 'Navigation seed differs from the verified deployment baseline.'
+  }
+  return $seed
+}
+
 function Write-ReleaseImageCopyConfig {
   param([string]$Path, [string]$SourceImage, [string]$TargetImage)
   # Copy immutable bytes into the destination registry; no source upload,

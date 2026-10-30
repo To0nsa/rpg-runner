@@ -59,6 +59,12 @@ try {
   Assert-ImageThrows { Get-ReleaseReusableImage $imageFixture $imageFixture $source 'inputs' } 'source environment'
   $record.imageUri = $sourceUri
   $record | ConvertTo-Json | Set-Content $recordPath
+  $seedBaseline = [pscustomobject]@{projectId='test-project';region='europe-west1';
+    workerImage=$sourceUri;inputs=[pscustomobject]@{worker='inputs'}}
+  Assert-ImageTest ($null -eq (Get-ReleaseNavigationSeed $imageFixture $imageFixture $source $null)) 'first deployment has no navigation seed'
+  $seedBaseline.projectId = 'other-project'
+  Assert-ImageThrows { Get-ReleaseNavigationSeed $imageFixture $imageFixture $source $seedBaseline } 'another environment'
+  $seedBaseline.projectId = 'test-project'
   & {
     function Invoke-ReleaseCommand {
       param($Command,$CommandArgs,$WorkingDirectory)
@@ -68,9 +74,19 @@ try {
     }
     $result = Get-ReleaseReusableImage $imageFixture $imageFixture $source 'inputs'
     Assert-ImageTest ($result.imageUri -eq $sourceUri -and $result.digest -eq $digest) 'source fingerprint and live immutable build agree'
+    $seed = Get-ReleaseNavigationSeed $imageFixture $imageFixture $source $seedBaseline
+    Assert-ImageTest ($seed.imageUri -eq $sourceUri -and $seed.workerInputs -eq 'inputs') 'navigation seed uses previous verified worker independently of new worker inputs'
+    $seedBaseline.workerImage = $sourceUri.Replace(('a' * 64), ('b' * 64))
+    Assert-ImageThrows { Get-ReleaseNavigationSeed $imageFixture $imageFixture $source $seedBaseline } 'differs from the verified deployment baseline'
+    $seedBaseline.workerImage = $sourceUri
+    $build.steps[0].status = 'FAILURE'
+    Assert-ImageThrows { Get-ReleaseNavigationSeed $imageFixture $imageFixture $source $seedBaseline } 'strict final-image benchmark'
+    $build.steps[0].status = 'SUCCESS'
     $build.results.images[0].digest = "sha256:$('b' * 64)"
     Assert-ImageThrows { Get-ReleaseReusableImage $imageFixture $imageFixture $source 'inputs' } 'differs from live build evidence'
   }
+  $seedBaseline.inputs.worker = 'missing'
+  Assert-ImageThrows { Get-ReleaseNavigationSeed $imageFixture $imageFixture $source $seedBaseline } 'No matching source image evidence'
   $configPath = Join-Path $imageFixture 'copy.json'
   Write-ReleaseImageCopyConfig $configPath $sourceUri 'destination-image'
   $config = Get-Content $configPath -Raw | ConvertFrom-Json

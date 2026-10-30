@@ -88,7 +88,7 @@ function gcloud {
       $configPath = ($args | Where-Object { $_ -like '--config=*' }).Substring('--config='.Length)
       $global:fakeImageTag = (Get-Content $configPath -Raw | ConvertFrom-Json).images[0]
     } else {
-      $global:fakeImageTag = ($args | Where-Object { $_ -like "--substitutions=*" }).Substring("--substitutions=_IMAGE_URI=".Length)
+      $global:fakeImageTag = (($args | Where-Object { $_ -like "--substitutions=*" }).Substring("--substitutions=_IMAGE_URI=".Length) -split ',')[0]
     }
     return '{"id":"build-1"}'
   }
@@ -250,6 +250,25 @@ try {
   $global:fakeReleaseLock = $false
   & $entry -Environment $TestEnvironment -Action BuildImage
   Assert-Test (-not $global:fakeReleaseLock) 'successful action releases its mutation lock'
+  & $entry -Environment $TestEnvironment -Action ImageStatus
+
+  # A changed worker must seed its graphs from this environment's previous
+  # verified image, not the destination tag currently being constructed.
+  $cache = Get-ReleaseCacheRoot $fixture
+  $seedState = Get-Content (Join-Path $evidence 'release.json') -Raw | ConvertFrom-Json
+  $seedBaselinePath = Join-Path $cache 'deployments/test-project/europe-west1.json'
+  New-Item -ItemType Directory -Force -Path (Split-Path $seedBaselinePath) | Out-Null
+  @{schemaVersion=2;projectId='test-project';region='europe-west1';verifiedAt='2026-10-01';
+    workerImage=$seedState.imageUri;webSha256=('c' * 64);functionsIdentity='fixture';
+    inputs=(Get-ReleaseInputHashes $fixture 'test-project');contract=$seedState.contract} |
+    ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $seedBaselinePath
+  & $entry -Environment $TestEnvironment -Action BuildImage -Scope Coordinated -Rebuild
+  $seededState = Get-Content (Join-Path $evidence 'release.json') -Raw | ConvertFrom-Json
+  Assert-Test ($seededState.navigationSeed.imageUri -eq $seedState.imageUri) 'image rebuild records verified previous navigation seed'
+  Assert-Test (@($global:releaseTrace | Where-Object {
+    $_ -like "builds submit *" -and $_ -like "*_NAVIGATION_CACHE_IMAGE=$($seedState.imageUri)*"
+  }).Count -eq 1) 'image build passes immutable seed into the Docker recipe'
+  Remove-Item -LiteralPath $seedBaselinePath
   & $entry -Environment $TestEnvironment -Action ImageStatus
 
   $sourceEnvironment = if ($TestEnvironment -eq 'dev') { 'staging' } else { 'dev' }

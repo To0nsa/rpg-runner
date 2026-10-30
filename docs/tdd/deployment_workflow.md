@@ -327,6 +327,19 @@ Do not relabel old omitted checks as successful current evidence.
 BuildImage starts asynchronously and caches successful exact-image benchmark
 results by worker inputs, project and region outside the release checkout.
 Reuse re-reads the original Cloud Build status and immutable image result.
+When worker inputs change, ordinary BuildImage seeds `/navigation` from the
+selected environment's previous verified deployment image. It verifies the
+cached source build's successful strict benchmark and digest against that
+baseline, passes the immutable image through `_NAVIGATION_CACHE_IMAGE`, and
+records `navigationSeed` in release evidence. Docker copies only its navigation
+directory into the new build. The current producer checks its source revision,
+exact graph keys, byte lengths, digests and codec invariants, reuses matching
+pieces, and generates only missing/changed/corrupt pieces. Route enumeration and
+verification still run; unchanged worker logging never requires fresh graphs.
+No baseline means initial generation. Missing or inconsistent evidence for an
+existing baseline blocks instead of silently discarding reusable artifacts.
+Record final built/reused counts and retain the new image's strict benchmark.
+
 For matching worker inputs, `BuildImage -ReuseImageFrom <environment>` reads the
 source environment's cache record, verifies its current successful Cloud Build
 result and strict benchmark, then submits a source-free pull/tag/benchmark job in
