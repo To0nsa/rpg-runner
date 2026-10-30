@@ -13,8 +13,10 @@ records the original investigation; it is not a production performance claim.
 ## October 30 diagnostic instrumentation and dev rollout
 
 The owner authorized code changes and the necessary dev deployment on October 30.
-The worktree was clean at `dced382b` before this change. Phone installation waits
-for reconnection; backend preparation and deployment can proceed independently.
+The worktree was clean at `dced382b` before this change. The reconnected phone now
+has verified dev APK version code 3. The first backend image build was cancelled
+to implement the owner's requested reuse of existing navigation artifacts.
+See the [dev rollout evidence](../verification/reward-diagnostics-dev-2026-10-30.md).
 
 Acceptance criteria: correlate each run across local replay save, durable spool,
 grant/upload/finalize, task enqueue, validation lease/download/decode/simulation,
@@ -25,11 +27,16 @@ authentication, revisions, retries, deletion fencing and once-only grants. Never
 log credentials, player identity, signed URLs or replay contents.
 
 - [x] Instrument client, Functions and worker; document timing semantics.
-- [ ] Verify failure isolation, hidden-route/animation observations and existing
-  submission/settlement behavior; prepare a frozen dev release.
-- [ ] Build and benchmark the final worker image, perform the guarded dev cutover,
-  and build the instrumented dev APK.
-- [ ] Install after phone reconnection and capture correlated live runs.
+- [x] Verify failure isolation, hidden-route/animation observations and existing
+  submission/settlement behavior; freeze diagnostic source `1d4799e7`.
+- [x] Complete source-bound release preparation from the frozen checkout.
+- [x] Automatically seed worker navigation from verified existing artifacts;
+  document the requirement for every agent and validate release tooling.
+- [x] Build and benchmark the final worker image.
+- [x] Build and verify the instrumented dev APK.
+- [ ] Perform the guarded dev cutover and verify service/queue/board state.
+- [x] Install after phone reconnection and verify package/hash and hub startup.
+- [ ] Capture correlated live runs after the dev backend cutover.
 
 The [initial phone evidence](../verification/reward-latency-phone-2026-10-30.md)
 records two accepted runs before instrumentation. Local validation: Functions
@@ -38,9 +45,63 @@ build and all 282 emulator tests passed; validator analysis, 301 service tests,
 diagnostic and hub tests passed initially; a later import-formatting edit changed
 the XP separator's encoding, which the repeated hub tests caught. The separator
 was restored and all 11 affected widget/diagnostic checks passed.
-Final client analysis is clean. Release preparation must still run its own
-source-bound gates from the frozen LF checkout; a root working-copy Plan reports
-a simulation hash mismatch against that LF baseline and is not release evidence.
+Final client analysis is clean. A follow-up clears pending presentation traces
+when AppState is disposed, with a regression test; all 12 submission-state tests
+passed. The initial `5a7d66ca` preparation was stopped after its backend and worker
+components passed and were cached. No cloud mutation had started. The final
+`1d4799e7` candidate reused those unchanged components. All 1,363 client tests
+passed; client, test and driver analysis was clean. The release web build and
+built-artifact smoke check passed. Preparation completed at 17:33 UTC.
+The frozen LF checkout's scope resolution confirms unchanged
+simulation inputs and tuple `2026.10.21 / rules-v2 / score-v4 / ghost-v1`, with
+Coordinated scope for the changed client/Functions/worker. Source digest is
+`46cd44f99fba6f46b80a0cc3f6378bd9f395c77ccdb9a6d3eaa4b2add2dd1b47`.
+The prepared checkout is `.tmp/release-checkouts/1d4799e7866ab3f1ca7cb2dd8be13a8929dbe47b/`;
+its source-bound evidence is `.tmp/releases/rpg-runner-d7add/<source-digest>/`.
+Cloud Build `293d71e1-ee58-4d24-a2cf-b405514277db` started at 17:34 UTC and was
+confirmed cancelled at 18:00 UTC after the owner identified redundant navigation
+generation. The generator already validates/reuses exact-key pieces, but the
+Docker recipe had supplied an empty directory. The correction seeds the current
+producer from the selected environment's previous verified immutable image,
+retaining source/key/digest checks and the final-image benchmark. The isolated
+implementation is committed as `b58ac324`; the same validated patch is committed
+on the shared branch as `427e811a`. Root/scoped agent guidance now defaults to
+verified reuse of all artifacts and test evidence, not only navigation.
+The new frozen backend candidate is `b58ac324dda44c86aa844fe6636f08486de8cae6`,
+excluding concurrent achievement changes; source digest
+`14388b2491269fe4e76795c068d252256da87c1ead3be0fd4211bd20504f9b3e`.
+Its preparation completed at 18:30 UTC, reusing nine component records. The
+changed worker component passed analysis, 301 tests and executable compilation
+in 89 seconds. Replacement Cloud Build `f1413136-2e1b-4359-8619-dc3800608b22`
+started at 18:31 UTC with the verified previous dev navigation pack.
+Its producer verified/reused all 93,910 graphs and built zero, in 129.215 seconds.
+The image build succeeded at 18:40 UTC; all eight strict final-image benchmark
+gates passed (one CPU, 512 MiB, 36,000 ticks per level). The immutable digest is
+`sha256:45d6d0a00fe563464c9ca9ab89748bad7befad18ee8f53d073013a8fbf23908e`.
+Release helper, integration, cache/image and environment isolation checks passed
+under PowerShell 5.1 and 7.6.9, and agent guidance/link checks passed. These are
+mocked release checks, not deployment evidence. A live read-only lookup verified
+the previous dev image's build/benchmark provenance for the navigation seed.
+The diagnostic candidate's dev Android build completed and passed verification at
+17:49 UTC with version code 3. Installation and on-device artifact-hash checks
+passed; the hub retained 3,149 gold and level 2, 32/124 XP.
+The new candidate's `android-reuse.json` proves matching Android inputs,
+Flutter/Java toolchain, environment/package and artifact hash, retaining the
+original signing/native-inspection provenance. The existing APK is reused.
+The main working-copy Plan's earlier simulation mismatch was line-ending drift
+against the LF baseline; no compatibility bump or gate override was needed.
+
+Live read-only inventory at 17:37 UTC found nine accepted/settled runs, no pending
+settlement, and three issued tickets with no uploaded replay, validation or
+reward grant. The ordinary coordinated-cutover drain gate rejects issued tickets.
+The 18:32 UTC read-only review found five issued tickets, including two created
+since that inventory. All five lack uploaded replay/lease/validation/grant
+evidence; their expected replay objects returned 404. This cannot rule out
+unsubmitted local play. Their IDs and update timestamps are retained in
+`.tmp/reward-issued-review.json`.
+No ticket cancellation is authorized by this release request; prepare artifacts
+before asking for any separately required cancellation approval. Issuance remains
+enabled while preparation runs.
 
 ## Recommendation
 

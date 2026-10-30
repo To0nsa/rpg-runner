@@ -39,7 +39,8 @@ XP can emit its first frame while still counting up. These are Flutter
 post-paint frame observations, not GPU presentation timestamps or proof of human
 attention. Framework callbacks run after the rendering pipeline flushes; see
 [Flutter's post-frame contract](https://api.flutter.dev/flutter/scheduler/SchedulerBinding/addPostFrameCallback.html).
-Pending presentation correlations are capped at 64 and cleared on account reset.
+Pending presentation correlations are capped at 64 and cleared on account reset
+or AppState disposal.
 An unpainted revision superseded by another account update can remain unobserved;
 do not label the missing sample as instant completion. Disposing or covering a
 screen cannot create a visible-update event.
