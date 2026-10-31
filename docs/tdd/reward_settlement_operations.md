@@ -127,6 +127,17 @@ pending runs share one status request per minute. A new run retains fast checks.
 Upload retries preserve the coordinator's durable retry deadline. Account
 changes, accepted deletion and disposal fence late status and ownership writes.
 
+Submission recovery reconciles server state before repeating an interrupted
+operation. An uploaded replay retains its object path and completion marker;
+if finalization did not commit, only finalization repeats. If its response was
+lost after commit, the client resumes server completion without issuing another
+upload grant. Final receipts are persisted as awaiting acknowledgement even
+when recovered from a retry. Transient failures back off for 2, 5, 15 and then
+30 seconds before the existing longer schedule; throttling waits at least 30
+seconds. Expired authentication preserves the pending replay for renewed auth.
+Journal mutations serialize their read-modify-write operations so different
+runs cannot erase one another's pending entries.
+
 A final reward receipt stays in the spool until canonical ownership loads and
 local pending selection is reapplied. Failed refreshes retry even after leaving
 Game Over or restarting the app. Successful acknowledgement removes the receipt;

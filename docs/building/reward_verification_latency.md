@@ -12,6 +12,69 @@ Implemented contracts: [prepared navigation](../tdd/prepared_navigation.md) and
 [reward completion](../tdd/reward_settlement_operations.md). The evidence below
 records the original investigation; it is not a production performance claim.
 
+## October 31 pipeline rework
+
+The owner authorized planning and implementation of the pipeline improvements,
+including related improvements found during the work. The implementation starts
+from clean `e85626c7`. Preserve the current UX, XP animation, verified reward
+authority, gameplay tuple and authored/navigation inputs. Optimize for low
+traffic without reserved idle compute or artificial keepalive requests.
+
+Acceptance criteria:
+
+- Recover ambiguous upload/finalize responses and process restarts by consulting
+  server state and reusing completed work; never discard an earned final receipt
+  because a previous response was lost. Preserve replay generation/digest binding.
+- Share the client-facing run transport while preserving per-operation auth,
+  App Check configuration, quotas, issuance pause and compatibility checks.
+- Prepare expiring upload permission during real run activity, without blocking
+  run startup or adding periodic keepalive traffic. Recover after expiry/restart.
+- Deliver confirmed rewards and canonical account state without routine polling
+  plus a second account fetch; retain offline/resume and legacy fallback paths.
+  Client observations must be owner-readable, server-written, revision-fenced,
+  and included in account deletion. Never expose internal session documents.
+- Keep settlement atomic, idempotent and private, and keep durable delivery and
+  repair. Reduce redundant normal-path delivery only with failure-path tests.
+- Replace unnecessary periodic empty scans with bounded pending-work delivery
+  where safe; retain explicit recovery/deletion deadlines and reconciliation.
+- Reduce unnecessary initialization and sequential I/O; retain diagnostic spans
+  that distinguish startup, domain work, retries and presentation.
+- Reuse unchanged navigation and validation evidence. No unmeasured latency or
+  cost saving is claimed. Deployment and live phone acceptance are separate gates.
+
+Implementation order and checks:
+
+1. [x] Submission recovery: preserve stage progress, reconcile unknown outcomes,
+   improve short transient retry delays, and serialize local journal mutations.
+   Exercise response loss, restart, expiry, final-receipt acknowledgement and
+   account fencing in focused client tests.
+2. [ ] Shared run API and upload preparation: additive transport contract with
+   legacy readers, bounded auth/quota behavior, grant renewal and fine-grained
+   handler timings. Verify actual TypeScript/Dart producer-consumer payloads.
+3. [ ] Confirmed completion delivery: minimal owner-only projection/receipts,
+   atomic canonical updates, revision-safe client application and lifecycle
+   ownership; emulator rules/deletion and client race/recovery coverage.
+4. [ ] Settlement and background work: durable primary/recovery delivery,
+   fewer empty wakeups, and request-billed scale-to-zero configuration. Verify
+   delivery loss, duplicates, stale leases, deletion and repair without cloud
+   mutations; preserve private IAM boundaries and release gates.
+5. [ ] Startup/I/O review and integration: remove unused eager dependencies,
+   reuse clients, finish TDDs and source-bound evidence, then run affected
+   cross-layer suites and relevant release mocks. Review the full task diff.
+6. [ ] Separately authorized dev rollout and live measurement of cold/warm,
+   response-loss/offline recovery and unchanged presentation. No staging/prod
+   build or mutation is included. Earlier five-ticket cancellation approval was
+   specific and does not authorize new cancellations.
+
+Current checkpoint: recovery implemented. Root `flutter test --no-pub` for
+`run_submission_coordinator_test.dart`, `run_submission_spool_store_test.dart`
+and `app_state_run_submission_test.dart` passed 37 tests; targeted analysis of
+the two changed implementation files and their tests passed. These are local
+fake-adapter tests, not live backend evidence. Logs are in ignored
+`.tmp/pipeline-rework-20261031/`. No cloud mutations have occurred. The October 31
+two-run measurements below are the pre-change baseline, not acceptance evidence
+for this rework.
+
 ## October 30 diagnostic instrumentation and dev rollout
 
 The owner authorized code changes and the necessary dev deployment on October 30.

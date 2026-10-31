@@ -46,6 +46,19 @@ void main() {
       expect(entries[1].runSessionId, 'run_b');
     });
 
+    test('concurrent journal mutations preserve independent runs', () async {
+      await Future.wait([
+        store.upsert(submission: _pending(runSessionId: 'run_a')),
+        store.upsert(submission: _pending(runSessionId: 'run_b')),
+        store.upsert(submission: _pending(runSessionId: 'run_c')),
+        store.remove(runSessionId: 'run_b'),
+      ]);
+      expect((await store.loadAll()).map((entry) => entry.runSessionId), [
+        'run_a',
+        'run_c',
+      ]);
+    });
+
     test('upsert replaces existing entry with same runSessionId', () async {
       await store.upsert(
         submission: _pending(

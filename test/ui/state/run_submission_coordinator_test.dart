@@ -121,6 +121,131 @@ void main() {
       );
     });
 
+    Future<void> queueRecoveryRun() => coordinator.enqueueSubmission(
+      userId: 'uid_recovery',
+      runSessionId: 'run_recovery',
+      runMode: RunMode.practice,
+      replayArtifactId: '/tmp/recovery.replay.json',
+      canonicalSha256: 'a' * 64,
+      contentLengthBytes: 2048,
+    );
+
+    Future<RunSubmissionStatus> recover() => coordinator.processRunSession(
+      userId: 'uid_recovery',
+      sessionId: 'session_recovery',
+      runSessionId: 'run_recovery',
+    );
+
+    for (final state in [
+      RunSessionState.uploaded,
+      RunSessionState.validating,
+      RunSessionState.settlementPending,
+      RunSessionState.validated,
+    ]) {
+      test(
+        'lost finalize response recovers $state without another upload',
+        () async {
+          await queueRecoveryRun();
+          runSessionApi.finalizeFailure = const RunStartRemoteException(
+            code: 'unavailable',
+            message: 'Response lost after server commit',
+          );
+          expect((await recover()).phase, RunSubmissionPhase.retryScheduled);
+          final before = await spoolStore.load(runSessionId: 'run_recovery');
+          expect(before!.uploadCompletedAtMs, isNotNull);
+          clock.advance(const Duration(seconds: 2));
+          runSessionApi.loadStatus = SubmissionStatus(
+            runSessionId: 'run_recovery',
+            state: state,
+            updatedAtMs: clock.now(),
+            reward: state == RunSessionState.validated
+                ? SubmissionReward(
+                    status: SubmissionRewardStatus.finalReward,
+                    provisionalGold: 11,
+                    effectiveGoldDelta: 11,
+                    spendableGoldDelta: 11,
+                    updatedAtMs: clock.now(),
+                    grantId: 'run_recovery',
+                  )
+                : null,
+          );
+          final recovered = await recover();
+          expect(recovered.serverStatus!.state, state);
+          expect(runSessionApi.grantRunSessionIds, ['run_recovery']);
+          expect(replayUploader.uploadedRunSessionIds, ['run_recovery']);
+          expect(runSessionApi.finalizeRunSessionIds, ['run_recovery']);
+          expect(
+            (await spoolStore.load(runSessionId: 'run_recovery'))!.step,
+            PendingRunSubmissionStep.awaitingServerStatus,
+          );
+          if (state == RunSessionState.validated) {
+            expect(recovered.isRewardFinal, isTrue);
+            await coordinator.acknowledgeFinalReward(
+              runSessionId: 'run_recovery',
+            );
+            expect(await spoolStore.loadAll(), isEmpty);
+          }
+        },
+      );
+    }
+
+    test(
+      'restart after upload resumes finalization using the saved object',
+      () async {
+        await queueRecoveryRun();
+        final queued = (await spoolStore.load(runSessionId: 'run_recovery'))!;
+        await spoolStore.upsert(
+          submission: queued.copyWith(
+            step: PendingRunSubmissionStep.finalizing,
+            uploadCompletedAtMs: clock.now(),
+            objectPath: 'saved/object/path',
+          ),
+        );
+        runSessionApi.loadStatus = SubmissionStatus(
+          runSessionId: 'run_recovery',
+          state: RunSessionState.uploading,
+          updatedAtMs: clock.now(),
+        );
+        final status = await recover();
+        expect(status.phase, RunSubmissionPhase.pendingValidation);
+        expect(runSessionApi.grantRunSessionIds, isEmpty);
+        expect(replayUploader.uploadedRunSessionIds, isEmpty);
+        expect(runSessionApi.finalizeObjectPaths, ['saved/object/path']);
+      },
+    );
+
+    test(
+      'malformed finalize response preserves ambiguous outcome for recovery',
+      () async {
+        await queueRecoveryRun();
+        runSessionApi.finalizeFailure = const FormatException(
+          'Truncated response',
+        );
+        expect((await recover()).phase, RunSubmissionPhase.retryScheduled);
+        expect(await spoolStore.load(runSessionId: 'run_recovery'), isNotNull);
+      },
+    );
+
+    test('failed recovery lookup preserves the upload and does not reissue a grant', () async {
+      await queueRecoveryRun();
+      runSessionApi.finalizeFailure = const RunStartRemoteException(
+        code: 'unavailable',
+      );
+      await recover();
+      clock.advance(const Duration(seconds: 2));
+      runSessionApi.loadStatusFailure = const RunStartRemoteException(
+        code: 'unavailable',
+      );
+      expect((await recover()).phase, RunSubmissionPhase.retryScheduled);
+      expect(runSessionApi.grantRunSessionIds, ['run_recovery']);
+      expect(replayUploader.uploadedRunSessionIds, ['run_recovery']);
+      expect(
+        (await spoolStore.load(runSessionId: 'run_recovery'))!
+            .uploadCompletedAtMs,
+        isNotNull,
+      );
+    });
+
     test('processRunSession uploads + finalizes and keeps non-terminal pending', () async {
       await coordinator.enqueueSubmission(
         userId: 'uid_1',
@@ -270,7 +395,7 @@ void main() {
       expect(status.phase, RunSubmissionPhase.retryScheduled);
       expect(
         status.nextRetryAtMs,
-        clock.now() + const Duration(seconds: 30).inMilliseconds,
+        clock.now() + const Duration(seconds: 2).inMilliseconds,
       );
 
       final pending = await spoolStore.load(runSessionId: 'run_3');
@@ -279,6 +404,30 @@ void main() {
       expect(pending.attemptCount, 1);
       expect(pending.lastErrorCode, 'unavailable');
     });
+
+    test(
+      'quota throttling retains a slower retry than a network failure',
+      () async {
+        await queueRecoveryRun();
+        runSessionApi.grantFailure = const RunStartRemoteException(
+          code: 'resource-exhausted',
+        );
+        final result = await recover();
+        expect(result.nextRetryAtMs, clock.now() + 30000);
+      },
+    );
+
+    test(
+      'expired authentication preserves the pending replay for renewed auth',
+      () async {
+        await queueRecoveryRun();
+        runSessionApi.grantFailure = const RunStartRemoteException(
+          code: 'unauthenticated',
+        );
+        expect((await recover()).phase, RunSubmissionPhase.retryScheduled);
+        expect(await spoolStore.load(runSessionId: 'run_recovery'), isNotNull);
+      },
+    );
 
     test('processRunSession marks non-retryable upload failures terminal', () async {
       await coordinator.enqueueSubmission(
@@ -412,9 +561,10 @@ void main() {
 class _FakeClock {
   _FakeClock({required int startMs}) : _nowMs = startMs;
 
-  final int _nowMs;
+  int _nowMs;
 
   int now() => _nowMs;
+  void advance(Duration duration) => _nowMs += duration.inMilliseconds;
 }
 
 class _FakeReplayUploader implements RunReplayUploader {
@@ -500,6 +650,9 @@ class _FakeRunSessionApi implements RunSessionApi {
     updatedAtMs: 0,
   );
   Object? grantFailure;
+  Object? finalizeFailure;
+  Object? loadStatusFailure;
+  final List<String> grantRunSessionIds = <String>[];
   final List<String> loadStatusRunSessionIds = <String>[];
   final List<String> finalizeRunSessionIds = <String>[];
   final List<String?> finalizeObjectPaths = <String?>[];
@@ -510,6 +663,7 @@ class _FakeRunSessionApi implements RunSessionApi {
     required String sessionId,
     required String runSessionId,
   }) async {
+    grantRunSessionIds.add(runSessionId);
     if (grantFailure != null) {
       throw grantFailure!;
     }
@@ -553,12 +707,14 @@ class _FakeRunSessionApi implements RunSessionApi {
   }) async {
     finalizeRunSessionIds.add(runSessionId);
     finalizeObjectPaths.add(objectPath);
+    if (finalizeFailure != null) throw finalizeFailure!;
     return SubmissionStatus(
       runSessionId: runSessionId,
       state: finalizeStatus.state,
       updatedAtMs: finalizeStatus.updatedAtMs,
       message: finalizeStatus.message,
       validatedRun: finalizeStatus.validatedRun,
+      reward: finalizeStatus.reward,
     );
   }
 
@@ -569,12 +725,14 @@ class _FakeRunSessionApi implements RunSessionApi {
     required String runSessionId,
   }) async {
     loadStatusRunSessionIds.add(runSessionId);
+    if (loadStatusFailure != null) throw loadStatusFailure!;
     return SubmissionStatus(
       runSessionId: runSessionId,
       state: loadStatus.state,
       updatedAtMs: loadStatus.updatedAtMs,
       message: loadStatus.message,
       validatedRun: loadStatus.validatedRun,
+      reward: loadStatus.reward,
     );
   }
 }

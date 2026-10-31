@@ -24,16 +24,29 @@ class SharedPrefsRunSubmissionSpoolStore implements RunSubmissionSpoolStore {
   static const String _entriesKey = 'run_submission_spool_v1_entries';
 
   final Future<SharedPreferences> Function() _prefsProvider;
+  Future<void> _pendingWrite = Future<void>.value();
+
+  // The persisted value contains every run; concurrent read-modify-writes must
+  // not let one run erase another. Failed writes do not poison later recovery.
+  Future<void> _mutate(Future<void> Function() operation) {
+    final next = _pendingWrite.then((_) => operation());
+    _pendingWrite = next.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return next;
+  }
 
   @override
-  Future<void> upsert({required PendingRunSubmission submission}) async {
-    final entries = await loadAll();
-    final mapBySession = <String, PendingRunSubmission>{
-      for (final entry in entries) entry.runSessionId: entry,
-    };
-    mapBySession[submission.runSessionId] = submission;
-    await _writeEntries(mapBySession.values.toList(growable: false));
-  }
+  Future<void> upsert({required PendingRunSubmission submission}) =>
+      _mutate(() async {
+        final entries = await _readEntries();
+        final mapBySession = <String, PendingRunSubmission>{
+          for (final entry in entries) entry.runSessionId: entry,
+        };
+        mapBySession[submission.runSessionId] = submission;
+        await _writeEntries(mapBySession.values.toList(growable: false));
+      });
 
   @override
   Future<PendingRunSubmission?> load({required String runSessionId}) async {
@@ -48,6 +61,11 @@ class SharedPrefsRunSubmissionSpoolStore implements RunSubmissionSpoolStore {
 
   @override
   Future<List<PendingRunSubmission>> loadAll() async {
+    await _pendingWrite;
+    return _readEntries();
+  }
+
+  Future<List<PendingRunSubmission>> _readEntries() async {
     final prefs = await _prefsProvider();
     final raw = prefs.getString(_entriesKey);
     if (raw == null || raw.trim().isEmpty) {
@@ -76,25 +94,29 @@ class SharedPrefsRunSubmissionSpoolStore implements RunSubmissionSpoolStore {
   }
 
   @override
-  Future<void> remove({required String runSessionId}) async {
-    final entries = await loadAll();
+  Future<void> remove({required String runSessionId}) => _mutate(() async {
+    final entries = await _readEntries();
     final next = entries
         .where((entry) => entry.runSessionId != runSessionId)
         .toList(growable: false);
     await _writeEntries(next);
-  }
+  });
 
   @override
-  Future<void> clear() async {
+  Future<void> clear() => _mutate(() async {
     final prefs = await _prefsProvider();
-    await prefs.remove(_entriesKey);
-  }
+    if (!await prefs.remove(_entriesKey)) {
+      throw StateError('Could not clear the run submission journal.');
+    }
+  });
 
   Future<void> _writeEntries(List<PendingRunSubmission> entries) async {
     final prefs = await _prefsProvider();
     final payload = jsonEncode(
       entries.map((entry) => entry.toJson()).toList(growable: false),
     );
-    await prefs.setString(_entriesKey, payload);
+    if (!await prefs.setString(_entriesKey, payload)) {
+      throw StateError('Could not persist the run submission journal.');
+    }
   }
 }

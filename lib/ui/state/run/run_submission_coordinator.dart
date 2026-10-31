@@ -1,6 +1,6 @@
 import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/submission_status.dart'
-    show SubmissionRewardStatus;
+    show RunSessionState, SubmissionRewardStatus, SubmissionStatus;
 
 import '../../run/run_reward_diagnostics.dart';
 import 'local_replay_artifact_store.dart';
@@ -72,6 +72,9 @@ class RunSubmissionCoordinator {
   }
 
   static const List<Duration> _defaultRetryBackoffSchedule = <Duration>[
+    Duration(seconds: 2),
+    Duration(seconds: 5),
+    Duration(seconds: 15),
     Duration(seconds: 30),
     Duration(minutes: 2),
     Duration(minutes: 5),
@@ -86,7 +89,6 @@ class RunSubmissionCoordinator {
     'invalid-argument',
     'failed-precondition',
     'permission-denied',
-    'unauthenticated',
     'not-found',
     'already-exists',
     'unimplemented',
@@ -240,49 +242,65 @@ class RunSubmissionCoordinator {
     }
 
     try {
-      pending = pending.copyWith(
-        step: PendingRunSubmissionStep.requestingUploadGrant,
-        updatedAtMs: _clock(),
-        nextAttemptAtMs: 0,
-        lastErrorCode: null,
-        lastErrorMessage: null,
-      );
-      await _persistSubmission(submission: pending);
-
-      final uploadGrant = await RunRewardDiagnostics.instance.measure(
-        runSessionId,
-        'upload_grant',
-        () => _runSessionApi.createUploadGrant(
+      // A timed-out call may already have committed. Reconcile before issuing a
+      // new grant, which is forbidden once the server has accepted the upload.
+      if (pending.step != PendingRunSubmissionStep.queued) {
+        final status = await _readServerStatus(
           userId: userId,
           sessionId: sessionId,
           runSessionId: runSessionId,
-        ),
-      );
+        );
+        if (status.state != RunSessionState.issued &&
+            status.state != RunSessionState.uploading) {
+          return await _receiveServerStatus(status, pending);
+        }
+      }
 
-      pending = pending.copyWith(
-        step: PendingRunSubmissionStep.uploading,
-        updatedAtMs: _clock(),
-        objectPath: uploadGrant.objectPath,
-      );
-      await _persistSubmission(submission: pending);
+      if (pending.uploadCompletedAtMs == null || pending.objectPath == null) {
+        pending = pending.copyWith(
+          step: PendingRunSubmissionStep.requestingUploadGrant,
+          updatedAtMs: _clock(),
+          nextAttemptAtMs: 0,
+          lastErrorCode: null,
+          lastErrorMessage: null,
+        );
+        await _persistSubmission(submission: pending);
 
-      await RunRewardDiagnostics.instance.measure(
-        runSessionId,
-        'upload',
-        () => _replayUploader.uploadReplay(
-          uploadGrant: uploadGrant,
-          replayArtifactId: pending.replayArtifactId,
-          contentLengthBytes: pending.contentLengthBytes,
-          contentType: pending.contentType,
-        ),
-      );
+        final uploadGrant = await RunRewardDiagnostics.instance.measure(
+          runSessionId,
+          'upload_grant',
+          () => _runSessionApi.createUploadGrant(
+            userId: userId,
+            sessionId: sessionId,
+            runSessionId: runSessionId,
+          ),
+        );
 
-      pending = pending.copyWith(
-        step: PendingRunSubmissionStep.finalizing,
-        updatedAtMs: _clock(),
-        uploadCompletedAtMs: _clock(),
-      );
-      await _persistSubmission(submission: pending);
+        pending = pending.copyWith(
+          step: PendingRunSubmissionStep.uploading,
+          updatedAtMs: _clock(),
+          objectPath: uploadGrant.objectPath,
+        );
+        await _persistSubmission(submission: pending);
+
+        await RunRewardDiagnostics.instance.measure(
+          runSessionId,
+          'upload',
+          () => _replayUploader.uploadReplay(
+            uploadGrant: uploadGrant,
+            replayArtifactId: pending.replayArtifactId,
+            contentLengthBytes: pending.contentLengthBytes,
+            contentType: pending.contentType,
+          ),
+        );
+
+        pending = pending.copyWith(
+          step: PendingRunSubmissionStep.finalizing,
+          updatedAtMs: _clock(),
+          uploadCompletedAtMs: _clock(),
+        );
+        await _persistSubmission(submission: pending);
+      }
 
       final submissionStatus = await RunRewardDiagnostics.instance.measure(
         runSessionId,
@@ -294,29 +312,13 @@ class RunSubmissionCoordinator {
           canonicalSha256: pending.canonicalSha256,
           contentLengthBytes: pending.contentLengthBytes,
           contentType: pending.contentType,
-          objectPath: uploadGrant.objectPath,
+          objectPath: pending.objectPath,
           provisionalSummary: pending.provisionalSummary,
         ),
       );
 
       if (submissionStatus.isTerminal) {
-        if (submissionStatus.reward?.status ==
-            SubmissionRewardStatus.finalReward) {
-          await _persistSubmission(
-            submission: pending.copyWith(
-              step: PendingRunSubmissionStep.awaitingServerStatus,
-              updatedAtMs: _clock(),
-              finalizedAtMs: _clock(),
-            ),
-          );
-        } else {
-          await _removeSubmission(runSessionId: runSessionId);
-        }
-        return RunSubmissionStatus.fromServerStatus(
-          submissionStatus,
-          nowMs: _clock(),
-          verificationDelayedThresholdMs: verificationDelayedThresholdMs,
-        );
+        return await _receiveServerStatus(submissionStatus, pending);
       }
 
       pending = pending.copyWith(
@@ -342,7 +344,11 @@ class RunSubmissionCoordinator {
         'retryable': _isRetryableError(error),
       });
       final failedAtMs = _clock();
-      if (!_isRetryableError(error)) {
+      // Malformed/missing finalize responses cannot prove a failed commit.
+      // Keep the receipt until the server answers authoritatively on recovery.
+      final ambiguousFinalization =
+          pending.uploadCompletedAtMs != null && error is FormatException;
+      if (!_isRetryableError(error) && !ambiguousFinalization) {
         await _removeSubmission(runSessionId: runSessionId);
         return RunSubmissionStatus(
           runSessionId: runSessionId,
@@ -352,8 +358,17 @@ class RunSubmissionCoordinator {
         );
       }
       final nextAttempt = pending.attemptCount + 1;
-      final retryAtMs =
-          failedAtMs + retryDelayForAttempt(nextAttempt).inMilliseconds;
+      var delay = retryDelayForAttempt(nextAttempt);
+      // A quota response is different from a dropped connection: short network
+      // retries must not turn server throttling into more quota pressure.
+      final throttled =
+          error is RunStartRemoteException &&
+              error.code == 'resource-exhausted' ||
+          error is RunReplayUploadException && error.statusCode == 429;
+      if (throttled && delay < const Duration(seconds: 30)) {
+        delay = const Duration(seconds: 30);
+      }
+      final retryAtMs = failedAtMs + delay.inMilliseconds;
       final failedPending = pending.copyWith(
         step: PendingRunSubmissionStep.retryScheduled,
         updatedAtMs: failedAtMs,
@@ -468,7 +483,19 @@ class RunSubmissionCoordinator {
     required String runSessionId,
     required PendingRunSubmission? pendingSubmission,
   }) async {
-    final nowMs = _clock();
+    final status = await _readServerStatus(
+      userId: userId,
+      sessionId: sessionId,
+      runSessionId: runSessionId,
+    );
+    return _receiveServerStatus(status, pendingSubmission);
+  }
+
+  Future<SubmissionStatus> _readServerStatus({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+  }) async {
     final status = await RunRewardDiagnostics.instance.measure(
       runSessionId,
       'status_poll',
@@ -482,9 +509,31 @@ class RunSubmissionCoordinator {
       'state': status.state.name,
       'reward': status.reward?.status.name,
     });
+    if (status.runSessionId != runSessionId) {
+      throw const FormatException('Submission status belongs to another run.');
+    }
+    return status;
+  }
+
+  Future<RunSubmissionStatus> _receiveServerStatus(
+    SubmissionStatus status,
+    PendingRunSubmission? pendingSubmission,
+  ) async {
+    final nowMs = _clock();
+    final runSessionId = status.runSessionId;
     if (status.isTerminal) {
       if (status.reward?.status != SubmissionRewardStatus.finalReward) {
         await _removeSubmission(runSessionId: runSessionId);
+      } else if (pendingSubmission != null) {
+        await _persistSubmission(
+          submission: pendingSubmission.copyWith(
+            step: PendingRunSubmissionStep.awaitingServerStatus,
+            updatedAtMs: nowMs,
+            nextAttemptAtMs: 0,
+            lastErrorCode: null,
+            lastErrorMessage: null,
+          ),
+        );
       }
       return RunSubmissionStatus.fromServerStatus(
         status,
