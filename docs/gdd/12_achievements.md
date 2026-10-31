@@ -70,7 +70,9 @@ Claim is hidden when no earned reward is available. After the final threshold,
 the row shows Completed and keeps Claim until all rewards are collected. The
 expanded history then shows Claimed; there is no persistent disabled Claimed
 button. Unclaimed rewards do not expire. Opening the menu refreshes confirmed
-progress, and a manual refresh control is available.
+progress. While the menu is open, verified run results automatically update
+progress and claim actions, including runs that earn no gold. There is no manual
+refresh control.
 
 ## Future design
 

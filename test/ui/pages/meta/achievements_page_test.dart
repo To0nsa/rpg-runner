@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:run_protocol/submission_status.dart';
 import 'package:rpg_runner/ui/app/ui_router.dart';
 import 'package:rpg_runner/ui/components/attention_marker.dart';
 import 'package:rpg_runner/ui/pages/achievements/achievement_claim_action.dart';
@@ -16,6 +17,9 @@ import 'package:rpg_runner/ui/pages/town/town_page.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/ownership/achievement_progress.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
+import 'package:rpg_runner/ui/state/run/run_session_api.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
 import 'package:rpg_runner/ui/theme/ui_theme.dart';
 
 import '../../../support/achievement_fixtures.dart';
@@ -24,6 +28,72 @@ const _capture = bool.fromEnvironment('CAPTURE_ACHIEVEMENTS');
 final _boundary = GlobalKey();
 
 void main() {
+  testWidgets('verified progress updates the open hall without a refresh tap', (
+    tester,
+  ) async {
+    final api = AchievementTestApi(achievementCanonical('empty'));
+    var ownershipReads = 0;
+    api.onLoad = () async {
+      ownershipReads += 1;
+      return api.canonical;
+    };
+    final source = _TestCompletionSource();
+    final app = AppState(
+      authApi: AchievementTestAuth(),
+      loadoutOwnershipApi: api,
+      runSessionApi: _PendingRunSessionApi(),
+      runCompletionSource: source,
+      runSubmissionSpoolStore: _EmptySpool(),
+    );
+    addTearDown(() async {
+      app.dispose();
+      await source.controller.close();
+    });
+    await app.bootstrap();
+    await tester.pumpWidget(_host(app));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Refresh achievements'), findsNothing);
+    expect(find.byType(AchievementClaimAction), findsNothing);
+    expect(find.text('0 runs / 1 run'), findsOneWidget);
+    await tester.tap(find.text('First Steps'));
+    await tester.pumpAndSettle();
+    final readsBeforeCompletion = ownershipReads;
+
+    app.setRunSubmissionForeground(true);
+    await app.refreshRunSubmissionStatus(runSessionId: 'achievement_run');
+    expect(source.controller.hasListener, isTrue);
+    expect(app.progression.achievements.hasRewards, isFalse);
+    source.controller.add(
+      RunSubmissionResponse(
+        SubmissionStatus(
+          runSessionId: 'achievement_run',
+          state: RunSessionState.validated,
+          updatedAtMs: 2000,
+          reward: SubmissionReward(
+            status: SubmissionRewardStatus.finalReward,
+            provisionalGold: 0,
+            effectiveGoldDelta: 0,
+            spendableGoldDelta: 0,
+            updatedAtMs: 2000,
+            grantId: 'achievement_run',
+          ),
+        ),
+        canonical: achievementCanonical('earned', revision: 2),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 run / 10 runs'), findsOneWidget);
+    expect(find.text('Claim all'), findsOneWidget);
+    expect(find.byKey(const ValueKey('claim-firstSteps')), findsOneWidget);
+    expect(find.text('Bronze'), findsOneWidget);
+    expect(find.text('Achieved 30 Oct 2026 (UTC)'), findsOneWidget);
+    expect(app.progression.gold, 0);
+    expect(app.latestVerifiedReward?.runSessionId, 'achievement_run');
+    expect(ownershipReads, readsBeforeCompletion);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('expanded history is scoped to the current account', (
     tester,
   ) async {
@@ -190,6 +260,43 @@ void main() {
       await _screenshot(tester, 'expanded-${size.width.toInt()}');
     });
   }
+}
+
+class _TestCompletionSource implements RunCompletionSource {
+  final controller = StreamController<RunSubmissionResponse>.broadcast();
+
+  @override
+  Stream<RunSubmissionResponse> watch({
+    required String userId,
+    required String runSessionId,
+  }) => controller.stream;
+}
+
+class _PendingRunSessionApi extends NoopRunSessionApi {
+  @override
+  Future<RunSubmissionResponse> loadSubmissionStatus({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+  }) async => RunSubmissionResponse(
+    SubmissionStatus(
+      runSessionId: runSessionId,
+      state: RunSessionState.pendingValidation,
+      updatedAtMs: 1000,
+    ),
+  );
+}
+
+class _EmptySpool extends Fake implements RunSubmissionSpoolStore {
+  @override
+  Future<List<PendingRunSubmission>> loadAll() async => [];
+
+  @override
+  Future<PendingRunSubmission?> load({required String runSessionId}) async =>
+      null;
+
+  @override
+  Future<void> remove({required String runSessionId}) async {}
 }
 
 Future<AppState> _boot({AchievementTestApi? api}) async {

@@ -118,6 +118,12 @@ command ID. Older responses cannot regress the current canonical revision.
 Account generations, UID checks, disposal and accepted deletion fence late writes.
 Refreshes coalesce; selection projection is reconciled through the existing outbox.
 
+Hall of Honour observes `AppState` and refreshes canonical ownership on entry.
+While open, it receives achievement changes through the app-owned run completion
+flow: confirmed receipts apply the full canonical state, with legacy status
+responses falling back to an ownership read. Final zero-gold rewards use the
+same path. The page has no manual refresh control or separate polling loop.
+
 `/meta/town/hall-of-honour` uses existing menu layout, buttons, gold display and
 theme tokens. `AchievementPresentation` holds labels, icons, units and UTC date
 formatting. Rows have account-scoped expansion state. `ProgressMeter` and

@@ -41,7 +41,8 @@ class _AchievementsPageState extends State<AchievementsPage> {
     } catch (_) {
       if (mounted && app.authSession.userId == uid) {
         setState(
-          () => _error = 'Unable to refresh achievements. Please try again.',
+          () => _error =
+              'Unable to load achievements. Reopen this page to retry.',
         );
       }
     } finally {
@@ -84,38 +85,30 @@ class _AchievementsPageState extends State<AchievementsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Wrap(
-                alignment: WrapAlignment.end,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: ui.space.sm,
-                runSpacing: ui.space.xs,
-                children: [
-                  if (progress.entries
-                          .where((entry) => entry.claimableGold > 0)
-                          .length >
-                      1)
-                    AchievementClaimAction(
-                      all: true,
-                      gold: progress.claimableGold,
-                      onPressed: app.achievementsClaiming
-                          ? null
-                          : () => _claim(null),
-                    ),
-                  IconButton(
-                    tooltip: 'Refresh achievements',
-                    onPressed: _refreshing || !app.achievementsAvailable
+              if (progress.entries
+                      .where((entry) => entry.claimableGold > 0)
+                      .length >
+                  1) ...[
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: AchievementClaimAction(
+                    all: true,
+                    gold: progress.claimableGold,
+                    onPressed: app.achievementsClaiming
                         ? null
-                        : _refresh,
-                    icon: const Icon(Icons.refresh),
+                        : () => _claim(null),
                   ),
-                ],
-              ),
-              if (_error != null)
-                Text(
-                  _error!,
-                  style: ui.text.body.copyWith(color: ui.colors.danger),
                 ),
-              SizedBox(height: ui.space.sm),
+                SizedBox(height: ui.space.sm),
+              ],
+              if (_error != null)
+                Padding(
+                  padding: EdgeInsets.only(bottom: ui.space.sm),
+                  child: Text(
+                    _error!,
+                    style: ui.text.body.copyWith(color: ui.colors.danger),
+                  ),
+                ),
               if (!app.achievementsAvailable)
                 Text(
                   'Achievements are unavailable in Developer Practice.',
@@ -125,7 +118,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                 Text(
                   _refreshing
                       ? 'Loading achievements…'
-                      : 'Achievements are not available yet. Try refreshing.',
+                      : 'Achievements are not available yet.',
                   style: ui.text.body,
                 )
               else
