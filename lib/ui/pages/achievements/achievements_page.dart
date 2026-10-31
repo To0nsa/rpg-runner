@@ -71,6 +71,12 @@ class _AchievementsPageState extends State<AchievementsPage> {
     final progress = app.progression.achievements;
     return MenuScaffold(
       title: 'Hall of Honour',
+      appBarActions: [
+        Padding(
+          padding: EdgeInsets.only(right: ui.space.md),
+          child: GoldDisplay(gold: app.displayedGold),
+        ),
+      ],
       child: MenuLayout(
         maxWidth: 1000,
         child: KeyedSubtree(
@@ -79,16 +85,11 @@ class _AchievementsPageState extends State<AchievementsPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Wrap(
-                alignment: WrapAlignment.spaceBetween,
+                alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: ui.space.sm,
                 runSpacing: ui.space.xs,
                 children: [
-                  GoldDisplay(
-                    gold: app.displayedGold,
-                    label: 'Current Gold',
-                    variant: GoldDisplayVariant.headline,
-                  ),
                   if (progress.entries
                           .where((entry) => entry.claimableGold > 0)
                           .length >

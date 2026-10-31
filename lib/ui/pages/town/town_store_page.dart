@@ -92,13 +92,18 @@ class _TownStorePageState extends State<TownStorePage> {
 
     return MenuScaffold(
       title: 'Town Store',
+      appBarActions: [
+        Padding(
+          padding: EdgeInsets.only(right: context.ui.space.md),
+          child: GoldDisplay(gold: displayedGold),
+        ),
+      ],
       child: MenuLayout(
         maxWidth: 1200,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TownStoreCard(
-              gold: displayedGold,
               refreshesRemaining: refreshesRemaining,
               inFlight: _refreshInFlight,
               canRefresh: canRefreshForGold,

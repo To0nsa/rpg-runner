@@ -17,6 +17,7 @@ class MenuScaffold extends StatelessWidget {
     this.background,
     this.title,
     this.appBarTitle,
+    this.appBarActions,
     this.centerAppBarTitle = false,
     this.showAppBar = true,
     this.useBodySafeArea = false,
@@ -36,6 +37,9 @@ class MenuScaffold extends StatelessWidget {
   ///
   /// If provided, this takes precedence over [title].
   final Widget? appBarTitle;
+
+  /// Widgets at the trailing edge of the AppBar, after the title.
+  final List<Widget>? appBarActions;
 
   /// Whether the AppBar title should be centered.
   ///
@@ -60,6 +64,7 @@ class MenuScaffold extends StatelessWidget {
     final scaffoldAppBar = showAppBar
         ? AppBar(
             title: resolvedTitle,
+            actions: appBarActions,
             backgroundColor: Colors.transparent,
             surfaceTintColor: Colors.transparent,
             shadowColor: Colors.transparent,

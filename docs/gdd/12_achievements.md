@@ -46,6 +46,9 @@ total can differ from the ungated lifetime Profile total.
 
 ## Menu and claims
 
+The gold balance appears at the far right of the app bar as a number and coin
+icon, without a label.
+
 Collapsed rows show the name, next unreached requirement, current progress and
 that next tier's gold reward. They hide the other thresholds and tier names.
 An earned but unclaimed tier does not block progress toward later tiers: at

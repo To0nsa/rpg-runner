@@ -49,7 +49,7 @@ void main() {
           find.byWidgetPredicate(
             (w) =>
                 w is GoldDisplay &&
-                w.label == 'Current Gold' &&
+                w.label == null &&
                 w.gold == confirmedGold + earnedGold,
           ),
           findsOneWidget,
@@ -138,7 +138,14 @@ void main() {
     await tester.pumpWidget(_TestApp(appState: appState));
 
     expect(find.text('Town Store'), findsOneWidget);
-    expect(find.text('Current Gold'), findsOneWidget);
+    expect(find.text('Current Gold'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(GoldDisplay),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Store refreshes left: 3'), findsOneWidget);
     expect(find.text('Waspfang'), findsOneWidget);
     expect(find.text('150'), findsOneWidget);
@@ -190,7 +197,7 @@ void main() {
         find.byWidgetPredicate(
           (widget) =>
               widget is GoldDisplay &&
-              widget.label == 'Current Gold' &&
+              widget.label == null &&
               widget.gold == 300 &&
               widget.variant == GoldDisplayVariant.headline,
         ),

@@ -10,13 +10,17 @@ import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 
 import '../../components/app_button.dart';
+
 import 'package:game_presentation/game_icon.dart';
+
 import '../../components/gold_display.dart';
 import '../../state/ownership/progression_state.dart';
 import '../../text/ability_tooltip_builder.dart';
 import '../../text/ability_tooltip_context_helper.dart';
+
 import 'package:game_presentation/ability_text.dart';
 import 'package:game_presentation/gear_text.dart';
+
 import '../../text/semantic_text.dart';
 import '../../theme/ui_tokens.dart';
 import '../../theme/ui_town_store_theme.dart';
@@ -26,7 +30,6 @@ import '../selectCharacter/gear/gear_stats_presenter.dart';
 class TownStoreCard extends StatefulWidget {
   const TownStoreCard({
     super.key,
-    required this.gold,
     required this.refreshesRemaining,
     required this.inFlight,
     required this.canRefresh,
@@ -39,7 +42,6 @@ class TownStoreCard extends StatefulWidget {
     required this.onConfirmPurchase,
   });
 
-  final int gold;
   final int refreshesRemaining;
   final bool inFlight;
   final bool canRefresh;
@@ -87,38 +89,21 @@ class _TownStoreCardState extends State<TownStoreCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: ui.space.md,
-              runSpacing: ui.space.sm,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                GoldDisplay(
-                  gold: widget.gold,
-                  label: 'Current Gold',
-                  variant: GoldDisplayVariant.headline,
+                Flexible(
+                  child: Text(
+                    'Store refreshes left: ${widget.refreshesRemaining}',
+                    style: ui.text.body.copyWith(color: ui.colors.textMuted),
+                  ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Store refreshes left: ${widget.refreshesRemaining}',
-                        style: ui.text.body.copyWith(
-                          color: ui.colors.textMuted,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: ui.space.sm),
-                    AppButton(
-                      label: widget.inFlight ? 'Refreshing...' : 'Refresh',
-                      variant: AppButtonVariant.secondary,
-                      size: AppButtonSize.xxs,
-                      onPressed: widget.canRefresh
-                          ? widget.onRefreshPressed
-                          : null,
-                    ),
-                  ],
+                SizedBox(width: ui.space.sm),
+                AppButton(
+                  label: widget.inFlight ? 'Refreshing...' : 'Refresh',
+                  variant: AppButtonVariant.secondary,
+                  size: AppButtonSize.xxs,
+                  onPressed: widget.canRefresh ? widget.onRefreshPressed : null,
                 ),
               ],
             ),

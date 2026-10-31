@@ -13,8 +13,9 @@ northeastern courtyard complex. Hall of Honour points to the southern courtyard
 building and hosts achievement claims. These are game navigation placements.
 Back from each service returns to Town.
 
-The Store retains its earned-gold offers and refresh rules. The Library is
-free to browse; discoveries cannot be purchased.
+The Store retains its earned-gold offers and refresh rules. Its gold balance
+appears at the far right of the app bar as a number and coin icon, without a label.
+The Library is free to browse; discoveries cannot be purchased.
 
 ## Discoveries
 
