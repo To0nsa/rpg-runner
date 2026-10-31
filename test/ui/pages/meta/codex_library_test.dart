@@ -495,6 +495,9 @@ class _CodexAppState extends ChangeNotifier implements AppState {
   @override
   ProgressionState progression = ProgressionState.initial;
 
+  @override
+  int get displayedGold => progression.gold;
+
   void setProgress(CodexProgress codex) {
     progression = progression.copyWith(codex: codex);
     notifyListeners();

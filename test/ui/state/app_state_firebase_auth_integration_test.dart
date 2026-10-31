@@ -234,7 +234,7 @@ void main() {
   });
 
   test(
-    'session change causes stale write once then AppState recovers',
+    'session change resets ownership revision before the new account write',
     () async {
       final now = DateTime.utc(2026, 3, 10, 12);
       final userA = _snapshot(
@@ -278,7 +278,19 @@ void main() {
       );
 
       expect(appState.authSession.userId, 'user_b');
-      expect(appState.ownershipRevision, 0);
+      expect(appState.ownershipRevision, 1);
+      expect(
+        appState.selection
+            .loadoutFor(appState.selection.selectedCharacterId)
+            .projectileSlotSpellId,
+        ProjectileId.holyBolt,
+      );
+
+      await appState.setLoadout(
+        const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.acidBolt),
+      );
+
+      expect(appState.ownershipRevision, 2);
       expect(
         appState.selection
             .loadoutFor(appState.selection.selectedCharacterId)
@@ -286,14 +298,14 @@ void main() {
         ProjectileId.acidBolt,
       );
 
-      await appState.setLoadout(
-        const EquippedLoadoutDef(projectileSlotSpellId: ProjectileId.holyBolt),
+      final userACanonical = await ownershipApi.loadCanonicalState(
+        userId: 'user_a',
+        sessionId: 'token_user_a',
       );
-
-      expect(appState.ownershipRevision, 1);
+      expect(userACanonical.revision, 1);
       expect(
-        appState.selection
-            .loadoutFor(appState.selection.selectedCharacterId)
+        userACanonical.selection
+            .loadoutFor(userACanonical.selection.selectedCharacterId)
             .projectileSlotSpellId,
         ProjectileId.holyBolt,
       );
