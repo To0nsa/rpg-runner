@@ -67,28 +67,36 @@ manifest SHA-256 `6f65c41f501cc9618ecefd8ae3349d037656aacb567935ab81268f8639a812
 The producer verified/reused all 3,750 graphs and built none.
 Completed preparation and unfinished-ticket review are recorded in
 [the eligibility release evidence](../verification/achievements-eligibility-dev-2026-10-31.md).
-The owner separately approved cancelling exactly the three reviewed unsubmitted
-tickets, accepting invalidation of any offline runs using them while preserving
-existing gold, XP and achievements. No other run cancellation is authorized.
-Two additional tickets appeared at 20:42 and 21:04 Helsinki time. The latter
-has an upload lease, but neither has an uploaded replay, validation or grant.
-Separate approval for both additions is pending. The final 19:58:20 UTC review
-still found the same five unfinished sessions. Issuance remains open, and no
-tickets have been cancelled. Preparation and image verification are complete;
-reuse their evidence from the frozen candidate when cutover can proceed.
+The owner separately approved cancelling the original three reviewed tickets,
+then both additional tickets at 20:42 and 21:04 Helsinki time, accepting
+invalidation of unsubmitted runs while preserving existing gold, XP and
+achievements. Only these five exact IDs are authorized. The 21:26:11 UTC review
+confirmed the same five unfinished sessions without uploaded replays,
+validations or grants. The fifth ticket's upload lease expired at 19:19:09 UTC.
+Preparation and image verification passed using the frozen candidate and its
+existing evidence.
+During the pause, the fifth ticket was submitted and validated at 21:26:59 UTC.
+Its completed run and reward were preserved. The other four approved tickets
+were cancelled at 21:29:07 UTC under the environment lock; verification found
+all sessions terminal and existing rewards/profiles unchanged. Coordinated
+deployment completed at 21:36:28 UTC and issuance resumed at 21:40:54 UTC.
+The published web hash matches the prepared artifact; the release baseline and
+source-bound maintenance record were completed normally.
 
 - [x] Update settlement, per-achievement UI descriptions and GDD/TDD contracts.
 - [x] Validate the updated backend and client locally.
 - [x] Freeze the authorized source and verify the canonical release plan.
 - [x] Complete required release preparation, reusing unchanged component evidence.
 - [x] Verify/reuse the immutable worker image and inspect current live state.
-- [ ] Pause issuance, review the drained inventory, deploy and resume issuance.
-- [ ] Verify live artifacts, ready services, indexes, queues and boards.
+- [x] Pause issuance, review the drained inventory, deploy and resume issuance.
+- [x] Verify live artifacts, ready services, indexes, queues and boards.
 - [ ] Verify short-run, manual-quit and First Steps boundary behavior through
       signed-in gameplay on the updated client.
 
-The revised policy is not deployed; the preceding release evidence covers the
-earlier policy only.
+The revised policy is deployed to the dev backend and web host. No Android
+artifact was installed for this candidate; signed-in device acceptance remains
+open. The completed fifth ticket settled before the new backend rollout and
+does not establish acceptance of the revised eligibility policy.
 
 Local validation on October 31, against the eligibility implementation and tests
 in this change, from the repository root:
@@ -105,4 +113,5 @@ in this change, from the repository root:
 
 The initial sandbox Firebase launch failed on user-configuration access, and the
 Flutter launch stalled; successful checks used approved local tooling access.
-No live backend, deployment or device acceptance was performed for this policy.
+These initial checks were local. Live deployment and health checks are recorded
+above and in the linked evidence; device acceptance remains unverified.

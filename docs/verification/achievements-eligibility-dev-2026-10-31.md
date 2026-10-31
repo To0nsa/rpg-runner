@@ -1,10 +1,11 @@
 # Achievement eligibility dev release, October 31, 2026
 
-Status: canonical preparation and worker-image verification passed.
-Cutover awaits a decision on two additional unfinished tickets. No cancellation
-or deployment has been performed.
-The owner authorized dev deployment ("ok deploy") and then explicitly approved
-cancelling only the three reviewed unfinished tickets below and deploying.
+Status: dev backend/web deployment completed and issuance resumed at
+21:40:54 UTC. Signed-in device acceptance remains open.
+The owner authorized dev deployment ("ok deploy"), the
+original three reviewed ticket cancellations, and then both additional tickets
+("Cancel both additional tickets and deploy"). Only the five exact IDs below
+are authorized for cancellation.
 
 ## Candidate and scope
 
@@ -119,12 +120,12 @@ Absence of uploaded data does not establish absence of an offline device run.
 Cancellation approval was requested for these three tickets only, explaining
 that any unsubmitted runs using them become invalid while existing account
 gold, XP and achievements are preserved. The owner answered "Cancel these three
-tickets and deploy". No cancellation has been performed yet.
+tickets and deploy".
 The 18:59:02 UTC recheck found a fourth issued ticket,
 `run_eea5191e43a5b2302daef5637aafbf438e5a41e5`, created at 18:42:51 UTC.
 It also has no uploaded replay, validation or grant. Separate cancellation
-authorization was requested; the original approval and helper still cover
-only the initial three tickets.
+authorization was requested because the original approval covered only the
+initial three tickets.
 Canonical Inspect at 19:37:42 UTC found 31 sessions: 13 validated, 12 cancelled,
 one expired, four issued and one uploading. All 13 grants remain settled;
 canonical gold is 3,199 and all three current boards are active. The 19:40:05 UTC
@@ -132,14 +133,16 @@ read-only follow-up identified the uploading session as
 `run_55f75785ad2692d952654a5b2f5d5be06ef4efeb`, created at 19:04:01 UTC.
 It has an upload lease but no replay object, validation or reward grant. The
 owner was asked to approve both additions (20:42 and 21:04 Helsinki time),
-replacing the earlier fourth-ticket-only question. Approval is pending; no
-cancellation or cutover has been performed. `active-review.json` retains the
-bounded read-only evidence. The cancellation helper still authorizes only the
-original three IDs and will reject the expanded active set.
-The final 19:58:20 UTC read-only check confirmed the same five IDs, states and
+replacing the earlier fourth-ticket-only question. The owner subsequently
+approved both additions and deployment. The helper was expanded to exactly
+those five IDs before cutover; the final four-ticket set is described below.
+`active-review.json`
+retains the bounded read-only evidence.
+The 19:58:20 UTC read-only check confirmed the same five IDs, states and
 absence of uploaded replay objects, accepted validations and reward grants.
-Issuance remains open. The prepared release state has `prepared: true` and
-`imageVerified: true`, with pause/deployment/resume timestamps all null.
+At that time issuance remained open; the prepared release state had
+`prepared: true` and `imageVerified: true`, with pause/deployment/resume
+timestamps all null.
 The same live inspection found all 35 Functions ACTIVE, worker revision
 `replay-validator-00064-nxw` ready with 100% traffic, and all three task queues
 RUNNING. These are the preceding deployment's identities, not proof that the
@@ -148,7 +151,78 @@ The bounded helper reuses the earlier guarded cancellation procedure, binds the
 exact candidate/digest and ticket set, requires a healthy paused issuer and
 source-bound cutover ownership, rechecks absent evidence, uses transaction and
 update-time preconditions, and verifies protected-account/reward hashes.
+The 21:26:11 UTC review reconfirmed the same five IDs and absent submitted
+evidence. The fifth ticket's original upload lease expired at 19:19:09.230 UTC.
 
-Read-only evidence and the prepared helper are retained under
+## Authorized cutover
+
+Commands run from the frozen candidate unless otherwise specified. All stages
+use explicit `-Environment dev`, the canonical release entry point and the
+source-bound maintenance record.
+
+- `-Action PauseIssuance`: passed. Revision `runsessioncreate-00090-gls` was
+  healthy, serving 100% traffic with the `release-paused` gate. Queues stayed
+  running while existing work drained.
+- During the pause, the fifth ticket renewed its upload lease, submitted its
+  replay and completed validation at 21:26:59.896 UTC. The five-ticket read-only
+  cancellation guard rejected the changed set before any cancellation. The
+  subsequent live review confirmed the accepted replay and reward. This
+  completed ticket was excluded from cancellation and included in protected
+  data hashes; its run and earned reward are preserved.
+- The helper's revised exact set is the original three tickets plus
+  `run_eea5191e43a5b2302daef5637aafbf438e5a41e5`. Read-only review at 21:28:32 UTC
+  confirmed all four still issued, without leases, uploaded replays, validations
+  or rewards; the fifth remained validated. There were 31 sessions and 14 each
+  of validation and reward documents.
+- From the main repository, the guarded helper ran `-Action inspect`, then
+  `-Action apply -OwnerApproved`, then `-Action verify`. Cancellation committed
+  at 21:29:07.338911 UTC under the environment mutation lock. Exactly four
+  sessions changed, limited to state, update/terminal timestamps, message and
+  null next-validation-attempt time. All sessions were terminal afterward.
+  Hash verification confirmed every other session, all accepted validations,
+  reward grants, ownership profiles and player profiles unchanged.
+- Reviewed candidate-set SHA-256:
+  `36714c4ad06d96dc8bff772d11940e6d7444f752e4eb5dd69dc3a81429e5ca6f`.
+  `cancellation-plan.json`, `cancellation-result.json` and
+  `cancellation-verified.json` retain the bounded operation evidence.
+- The canonical pre-deployment inventory at 21:30:07 UTC passed drain checks:
+  31 terminal sessions (14 validated, 16 cancelled, one expired), 14 settled
+  grants, no pending/quarantined settlement or identity mismatches, and all
+  three current boards active. Canonical gold is 3,213; settled grant gold totals
+  163. The increase of 14 from the earlier inventory is the fifth ticket's
+  naturally completed reward, not a cancellation adjustment.
+- `-Action Deploy -CutoverReady`: passed at 21:36:28 UTC. All 34 targeted
+  Functions updated successfully at 21:33:47 UTC; `runSessionCreate` stayed
+  excluded. Firestore rules/indexes and private invocation checks passed.
+  Worker configuration completed at 21:36:00 UTC with revision
+  `replay-validator-00065-9cx` serving 100% traffic on the verified image.
+  Hosting published the prepared 4,487-file web artifact at 21:36:28 UTC.
+- Post-deployment canonical `-Action Inspect` at 21:37:01 UTC confirmed the same
+  terminal session/settlement totals, canonical gold and three active current
+  boards, with no identity mismatch or pending/quarantined settlement.
+- `-Action ResumeIssuance -CutoverReady`: passed; issuance resumed at
+  21:40:54.194 UTC. The live worker digest and Hosting JavaScript hash matched
+  the prepared artifacts. Both replay queues resumed, `runSessionCreate`
+  deployed, and the temporary pause override was removed. The final baseline
+  checks passed; the source-bound maintenance record and mutation lock were
+  released normally. The frozen checkout remains clean.
+- Downloaded Hosting `main.dart.js` SHA-256:
+  `42ba194c249bcc8efd2b42dd8c038a7843ff8d74618d663175268ec5735facec`,
+  matching preparation. Dev host: <https://rpg-runner-d7add.web.app>.
+- Final read-only verification at 21:41:47 UTC (`verify-live.ps1` from the main
+  repository) passed: all 35 Functions ACTIVE, all 12 composite indexes READY,
+  and `replay-validation`, `replay-projection` and `runPendingWork` RUNNING.
+  Worker revision `replay-validator-00065-9cx` and issuer revision
+  `runsessioncreate-00092-gb9` are Ready and each serve 100% traffic. The issuer
+  has no temporary compatibility override. `final-health.json` records the
+  bounded live readback.
+
+Signed-in short-run/manual-quit boundary checks and achievement menu/claim
+acceptance remain unrun on the updated client. No native artifact was installed.
+The fifth ticket completed against the preceding backend before rollout, so it
+is preservation evidence, not acceptance of the new policy. No historical
+achievement progress was backfilled.
+
+Read-only checks, cancellation evidence and the operator helpers are retained under
 `.tmp/achievements-deploy-20261031/`. The active checklist is
 [Hall of Honour dev release](../building/achievements_dev_release.md).
