@@ -17,12 +17,15 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   qualifying verified runs, expandable completion dates and direct gold claims
   in the selected Town building; [technical contract](tdd/achievements.md).
   [Deployed to dev](verification/achievements-dev-2026-10-30.md); Android build 4
-  is verified and ready to install. Live device acceptance remains pending.
+  is verified on the phone. Live achievement-menu/claim acceptance remains pending.
 - [Player progression](gdd/player_progression.md): account level and lifetime
   combat stats; [implementation contract](tdd/player_progression.md).
 - [Prepared navigation and reward completion](tdd/prepared_navigation.md): trusted
   graph packs, curated Practice routes, on-demand verification and app-owned
   wallet catch-up; [remaining rollout gates](building/reward_verification_latency.md).
+  [October 31 phone measurement](verification/reward-latency-phone-2026-10-31.md):
+  complete traces for two dev runs, account paint at 12.569/4.382 seconds,
+  serial callable cold starts identified and once-only gold/XP verified.
 - [Current implementation plans](building/README.md): Android beta/backend
   isolation, reward verification latency and NPC rescue production smoke.
 - [Android beta release plan](building/android_beta_release.md): existing project
@@ -33,7 +36,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Latest dev app release](verification/achievements-dev-2026-10-30.md): source
   `8a094efb` deployed to dev with Hall of Honour achievements, reusing the worker
   image, navigation graphs and six unchanged validation components. Android
-  build 4 is verified; installation and live gameplay smoke await the phone.
+  build 4 is verified on the phone with two accepted runs; live achievement
+  completion-date and claim smoke remains open.
 - [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
   lifecycle/input fixes, event-retention cleanup, full local checks and 18
   mixed-input replay cases pass. Finalized authoring is deployed in `2026.10.7`;

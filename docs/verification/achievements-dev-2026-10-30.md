@@ -1,8 +1,9 @@
 # Hall of Honour dev deployment
 
 Release requested on 2026-10-30. Status: dev deployment and live infrastructure
-verification complete; issuance and both replay queues restored. Device
-installation and gameplay acceptance remain pending. Follow the
+verification complete; issuance and both replay queues restored. October 31
+follow-up verified installed APK 4 and two natural runs; achievement-menu/claim
+acceptance remains pending. Follow the
 [release checklist](../building/achievements_dev_release.md).
 
 ## Source and scope
@@ -132,3 +133,10 @@ phone. APK version 4 is ready, but installation, a newly verified natural run,
 Hall of Honour completion-date display, live gold claim and once-only payment
 acceptance remain open in the linked checklist. Local/emulator tests cover
 those behaviors; they are not a substitute for a live device claim.
+
+October 31 follow-up: the [reward timing capture](reward-latency-phone-2026-10-31.md)
+found APK 4 already installed and matched its on-device hash to the artifact
+above. Two natural Competitive Forest runs validated and settled exactly once;
+gold and XP changes matched the hub. No installation was repeated. Achievement
+completion-date display, live claim and duplicate-claim protection were not
+exercised and remain open.

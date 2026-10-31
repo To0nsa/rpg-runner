@@ -3,8 +3,10 @@
 Status: `2026.10.11.1` deployed October 11, 2026; the exact final-image benchmark
 and coordinated cutover passed. The owner accepted the two independently
 reproduced terrain failures for this release; they remain unresolved. Target-device
-measurements, representative route coverage and controlled end-to-end latency
-remain open. See [production evidence](../verification/game-compat-2026.10.11.1-production.md).
+measurements now include two correlated dev runs on October 31; representative
+route coverage and controlled end-to-end latency remain open. See
+[production evidence](../verification/game-compat-2026.10.11.1-production.md) and
+[current phone evidence](../verification/reward-latency-phone-2026-10-31.md).
 
 Implemented contracts: [prepared navigation](../tdd/prepared_navigation.md) and
 [reward completion](../tdd/reward_settlement_operations.md). The evidence below
@@ -13,9 +15,10 @@ records the original investigation; it is not a production performance claim.
 ## October 30 diagnostic instrumentation and dev rollout
 
 The owner authorized code changes and the necessary dev deployment on October 30.
-The worktree was clean at `dced382b` before this change. The reconnected phone now
-has verified dev APK version code 3. The first backend image build was cancelled
-to implement the owner's requested reuse of existing navigation artifacts.
+The worktree was clean at `dced382b` before this change. The reconnected phone
+received verified dev APK version code 3 that day. The first backend image build
+was cancelled to implement the owner's requested reuse of existing navigation
+artifacts.
 See the [dev rollout evidence](../verification/reward-diagnostics-dev-2026-10-30.md).
 
 Acceptance criteria: correlate each run across local replay save, durable spool,
@@ -36,8 +39,8 @@ log credentials, player identity, signed URLs or replay contents.
 - [x] Build and verify the instrumented dev APK.
 - [x] Perform the guarded dev cutover and verify service/queue/board state.
 - [x] Install after phone reconnection and verify package/hash and hub startup.
-- [ ] Capture correlated live runs after the dev backend cutover; phone
-  reconnection is required before starting the prepared capture.
+- [x] Capture correlated live runs after the dev backend cutover: two October 31
+  runs on verified APK 4, which retains diagnostics, with complete stage chains.
 
 The [initial phone evidence](../verification/reward-latency-phone-2026-10-30.md)
 records two accepted runs before instrumentation. Local validation: Functions
@@ -112,9 +115,32 @@ both queues RUNNING, all three current boards valid, all nine settled grants
 retained and 3,149 canonical gold. The issuer's healthy serving revision has no
 pause override; the verified baseline and normal lock cleanup are recorded.
 The phone was reauthorized during deployment but disconnected again before
-capture; no instrumented end-to-end run or latency improvement is claimed yet.
+capture that day. The following day's capture is recorded below.
 
-## Recommendation
+## October 31 correlated phone measurement
+
+[Two live dev runs](../verification/reward-latency-phone-2026-10-31.md) on the
+subsequent achievements APK 4 reached account paint in 12.569 and 4.382 seconds
+from run end. Final XP integers appeared at 13.162 and 5.323 seconds. Both
+accepted on the first validation attempt and settled exactly once, adding a
+combined 11 gold and 11 XP. The first run earned zero gold and one XP.
+
+The first run encountered serial upload-grant, finalize and status callable
+startups totaling 6.892 seconds; the second reused those instances. Queue
+creation-to-dispatch was 7–10 ms; replay computation was 149–168 ms. Durable
+finalization-to-settlement was 1.885/1.450 seconds. Both clients waited about one
+second before status polling, overlapping server work; XP animation added
+0.593/0.941 seconds after its first paint. Eventarc settled before the immediate
+endpoint in both runs, with duplicate delivery safely returning already settled.
+
+For this measured workload, prioritize callable startup and account-refresh
+latency investigation. The navigation findings below describe the earlier
+investigation; they are not the dominant cost in these two prepared-image runs.
+The existing APK, worker and navigation were reused without rebuilding. Two
+different short runs do not establish p95, full-route coverage, background
+recovery or a controlled before/after improvement.
+
+## Original navigation recommendation
 
 Use trusted, prepared navigation artifacts with a rotating Practice seed pool,
 and make pending reward completion an app-owned background operation. Preserve
@@ -336,7 +362,8 @@ Measure upload-grant/finalize/status/ownership Functions as well as the worker.
 - [x] Implemented TDD/GDD and embedding API documentation.
 - [x] Exact final-image one-CPU/512-MiB gate; all nine checks passed in the
   production image build. This is a limited throughput fixture, not full-run combat.
-- [ ] Target-phone measurements.
+- [x] Initial target-phone measurements: two correlated dev runs on October 31;
+  see limitations above. Broader controlled acceptance remains open below.
 - [ ] Representative full-run coverage for every curated route, both characters,
   loadouts, bosses and retained/skipped selections. The finite artifact inventory
   is not proof that every selection is a hit; fallback remains mandatory.

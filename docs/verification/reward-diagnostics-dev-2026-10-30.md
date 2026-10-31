@@ -132,7 +132,11 @@ Canonical Inspect at 18:36 UTC confirmed 21 sessions (five issued, nine validate
 six cancelled, one expired), nine settled grants, 3,149 canonical gold and no
 pending/quarantined settlement or run identity/evidence mismatch.
 
-Capture a new live run before claiming that all stage events correlate correctly.
+Follow-up: the [October 31 phone capture](reward-latency-phone-2026-10-31.md)
+correlated all stages for two accepted runs using the subsequent dev APK 4 and
+the reused diagnostic worker image. The following describes the October 30
+capture limitation, which remained open at that day's rollout completion.
+
 The phone disconnected again before the final rollout completed. A fresh finite
 app-scoped logcat capture is prepared under `.tmp/reward-latency-live-20261030/`,
 reusing the checked capture/report helpers, but has not started; reconnection and
