@@ -3,10 +3,11 @@
 Status: `2026.10.11.1` deployed October 11, 2026; the exact final-image benchmark
 and coordinated cutover passed. The owner accepted the two independently
 reproduced terrain failures for this release; they remain unresolved. Target-device
-measurements now include two correlated dev runs on October 31; representative
-route coverage and controlled end-to-end latency remain open. See
+measurements now include two baseline and two reworked-pipeline dev runs on
+October 31; representative route coverage and controlled end-to-end latency
+remain open. See
 [production evidence](../verification/game-compat-2026.10.11.1-production.md) and
-[current phone evidence](../verification/reward-latency-phone-2026-10-31.md).
+[current phone evidence](../verification/reward-pipeline-phone-2026-10-31.md).
 
 Implemented contracts: [prepared navigation](../tdd/prepared_navigation.md) and
 [reward completion](../tdd/reward_settlement_operations.md). The evidence below
@@ -63,8 +64,11 @@ Implementation order and checks:
    cross-layer suites and relevant release mocks. Review the full task diff.
 6. [x] Dev rollout (authorized October 31), with live artifact/configuration
    verification and preserved account/reward data. No staging/prod action.
-7. [ ] Install the verified dev APK and measure cold/warm timing,
-   response-loss/offline recovery and unchanged presentation.
+7. [x] Verify the installed dev APK and measure normal submission/settlement
+   with cold-worker and warm-service observations and existing presentation.
+   Two live samples are recorded; this is not controlled p95 acceptance.
+8. [ ] Exercise phone response-loss/offline/process-restart recovery and account
+   switching; broaden controlled cold/warm and presentation acceptance.
 
 Current checkpoint: all pipeline implementation is in place. Submission recovery,
 shared transport/preparation and confirmed completion retain the existing UX.
@@ -88,8 +92,8 @@ after the last recovery changes, with targeted analysis clean. The dev-only
 Android debug build passed; packaged identity, signature and all navigation
 hashes/sizes were verified. See the source-bound
 [implementation evidence](../verification/reward-pipeline-rework-2026-10-31.md).
-These implementation checks preceded cloud deployment. Installation and new
-phone measurement remain pending; current rollout progress is recorded below.
+These implementation checks preceded cloud deployment. Rollout and subsequent
+phone evidence are recorded below; broader live recovery acceptance remains open.
 
 Dev rollout checkpoint: the owner subsequently authorized deployment to dev,
 followed by phone installation and measurement. Frozen `2d8ddb9d` correctly
@@ -119,6 +123,20 @@ image, APK and local validation evidence were reused for that recovery.
 The dev APK passed identity, signature, navigation and native-alignment checks.
 See the [dev rollout record](../verification/reward-pipeline-dev-2026-10-31.md).
 Raw rollout evidence is in `.tmp/pipeline-deploy-20261031/`.
+
+Phone checkpoint: the installed APK 5 hash matches the candidate. Two live
+Competitive Forest runs delivered 9 gold/8 XP and 5 gold/5 XP exactly once,
+with atomic canonical receipts and no status polling or account fetch. Gold
+painted at 4.505 seconds with a cold replay worker, then 2.356 seconds using the
+same submission/replay/settlement instances. Upload permission was prepared
+during play in both runs. XP uses the same confirmed account update and existing
+count-up; its final integer painted at 5.421/3.689 seconds. A's first paints were
+in the hub; B's gold first painted on Game Over before XP painted in the hub.
+Both delayed recovery tasks were queued, but interrupted-run recovery was not
+exercised. Both captures are stopped; no rebuild or cloud mutation was needed.
+See the [measurement record](../verification/reward-pipeline-phone-2026-10-31.md)
+for clock/instance evidence and comparison limits. Raw evidence is in
+`.tmp/reward-pipeline-phone-20261031/`.
 
 Navigation reuse: a standalone validation attempt mistakenly used the main
 checkout's stale pack and regenerated 3,650 graphs before being stopped. The

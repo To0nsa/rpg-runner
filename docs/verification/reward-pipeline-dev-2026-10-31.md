@@ -2,8 +2,9 @@
 
 Status: deployed to dev; issuance resumed and live configuration verified.
 The user authorized dev deployment, followed by phone installation and
-measurement. The verified dev APK is ready; phone installation and measurement
-have not started.
+measurement. The installed dev APK now matches the verified artifact, and
+[two phone runs](reward-pipeline-phone-2026-10-31.md) establish normal reward
+delivery with cold-worker and warm-service observations.
 
 ## Candidate and scope
 
@@ -187,11 +188,20 @@ directory and `.tmp/pipeline-deploy-20261031/`, including
 `live-runtime-verified.json`, `live-access-verified.json` and
 `post-resume-inventory.json`. The frozen source was not edited during cutover.
 
-## Remaining phone checks
+## Phone acceptance
 
-The verified dev release APK is ready for the later installation. Reused finite
-capture/report helpers are prepared in `.tmp/reward-pipeline-phone-20261031/`;
-capture is not running. Installation, linked Play Games/replay smoke and new
-cold/warm phone timings remain separate live checks. The
-[earlier phone measurement](reward-latency-phone-2026-10-31.md) is the pre-change
-baseline and does not establish the new pipeline's latency.
+Installed dev APK 5 was verified by its on-device SHA-256. Two live Competitive
+Forest runs validated and settled once, delivering gold/XP through confirmed
+receipts without status polling or another account fetch. Gold painted at
+4.505 seconds with a cold replay worker and 2.356 seconds with the same services
+warm; XP reached its final displayed integer at 5.421/3.689 seconds. These are
+two diagnostic samples, not a p95. See the
+[new phone evidence](reward-pipeline-phone-2026-10-31.md) for clocks, surfaces,
+instance identity, exact grants and limitations.
+
+Both finite captures in `.tmp/reward-pipeline-phone-20261031/` are stopped.
+Fresh Play Games sign-in, offline/response-loss/process-restart recovery,
+account switching and deliberate delivery-fault acceptance remain open. The
+[earlier measurement](reward-latency-phone-2026-10-31.md) remains the APK 4
+baseline; no build, deployment or navigation regeneration was needed to measure
+APK 5.

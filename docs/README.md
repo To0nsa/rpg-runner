@@ -29,7 +29,10 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   [October 31 pipeline rework](verification/reward-pipeline-rework-2026-10-31.md):
   shared submission transport, confirmed account receipts and durable recovery;
   [deployed to dev](verification/reward-pipeline-dev-2026-10-31.md) with unchanged
-  UX and scale-to-zero configuration; APK 5 installation and new measurement remain.
+  UX and scale-to-zero configuration. [APK 5 phone measurements](verification/reward-pipeline-phone-2026-10-31.md)
+  verified once-only gold/XP and direct receipts: gold painted at 4.505 seconds
+  with a cold worker and 2.356 seconds with the same services warm. Controlled
+  offline/response-loss acceptance remains open.
 - [Current implementation plans](building/README.md): Android beta/backend
   isolation, reward verification latency and NPC rescue production smoke.
 - [Android beta release plan](building/android_beta_release.md): existing project
