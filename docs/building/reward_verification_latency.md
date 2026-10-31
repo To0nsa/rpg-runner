@@ -61,7 +61,7 @@ Implementation order and checks:
 5. [x] Startup/I/O review and integration: remove unused eager dependencies,
    reuse clients, finish TDDs and source-bound evidence, then run affected
    cross-layer suites and relevant release mocks. Review the full task diff.
-6. [ ] Separately authorized dev rollout and live measurement of cold/warm,
+6. [ ] Dev rollout (authorized October 31) and live measurement of cold/warm,
    response-loss/offline recovery and unchanged presentation. No staging/prod
    build or mutation is included. Earlier five-ticket cancellation approval was
    specific and does not authorize new cancellations.
@@ -90,6 +90,20 @@ hashes/sizes were verified. See the source-bound
 [implementation evidence](../verification/reward-pipeline-rework-2026-10-31.md).
 No cloud mutation, installation, release cutover, or new phone measurement has
 occurred.
+
+Dev rollout checkpoint: the owner subsequently authorized deployment to dev,
+followed by phone installation and measurement. Frozen `2d8ddb9d` correctly
+selected Coordinated scope with unchanged simulation inputs and tuple. Its
+fresh production dependency audit stopped preparation on the new glob/minimatch
+advisories before cloud mutation. A narrow, matching pnpm/npm runtime override
+addresses these findings; the corrected candidate must be frozen and prepared.
+Both production audits and Node 24 rimraf synchronous/asynchronous compatibility
+probes passed under pnpm and isolated npm; Functions compilation passed.
+Client navigation was seeded with the verified 3,750-graph pack. Live read-only
+inventory found one issued ticket and 11 accepted/settled runs, with no pending
+validation/settlement or identity mismatch. That ticket has no upload, grant or
+validation evidence; separate cancellation authorization is pending. Raw rollout
+evidence is in `.tmp/pipeline-deploy-20261031/`.
 
 Navigation reuse: a standalone validation attempt mistakenly used the main
 checkout's stale pack and regenerated 3,650 graphs before being stopped. The

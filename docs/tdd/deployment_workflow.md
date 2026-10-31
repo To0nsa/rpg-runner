@@ -252,6 +252,12 @@ Runtime security overrides are mirrored in root `pnpm-workspace.yaml` and
 `functions/package.json`: Firebase uploads only `functions/` and resolves its
 production dependencies with npm. Both pin body-parser 1.x to 1.20.9 and 2.x
 to 2.4.0 for [GHSA-27r3-jxmh-p828](https://github.com/advisories/GHSA-27r3-jxmh-p828).
+The runtime `rimraf@5.0.10` dependency uses `glob@14.0.2` with
+`minimatch@11.0.1`, scoped identically in both resolvers, for
+[glob cancellation](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) and
+[pattern amplification](https://github.com/advisories/GHSA-g3hv-75wg-m249)
+advisories. These versions support the backend's Node 24 runtime; verify rimraf's
+synchronous/asynchronous glob behavior when changing this override.
 Validate override changes with both the workspace production audit and an
 isolated production npm resolution/audit outside the pnpm workspace.
 
