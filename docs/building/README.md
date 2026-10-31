@@ -34,10 +34,10 @@
   manually claimed 25-gold gifts for newly reached levels, game messages and a
   shared notification dot. Locally validated; not deployed.
 
-- [Reward verification latency](reward_verification_latency.md): October 30
-  phone samples captured; per-run client/server timing instrumentation and its
-  authorized dev rollout are in progress. Representative device and route
-  coverage remain open.
+- [Reward verification latency](reward_verification_latency.md): October 31
+  correlated phone measurements identified serial callable cold starts. The
+  pipeline rework is implemented and locally verified; dev rollout, new timing
+  measurements and representative device/route coverage remain open.
 
 - [Completed Forest boss arena](../archive/2026-10-06/building/forest_boss_arena.md):
   merged into `master` and deployed in `2026.10.8` / `score-v4`; see

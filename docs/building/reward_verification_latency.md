@@ -58,7 +58,7 @@ Implementation order and checks:
    fewer empty wakeups, and request-billed scale-to-zero configuration. Verify
    delivery loss, duplicates, stale leases, deletion and repair without cloud
    mutations; preserve private IAM boundaries and release gates.
-5. [ ] Startup/I/O review and integration: remove unused eager dependencies,
+5. [x] Startup/I/O review and integration: remove unused eager dependencies,
    reuse clients, finish TDDs and source-bound evidence, then run affected
    cross-layer suites and relevant release mocks. Review the full task diff.
 6. [ ] Separately authorized dev rollout and live measurement of cold/warm,
@@ -84,9 +84,12 @@ regression passed, and final registration tests passed twice. Worker analysis,
 all 304 tests and executable compilation passed. Release helper (62),
 integration (121), and cache (56) checks passed under both PowerShell versions.
 All 130 affected client tests passed earlier; 44 recovery/completion tests passed
-after the last recovery changes, with targeted analysis clean. The final dev-only
-Android native compilation is still running. No cloud mutation, installation,
-release cutover, or new phone measurement has occurred.
+after the last recovery changes, with targeted analysis clean. The dev-only
+Android debug build passed; packaged identity, signature and all navigation
+hashes/sizes were verified. See the source-bound
+[implementation evidence](../verification/reward-pipeline-rework-2026-10-31.md).
+No cloud mutation, installation, release cutover, or new phone measurement has
+occurred.
 
 Navigation reuse: a standalone validation attempt mistakenly used the main
 checkout's stale pack and regenerated 3,650 graphs before being stopped. The

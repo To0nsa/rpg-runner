@@ -26,6 +26,9 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   [October 31 phone measurement](verification/reward-latency-phone-2026-10-31.md):
   complete traces for two dev runs, account paint at 12.569/4.382 seconds,
   serial callable cold starts identified and once-only gold/XP verified.
+  [October 31 pipeline rework](verification/reward-pipeline-rework-2026-10-31.md):
+  shared submission transport, confirmed account receipts and durable recovery;
+  locally verified with unchanged UX, awaiting dev rollout and new measurement.
 - [Current implementation plans](building/README.md): Android beta/backend
   isolation, reward verification latency and NPC rescue production smoke.
 - [Android beta release plan](building/android_beta_release.md): existing project
