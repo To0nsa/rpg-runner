@@ -24,6 +24,34 @@ Launcher labels distinguish development and staging installations.
 
 ## Build and installation
 
+### Kotlin and dependency baseline
+
+The app uses Flutter 3.47.1 / Dart 3.13.1, AGP 9.1.0 and Gradle 9.3.1.
+`android.builtInKotlin=true` selects AGP's Kotlin support. Settings declares
+Kotlin 2.4.0 with `apply false` to raise AGP's default compiler from 2.2.10,
+which falls below Flutter's minimum 2.2.20. The app does not apply legacy KGP;
+the compiler pin is still needed with built-in Kotlin on this toolchain.
+Keep `android.newDsl=false` while Flutter plugins require the compatibility DSL.
+The Android minimum remains API 24, also required by Firebase Android BoM 35
+through `firebase_core` 5.1.0. Resolve the Firebase plugin family together through
+the root Pub workspace and commit its lockfile.
+
+Flutter 3.47.1 can still print the KGP plugin warning for FlutterFire. Its
+`FlutterPluginUtils.getSubprojectPluginState` scans build scripts with a regular
+expression, including `apply plugin: 'kotlin-android'` inside inactive branches.
+The published Firebase plugins guard that application behind AGP < 9 or
+`android.builtInKotlin=false`. Evaluate the actual Gradle plugin state and build
+result before treating this warning as an unmigrated module. Do not disable
+built-in Kotlin or edit the Pub/Flutter caches to hide it.
+The [October 31 dependency checks](../verification/dependency-update-2026-10-31.md)
+record the actual plugin-state probe and local validation.
+
+References: [Flutter migration](https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers),
+[Android migration](https://developer.android.com/build/migrate-to-built-in-kotlin),
+[Firebase Core changelog](https://pub.dev/packages/firebase_core/changelog).
+
+### Local builds
+
 Use `flutter run --flavor dev -d <device-id>` or
 `flutter build apk --flavor dev --release` from the repository root.
 The APK is `build/app/outputs/flutter-apk/app-dev-release.apk`.

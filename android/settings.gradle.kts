@@ -20,6 +20,8 @@ pluginManagement {
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "9.1.0" apply false
+    // Pin the compiler used by AGP's built-in Kotlin. AGP's default 2.2.10 is
+    // below Flutter 3.47's minimum; apply false keeps legacy KGP unapplied.
     id("org.jetbrains.kotlin.android") version "2.4.0" apply false
     // START: FlutterFire Configuration
     id("com.google.gms.google-services") version("4.4.4") apply false

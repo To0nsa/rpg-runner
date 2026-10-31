@@ -35,8 +35,8 @@ workspace:
 dependencies:
   game_presentation:
     path: packages/game_presentation
-  crypto: ^3.0.6
-  battery_plus: ^7.1.1
+  crypto: ^3.0.8
+  battery_plus: ^7.1.2
   flutter:
     sdk: flutter
   runner_core:
@@ -47,22 +47,22 @@ dependencies:
     path: packages/run_protocol
   terrain_materials:
     path: packages/terrain_materials
-  image: ^4.10.1
+  image: ^4.12.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.9
+  cupertino_icons: ^2.0.0
   flame: ^1.38.2
-  shared_preferences: ^2.5.5
-  firebase_core: ^4.15.0
-  firebase_app_check: ^0.4.8
-  firebase_auth: ^6.7.0
+  shared_preferences: ^2.5.6
+  firebase_core: ^5.1.0
+  firebase_app_check: ^0.5.1
+  firebase_auth: ^7.0.1
   provider: ^6.1.2
-  cloud_functions: ^6.5.0
-  lucide_icons_flutter: ^3.1.25
+  cloud_functions: ^7.0.1
+  lucide_icons_flutter: ^4.0.1
   url_launcher: ^6.3.3
-  firebase_crashlytics: ^5.4.1
-  cloud_firestore: 6.8.0
+  firebase_crashlytics: ^6.0.1
+  cloud_firestore: 7.1.0
 
 dev_dependencies:
   flutter_test:

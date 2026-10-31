@@ -185,6 +185,12 @@ toolchain-specific resolution.
 See [Pub workspace and dependency resolution](docs/tdd/pub_workspace.md) for
 the package boundary and validation commands.
 
+The dependency baseline is Flutter 3.47.1 / Dart 3.13.1. Android uses AGP 9.1.0,
+Gradle 9.3.1 and built-in Kotlin, with minimum API 24. Apple project deployment
+targets are iOS 15 and macOS 11 to match the Firebase plugins. See the
+[Android Kotlin notes](docs/tdd/android_build_variants.md#kotlin-and-dependency-baseline)
+for Flutter 3.47.1's warning about conditional KGP declarations.
+
 Run tests:
 
 ```bash

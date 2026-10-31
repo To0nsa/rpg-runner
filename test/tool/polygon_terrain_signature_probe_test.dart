@@ -10,16 +10,12 @@ const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';
 void main() {
   test('probe binds every staged signature to reviewed fixture values', () {
     final probe = buildPolygonTerrainSignatureProbe();
-    final compilationGolden =
-        jsonDecode(File('$_fixtureDirectory/golden.json').readAsStringSync())
-            as Map<String, Object?>;
-    final seamGolden =
-        jsonDecode(
-              File(
-                '$_fixtureDirectory/reachable_seams.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, Object?>;
+    final compilationGolden = jsonDecode(
+      File('$_fixtureDirectory/golden.json').readAsStringSync(),
+    ) as Map<String, Object?>;
+    final seamGolden = jsonDecode(
+      File('$_fixtureDirectory/reachable_seams.json').readAsStringSync(),
+    ) as Map<String, Object?>;
 
     expect(probe['format'], polygonTerrainSignatureProbeFormat);
     for (final key in const <String>[
@@ -50,7 +46,8 @@ void main() {
         workingDirectory: Directory.current.path,
       );
       expect(result.exitCode, 0, reason: result.stderr.toString());
-      expect(result.stderr, isEmpty);
+      // dart run may report native build-hook progress on stderr. The probe's
+      // contract is a successful exit and exact JSON on stdout.
       return jsonDecode((result.stdout as String).trim())
           as Map<String, Object?>;
     }

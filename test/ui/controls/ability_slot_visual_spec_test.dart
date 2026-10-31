@@ -1,4 +1,4 @@
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons_400.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
@@ -13,7 +13,7 @@ void main() {
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.primary).icon,
-      LucideIcons.sword400,
+      LucideIcons400.sword,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.primary).family,
@@ -26,7 +26,7 @@ void main() {
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.secondary).icon,
-      LucideIcons.shield400,
+      LucideIcons400.shield,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.secondary).family,
@@ -39,7 +39,7 @@ void main() {
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.projectile).icon,
-      LucideIcons.bowArrow400,
+      LucideIcons400.bowArrow,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.projectile).family,
@@ -52,7 +52,7 @@ void main() {
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.mobility).icon,
-      LucideIcons.wind400,
+      LucideIcons400.wind,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.mobility).family,
@@ -62,7 +62,7 @@ void main() {
     expect(abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump).label, 'Jump');
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump).icon,
-      LucideIcons.arrowUpFromLine400,
+      LucideIcons400.arrowUpFromLine,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump).family,
@@ -72,7 +72,7 @@ void main() {
     expect(abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).label, 'Spell');
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).icon,
-      LucideIcons.wandSparkles400,
+      LucideIcons400.wandSparkles,
     );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).family,
