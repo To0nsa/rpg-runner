@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:run_protocol/submission_status.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
@@ -341,7 +340,7 @@ class _StaticRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> finalizeUpload({
+  Future<RunSubmissionResponse> finalizeUpload({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -355,7 +354,7 @@ class _StaticRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> loadSubmissionStatus({
+  Future<RunSubmissionResponse> loadSubmissionStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,

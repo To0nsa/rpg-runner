@@ -1,4 +1,5 @@
 import { applyRunAchievements } from "../ownership/achievements.js";
+import { writeRunCompletionReceipt } from "./completion_receipt.js";
 import { performance } from "node:perf_hooks";
 import type { Firestore } from "firebase-admin/firestore";
 import { isDeepStrictEqual } from "node:util";
@@ -225,6 +226,12 @@ export async function settleAcceptedRunSession(args: {
           },
           { merge: true },
         );
+        writeRunCompletionReceipt({
+          db: args.db, tx, uid, runSessionId: args.runSessionId,
+          canonical: reconciled.canonicalState,
+          goldAmount: readRequiredNonNegativeInteger(rewardGrantSnapshot.get("goldAmount"), "reward grant goldAmount"),
+          nowMs,
+        });
         return "settled";
       }),
     );

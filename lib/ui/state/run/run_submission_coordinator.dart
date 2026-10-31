@@ -1,6 +1,6 @@
 import 'package:run_protocol/run_mode.dart';
 import 'package:run_protocol/submission_status.dart'
-    show RunSessionState, SubmissionRewardStatus, SubmissionStatus;
+    show RunSessionState, SubmissionRewardStatus;
 
 import '../../run/run_reward_diagnostics.dart';
 import 'local_replay_artifact_store.dart';
@@ -328,8 +328,8 @@ class RunSubmissionCoordinator {
           sessionId: sessionId,
           runSessionId: runSessionId,
         );
-        if (status.state != RunSessionState.issued &&
-            status.state != RunSessionState.uploading) {
+        if (status.status.state != RunSessionState.issued &&
+            status.status.state != RunSessionState.uploading) {
           return await _receiveServerStatus(status, pending);
         }
       }
@@ -391,7 +391,7 @@ class RunSubmissionCoordinator {
         ),
       );
 
-      if (submissionStatus.isTerminal) {
+      if (submissionStatus.status.isTerminal) {
         return await _receiveServerStatus(submissionStatus, pending);
       }
 
@@ -406,7 +406,8 @@ class RunSubmissionCoordinator {
       );
       await _persistSubmission(submission: pending);
       return RunSubmissionStatus.fromServerStatus(
-        submissionStatus,
+        submissionStatus.status,
+        canonical: submissionStatus.canonical,
         pendingSubmission: pending,
         nowMs: _clock(),
         verificationDelayedThresholdMs: verificationDelayedThresholdMs,
@@ -565,7 +566,7 @@ class RunSubmissionCoordinator {
     return _receiveServerStatus(status, pendingSubmission);
   }
 
-  Future<SubmissionStatus> _readServerStatus({
+  Future<RunSubmissionResponse> _readServerStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -580,19 +581,20 @@ class RunSubmissionCoordinator {
       ),
     );
     RunRewardDiagnostics.instance.emit(runSessionId, 'status_received', {
-      'state': status.state.name,
-      'reward': status.reward?.status.name,
+      'state': status.status.state.name,
+      'reward': status.status.reward?.status.name,
     });
-    if (status.runSessionId != runSessionId) {
+    if (status.status.runSessionId != runSessionId) {
       throw const FormatException('Submission status belongs to another run.');
     }
     return status;
   }
 
   Future<RunSubmissionStatus> _receiveServerStatus(
-    SubmissionStatus status,
+    RunSubmissionResponse response,
     PendingRunSubmission? pendingSubmission,
   ) async {
+    final status = response.status;
     if (pendingSubmission != null &&
         status.runSessionId != pendingSubmission.runSessionId) {
       throw const FormatException('Submission status belongs to another run.');
@@ -615,6 +617,7 @@ class RunSubmissionCoordinator {
       }
       return RunSubmissionStatus.fromServerStatus(
         status,
+        canonical: response.canonical,
         nowMs: nowMs,
         verificationDelayedThresholdMs: verificationDelayedThresholdMs,
       );

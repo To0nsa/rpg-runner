@@ -1,6 +1,7 @@
 import 'package:run_protocol/submission_status.dart' as protocol;
 
 import 'pending_run_submission.dart';
+import '../ownership/loadout_ownership_api.dart';
 
 enum RunSubmissionPhase {
   queued,
@@ -37,6 +38,7 @@ final class RunSubmissionStatus {
     this.verificationDelayed = false,
     this.serverStatus,
     this.pendingSubmission,
+    this.canonical,
   }) : assert(updatedAtMs >= 0);
 
   static const int defaultVerificationDelayedThresholdMs = 5 * 60 * 1000;
@@ -49,6 +51,7 @@ final class RunSubmissionStatus {
   final bool verificationDelayed;
   final protocol.SubmissionStatus? serverStatus;
   final PendingRunSubmission? pendingSubmission;
+  final OwnershipCanonicalState? canonical;
 
   protocol.SubmissionReward? get reward => serverStatus?.reward;
 
@@ -120,6 +123,7 @@ final class RunSubmissionStatus {
 
   factory RunSubmissionStatus.fromServerStatus(
     protocol.SubmissionStatus status, {
+    OwnershipCanonicalState? canonical,
     PendingRunSubmission? pendingSubmission,
     int? nowMs,
     int verificationDelayedThresholdMs = defaultVerificationDelayedThresholdMs,
@@ -153,6 +157,7 @@ final class RunSubmissionStatus {
       message: status.message,
       verificationDelayed: verificationDelayed,
       serverStatus: status,
+      canonical: canonical,
       pendingSubmission: pendingSubmission,
     );
   }

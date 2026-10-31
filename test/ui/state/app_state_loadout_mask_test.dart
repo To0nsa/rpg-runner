@@ -9,7 +9,6 @@ import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/board_manifest.dart';
 import 'package:run_protocol/leaderboard_entry.dart';
 import 'package:run_protocol/replay_blob.dart';
-import 'package:run_protocol/submission_status.dart';
 import 'package:run_protocol/run_ticket.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
@@ -773,7 +772,7 @@ class _ScriptedRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> finalizeUpload({
+  Future<RunSubmissionResponse> finalizeUpload({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -787,7 +786,7 @@ class _ScriptedRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> loadSubmissionStatus({
+  Future<RunSubmissionResponse> loadSubmissionStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,

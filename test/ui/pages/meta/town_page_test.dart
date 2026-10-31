@@ -474,18 +474,20 @@ class _StatusOnlyRunSessionApi extends NoopRunSessionApi {
   final SubmissionStatus status;
 
   @override
-  Future<SubmissionStatus> loadSubmissionStatus({
+  Future<RunSubmissionResponse> loadSubmissionStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,
   }) async {
-    return SubmissionStatus(
-      runSessionId: runSessionId,
-      state: status.state,
-      updatedAtMs: status.updatedAtMs,
-      message: status.message,
-      validatedRun: status.validatedRun,
-      reward: status.reward,
+    return RunSubmissionResponse(
+      SubmissionStatus(
+        runSessionId: runSessionId,
+        state: status.state,
+        updatedAtMs: status.updatedAtMs,
+        message: status.message,
+        validatedRun: status.validatedRun,
+        reward: status.reward,
+      ),
     );
   }
 }

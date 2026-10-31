@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 1,
+  "uid": "uid_projection_owner",
+  "runSessionId": "run_completion_fixture",
+  "canonicalState": {
+    "profileId": "main",
+    "revision": 1,
+    "selection": {
+      "schemaVersion": 1,
+      "levelId": "field",
+      "runType": "practice",
+      "characterId": "eloise",
+      "buildName": "Build 1",
+      "loadoutsByCharacter": {
+        "eloise": {
+          "mask": 7,
+          "mainWeaponId": "plainsteel",
+          "offhandWeaponId": "roadguard",
+          "spellBookId": "apprenticePrimer",
+          "projectileSlotSpellId": "acidBolt",
+          "accessoryId": "strengthBelt",
+          "abilityPrimaryId": "eloise.seeker_slash",
+          "abilitySecondaryId": "eloise.shield_block",
+          "abilityProjectileId": "eloise.snap_shot",
+          "abilitySpellId": "eloise.arcane_haste",
+          "abilityMobilityId": "eloise.dash",
+          "abilityJumpId": "eloise.jump"
+        },
+        "eloiseWip": {
+          "mask": 7,
+          "mainWeaponId": "plainsteel",
+          "offhandWeaponId": "roadguard",
+          "spellBookId": "apprenticePrimer",
+          "projectileSlotSpellId": "acidBolt",
+          "accessoryId": "strengthBelt",
+          "abilityPrimaryId": "eloise.seeker_slash",
+          "abilitySecondaryId": "eloise.shield_block",
+          "abilityProjectileId": "eloise.snap_shot",
+          "abilitySpellId": "eloise.arcane_haste",
+          "abilityMobilityId": "eloise.dash",
+          "abilityJumpId": "eloise.jump"
+        }
+      }
+    },
+    "meta": {
+      "schemaVersion": 3,
+      "inventory": {
+        "weapons": [
+          "plainsteel",
+          "roadguard"
+        ],
+        "spellBooks": [
+          "apprenticePrimer"
+        ],
+        "accessories": [
+          "strengthBelt"
+        ]
+      },
+      "equippedByCharacter": {
+        "eloise": {
+          "mainWeaponId": "plainsteel",
+          "offhandWeaponId": "roadguard",
+          "spellBookId": "apprenticePrimer",
+          "accessoryId": "strengthBelt"
+        },
+        "eloiseWip": {
+          "mainWeaponId": "plainsteel",
+          "offhandWeaponId": "roadguard",
+          "spellBookId": "apprenticePrimer",
+          "accessoryId": "strengthBelt"
+        }
+      },
+      "abilityOwnershipByCharacter": {
+        "eloise": {
+          "projectileSpells": [
+            "acidBolt",
+            "holyBolt"
+          ],
+          "abilitiesBySlot": {
+            "primary": [
+              "eloise.seeker_slash"
+            ],
+            "secondary": [
+              "eloise.shield_block"
+            ],
+            "projectile": [
+              "eloise.snap_shot"
+            ],
+            "mobility": [
+              "eloise.dash"
+            ],
+            "spell": [
+              "eloise.arcane_haste",
+              "eloise.focus"
+            ],
+            "jump": [
+              "eloise.jump"
+            ]
+          }
+        },
+        "eloiseWip": {
+          "projectileSpells": [
+            "acidBolt",
+            "holyBolt"
+          ],
+          "abilitiesBySlot": {
+            "primary": [
+              "eloise.seeker_slash"
+            ],
+            "secondary": [
+              "eloise.shield_block"
+            ],
+            "projectile": [
+              "eloise.snap_shot"
+            ],
+            "mobility": [
+              "eloise.dash"
+            ],
+            "spell": [
+              "eloise.arcane_haste",
+              "eloise.focus"
+            ],
+            "jump": [
+              "eloise.jump"
+            ]
+          }
+        }
+      }
+    },
+    "progression": {
+      "gold": 75,
+      "awardedRunIds": [],
+      "codex": {
+        "schemaVersion": 2,
+        "competitiveBestScores": {}
+      },
+      "enemyDefeats": {
+        "schemaVersion": 1,
+        "byEnemy": {}
+      },
+      "playerProgress": {
+        "schemaVersion": 1,
+        "totalXp": 0,
+        "acceptedRuns": 0,
+        "runsByLevel": {},
+        "damageDealt100": 0,
+        "damageTaken100": 0
+      },
+      "achievements": {
+        "schemaVersion": 1,
+        "entries": [
+          {
+            "id": "firstSteps",
+            "value": 0,
+            "tiers": [
+              {
+                "threshold": 1,
+                "goldAmount": 25,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 10,
+                "goldAmount": 75,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 50,
+                "goldAmount": 150,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              }
+            ]
+          },
+          {
+            "id": "marathoner",
+            "value": 0,
+            "tiers": [
+              {
+                "threshold": 500,
+                "goldAmount": 25,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 1000,
+                "goldAmount": 75,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 2500,
+                "goldAmount": 150,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              }
+            ]
+          },
+          {
+            "id": "roadWarrior",
+            "value": 0,
+            "tiers": [
+              {
+                "threshold": 1000,
+                "goldAmount": 25,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 10000,
+                "goldAmount": 75,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 50000,
+                "goldAmount": 150,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              }
+            ]
+          },
+          {
+            "id": "stillStanding",
+            "value": 0,
+            "tiers": [
+              {
+                "threshold": 300,
+                "goldAmount": 25,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 3600,
+                "goldAmount": 75,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 18000,
+                "goldAmount": 150,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              }
+            ]
+          },
+          {
+            "id": "slayer",
+            "value": 0,
+            "tiers": [
+              {
+                "threshold": 25,
+                "goldAmount": 25,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 250,
+                "goldAmount": 75,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              },
+              {
+                "threshold": 2500,
+                "goldAmount": 150,
+                "achievedAtMs": null,
+                "claimedAtMs": null
+              }
+            ]
+          }
+        ]
+      },
+      "store": {
+        "schemaVersion": 1,
+        "generation": 0,
+        "refreshDayKeyUtc": "2023-11-14",
+        "refreshesUsedToday": 0,
+        "activeOffers": [
+          {
+            "offerId": "gear:mainWeapon:basiliskKiss",
+            "bucket": "sword",
+            "domain": "gear",
+            "slot": "mainWeapon",
+            "itemId": "basiliskKiss",
+            "priceGold": 150
+          },
+          {
+            "offerId": "gear:offhandWeapon:warbannerGuard",
+            "bucket": "shield",
+            "domain": "gear",
+            "slot": "offhandWeapon",
+            "itemId": "warbannerGuard",
+            "priceGold": 150
+          },
+          {
+            "offerId": "gear:accessory:teethNecklace",
+            "bucket": "accessory",
+            "domain": "gear",
+            "slot": "accessory",
+            "itemId": "teethNecklace",
+            "priceGold": 150
+          },
+          {
+            "offerId": "gear:spellBook:galeFolio",
+            "bucket": "spellBook",
+            "domain": "gear",
+            "slot": "spellBook",
+            "itemId": "galeFolio",
+            "priceGold": 150
+          },
+          {
+            "offerId": "projectileSpell:projectile:thunderBolt",
+            "bucket": "projectileSpell",
+            "domain": "projectileSpell",
+            "slot": "projectile",
+            "itemId": "thunderBolt",
+            "priceGold": 150
+          },
+          {
+            "offerId": "ability:spell:eloise.second_wind",
+            "bucket": "spell",
+            "domain": "ability",
+            "slot": "spell",
+            "itemId": "eloise.second_wind",
+            "priceGold": 150
+          },
+          {
+            "offerId": "ability:primary:eloise.bloodletter_slash",
+            "bucket": "ability",
+            "domain": "ability",
+            "slot": "primary",
+            "itemId": "eloise.bloodletter_slash",
+            "priceGold": 150
+          }
+        ]
+      },
+      "appliedRewardGrantIds": [
+        "run_completion_fixture"
+      ]
+    }
+  },
+  "submissionStatus": {
+    "runSessionId": "run_completion_fixture",
+    "state": "validated",
+    "updatedAtMs": 1700000000000,
+    "reward": {
+      "status": "final",
+      "grantId": "run_completion_fixture",
+      "provisionalGold": 75,
+      "effectiveGoldDelta": 75,
+      "spendableGoldDelta": 75,
+      "updatedAtMs": 1700000000000
+    }
+  }
+}

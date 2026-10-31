@@ -20,6 +20,7 @@ import '../state/ownership/ownership_outbox_store.dart';
 import '../state/profile/firebase_account_deletion_api.dart';
 import '../state/profile/firebase_user_profile_remote_api.dart';
 import '../state/run/firebase_run_session_api.dart';
+import '../state/run/firebase_run_completion_source.dart';
 import 'app_services.dart';
 
 /// Builds the standalone app's production dependencies without starting I/O.
@@ -71,6 +72,7 @@ AppServices createAppServices() => AppServices(
       runSessionApi: FirebaseRunSessionApi(
         source: PluginFirebaseRunSessionSource(functions: functions),
       ),
+      runCompletionSource: FirebaseRunCompletionSource(),
       leaderboardApi: FirebaseLeaderboardApi(
         source: PluginFirebaseLeaderboardSource(functions: functions),
       ),

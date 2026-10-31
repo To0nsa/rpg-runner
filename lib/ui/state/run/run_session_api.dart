@@ -1,9 +1,10 @@
 import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/run_mode.dart';
-import 'package:run_protocol/submission_status.dart';
 import 'package:run_protocol/run_ticket.dart';
 
 import 'run_start_remote_exception.dart';
+import 'run_submission_response.dart';
+export 'run_submission_response.dart';
 
 final class RunUploadGrant {
   const RunUploadGrant({
@@ -124,7 +125,7 @@ abstract class RunSessionApi {
     required String runSessionId,
   });
 
-  Future<SubmissionStatus> finalizeUpload({
+  Future<RunSubmissionResponse> finalizeUpload({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -135,7 +136,7 @@ abstract class RunSessionApi {
     Map<String, Object?>? provisionalSummary,
   });
 
-  Future<SubmissionStatus> loadSubmissionStatus({
+  Future<RunSubmissionResponse> loadSubmissionStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -172,7 +173,7 @@ class NoopRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> finalizeUpload({
+  Future<RunSubmissionResponse> finalizeUpload({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -189,7 +190,7 @@ class NoopRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> loadSubmissionStatus({
+  Future<RunSubmissionResponse> loadSubmissionStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,

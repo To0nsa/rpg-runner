@@ -55,6 +55,7 @@ beforeEach(async () => {
       "run_sessions",
       "validated_runs",
       "reward_grants",
+      "run_completion_receipts",
       "system_messages",
       "inbox_rewards",
       "inbox_receipts",
@@ -203,6 +204,8 @@ test("bounded workflow erases large account, catches reinsertion, then deletes a
     dependencies,
   });
   assert.equal(completed.status, "deleted");
+  assert.equal((await db.collection(`run_completion_receipts/${uid}/runs`).get()).empty, true);
+  assert.equal((await db.doc(`run_completion_receipts/${otherUid}/runs/keep`).get()).exists, true);
   assert.deepEqual(auth.calls, [`disable:${uid}`, `delete:${uid}`]);
 
   for (const collection of [
@@ -741,6 +744,10 @@ async function seedLargeAccount(args: {
     displayName: "Delete Me",
     displayNameNormalized: "delete me",
   });
+  await args.db.doc(`run_completion_receipts/${args.otherUid}/runs/keep`).set({ uid: args.otherUid });
+  for (let i = 0; i < 5; i++) {
+    await args.db.doc(`run_completion_receipts/${args.uid}/runs/run_${i}`).set({ uid: args.uid });
+  }
   await args.db.collection("display_name_index").doc("delete me").set({
     uid: args.uid,
   });

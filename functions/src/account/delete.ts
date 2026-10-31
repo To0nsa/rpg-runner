@@ -13,6 +13,7 @@ import * as logger from "firebase-functions/logger";
 
 import { normalizeDisplayNameForPolicy } from "../profile/validators.js";
 import { inboxCollections } from "../inbox/contracts.js";
+import { runCompletionReceiptsCollection } from "../runs/completion_receipt.js";
 import {
   accountDeletionRequestRef,
   accountDeletionRequestsCollection,
@@ -62,6 +63,7 @@ export const accountDeletionStages = [
   "run_sessions",
   "validated_runs",
   "reward_grants",
+  "run_completion_receipts",
   "system_messages",
   "inbox_rewards",
   "inbox_receipts",
@@ -170,6 +172,7 @@ interface AccountDeletionCounters {
   runSessionDocs: number;
   validatedRunDocs: number;
   rewardGrantDocs: number;
+  runCompletionReceiptDocs: number;
   inboxDocs: number;
   ghostDocs: number;
   leaderboardPlayerBestDocs: number;
@@ -712,6 +715,10 @@ async function executeStage(args: {
         collection: rewardGrantsCollection,
         counter: "rewardGrantDocs",
       });
+    case "run_completion_receipts":
+      return deleteSimpleUidPage({ ...args,
+        collection: `${runCompletionReceiptsCollection}/${args.deletion.uid}/runs`,
+        counter: "runCompletionReceiptDocs" });
     case "system_messages":
     case "inbox_rewards":
     case "inbox_receipts":
@@ -1377,6 +1384,7 @@ function emptyCounters(): AccountDeletionCounters {
     runSessionDocs: 0,
     validatedRunDocs: 0,
     rewardGrantDocs: 0,
+    runCompletionReceiptDocs: 0,
     inboxDocs: 0,
     ghostDocs: 0,
     leaderboardPlayerBestDocs: 0,

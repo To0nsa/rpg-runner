@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   battery_plus
+  cloud_firestore
   firebase_app_check
   firebase_auth
   firebase_core

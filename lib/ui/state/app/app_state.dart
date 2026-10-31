@@ -161,6 +161,7 @@ class AppState extends ChangeNotifier {
     OwnershipOutboxStore? ownershipOutboxStore,
     RunSubmissionCoordinator? runSubmissionCoordinator,
     RunSubmissionSpoolStore? runSubmissionSpoolStore,
+    RunCompletionSource? runCompletionSource,
     InboxApi? inboxApi,
   }) {
     final resolvedRunSessionApi = runSessionApi ?? const NoopRunSessionApi();
@@ -171,6 +172,7 @@ class AppState extends ChangeNotifier {
     return AppState._internal(
       authApi: authApi,
       inboxApi: inboxApi,
+      runCompletionSource: runCompletionSource,
       userProfileRemoteApi: userProfileRemoteApi,
       accountDeletionApi: accountDeletionApi,
       loadoutOwnershipApi: loadoutOwnershipApi,
@@ -206,7 +208,9 @@ class AppState extends ChangeNotifier {
     required RunSubmissionCoordinator? runSubmissionCoordinator,
     DeveloperProfileStore? developerStore,
     InboxApi? inboxApi,
+    RunCompletionSource? runCompletionSource,
   }) : _onlineAuthApi = authApi,
+       _runCompletionSource = runCompletionSource,
        _inboxApi = inboxApi,
        _profileRemoteApi =
            userProfileRemoteApi ?? const NoopUserProfileRemoteApi(),
@@ -252,6 +256,7 @@ class AppState extends ChangeNotifier {
       (throw StateError('Developer inventory is local only.'));
   final RunBoardsApi _runBoardsApi;
   final RunSessionApi _runSessionApi;
+  final RunCompletionSource? _runCompletionSource;
   final LeaderboardApi _leaderboardApi;
   final GhostApi _ghostApi;
   final GhostReplayCache _ghostReplayCache;

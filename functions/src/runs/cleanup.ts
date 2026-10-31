@@ -15,6 +15,7 @@ import {
   type RunSessionState,
 } from "./session_state.js";
 import { writeExpiredRunSessionTransition } from "./grant_terminalization.js";
+import { runCompletionReceiptRef } from "./completion_receipt.js";
 
 const runSessionsCollection = "run_sessions";
 const validatedRunsCollection = "validated_runs";
@@ -528,6 +529,12 @@ async function deleteTerminalRunSessionsPastRetention(args: {
 
   let deletedCount = 0;
   for (const doc of toDelete) {
+    // Remove the receipt before its owning terminal record. An interrupted
+    // cleanup can repeat this without leaving an undiscoverable account copy.
+    const uid = doc.get("uid");
+    if (typeof uid === "string" && uid.length > 0) {
+      await runCompletionReceiptRef(args.db, uid, doc.id).delete();
+    }
     await args.db.recursiveDelete(doc.ref);
     deletedCount += 1;
   }

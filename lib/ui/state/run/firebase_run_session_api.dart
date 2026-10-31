@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 
 import 'package:runner_core/levels/level_id.dart';
 import 'package:run_protocol/run_mode.dart';
-import 'package:run_protocol/submission_status.dart';
 import 'package:run_protocol/run_ticket.dart';
 
 import '../../../firebase_app_check_diagnostics.dart';
@@ -94,7 +93,7 @@ class FirebaseRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> finalizeUpload({
+  Future<RunSubmissionResponse> finalizeUpload({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -115,8 +114,11 @@ class FirebaseRunSessionApi implements RunSessionApi {
         objectPath: objectPath,
         provisionalSummary: provisionalSummary,
       );
-      final rawStatus = response['submissionStatus'] ?? response;
-      return SubmissionStatus.fromJson(rawStatus);
+      return RunSubmissionResponse.fromJson(
+        response,
+        userId: userId,
+        runSessionId: runSessionId,
+      );
     } on RunStartRemoteException {
       rethrow;
     } on FirebaseFunctionsException catch (error) {
@@ -137,7 +139,7 @@ class FirebaseRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> loadSubmissionStatus({
+  Future<RunSubmissionResponse> loadSubmissionStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -148,8 +150,11 @@ class FirebaseRunSessionApi implements RunSessionApi {
         sessionId: sessionId,
         runSessionId: runSessionId,
       );
-      final rawStatus = response['submissionStatus'] ?? response;
-      return SubmissionStatus.fromJson(rawStatus);
+      return RunSubmissionResponse.fromJson(
+        response,
+        userId: userId,
+        runSessionId: runSessionId,
+      );
     } on RunStartRemoteException {
       rethrow;
     } on FirebaseFunctionsException catch (error) {

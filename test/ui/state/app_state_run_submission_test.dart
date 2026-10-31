@@ -22,6 +22,108 @@ import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/run/run_reward_diagnostics.dart';
 
 void main() {
+  for (final scenario in ['confirmed', 'older revision', 'pause and resume', 'during finalize', 'account replacement']) {
+    test('completion receipt $scenario applies without a canonical fetch', () async {
+      final gate = Completer<void>();
+      final pending = SubmissionStatus(runSessionId: 'push',
+        state: RunSessionState.pendingValidation, updatedAtMs: 1000);
+      final blocksFinalize = scenario == 'during finalize' || scenario == 'account replacement';
+      final api = blocksFinalize
+          ? _BlockingFinalizeRunSessionApi(finalizeStatus: pending, finalizeGate: gate.future)
+          : _FakeRunSessionApi(finalizeStatus: pending);
+      final source = _TestCompletionSource();
+      final spool = _InMemorySpoolStore();
+      final ownership = _StaticOwnershipApi();
+      final auth = _StaticAuthApi.authenticated();
+      if (scenario == 'older revision') {
+        ownership.setCanonicalState(_canonicalWithGold(gold: 20, revision: 5));
+      }
+      final app = AppState(authApi: auth,
+        loadoutOwnershipApi: ownership, runSessionApi: api, runCompletionSource: source,
+        runSubmissionCoordinator: RunSubmissionCoordinator(runSessionApi: api,
+          spoolStore: spool, replayUploader: _NoopReplayUploader()));
+      addTearDown(() async { app.dispose(); await source.controller.close(); });
+      await app.bootstrap();
+      app.setRunSubmissionForeground(true);
+      final submission = app.submitRunReplay(runSessionId: 'push', runMode: RunMode.practice,
+        replayArtifactId: 'replay', canonicalSha256: 'a' * 64, contentLengthBytes: 256);
+      if (!blocksFinalize) await submission;
+      for (var i = 0; i < 20 && source.listens == 0; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(source.listens, 1);
+      final reads = ownership.loadCanonicalStateCallCount;
+      final receipt = RunSubmissionResponse(SubmissionStatus(runSessionId: 'push',
+        state: RunSessionState.validated, updatedAtMs: 2000,
+        reward: SubmissionReward(status: SubmissionRewardStatus.finalReward,
+          provisionalGold: 12, effectiveGoldDelta: 12, spendableGoldDelta: 12,
+          updatedAtMs: 2000, grantId: 'push')),
+        canonical: _canonicalWithGold(gold: 12, revision: 2));
+      if (scenario == 'pause and resume') {
+        app.setRunSubmissionForeground(false);
+        source.controller.add(receipt);
+        await Future<void>.delayed(Duration.zero);
+        expect(app.progression.gold, 0);
+        app.setRunSubmissionForeground(true);
+        for (var i = 0; i < 20 && source.listens < 2; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(source.listens, 2);
+      }
+      final completed = Completer<void>();
+      app.addListener(() {
+        if (!completed.isCompleted && app.latestVerifiedReward?.runSessionId == 'push') {
+          completed.complete();
+        }
+      });
+      source.controller.add(receipt);
+      if (scenario == 'account replacement') {
+        await Future<void>.delayed(Duration.zero);
+        auth._session = const AuthSession(userId: 'u2', sessionId: 's2',
+          isAnonymous: true, expiresAtMs: 0);
+        ownership.setCanonicalState(_canonicalWithGold(gold: 3, revision: 1));
+        await app.bootstrap(force: true);
+        gate.complete();
+        await submission;
+        expect(app.progression.gold, 3);
+        expect(app.runSubmissionStatusFor('push'), isNull);
+        expect(source.controller.hasListener, isFalse);
+        return;
+      }
+      if (!gate.isCompleted) gate.complete();
+      await completed.future.timeout(const Duration(seconds: 5));
+      await submission;
+      expect(app.progression.gold, scenario == 'older revision' ? 20 : 12);
+      expect(ownership.loadCanonicalStateCallCount, reads);
+      expect(await spool.load(runSessionId: 'push'), isNull);
+      source.controller.add(receipt);
+      await Future<void>.delayed(Duration.zero);
+      expect(ownership.loadCanonicalStateCallCount, reads);
+      expect(source.controller.hasListener, isFalse);
+    });
+  }
+
+  test('a bundled recovery receipt skips a second ownership request', () async {
+    final status = SubmissionStatus(runSessionId: 'bundled', state: RunSessionState.validated,
+      updatedAtMs: 2000, reward: SubmissionReward(status: SubmissionRewardStatus.finalReward,
+        provisionalGold: 9, effectiveGoldDelta: 9, spendableGoldDelta: 9, updatedAtMs: 2000));
+    final api = _FakeRunSessionApi(finalizeStatus: status,
+      canonical: _canonicalWithGold(gold: 9, revision: 2));
+    final ownership = _StaticOwnershipApi();
+    final spool = _InMemorySpoolStore();
+    final app = AppState(authApi: _StaticAuthApi.authenticated(), loadoutOwnershipApi: ownership,
+      runSessionApi: api, runSubmissionCoordinator: RunSubmissionCoordinator(runSessionApi: api,
+        spoolStore: spool, replayUploader: _NoopReplayUploader()));
+    addTearDown(app.dispose);
+    await app.bootstrap();
+    final reads = ownership.loadCanonicalStateCallCount;
+    await app.submitRunReplay(runSessionId: 'bundled', runMode: RunMode.practice,
+      replayArtifactId: 'replay', canonicalSha256: 'a' * 64, contentLengthBytes: 256);
+    expect(app.progression.gold, 9);
+    expect(ownership.loadCanonicalStateCallCount, reads);
+    expect(await spool.loadAll(), isEmpty);
+  });
+
   test(
     'disposing app services cannot attribute a new account paint to an old run',
     () {
@@ -669,10 +771,21 @@ class _InMemorySpoolStore implements RunSubmissionSpoolStore {
   }
 }
 
+class _TestCompletionSource implements RunCompletionSource {
+  _TestCompletionSource() {
+    controller = StreamController<RunSubmissionResponse>.broadcast(onListen: () => listens++);
+  }
+  late final StreamController<RunSubmissionResponse> controller;
+  int listens = 0;
+  @override
+  Stream<RunSubmissionResponse> watch({required String userId, required String runSessionId}) => controller.stream;
+}
+
 class _FakeRunSessionApi implements RunSessionApi {
-  _FakeRunSessionApi({required this.finalizeStatus});
+  _FakeRunSessionApi({required this.finalizeStatus, this.canonical});
 
   final SubmissionStatus finalizeStatus;
+  final OwnershipCanonicalState? canonical;
   int createUploadGrantCallCount = 0;
 
   @override
@@ -710,7 +823,7 @@ class _FakeRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> finalizeUpload({
+  Future<RunSubmissionResponse> finalizeUpload({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -720,30 +833,30 @@ class _FakeRunSessionApi implements RunSessionApi {
     String? objectPath,
     Map<String, Object?>? provisionalSummary,
   }) async {
-    return SubmissionStatus(
+    return RunSubmissionResponse(SubmissionStatus(
       runSessionId: runSessionId,
       state: finalizeStatus.state,
       updatedAtMs: finalizeStatus.updatedAtMs,
       message: finalizeStatus.message,
       validatedRun: finalizeStatus.validatedRun,
       reward: finalizeStatus.reward,
-    );
+    ), canonical: canonical);
   }
 
   @override
-  Future<SubmissionStatus> loadSubmissionStatus({
+  Future<RunSubmissionResponse> loadSubmissionStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,
   }) async {
-    return SubmissionStatus(
+    return RunSubmissionResponse(SubmissionStatus(
       runSessionId: runSessionId,
       state: finalizeStatus.state,
       updatedAtMs: finalizeStatus.updatedAtMs,
       message: finalizeStatus.message,
       validatedRun: finalizeStatus.validatedRun,
       reward: finalizeStatus.reward,
-    );
+    ), canonical: canonical);
   }
 }
 
@@ -756,7 +869,7 @@ class _BlockingFinalizeRunSessionApi extends _FakeRunSessionApi {
   final Future<void> _finalizeGate;
 
   @override
-  Future<SubmissionStatus> finalizeUpload({
+  Future<RunSubmissionResponse> finalizeUpload({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -791,19 +904,19 @@ class _MutableRunSessionApi extends _FakeRunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> loadSubmissionStatus({
+  Future<RunSubmissionResponse> loadSubmissionStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,
   }) async {
-    return SubmissionStatus(
+    return RunSubmissionResponse(SubmissionStatus(
       runSessionId: runSessionId,
       state: _loadStatus.state,
       updatedAtMs: _loadStatus.updatedAtMs,
       message: _loadStatus.message,
       validatedRun: _loadStatus.validatedRun,
       reward: _loadStatus.reward,
-    );
+    ));
   }
 }
 

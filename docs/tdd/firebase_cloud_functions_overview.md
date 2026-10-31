@@ -246,6 +246,13 @@ It explicitly reserves zero idle instances. `runSessionCreate` remains a
 separate deployment to preserve release-time issuance maintenance. Deploy this
 additive endpoint before distributing clients that use it; legacy exports remain.
 
+For a terminal validated run, the shared endpoint additionally returns its
+atomic `completion` receipt when present. The client applies its canonical
+snapshot with the same revision fence as ownership responses. Foreground
+Firestore listeners normally deliver this receipt without calling status;
+the callable supports reconnect/recovery and older settlements. The legacy
+finalize/status exports retain their original response shape.
+
 ### `runSessionFinalizeUpload`
 
 - Client adapter: `lib/ui/state/run/firebase_run_session_api.dart`

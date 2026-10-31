@@ -2,6 +2,13 @@
 
 ## Status
 
+Run completion adds a bounded `run_completion_receipts` stage after reward
+grants, deleting `run_completion_receipts/{uid}/runs` pages and counting them as
+`runCompletionReceiptDocs`. Settlement checks the tombstone in its transaction;
+receipt read rules also deny access after acceptance. Client acceptance cancels
+receipt subscriptions and fences late callbacks. These October 31 changes have
+local emulator evidence only until the next authorized deployment.
+
 The system inbox adds explicit resumable stages for `system_messages`,
 `inbox_rewards`, `inbox_receipts` and `inbox_summaries`, all queried by recipient UID.
 Issuing, reading, claiming, message deletion and retention repair are fenced by the

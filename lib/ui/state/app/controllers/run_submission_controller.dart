@@ -8,6 +8,87 @@ final class _AppStateRunSubmissionController extends _AppStateController {
   int _generation = 0;
   bool _foreground = false;
   Future<void>? _discovery;
+  final Map<String, StreamSubscription<RunSubmissionResponse>>
+  _completionWatches = {};
+  final Map<String, RunSubmissionResponse> _completions = {};
+  int _watchEpoch = 0;
+
+  void _stopCompletionWatches() {
+    _watchEpoch += 1;
+    for (final subscription in _completionWatches.values) {
+      unawaited(subscription.cancel());
+    }
+    _completionWatches.clear();
+  }
+
+  void _watchCompletion(String id, AuthSession session, int generation) {
+    final source = _app._runCompletionSource;
+    if (source == null ||
+        !_foreground ||
+        _acknowledged.contains(id) ||
+        _completionWatches.containsKey(id) ||
+        _completionWatches.length >= 8) {
+      return;
+    }
+    final epoch = _watchEpoch;
+    _completionWatches[id] = source
+        .watch(userId: session.userId, runSessionId: id)
+        .listen(
+          (completion) {
+            if (!_foreground ||
+                epoch != _watchEpoch ||
+                !_isCurrent(session, generation) ||
+                _acknowledged.contains(id) ||
+                completion.status.runSessionId != id ||
+                completion.canonical == null ||
+                !completion.status.isTerminal) {
+              return;
+            }
+            _completions[id] = completion;
+            RunRewardDiagnostics.instance.emit(id, 'completion_received', {
+              'revision': completion.canonical!.revision,
+            });
+            unawaited(_receiveCompletion(id, session, generation, epoch));
+          },
+          onError: (Object error) {
+            if (epoch != _watchEpoch || !_isCurrent(session, generation)) {
+              return;
+            }
+            final subscription = _completionWatches.remove(id);
+            if (subscription != null) unawaited(subscription.cancel());
+            RunRewardDiagnostics.instance.emit(id, 'completion_watch_failed');
+            // The durable queue already owns bounded polling and reconnect recovery.
+          },
+        );
+  }
+
+  Future<void> _receiveCompletion(
+    String id,
+    AuthSession session,
+    int generation,
+    int epoch,
+  ) async {
+    try {
+      // Serialize with an upload/status response that may still be arriving.
+      final active = _inFlight[id];
+      if (active != null) {
+        try {
+          await active;
+        } catch (_) {
+          /* Receipt can recover the failed call. */
+        }
+      }
+      if (!_foreground ||
+          epoch != _watchEpoch ||
+          !_isCurrent(session, generation) ||
+          _acknowledged.contains(id)) {
+        return;
+      }
+      await refreshRunSubmissionStatus(runSessionId: id);
+    } catch (error) {
+      debugPrint('Run completion application deferred: $error');
+    }
+  }
 
   bool _isCurrent(AuthSession session, int generation) =>
       generation == _generation &&
@@ -23,6 +104,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     }
     if (_foreground == foreground) return;
     _foreground = foreground;
+    if (!foreground) _stopCompletionWatches();
     _scheduler.setForeground(foreground);
     for (final id in _runSubmissionStatuses.keys) {
       if (!_acknowledged.contains(id)) {
@@ -39,7 +121,9 @@ final class _AppStateRunSubmissionController extends _AppStateController {
 
   void resetAccount() {
     _generation += 1;
-    _runSubmissionCoordinator.clearPreparedUploads();
+    _stopCompletionWatches();
+    _completions.clear();
+    _app._onlineRunSubmissionCoordinator?.clearPreparedUploads();
     _scheduler.clear();
     _inFlight.clear();
     _acknowledged.clear();
@@ -50,7 +134,9 @@ final class _AppStateRunSubmissionController extends _AppStateController {
 
   void dispose() {
     _generation += 1;
-    _runSubmissionCoordinator.clearPreparedUploads();
+    _stopCompletionWatches();
+    _completions.clear();
+    _app._onlineRunSubmissionCoordinator?.clearPreparedUploads();
     _scheduler.dispose();
     RunRewardDiagnostics.instance.clear();
   }
@@ -61,7 +147,14 @@ final class _AppStateRunSubmissionController extends _AppStateController {
         (!status.isRewardFinal || _acknowledged.contains(id))) {
       return null;
     }
-    return status.nextRetryAtMs ?? 0;
+    final next = status.nextRetryAtMs ?? 0;
+    if (_completionWatches.containsKey(id) &&
+        !status.isTerminal &&
+        status.serverStatus != null) {
+      final fallbackAt = DateTime.now().millisecondsSinceEpoch + 10000;
+      return next > fallbackAt ? next : fallbackAt;
+    }
+    return next;
   }
 
   Future<RunSubmissionStatus> submitRunReplay({
@@ -110,6 +203,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     if (!_isCurrent(session, generation)) return status;
     _runSubmissionStatuses[runSessionId] = status;
     _scheduler.track(runSessionId);
+    _watchCompletion(runSessionId, session, generation);
     _notifyListeners();
     return _runSubmissionStatuses[runSessionId]!;
   }
@@ -145,7 +239,14 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     }
     _scheduler.track(runSessionId);
     RunRewardDiagnostics.instance.emit(runSessionId, 'submission_pump');
-    final status = known?.isRewardFinal == true
+    _watchCompletion(runSessionId, session, generation);
+    final completion = _completions[runSessionId];
+    var status = completion != null
+        ? RunSubmissionStatus.fromServerStatus(
+            completion.status,
+            canonical: completion.canonical,
+          )
+        : known?.isRewardFinal == true
         ? known!
         : await _runSubmissionCoordinator.refreshRunSessionStatus(
             userId: session.userId,
@@ -153,6 +254,13 @@ final class _AppStateRunSubmissionController extends _AppStateController {
             runSessionId: runSessionId,
           );
     if (!_isCurrent(session, generation)) return status;
+    final arrived = _completions[runSessionId];
+    if (arrived != null) {
+      status = RunSubmissionStatus.fromServerStatus(
+        arrived.status,
+        canonical: arrived.canonical,
+      );
+    }
     _runSubmissionStatuses[runSessionId] = status;
     _notifyListeners();
     await _syncCanonicalAfterSubmissionStatuses(
@@ -164,6 +272,9 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     if (status.isTerminal &&
         (!status.isRewardFinal || _acknowledged.contains(runSessionId))) {
       _scheduler.forget(runSessionId);
+      final watch = _completionWatches.remove(runSessionId);
+      if (watch != null) unawaited(watch.cancel());
+      _completions.remove(runSessionId);
     }
     _notifyListeners();
     return status;
@@ -217,6 +328,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
           status.runSessionId,
           notBeforeMs: status.nextRetryAtMs,
         );
+        _watchCompletion(status.runSessionId, session, generation);
       }
       _notifyListeners();
     } catch (error) {
@@ -240,14 +352,26 @@ final class _AppStateRunSubmissionController extends _AppStateController {
         .map((s) => s.runSessionId)
         .toList();
     try {
-      final canonical = await RunRewardDiagnostics.instance.measure(
-        finalIds.first,
-        'canonical_fetch',
-        () => _ownershipApi.loadCanonicalState(
-          userId: session.userId,
-          sessionId: session.sessionId,
-        ),
-      );
+      final receipts = statuses.where((s) => s.isRewardFinal).toList();
+      OwnershipCanonicalState? confirmed;
+      if (receipts.every((s) => s.canonical != null)) {
+        for (final receipt in receipts) {
+          if (confirmed == null ||
+              receipt.canonical!.revision > confirmed.revision) {
+            confirmed = receipt.canonical;
+          }
+        }
+      }
+      final canonical =
+          confirmed ??
+          await RunRewardDiagnostics.instance.measure<OwnershipCanonicalState>(
+            finalIds.first,
+            'canonical_fetch',
+            () => _ownershipApi.loadCanonicalState(
+              userId: session.userId,
+              sessionId: session.sessionId,
+            ),
+          );
       if (!_isCurrent(session, generation)) return;
       if (canonical.revision >= _ownershipRevision) {
         _applyCanonicalState(canonical);
@@ -271,6 +395,9 @@ final class _AppStateRunSubmissionController extends _AppStateController {
         if (!_isCurrent(session, generation)) return;
         if (_acknowledged.add(status.runSessionId)) {
           _app._latestVerifiedReward = status;
+          // Retain the small historical status, not one account snapshot per run.
+          _runSubmissionStatuses[status.runSessionId] =
+              RunSubmissionStatus.fromServerStatus(status.serverStatus!);
           RunRewardDiagnostics.instance.emit(
             status.runSessionId,
             'receipt_acknowledged',

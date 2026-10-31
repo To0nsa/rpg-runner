@@ -3,6 +3,7 @@ import { after, beforeEach, test } from "node:test";
 
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { runCompletionReceiptRef } from "../../src/runs/completion_receipt.js";
 
 import {
   type GhostExposureLookup,
@@ -32,6 +33,7 @@ beforeEach(async () => {
     clearCollection(db, "maintenance"),
     clearCollection(db, "validated_runs"),
     clearCollection(db, "reward_grants"),
+    clearCollection(db, "run_completion_receipts"),
   ]);
 });
 
@@ -314,6 +316,11 @@ test("run cleanup does not advance past a page when delete capacity is lower", a
 test("run cleanup deletes terminal run sessions past retention cutoff", async () => {
   const nowMs = 500_000;
   await seedRunSession("terminal_old_validated", "validated", nowMs - 100_000);
+  const owner = (await db.doc("run_sessions/terminal_old_validated").get()).get("uid") as string;
+  const oldReceipt = runCompletionReceiptRef(db, owner, "terminal_old_validated");
+  const freshReceipt = runCompletionReceiptRef(db, owner, "terminal_fresh_rejected");
+  await oldReceipt.set({ uid: owner });
+  await freshReceipt.set({ uid: owner });
   await db.collection("run_sessions").doc("terminal_old_validated").set({
     terminalAtMs: nowMs - 100_000,
     updatedAtMs: nowMs - 100_000,
@@ -337,6 +344,8 @@ test("run cleanup deletes terminal run sessions past retention cutoff", async ()
   });
 
   assert.equal(result.terminalRunSessionDeletedCount, 2);
+  assert.equal((await oldReceipt.get()).exists, false);
+  assert.equal((await freshReceipt.get()).exists, true);
   assert.equal(result.terminalRunSessionScannedCount, 3);
   assert.equal(
     (await db.collection("run_sessions").doc("terminal_old_validated").get()).exists,

@@ -742,7 +742,7 @@ class _FakeRunSessionApi implements RunSessionApi {
   }
 
   @override
-  Future<SubmissionStatus> finalizeUpload({
+  Future<RunSubmissionResponse> finalizeUpload({
     required String userId,
     required String sessionId,
     required String runSessionId,
@@ -755,31 +755,35 @@ class _FakeRunSessionApi implements RunSessionApi {
     finalizeRunSessionIds.add(runSessionId);
     finalizeObjectPaths.add(objectPath);
     if (finalizeFailure != null) throw finalizeFailure!;
-    return SubmissionStatus(
-      runSessionId: runSessionId,
-      state: finalizeStatus.state,
-      updatedAtMs: finalizeStatus.updatedAtMs,
-      message: finalizeStatus.message,
-      validatedRun: finalizeStatus.validatedRun,
-      reward: finalizeStatus.reward,
+    return RunSubmissionResponse(
+      SubmissionStatus(
+        runSessionId: runSessionId,
+        state: finalizeStatus.state,
+        updatedAtMs: finalizeStatus.updatedAtMs,
+        message: finalizeStatus.message,
+        validatedRun: finalizeStatus.validatedRun,
+        reward: finalizeStatus.reward,
+      ),
     );
   }
 
   @override
-  Future<SubmissionStatus> loadSubmissionStatus({
+  Future<RunSubmissionResponse> loadSubmissionStatus({
     required String userId,
     required String sessionId,
     required String runSessionId,
   }) async {
     loadStatusRunSessionIds.add(runSessionId);
     if (loadStatusFailure != null) throw loadStatusFailure!;
-    return SubmissionStatus(
-      runSessionId: runSessionId,
-      state: loadStatus.state,
-      updatedAtMs: loadStatus.updatedAtMs,
-      message: loadStatus.message,
-      validatedRun: loadStatus.validatedRun,
-      reward: loadStatus.reward,
+    return RunSubmissionResponse(
+      SubmissionStatus(
+        runSessionId: runSessionId,
+        state: loadStatus.state,
+        updatedAtMs: loadStatus.updatedAtMs,
+        message: loadStatus.message,
+        validatedRun: loadStatus.validatedRun,
+        reward: loadStatus.reward,
+      ),
     );
   }
 }

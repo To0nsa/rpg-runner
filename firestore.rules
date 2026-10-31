@@ -1,6 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /run_completion_receipts/{uid}/runs/{runSessionId} {
+      // The owner can watch an as-yet absent receipt. No collection listing or
+      // client write is needed. Deletion immediately fences existing sessions.
+      allow get: if request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.identities['playgames.google.com'] is list
+        && request.auth.token.firebase.identities['playgames.google.com'].size() > 0
+        && !exists(/databases/$(database)/documents/account_deletion_requests/$(uid));
+      allow list, write: if false;
+    }
     match /inbox_configuration/{configurationId} {
       allow read, write: if false;
     }

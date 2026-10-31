@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { resolve } from "node:path";
+import { runCompletionReceiptRef } from "../../src/runs/completion_receipt.js";
 import { after, beforeEach, test } from "node:test";
 
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
@@ -51,6 +54,7 @@ process.env.REPLAY_VALIDATOR_URL = "https://validator.example";
 beforeEach(async () => {
   await Promise.all([
     clearCollection(db, "run_sessions"),
+    clearCollection(db, "run_completion_receipts"),
     clearCollection(db, "reward_grants"),
     clearCollection(db, "validated_runs"),
     clearCollection(db, "ownership_profiles"),
@@ -186,6 +190,22 @@ test("settlement handoff credits gold once and exposes terminal validation toget
     damageDealt100: 0, damageTaken100: 0,
   });
   assert.equal(canonical.revision, 1);
+  const receiptRef = runCompletionReceiptRef(db, uid, runSessionId);
+  const receipt = (await receiptRef.get()).data()!;
+  assert.deepEqual(receipt.canonicalState, canonical);
+  assert.equal(receipt.submissionStatus.reward.spendableGoldDelta, 75);
+  assert.equal(receipt.submissionStatus.state, "validated");
+  assert.equal(receipt.submissionStatus.validatedRun, undefined);
+  const fixture = JSON.parse(JSON.stringify(receipt).replaceAll(runSessionId, "run_completion_fixture"));
+  // Normalize only the current-day store marker; all account fields remain in
+  // the real transaction payload consumed by the Dart contract test.
+  fixture.canonicalState.progression.store.refreshDayKeyUtc = "2023-11-14";
+  const fixturePath = resolve(process.cwd(), "test/fixtures/run_completion_receipt_v1.json");
+  if (process.env.UPDATE_RUN_COMPLETION_FIXTURE === "true") {
+    mkdirSync(resolve(process.cwd(), "test/fixtures"), { recursive: true });
+    writeFileSync(fixturePath, `${JSON.stringify(fixture, null, 2)}\n`);
+  }
+  assert.deepEqual(fixture, JSON.parse(readFileSync(fixturePath, "utf8")));
   const session = await db.collection("run_sessions").doc(runSessionId).get();
   const grant = await db.collection("reward_grants").doc(runSessionId).get();
   assert.equal(session.get("state"), "validated");
@@ -201,6 +221,7 @@ test("settlement handoff credits gold once and exposes terminal validation toget
   });
   const canonicalAfterRetry = await loadOrCreateCanonicalState({ db, uid });
   assert.equal(secondOutcome, "already_settled");
+  assert.deepEqual((await receiptRef.get()).data(), receipt);
   assert.equal(canonicalAfterRetry.progression.gold, 75);
   assert.equal(canonicalAfterRetry.revision, 1);
   const grantAfterCanonicalReads = await db
@@ -322,6 +343,7 @@ for (const summary of [
     assert.equal((await loadOrCreateCanonicalState({ db, uid })).revision, 0);
     assert.equal((await db.collection("system_messages").get()).size, 0);
     assert.equal((await db.collection("run_sessions").doc(runSessionId).get()).get("state"), "settlement_pending");
+    assert.equal((await runCompletionReceiptRef(db, uid, runSessionId).get()).exists, false);
   });
 }
 

@@ -84,8 +84,25 @@ separate the remaining warm grant cost; quota enforcement precedes signing.
 
 `settleAcceptedRunSession` is the only code path that changes canonical
 `progression.gold` for a validated replay. It accepts no player-supplied reward
-amount and atomically writes canonical ownership, the reward grant, and the
-terminal run session.
+amount and atomically writes canonical ownership, the reward grant, the terminal
+run session, and an owner-readable completion receipt. Gold, XP, achievements
+and discovery state share that canonical revision.
+
+`run_completion_receipts/{uid}/runs/{runSessionId}` schema 1 contains UID/run
+binding, final `submissionStatus`/reward and the full `canonicalState` at
+settlement. It excludes replay contents, artifact paths, leases and credentials.
+Keeping the full canonical state prevents advancing the account revision with
+only a gold/XP patch while silently retaining stale inventory or progression.
+Duplicate settlement does not rewrite the receipt. Existing settlements without
+receipts remain readable through the legacy status/canonical fallback.
+
+Rules allow only exact-document reads by the UID owner with a linked Play Games
+identity, including an absent document watched before settlement. They deny
+listing and every client write, and check the account-deletion tombstone.
+Deletion erases the UID's receipt pages explicitly; terminal-run retention
+removes each receipt before its owning run record (currently 90 days).
+The shared `runSubmission` endpoint includes an existing receipt beside terminal
+status, so reconnect/poll recovery also avoids a second canonical request.
 
 The validator commits an accepted run, `settlement_pending` grant, and
 `settlement_pending` session before requesting the IAM-only immediate endpoint.
@@ -140,7 +157,13 @@ Developer Practice never activates the queue.
 
 The queue deduplicates each run's in-flight operation, spaces background
 requests by at least one second globally, and backs off delayed runs. Long-lived
-pending runs share one status request per minute. A new run retains fast checks.
+pending runs share one status request per minute. At most eight pending runs
+have foreground Firestore completion listeners. With a listener, polling waits
+at least ten seconds after a server response; the ordinary backoff still applies.
+Without one, the existing faster checks remain. Listener errors leave the durable
+polling path intact. Pause, account replacement, deletion and disposal cancel
+listeners; resume rediscovers pending receipts. Only server-confirmed snapshots
+without pending client writes qualify, with schema/UID/run/grant binding checks.
 Upload retries preserve the coordinator's durable retry deadline. Account
 changes, accepted deletion and disposal fence late status and ownership writes.
 
@@ -155,8 +178,11 @@ seconds. Expired authentication preserves the pending replay for renewed auth.
 Journal mutations serialize their read-modify-write operations so different
 runs cannot erase one another's pending entries.
 
-A final reward receipt stays in the spool until canonical ownership loads and
-local pending selection is reapplied. Failed refreshes retry even after leaving
+A final reward receipt stays in the spool until its confirmed canonical state
+is applied (or a newer account revision is already present) and local pending
+selection is reapplied. Legacy responses without a snapshot fetch canonical
+ownership. Listener and HTTP results serialize per run and never roll back a
+newer revision. Failed application/refreshes retry even after leaving
 Game Over or restarting the app. Successful acknowledgement removes the receipt;
 repeated status requests do not reload the same acknowledged reward. The app
 announces newly verified gold without interrupting play. Provisional gold remains

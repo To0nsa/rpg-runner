@@ -5,6 +5,7 @@ import { after, before, test } from "node:test";
 
 import {
   assertFails,
+  assertSucceeds,
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
@@ -72,4 +73,28 @@ test("direct clients cannot read or write server-owned documents", async () => {
       await assertFails(client.doc(path).set({ attempted: true }));
     }
   }
+});
+
+test("completion receipts allow only linked owner document reads and fence deletion", async () => {
+  const uid = "receipt_owner";
+  const claims = { firebase: { sign_in_provider: "custom" as const,
+    identities: { "google.com": [], "playgames.google.com": ["test-player"] } } };
+  const owner = testEnvironment.authenticatedContext(uid, claims).firestore();
+  const path = `run_completion_receipts/${uid}/runs/run_1`;
+  // Watching before settlement must work, including a server-confirmed absence.
+  await assertSucceeds(owner.doc(path).get());
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc(path).set({ uid, schemaVersion: 1 });
+  });
+  await assertSucceeds(owner.doc(path).get());
+  await assertFails(owner.doc(path).set({ uid, forged: true }));
+  await assertFails(owner.doc(path).delete());
+  await assertFails(owner.collection(`run_completion_receipts/${uid}/runs`).get());
+  await assertFails(testEnvironment.authenticatedContext("other", claims).firestore().doc(path).get());
+  await assertFails(testEnvironment.authenticatedContext(uid).firestore().doc(path).get());
+  await assertFails(testEnvironment.unauthenticatedContext().firestore().doc(path).get());
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc(`account_deletion_requests/${uid}`).set({ state: "requested" });
+  });
+  await assertFails(owner.doc(path).get());
 });

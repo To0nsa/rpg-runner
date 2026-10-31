@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { measureRewardStage } from "./reward_timing.js";
+import { runCompletionReceiptRef } from "./completion_receipt.js";
 import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
 import { requireObject } from "../ownership/validators.js";
 import { assertAccountActive } from "../account/deletion_guard.js";
@@ -51,7 +52,9 @@ export async function handleRunSubmission(
   db: Firestore,
   dependencies?: RunSubmissionDependencies,
   clock: AuthorityClock = systemAuthorityClock,
-): Promise<{ uploadGrant: UploadGrantRecord } | { submissionStatus: JsonObject }> {
+): Promise<{ uploadGrant: UploadGrantRecord } | {
+  submissionStatus: JsonObject; completion?: Record<string, unknown>;
+}> {
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
@@ -62,9 +65,16 @@ export async function handleRunSubmission(
     case "grant":
       return handleRunSessionCreateUploadGrant(request, db, dependencies, clock);
     case "finalize":
-      return handleRunSessionFinalizeUpload(request, db, dependencies, clock);
-    case "status":
-      return handleRunSessionLoadStatus(request, db, clock);
+    case "status": {
+      const result = data.operation === "finalize"
+        ? await handleRunSessionFinalizeUpload(request, db, dependencies, clock)
+        : await handleRunSessionLoadStatus(request, db, clock);
+      if (result.submissionStatus.state !== "validated") return result;
+      const receipt = await runCompletionReceiptRef(db, request.auth.uid,
+        String(result.submissionStatus.runSessionId)).get();
+      // Old settlements have no receipt and retain the canonical-refresh path.
+      return receipt.exists ? { ...result, completion: receipt.data() } : result;
+    }
     default:
       throw new HttpsError("invalid-argument", "Unknown run submission operation.");
   }
