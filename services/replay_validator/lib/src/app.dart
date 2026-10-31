@@ -62,6 +62,24 @@ class ReplayValidatorApp {
         readPositiveIntEnv('VALIDATOR_ORPHANED_TASK_REPAIR_DELAY_MS') ??
         const Duration(minutes: 15).inMilliseconds;
     final settlementDispatchUrl = readEnv('SETTLEMENT_DISPATCH_URL');
+    final settlementDeliveryMode =
+        readEnv('SETTLEMENT_DELIVERY_MODE') ?? 'eventarc';
+    if (settlementDeliveryMode != 'eventarc' &&
+        settlementDeliveryMode != 'immediate') {
+      throw const FormatException('Invalid SETTLEMENT_DELIVERY_MODE.');
+    }
+    final settlementEndpoint = settlementDispatchUrl == null
+        ? null
+        : Uri.tryParse(settlementDispatchUrl);
+    if (settlementDeliveryMode == 'immediate' &&
+        (settlementEndpoint == null ||
+            settlementEndpoint.scheme != 'https' ||
+            settlementEndpoint.host.isEmpty ||
+            settlementEndpoint.userInfo.isNotEmpty)) {
+      throw const FormatException(
+        'Immediate settlement requires an HTTPS SETTLEMENT_DISPATCH_URL.',
+      );
+    }
     final settlementDispatchTimeoutMs =
         readPositiveIntEnv('SETTLEMENT_DISPATCH_TIMEOUT_MS') ?? 4000;
     final validationLeaseDurationMs =
@@ -126,10 +144,10 @@ class ReplayValidatorApp {
           bucketName: replayStorageBucket,
           apiProvider: apiProvider,
         ),
-        settlementDispatcher: settlementDispatchUrl == null
+        settlementDispatcher: settlementDeliveryMode == 'eventarc'
             ? const NoopSettlementDispatcher()
             : FunctionsSettlementDispatcher(
-                endpoint: Uri.parse(settlementDispatchUrl),
+                endpoint: settlementEndpoint!,
                 identityTokenProvider: MetadataIdentityTokenProvider(),
                 timeout: Duration(milliseconds: settlementDispatchTimeoutMs),
               ),

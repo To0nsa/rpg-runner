@@ -41,7 +41,7 @@ Do not assume a previously used release checklist is the current target.
   source/benchmarked image. Create only a paused issuer, then use normal cutover.
   Never clear an established environment to satisfy bootstrap emptiness.
 - EnableInitialEventRetries is an explicit first-deployment acknowledgement for
-  coordinated Deploy only. Force only missing settlement/projection event
+  coordinated Deploy only. Force only missing settlement/projection/deletion event
   handlers after live inventory; never force the issuer, indexes or full deploy.
   Existing handler policy/identity drift blocks. Keep ordinary defaults strict.
 - Keep successful preparation bound to source/toolchain/artifact evidence.

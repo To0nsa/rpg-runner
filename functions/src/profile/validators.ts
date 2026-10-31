@@ -1,7 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
-import { requireNonEmptyString, requireObject } from "../ownership/validators.js";
+import { requireNonEmptyString, requireObject } from "../validation.js";
 
 interface LoadPlayerProfileRequest {
   userId: string;

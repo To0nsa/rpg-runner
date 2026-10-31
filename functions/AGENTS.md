@@ -233,7 +233,7 @@ the deployment environment. That recovery must preserve the gate, restore local
 environment bytes, and verify the healthy serving revision before cutover.
 
 After Functions deployment, preserve private invoker access for immediate
-settlement and both Eventarc target services. Source version defaults and
+settlement, all three Eventarc targets, and the private pending-work task service. Source version defaults and
 checked-in environment files do not establish the live configuration.
 
 ## Cross-Repo Contract Responsibilities

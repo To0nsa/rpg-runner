@@ -402,6 +402,7 @@ test("repair scan reports bounded backlog health without account identifiers", a
   });
 
   assert.deepEqual(result, {
+    continuationFailureCount: 0,
     scannedCount: 1,
     processedCount: 1,
     processedStepCount: 1,

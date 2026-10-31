@@ -1,5 +1,5 @@
 import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
-import { requireNonEmptyString, requireObject } from "../ownership/validators.js";
+import { requireNonEmptyString, requireObject } from "../validation.js";
 
 export interface AccountDeleteRequest {
   userId: string;

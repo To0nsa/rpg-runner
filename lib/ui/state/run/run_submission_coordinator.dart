@@ -328,13 +328,19 @@ class RunSubmissionCoordinator {
           sessionId: sessionId,
           runSessionId: runSessionId,
         );
-        if (status.status.state != RunSessionState.issued &&
+        if (status.status.state == RunSessionState.uploaded) {
+          // Metadata committed, but enqueue may have failed. Finalize retries
+          // bind the same Storage generation and repair this handoff promptly.
+          pending = pending.copyWith(
+            uploadCompletedAtMs: pending.uploadCompletedAtMs ?? _clock(),
+          );
+        } else if (status.status.state != RunSessionState.issued &&
             status.status.state != RunSessionState.uploading) {
           return await _receiveServerStatus(status, pending);
         }
       }
 
-      if (pending.uploadCompletedAtMs == null || pending.objectPath == null) {
+      if (pending.uploadCompletedAtMs == null) {
         pending = pending.copyWith(
           step: PendingRunSubmissionStep.requestingUploadGrant,
           updatedAtMs: _clock(),
@@ -413,17 +419,22 @@ class RunSubmissionCoordinator {
         verificationDelayedThresholdMs: verificationDelayedThresholdMs,
       );
     } catch (error) {
-      RunRewardDiagnostics.instance.emit(runSessionId, 'submission_failure', {
-        'step': pending.step.name,
-        'attempt': pending.attemptCount,
-        'retryable': _isRetryableError(error),
-      });
       final failedAtMs = _clock();
       // Malformed/missing finalize responses cannot prove a failed commit.
       // Keep the receipt until the server answers authoritatively on recovery.
       final ambiguousFinalization =
-          pending.uploadCompletedAtMs != null && error is FormatException;
-      if (!_isRetryableError(error) && !ambiguousFinalization) {
+          pending.uploadCompletedAtMs != null &&
+          (error is FormatException ||
+              error is RunStartRemoteException &&
+                  (error.code == 'failed-precondition' ||
+                      error.code == 'already-exists'));
+      final retryable = _isRetryableError(error) || ambiguousFinalization;
+      RunRewardDiagnostics.instance.emit(runSessionId, 'submission_failure', {
+        'step': pending.step.name,
+        'attempt': pending.attemptCount,
+        'retryable': retryable,
+      });
+      if (!retryable) {
         await _removeSubmission(runSessionId: runSessionId);
         return RunSubmissionStatus(
           runSessionId: runSessionId,
@@ -630,7 +641,14 @@ class RunSubmissionCoordinator {
       );
     }
     final refreshedPending = pendingSubmission.copyWith(
-      step: PendingRunSubmissionStep.awaitingServerStatus,
+      // Older journals may already be polling an upload whose enqueue failed.
+      // Resume finalize using the committed evidence on the next queue pass.
+      step: status.state == RunSessionState.uploaded
+          ? PendingRunSubmissionStep.finalizing
+          : PendingRunSubmissionStep.awaitingServerStatus,
+      uploadCompletedAtMs: status.state == RunSessionState.uploaded
+          ? pendingSubmission.uploadCompletedAtMs ?? nowMs
+          : pendingSubmission.uploadCompletedAtMs,
       updatedAtMs: nowMs,
       lastErrorCode: null,
       lastErrorMessage: null,

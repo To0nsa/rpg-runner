@@ -91,9 +91,9 @@ Play-delivered authentication/attestation are separate acceptance gates.
    empty-project precondition no longer applies. Preserve the cutover record.
 6. Run Deploy -CutoverReady only after the drain review. Review saved
    checkpoints if an index or later deployment step fails; keep issuance paused.
-   A new project's first deployment of the two retry-enabled event handlers needs
+   First deployment of a missing retry-enabled event handler needs
    `-EnableInitialEventRetries`. This acknowledges Firebase's retry prompt only
-   for missing settlement/projection handlers after live inventory; normal deploy,
+   for missing settlement/projection/deletion handlers after live inventory; normal deploy,
    issuer and Firestore commands retain strict defaults. Use it only with the
    release authorization, after confirming the handlers' idempotency checks.
    If the existing board-maintenance scheduler was deliberately paused, preserve

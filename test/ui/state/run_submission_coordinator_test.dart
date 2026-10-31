@@ -215,11 +215,22 @@ void main() {
                   )
                 : null,
           );
+          if (state == RunSessionState.uploaded) {
+            runSessionApi.finalizeFailure = null;
+          }
           final recovered = await recover();
-          expect(recovered.serverStatus!.state, state);
+          expect(
+            recovered.serverStatus!.state,
+            state == RunSessionState.uploaded
+                ? RunSessionState.pendingValidation
+                : state,
+          );
           expect(runSessionApi.grantRunSessionIds, ['run_recovery']);
           expect(replayUploader.uploadedRunSessionIds, ['run_recovery']);
-          expect(runSessionApi.finalizeRunSessionIds, ['run_recovery']);
+          expect(
+            runSessionApi.finalizeRunSessionIds.length,
+            state == RunSessionState.uploaded ? 2 : 1,
+          );
           expect(
             (await spoolStore.load(runSessionId: 'run_recovery'))!.step,
             PendingRunSubmissionStep.awaitingServerStatus,
@@ -257,6 +268,27 @@ void main() {
         expect(runSessionApi.grantRunSessionIds, isEmpty);
         expect(replayUploader.uploadedRunSessionIds, isEmpty);
         expect(runSessionApi.finalizeObjectPaths, ['saved/object/path']);
+      },
+    );
+
+    test(
+      'a finalize state race retains recovery until server status is known',
+      () async {
+        await queueRecoveryRun();
+        runSessionApi.finalizeFailure = const RunStartRemoteException(
+          code: 'failed-precondition',
+          message: 'Validation already started',
+        );
+        expect((await recover()).phase, RunSubmissionPhase.retryScheduled);
+        expect(await spoolStore.load(runSessionId: 'run_recovery'), isNotNull);
+        clock.advance(const Duration(seconds: 2));
+        runSessionApi.loadStatus = SubmissionStatus(
+          runSessionId: 'run_recovery',
+          state: RunSessionState.validating,
+          updatedAtMs: clock.now(),
+        );
+        expect((await recover()).phase, RunSubmissionPhase.validating);
+        expect(replayUploader.uploadedRunSessionIds.length, 1);
       },
     );
 
@@ -534,6 +566,46 @@ void main() {
       expect(runSessionApi.finalizeRunSessionIds, isEmpty);
       expect(runSessionApi.loadStatusRunSessionIds, <String>['run_await']);
     });
+
+    test(
+      'legacy polling journal resumes finalize after a lost enqueue',
+      () async {
+        await coordinator.enqueueSubmission(
+          userId: 'uid_legacy',
+          runSessionId: 'run_legacy',
+          runMode: RunMode.practice,
+          replayArtifactId: '/tmp/legacy.replay',
+          canonicalSha256: 'a' * 64,
+          contentLengthBytes: 1024,
+        );
+        await spoolStore.upsert(
+          submission: (await spoolStore.load(runSessionId: 'run_legacy'))!
+              .copyWith(step: PendingRunSubmissionStep.awaitingServerStatus),
+        );
+        runSessionApi.loadStatus = SubmissionStatus(
+          runSessionId: 'run_legacy',
+          state: RunSessionState.uploaded,
+          updatedAtMs: clock.now(),
+        );
+        await coordinator.refreshRunSessionStatus(
+          userId: 'uid_legacy',
+          sessionId: 'session',
+          runSessionId: 'run_legacy',
+        );
+        expect(
+          (await spoolStore.load(runSessionId: 'run_legacy'))!.step,
+          PendingRunSubmissionStep.finalizing,
+        );
+        await coordinator.refreshRunSessionStatus(
+          userId: 'uid_legacy',
+          sessionId: 'session',
+          runSessionId: 'run_legacy',
+        );
+        expect(runSessionApi.finalizeRunSessionIds, ['run_legacy']);
+        expect(runSessionApi.grantRunSessionIds, isEmpty);
+        expect(replayUploader.uploadedRunSessionIds, isEmpty);
+      },
+    );
 
     test('refreshRunSessionStatus keeps deferred retry state instead of server uploading', () async {
       await coordinator.enqueueSubmission(

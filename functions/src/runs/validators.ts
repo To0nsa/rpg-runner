@@ -7,7 +7,7 @@ import {
   requireBoundedIdentifier,
   requireNonEmptyString,
   requireObject,
-} from "../ownership/validators.js";
+} from "../validation.js";
 import { replayUploadMaxBytes } from "./limits.js";
 import { parseRunMode, type RunModeValue } from "./mode.js";
 

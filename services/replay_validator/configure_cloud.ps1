@@ -12,6 +12,9 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$SettlementDispatchUrl,
 
+  [ValidateSet('eventarc', 'immediate')]
+  [string]$SettlementDeliveryMode = 'eventarc',
+
   [string]$Region = "europe-west1",
   [string]$Service = "replay-validator",
   [string]$ValidationQueue = "replay-validation",
@@ -82,6 +85,7 @@ $environmentVariables = @(
   "GCLOUD_PROJECT=$ProjectId",
   "REPLAY_STORAGE_BUCKET=$ReplayStorageBucket",
   "SETTLEMENT_DISPATCH_URL=$SettlementDispatchUrl",
+  "SETTLEMENT_DELIVERY_MODE=$SettlementDeliveryMode",
   "SETTLEMENT_DISPATCH_TIMEOUT_MS=4000",
   "VALIDATOR_LEASE_DURATION_MS=600000",
   "VALIDATOR_ORPHANED_TASK_REPAIR_DELAY_MS=900000",
@@ -144,6 +148,10 @@ Invoke-Gcloud @(
   "--timeout=240s",
   "--concurrency=1",
   "--max-instances=10",
+  "--min-instances=0",
+  "--min=0",
+  "--scaling=auto",
+  "--cpu-throttling",
   "--startup-probe=httpGet.path=/ready,httpGet.port=8080,periodSeconds=1,timeoutSeconds=1,failureThreshold=60",
   "--liveness-probe=httpGet.path=/live,httpGet.port=8080,periodSeconds=30,timeoutSeconds=2,failureThreshold=3",
   "--set-env-vars=$environmentVariables"

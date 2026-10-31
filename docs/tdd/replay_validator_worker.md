@@ -280,13 +280,13 @@ On accepted run:
    `reward_grants/<runSessionId>` to `settlement_pending`, and update the run
    session to `settlement_pending` with
    `settlementRepairDisposition = retryable`.
-3. Request the private `runSettlementImmediate` Functions endpoint with the
-   Cloud Run service identity and only the run-session id. The endpoint invokes
-   the Functions-owned settlement transaction; it never accepts client reward
-   values.
-4. If that bounded request fails, times out, or races another delivery, leave
-   the durable handoff unchanged. The retry-enabled Firestore/Eventarc
-   dispatcher and scheduled stale-pending repair invoke the same transaction.
+3. Acknowledge the durable handoff. Retry-enabled Firestore/Eventarc invokes
+   the Functions-owned settlement transaction. The validator never writes the
+   wallet or needs CPU after its HTTP response.
+4. Pending-work tasks and hourly safety scans recover missed settlement delivery.
+   Explicit `SETTLEMENT_DELIVERY_MODE=immediate` rollback additionally requests
+   the IAM-only `runSettlementImmediate` endpoint with the run ID and worker
+   identity. A failed/slow request leaves the handoff unchanged.
 5. A Firestore-triggered Cloud Task independently invokes `/tasks/project` for
    board modes. That task projects leaderboard top/player-best state and then
    updates ghost artifacts/manifests. A failure returns HTTP 503 for Cloud
@@ -368,12 +368,13 @@ policy configures:
 - maximum backoff: `4h`
 - maximum retry duration: `24h`
 
-The worker's default attempt budget is also `8`. A scheduled
-`runValidationRepair` Functions job runs every five minutes and:
+The worker's default attempt budget is also `8`. A delayed per-run task invokes
+the same recovery helper after 15 minutes; `runValidationRepair` supplies an
+independent hourly bounded safety scan. Recovery:
 
 - moves an expired `validating` lease back to `pending_validation` while
   clearing its token;
-- requeues pending validation after its repair-eligibility timestamp;
+- requeues pending validation or an uploaded replay whose initial enqueue was lost, after its repair-eligibility timestamp;
 - uses a transactionally incremented generation in the task name;
 - restores immediate repair eligibility if enqueue fails.
 
@@ -435,11 +436,12 @@ canonical settlement transaction.
 - If missing:
   - falls back to `StubValidatorWorker`, which returns `notImplemented`.
 
-`SETTLEMENT_DISPATCH_URL` enables the immediate settlement request. It must be
-an HTTPS URL for the IAM-protected `runSettlementImmediate` Function.
-`SETTLEMENT_DISPATCH_TIMEOUT_MS` bounds the request (default: 4000 ms). Missing
-the URL disables only the immediate path; Eventarc and repair still settle a
-durable accepted handoff.
+`SETTLEMENT_DELIVERY_MODE` defaults to `eventarc`, including when a rollback URL
+is configured. `immediate` explicitly adds the private HTTP path and requires a
+valid HTTPS `SETTLEMENT_DISPATCH_URL`; invalid mode/endpoint fails startup.
+`SETTLEMENT_DISPATCH_TIMEOUT_MS` bounds rollback requests (default 4000 ms).
+Deployment selects automatic scaling, zero service/revision minimums and
+request-based billing. Navigation artifacts and simulation inputs are unchanged.
 
 Validation lease/recovery configuration:
 
@@ -556,7 +558,7 @@ source and ghost remains a retryable integrity failure.
 6. `validated_runs` document is written.
 7. Accepted runs reach `settlement_pending` with the matching grant before any
    immediate request.
-8. Immediate dispatch succeeds, or Eventarc/repair eventually settles the same
+8. Eventarc or pending-work/repair eventually settles the same
    handoff exactly once.
 9. Expired validation leases and orphaned pending work appear in
    `runValidationRepair` metrics and are requeued.

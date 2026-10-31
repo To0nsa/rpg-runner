@@ -2,9 +2,10 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { setGlobalOptions } from "firebase-functions/v2";
-import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onTaskDispatched } from "firebase-functions/v2/tasks";
 
 import {
   appCheckCallableOptions,
@@ -14,10 +15,6 @@ import {
   cleanupExpiredAbuseQuota,
   consumeUserQuota,
 } from "./abuse/quota.js";
-import {
-  processPendingAccountDeletions,
-  requestAccountDeletion,
-} from "./account/delete.js";
 import { assertAccountActive } from "./account/deletion_guard.js";
 import { parseAccountDeleteRequest } from "./account/validators.js";
 import {
@@ -29,54 +26,14 @@ import {
   requireRecentPlayGamesAuthentication,
 } from "./auth/callable_identity.js";
 import {
-  loadOrCreatePlayerProfile,
-  updatePlayerProfile,
-} from "./profile/store.js";
-import { repairProfileConsistency } from "./profile/consistency_repair.js";
-import {
   parseLoadPlayerProfileRequest,
   parseUpdatePlayerProfileRequest,
 } from "./profile/validators.js";
-import { loadOrCreateCanonicalState } from "./ownership/canonical_store.js";
-import { executeOwnershipCommand } from "./ownership/command_executor.js";
-import { maintainOwnershipIdempotencyRetention } from "./ownership/idempotency_retention.js";
-import {
-  parseExecuteCommandRequest,
-  parseLoadCanonicalRequest,
-} from "./ownership/validators.js";
-import {
-  handleRunBoardsLoadActive,
-  handleRunSessionCreate,
-  handleRunSessionCreateUploadGrant,
-  handleRunSessionFinalizeUpload,
-  handleRunSessionLoadStatus,
-  handleRunSubmission,
-} from "./runs/callable_handlers.js";
-import { ensureManagedLeaderboardBoards } from "./boards/provisioning.js";
-import { pruneObsoleteLeaderboardBoards } from "./boards/retention.js";
-import { runReplaySubmissionCleanup } from "./runs/cleanup.js";
-import { settleAcceptedRunSession } from "./runs/reward_settlement.js";
-import { enqueueAcceptedRunProjection } from "./runs/projection_dispatch.js";
 import {
   parseProjectionReconciliationBatchSize,
   projectionReconciliationSchedule,
-  reconcileLeaderboardBoardProjections,
-} from "./runs/projection_reconciliation.js";
-import {
-  dispatchImmediateSettlement,
-  ImmediateSettlementDispatchRequestError,
-} from "./runs/immediate_settlement_dispatch.js";
+} from "./runs/projection_reconciliation_policy.js";
 import { logSettlementMetric } from "./runs/settlement_metrics.js";
-import { repairStaleRunValidations } from "./runs/validation_repair.js";
-import { repairPendingSettlements } from "./runs/settlement_repair.js";
-import {
-  handleLeaderboardLoadActiveBoardData,
-  handleLeaderboardLoadBoard,
-  handleLeaderboardLoadMyRank,
-} from "./leaderboards/callable_handlers.js";
-import { handleGhostLoadManifest } from "./ghosts/callable_handlers.js";
-import { handleInboxRequest } from "./inbox/callable_handlers.js";
-import { maintainInboxRetention } from "./inbox/retention.js";
 import type { InboxOperation } from "./inbox/validators.js";
 import { readDeploymentIdentity } from "./deployment_identity.js";
 
@@ -91,6 +48,7 @@ const deploymentIdentity = readDeploymentIdentity();
 setGlobalOptions({
   region: defaultFunctionsRegion,
   serviceAccount: deploymentIdentity.runControlServiceAccount,
+  minInstances: 0,
 });
 
 const db = getFirestore();
@@ -106,6 +64,7 @@ function inboxCallable(functionName: string, operation: InboxOperation) {
   return onCall(userCallableAppCheckOptions, async (request) => {
     logAppCheckObservation({ functionName, request });
     requirePlayGamesCallableUser(request.auth);
+    const { handleInboxRequest } = await import("./inbox/callable_handlers.js");
     return handleInboxRequest(request, db, operation);
   });
 }
@@ -148,6 +107,7 @@ export const loadoutOwnershipLoadCanonicalState = onCall(
       request,
     });
     const uid = requirePlayGamesCallableUser(request.auth);
+    const { parseLoadCanonicalRequest } = await import("./ownership/validators.js");
     const { userId } = parseLoadCanonicalRequest(request.data);
     if (userId !== uid) {
       throw new HttpsError(
@@ -162,6 +122,7 @@ export const loadoutOwnershipLoadCanonicalState = onCall(
       route: "ownership_read",
       nowMs: captureAuthorityTimeMs(systemAuthorityClock),
     });
+    const { loadOrCreateCanonicalState } = await import("./ownership/canonical_store.js");
     const canonicalState = await loadOrCreateCanonicalState({
       db,
       uid,
@@ -178,6 +139,7 @@ export const loadoutOwnershipExecuteCommand = onCall(
       request,
     });
     const uid = requirePlayGamesCallableUser(request.auth);
+    const { parseExecuteCommandRequest } = await import("./ownership/validators.js");
     const { command } = parseExecuteCommandRequest(request.data);
     if (command.userId !== uid) {
       throw new HttpsError(
@@ -192,6 +154,7 @@ export const loadoutOwnershipExecuteCommand = onCall(
       route: "ownership_command",
       nowMs: captureAuthorityTimeMs(systemAuthorityClock),
     });
+    const { executeOwnershipCommand } = await import("./ownership/command_executor.js");
     const result = await executeOwnershipCommand({
       db,
       uid,
@@ -220,6 +183,7 @@ export const playerProfileLoad = onCall(
       route: "profile_read",
       nowMs: captureAuthorityTimeMs(systemAuthorityClock),
     });
+    const { loadOrCreatePlayerProfile } = await import("./profile/store.js");
     const profile = await loadOrCreatePlayerProfile({ db, uid });
     return { profile };
   },
@@ -246,6 +210,7 @@ export const playerProfileUpdate = onCall(
       route: "profile_write",
       nowMs,
     });
+    const { updatePlayerProfile } = await import("./profile/store.js");
     const profile = await updatePlayerProfile({
       db,
       uid,
@@ -280,6 +245,7 @@ export const accountDelete = onCall(
       nowMs,
       allowAccountDeletionRequest: true,
     });
+    const { requestAccountDeletion } = await import("./account/delete.js");
     const result = await requestAccountDeletion({
       db,
       uid,
@@ -294,6 +260,7 @@ export const runBoardsLoadActive = onCall(
   async (request) => {
     logAppCheckObservation({ functionName: "runBoardsLoadActive", request });
     requirePlayGamesCallableUser(request.auth);
+    const { handleRunBoardsLoadActive } = await import("./runs/callable_handlers.js");
     return handleRunBoardsLoadActive(request, db);
   },
 );
@@ -309,6 +276,7 @@ export const runSessionCreate = onCall(
   async (request) => {
     logAppCheckObservation({ functionName: "runSessionCreate", request });
     requirePlayGamesCallableUser(request.auth);
+    const { handleRunSessionCreate } = await import("./runs/callable_handlers.js");
     return handleRunSessionCreate(request, db);
   },
 );
@@ -318,6 +286,7 @@ export const runSubmission = onCall(
   async (request) => {
     logAppCheckObservation({ functionName: "runSubmission", request });
     requirePlayGamesCallableUser(request.auth);
+    const { handleRunSubmission } = await import("./runs/callable_handlers.js");
     return handleRunSubmission(request, db);
   },
 );
@@ -330,6 +299,7 @@ export const runSessionCreateUploadGrant = onCall(
       request,
     });
     requirePlayGamesCallableUser(request.auth);
+    const { handleRunSessionCreateUploadGrant } = await import("./runs/callable_handlers.js");
     return handleRunSessionCreateUploadGrant(request, db);
   },
 );
@@ -342,6 +312,7 @@ export const runSessionFinalizeUpload = onCall(
       request,
     });
     requirePlayGamesCallableUser(request.auth);
+    const { handleRunSessionFinalizeUpload } = await import("./runs/callable_handlers.js");
     return handleRunSessionFinalizeUpload(request, db);
   },
 );
@@ -351,6 +322,7 @@ export const runSessionLoadStatus = onCall(
   async (request) => {
     logAppCheckObservation({ functionName: "runSessionLoadStatus", request });
     requirePlayGamesCallableUser(request.auth);
+    const { handleRunSessionLoadStatus } = await import("./runs/callable_handlers.js");
     return handleRunSessionLoadStatus(request, db);
   },
 );
@@ -362,9 +334,18 @@ export const runSettlementOnHandoff = onDocumentWritten(
   },
   async (event) => {
     const after = event.data?.after;
-    if (!after?.exists || after.data()?.state !== "settlement_pending") {
+    if (!after?.exists) return;
+    const state = after.data()?.state;
+    if (["uploaded", "pending_validation"].includes(state) &&
+        event.data?.before.data()?.state !== state) {
+      const { enqueuePendingWork, runRecoveryDelaySeconds } = await import("./pending_work.js");
+      await enqueuePendingWork({ work: { kind: "run", runSessionId: event.params.runSessionId },
+        generation: "initial", delaySeconds: runRecoveryDelaySeconds });
+    }
+    if (state !== "settlement_pending") {
       return;
     }
+    const { settleAcceptedRunSession } = await import("./runs/reward_settlement.js");
     const outcome = await settleAcceptedRunSession({
       db,
       runSessionId: event.params.runSessionId,
@@ -376,6 +357,33 @@ export const runSettlementOnHandoff = onDocumentWritten(
       outcome,
       deliverySource: "eventarc",
     });
+  },
+);
+
+export const accountDeletionOnRequest = onDocumentCreated(
+  { document: "account_deletion_requests/{uid}", retry: true },
+  async (event) => {
+    if (!event.data?.exists || event.data.get("state") === "complete") return;
+    const { enqueuePendingWork } = await import("./pending_work.js");
+    await enqueuePendingWork({ work: { kind: "account", uid: event.params.uid },
+      generation: `initial-${event.data.get("requestedAtMs")}` });
+  },
+);
+
+/** IAM-only, request-billed continuation; no timers or work after response. */
+export const runPendingWork = onTaskDispatched(
+  { invoker: deploymentIdentity.runControlServiceAccount,
+    timeoutSeconds: 120, maxInstances: 5,
+    retryConfig: { maxAttempts: 1000, maxRetrySeconds: 86400,
+      minBackoffSeconds: 30, maxBackoffSeconds: 60, maxDoublings: 1 },
+    rateLimits: { maxConcurrentDispatches: 5, maxDispatchesPerSecond: 5 } },
+  async (request) => {
+    const { parsePendingWork, processPendingWork } = await import("./pending_work.js");
+    const work = parsePendingWork(request.data);
+    const result = await processPendingWork({ db, work });
+    logger.info("pending_work", { kind: work.kind, outcome: result,
+      ...(work.kind === "run" ? { runSessionId: work.runSessionId } : {}) });
+    if (result === "pending") throw new HttpsError("unavailable", "Durable work remains pending.");
   },
 );
 
@@ -393,6 +401,7 @@ export const runProjectionOnAccepted = onDocumentWritten(
     if (!after?.exists || after.data()?.accepted !== true) {
       return;
     }
+    const { enqueueAcceptedRunProjection } = await import("./runs/projection_dispatch.js");
     const outcome = await enqueueAcceptedRunProjection({
       db,
       runSessionId: event.params.runSessionId,
@@ -421,6 +430,7 @@ export const runSettlementImmediate = onRequest(
       response.status(405).json({ error: "method_not_allowed" });
       return;
     }
+    const { dispatchImmediateSettlement, ImmediateSettlementDispatchRequestError } = await import("./runs/immediate_settlement_dispatch.js");
     try {
       const result = await dispatchImmediateSettlement({
         db,
@@ -463,6 +473,7 @@ export const leaderboardLoadBoard = onCall(
   async (request) => {
     logAppCheckObservation({ functionName: "leaderboardLoadBoard", request });
     requirePlayGamesCallableUser(request.auth);
+    const { handleLeaderboardLoadBoard } = await import("./leaderboards/callable_handlers.js");
     return handleLeaderboardLoadBoard(request, db);
   },
 );
@@ -478,6 +489,7 @@ export const leaderboardLoadMyRank = onCall(
   async (request) => {
     logAppCheckObservation({ functionName: "leaderboardLoadMyRank", request });
     requirePlayGamesCallableUser(request.auth);
+    const { handleLeaderboardLoadMyRank } = await import("./leaderboards/callable_handlers.js");
     return handleLeaderboardLoadMyRank(request, db);
   },
 );
@@ -496,6 +508,7 @@ export const leaderboardLoadActiveBoardData = onCall(
       request,
     });
     requirePlayGamesCallableUser(request.auth);
+    const { handleLeaderboardLoadActiveBoardData } = await import("./leaderboards/callable_handlers.js");
     return handleLeaderboardLoadActiveBoardData(request, db);
   },
 );
@@ -505,6 +518,7 @@ export const ghostLoadManifest = onCall(
   async (request) => {
     logAppCheckObservation({ functionName: "ghostLoadManifest", request });
     requirePlayGamesCallableUser(request.auth);
+    const { handleGhostLoadManifest } = await import("./ghosts/callable_handlers.js");
     return handleGhostLoadManifest(request, db);
   },
 );
@@ -515,6 +529,7 @@ export const runSubmissionCleanup = onSchedule(
     timeZone: "Etc/UTC",
   },
   async () => {
+    const { runReplaySubmissionCleanup } = await import("./runs/cleanup.js");
     const result = await runReplaySubmissionCleanup({ db });
     console.log("runSubmissionCleanup", result);
   },
@@ -526,6 +541,7 @@ export const playerProfileConsistencyRepair = onSchedule(
     timeZone: "Etc/UTC",
   },
   async () => {
+    const { repairProfileConsistency } = await import("./profile/consistency_repair.js");
     const result = await repairProfileConsistency({
       db,
       batchSize: profileConsistencyRepairBatchSize,
@@ -551,6 +567,7 @@ export const ownershipIdempotencyRetentionCleanup = onSchedule(
     timeZone: "Etc/UTC",
   },
   async () => {
+    const { maintainOwnershipIdempotencyRetention } = await import("./ownership/idempotency_retention.js");
     const result = await maintainOwnershipIdempotencyRetention({ db });
     console.log("ownershipIdempotencyRetentionCleanup", result);
   },
@@ -559,6 +576,7 @@ export const ownershipIdempotencyRetentionCleanup = onSchedule(
 export const inboxRetentionCleanup = onSchedule(
   { schedule: "every 60 minutes", timeZone: "Etc/UTC", timeoutSeconds: 540, maxInstances: 1 },
   async () => {
+    const { maintainInboxRetention } = await import("./inbox/retention.js");
     const result = await maintainInboxRetention({ db });
     logger.info("inboxRetentionCleanup", result);
   },
@@ -566,21 +584,29 @@ export const inboxRetentionCleanup = onSchedule(
 
 export const accountDeletionRepair = onSchedule(
   {
-    schedule: "every 1 minutes",
+    schedule: "every 60 minutes",
     timeZone: "Etc/UTC",
   },
   async () => {
-    const result = await processPendingAccountDeletions({ db });
+    const { enqueuePendingWork } = await import("./pending_work.js");
+    const { processPendingAccountDeletions } = await import("./account/delete.js");
+    const result = await processPendingAccountDeletions({ db,
+      onPending: (uid) => enqueuePendingWork({ work: { kind: "account", uid },
+        generation: `repair-${Math.floor(Date.now() / 3600000)}` }) });
     logger.info("accountDeletionRepair", result);
+    if (result.continuationFailureCount > 0) {
+      throw new Error("Account deletion continuation enqueue failed; safety scan still progressed.");
+    }
   },
 );
 
 export const runSettlementRepair = onSchedule(
   {
-    schedule: "every 15 minutes",
+    schedule: "every 60 minutes",
     timeZone: "Etc/UTC",
   },
   async () => {
+    const { repairPendingSettlements } = await import("./runs/settlement_repair.js");
     const result = await repairPendingSettlements({
       db,
       options: {
@@ -605,10 +631,11 @@ export const runSettlementRepair = onSchedule(
  */
 export const runValidationRepair = onSchedule(
   {
-    schedule: "every 15 minutes",
+    schedule: "every 60 minutes",
     timeZone: "Etc/UTC",
   },
   async () => {
+    const { repairStaleRunValidations } = await import("./runs/validation_repair.js");
     const result = await repairStaleRunValidations({
       db,
       options: {
@@ -636,6 +663,7 @@ export const runProjectionReconciliation = onSchedule(
     memory: "512MiB",
   },
   async () => {
+    const { reconcileLeaderboardBoardProjections } = await import("./runs/projection_reconciliation.js");
     const result = await reconcileLeaderboardBoardProjections({
       db,
       batchSize: projectionReconciliationBatchSize,
@@ -650,6 +678,8 @@ export const leaderboardBoardMaintenance = onSchedule(
     timeZone: "Etc/UTC",
   },
   async () => {
+    const { pruneObsoleteLeaderboardBoards } = await import("./boards/retention.js");
+    const { ensureManagedLeaderboardBoards } = await import("./boards/provisioning.js");
     const result = await ensureManagedLeaderboardBoards({ db });
     console.log("leaderboardBoardMaintenance", result);
     const retention = await pruneObsoleteLeaderboardBoards({ db, apply: true });

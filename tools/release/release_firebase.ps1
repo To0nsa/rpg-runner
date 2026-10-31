@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 function Get-ReleaseInitialEventRetryTargets {
   param([object[]]$Functions, [string]$ProjectId, [string]$Region)
   $prefix = "projects/$ProjectId/locations/$Region/functions/"
-  foreach ($name in @('runSettlementOnHandoff', 'runProjectionOnAccepted')) {
+  foreach ($name in @('runSettlementOnHandoff', 'runProjectionOnAccepted', 'accountDeletionOnRequest')) {
     $existing = @($Functions | Where-Object { $_.name -clike "*/functions/$name" })
     if ($existing.Count -eq 0) {
       "functions:$name"

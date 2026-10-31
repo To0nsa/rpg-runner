@@ -2,7 +2,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
 import { rejectClientAuthorityTime } from "../authority_time.js";
-import { requireNonEmptyString, requireObject } from "../ownership/validators.js";
+import { requireNonEmptyString, requireObject } from "../validation.js";
 import { parseRunMode } from "../runs/mode.js";
 import type { BoardStatus } from "./contracts.js";
 

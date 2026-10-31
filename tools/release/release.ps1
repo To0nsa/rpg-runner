@@ -120,8 +120,8 @@ function Invoke-ReleaseFirebase {
   if ($InitialEventRetries) {
     $selected = @($Targets -split ',')
     if ($selected.Count -eq 0 -or @($selected | Where-Object {
-      $_ -notin @('functions:runSettlementOnHandoff', 'functions:runProjectionOnAccepted')
-    }).Count -gt 0) { throw 'Initial retry acknowledgement is limited to the two event handlers.' }
+      $_ -notin @('functions:runSettlementOnHandoff', 'functions:runProjectionOnAccepted', 'functions:accountDeletionOnRequest')
+    }).Count -gt 0) { throw 'Initial retry acknowledgement is limited to the registered event handlers.' }
     $commandArgs += '--force'
   }
   Write-Host "Deploying $Targets"
@@ -295,7 +295,9 @@ function Confirm-ReleaseBackend {
   foreach ($entry in @(
     @("runsettlementimmediate", "sa-replay-validator@$ProjectId.iam.gserviceaccount.com"),
     @("runprojectiononaccepted", "sa-run-control@$ProjectId.iam.gserviceaccount.com"),
-    @("runsettlementonhandoff", "sa-run-control@$ProjectId.iam.gserviceaccount.com")
+    @("runsettlementonhandoff", "sa-run-control@$ProjectId.iam.gserviceaccount.com"),
+    @("accountdeletiononrequest", "sa-run-control@$ProjectId.iam.gserviceaccount.com"),
+    @("runpendingwork", "sa-run-control@$ProjectId.iam.gserviceaccount.com")
   )) {
     Invoke-ReleaseGcloud @("run", "services", "add-iam-policy-binding", $entry[0], "--project=$ProjectId", "--region=$Region", "--member=serviceAccount:$($entry[1])", "--role=roles/run.invoker", "--quiet") "iam" | Out-Null
     $policy = Invoke-ReleaseGcloud @("run", "services", "get-iam-policy", $entry[0], "--project=$ProjectId", "--region=$Region", "--format=json") | ConvertFrom-Json
@@ -303,6 +305,19 @@ function Confirm-ReleaseBackend {
       if ($binding.role -eq "roles/run.invoker" -and @($binding.members | Where-Object { $_ -in @("allUsers", "allAuthenticatedUsers") }).Count -gt 0) { throw "Public invoker binding on $($entry[0]); inspect IAM before continuing." }
     }
   }
+  # Firebase creates this task queue with the handler's bounded retry policy.
+  # Admin SDK dispatch uses the runtime identity as its OIDC identity. Keep both
+  # enqueue and actAs bindings scoped to that queue/account, never the project.
+  $controlAccount = "sa-run-control@$ProjectId.iam.gserviceaccount.com"
+  Invoke-ReleaseGcloud @("tasks", "queues", "add-iam-policy-binding", "runPendingWork",
+    "--project=$ProjectId", "--location=$Region", "--member=serviceAccount:$controlAccount",
+    "--role=roles/cloudtasks.enqueuer", "--quiet") "pending-work-iam" | Out-Null
+  Invoke-ReleaseGcloud @("iam", "service-accounts", "add-iam-policy-binding", $controlAccount,
+    "--project=$ProjectId", "--member=serviceAccount:$controlAccount",
+    "--role=roles/iam.serviceAccountUser", "--quiet") "pending-work-iam" | Out-Null
+  $pendingQueueState = Invoke-ReleaseGcloud @("tasks", "queues", "describe", "runPendingWork",
+    "--project=$ProjectId", "--location=$Region", "--format=value(state)")
+  if ($pendingQueueState -ne 'RUNNING') { throw 'Pending-work queue must be RUNNING; inspect its state before continuing.' }
   Get-LiveFunctionsIdentity | Out-Null
 }
 

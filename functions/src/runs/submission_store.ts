@@ -17,7 +17,7 @@ import {
   readOptionalBoundedAbuseLimit,
 } from "../abuse/quota.js";
 import type { JsonObject } from "../ownership/contracts.js";
-import { requireObject } from "../ownership/validators.js";
+import { requireObject } from "../validation.js";
 import {
   defaultValidationRepairStaleThresholdMs,
   isRunSessionState,

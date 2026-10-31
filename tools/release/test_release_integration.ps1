@@ -145,7 +145,7 @@ function gcloud {
   if ($command.StartsWith("functions list")) {
     if ($global:fakeBootstrapEmpty) { return '[]' }
     $exports = [regex]::Matches((Get-Content -Raw (Join-Path $fixture 'functions/src/index.ts')), 'export const ([A-Za-z][A-Za-z0-9_]*)\s*=')
-    return (@($exports | Where-Object { -not $global:fakeMissingEventHandlers -or $_.Groups[1].Value -notin @('runSettlementOnHandoff','runProjectionOnAccepted') } | ForEach-Object { @{ name = "projects/test-project/locations/europe-west1/functions/$($_.Groups[1].Value)"; state = "ACTIVE"; updateTime = $global:fakeFunctionsVersion; eventTrigger=@{retryPolicy='RETRY_POLICY_RETRY'} } }) | ConvertTo-Json -Depth 5)
+    return (@($exports | Where-Object { -not $global:fakeMissingEventHandlers -or $_.Groups[1].Value -notin @('runSettlementOnHandoff','runProjectionOnAccepted','accountDeletionOnRequest') } | ForEach-Object { @{ name = "projects/test-project/locations/europe-west1/functions/$($_.Groups[1].Value)"; state = "ACTIVE"; updateTime = $global:fakeFunctionsVersion; eventTrigger=@{retryPolicy='RETRY_POLICY_RETRY'} } }) | ConvertTo-Json -Depth 5)
   }
   if ($command.StartsWith('run services list')) { return '[]' }
   return "{}"
@@ -387,7 +387,7 @@ try {
   $global:fakeMissingEventHandlers = $true
   & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady -EnableInitialEventRetries
   $forced = @($global:releaseTrace | Where-Object { $_ -like 'firebase *--force*' })
-  Assert-Test ($forced.Count -eq 1 -and $forced[0] -match '--only functions:runSettlementOnHandoff,functions:runProjectionOnAccepted --non-interactive --force$') 'explicit initial retry acknowledgement forces only the two missing event handlers'
+  Assert-Test ($forced.Count -eq 1 -and $forced[0] -match '--only functions:runSettlementOnHandoff,functions:runProjectionOnAccepted,functions:accountDeletionOnRequest --non-interactive --force$') 'explicit initial retry acknowledgement forces only the registered missing event handlers'
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'firebase *firestore:*--force*' -or $_ -match 'firebase .*functions:runSessionCreate(,|\s).*--force' }).Count -eq 0) 'initial retry acknowledgement never forces issuer, indexes or the full backend deployment'
   $initialState | Set-Content -LiteralPath $initialStatePath -Encoding utf8
   $global:fakeMissingEventHandlers = $false
@@ -400,6 +400,10 @@ try {
   Assert-Test ($global:releaseTrace.IndexOf($firebaseChanges[0]) -lt
     $global:releaseTrace.IndexOf("configure matching worker")) "settlement deploy precedes matching worker"
   Assert-Test ($global:fakeIssuancePaused) "Deploy leaves ticket issuance paused"
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'tasks queues add-iam-policy-binding runPendingWork *--role=roles/cloudtasks.enqueuer*' }).Count -gt 0) 'pending work enqueue permission is queue scoped'
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'iam service-accounts add-iam-policy-binding sa-run-control@test-project.iam.gserviceaccount.com *--role=roles/iam.serviceAccountUser*' }).Count -gt 0) 'pending work OIDC actAs permission is limited to the control account'
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -like 'run services get-iam-policy runpendingwork *' }).Count -gt 0) 'pending work endpoint is checked for public access'
+  Assert-Test (@($global:releaseTrace | Where-Object { $_ -match 'tasks queues (pause|resume) runPendingWork' }).Count -eq 0) 'pending work stays independent of paused gameplay queues'
   & $entry -Environment $TestEnvironment -Action Deploy -CutoverReady
   $expectedDeployments = if ($TestEnvironment -eq 'dev') { 2 } else { 1 }
   Assert-Test (@($global:releaseTrace | Where-Object { $_ -like "firebase *" }).Count -eq $expectedDeployments) "retry reuses environment-specific deployment checkpoints"

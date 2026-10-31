@@ -250,12 +250,24 @@ it shows an accepted-deletion message with `Retry cleanup`. Retrying invokes
 deletion request. This receipt/retry state is in memory, not a durable
 cross-restart cleanup journal; failed OS/file/preference operations are not
 claimed to have erased device data. A retryable backend stage remains owned
-by the scheduled worker independently of the client's authentication state.
+by durable task delivery and the safety scan independently of the client's authentication state.
 
 ## Scheduling, retention, and operations
 
-`accountDeletionRepair` runs every minute in UTC and selects up to ten active
-requests. It performs round-robin batches of up to 32 stage steps per selected
+Creation of a tombstone triggers retry-enabled `accountDeletionOnRequest`, which
+enqueues the private `runPendingWork` task. The task advances at most 32 stages
+within a 40-second soft budget, using the existing page leases and checkpoints.
+It retries pending work at 30-60 second intervals, including the 15-minute upload
+quiet period and live validator leases, and stops on durable completion. The
+queue has bounded concurrency/retries; see [reward delivery](reward_settlement_operations.md).
+No account is scanned every minute when there is no work.
+
+`accountDeletionRepair` runs hourly in UTC and selects up to ten active requests.
+It restores task delivery with an hour-specific idempotency key for legacy or
+missed requests before performing its existing bounded safety-scan work.
+Enqueue failures increment `continuationFailureCount` and are reported after
+the scan progresses its pages, so a task-queue outage cannot disable independent
+erasure recovery. The scan performs round-robin batches of up to 32 stage steps per selected
 request, with a shared 40-second soft elapsed-time budget. Every step acquires its
 own five-minute lease, performs one bounded page and durably commits its
 checkpoint. Pages default to 100 items (validated bounds 1-500). A request stops
@@ -293,8 +305,10 @@ Twelve hours is an operator safety budget, not a completion guarantee. The
 legacy policy display name is retained for idempotent updates, but its filter
 no longer treats 720 successful steps as a failure. A regression with 184 extra
 retained boards and a populated account verifies completion within 90 simulated
-one-minute scheduler ticks while preserving signed-upload quiet time. Historical
-September evidence used one step per minute and must not be read as verification
+one-minute processing ticks while preserving signed-upload quiet time. This is
+bounded-worker coverage, not evidence for the new hourly safety cadence. Task
+continuation, lease contention, duplicate completion, missing-task restoration
+and the quiet period have separate emulator tests. Historical September evidence used one step per minute and must not be read as verification
 of the new batching or board-retention deployment. New source requires fresh
 live verification. Deploy new indexes separately and wait for `READY` before
 deploying dependent Functions. Log-match policies cannot detect missing
@@ -310,7 +324,7 @@ only to keep the deletion barrier fail-closed and to
 support bounded deletion/security incident evidence. It contains no gameplay
 or identity-provider data.
 
-The scheduled worker evaluates expiry every minute and deletes up to ten
+The scheduled safety worker evaluates expiry hourly and deletes up to ten
 expired completed records per invocation, oldest expiry first. Its query filters
 `state = complete` using the source-controlled `state` + `expiresAtMs` index;
 an active record with malformed expiry cannot obstruct the completed page. One

@@ -11,9 +11,10 @@ abstract interface class SettlementDispatcher {
 
 enum SettlementDispatchOutcome { settled, alreadySettled, disabled }
 
-/// Keeps validator behavior usable without an immediate-dispatch endpoint.
+/// Leaves settlement delivery to the durable Firestore event.
 ///
-/// Eventarc and scheduled repair still settle the durable handoff in this mode.
+/// Pending-work tasks and the safety scan recover a missed event. The accepted
+/// handoff has committed before this is called; no unawaited background work runs.
 class NoopSettlementDispatcher implements SettlementDispatcher {
   const NoopSettlementDispatcher();
 

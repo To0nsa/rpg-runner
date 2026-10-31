@@ -126,6 +126,7 @@ export interface AccountDeletionProcessResult extends AccountDeleteResult {
 }
 
 export interface AccountDeletionRepairResult {
+  continuationFailureCount: number;
   scannedCount: number;
   processedCount: number;
   processedStepCount: number;
@@ -365,6 +366,8 @@ export async function processPendingAccountDeletions(args: {
   timeBudgetMs?: number;
   /** Monotonic elapsed-time seam; gameplay and persisted timestamps are separate. */
   elapsedClock?: () => number;
+  /** Hourly reconciliation restores task delivery for legacy or missed events. */
+  onPending?: (uid: string) => Promise<void>;
 }): Promise<AccountDeletionRepairResult> {
   const elapsedClock = args.elapsedClock ?? (() => performance.now());
   const startedAt = elapsedClock();
@@ -415,6 +418,18 @@ export async function processPendingAccountDeletions(args: {
     .limit(maxRequests + 1)
     .get();
   const active = pending.docs.slice(0, maxRequests);
+  let continuationFailureCount = 0;
+  if (args.onPending) {
+    for (const doc of active) {
+      try {
+        await args.onPending(doc.id);
+      } catch {
+        // Keep the independent safety scan useful during a queue outage.
+        // Report failed delivery after completing this bounded batch.
+        continuationFailureCount += 1;
+      }
+    }
+  }
   const activeDocuments = active.map(
     (doc) => doc.data() as AccountDeletionRequestDocument,
   );
@@ -468,6 +483,7 @@ export async function processPendingAccountDeletions(args: {
     if (stopped.size === active.length || elapsedClock() - startedAt >= timeBudgetMs) break;
   }
   return {
+    continuationFailureCount,
     scannedCount: active.length,
     processedCount: processed.size,
     processedStepCount,

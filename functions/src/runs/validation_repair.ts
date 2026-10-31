@@ -48,6 +48,46 @@ interface PreparedValidationRepair {
   reclaimedLease: boolean;
 }
 
+/** Uses the same lease/generation fencing as the bounded safety scan. */
+export async function repairRunValidation(args: {
+  db: Firestore;
+  runSessionId: string;
+  nowMs?: number;
+  dispatcher?: RunValidationTaskDispatcher;
+  options?: ValidationRepairOptions;
+}): Promise<"reclaimed" | "requeued" | "skipped" | "failed"> {
+  const nowMs = args.nowMs ?? Date.now();
+  let prepared: PreparedValidationRepair | undefined;
+  try {
+    prepared = await prepareRepairCandidate({
+      db: args.db,
+      candidate: { runSessionId: args.runSessionId,
+        ref: args.db.collection(runSessionsCollection).doc(args.runSessionId) },
+      nowMs,
+      leaseDurationMs: positiveInt(args.options?.leaseDurationMs, defaultValidationLeaseDurationMs),
+      pendingStaleThresholdMs: positiveInt(args.options?.pendingStaleThresholdMs, defaultValidationRepairStaleThresholdMs),
+      reenqueueCooldownMs: positiveInt(args.options?.reenqueueCooldownMs, defaultValidationRepairReenqueueCooldownMs),
+    });
+  } catch (error) {
+    if (isAccountDeletionInProgressError(error)) return "skipped";
+    throw error;
+  }
+  if (!prepared) return "skipped";
+  try {
+    await (args.dispatcher ?? createCloudTasksRunValidationTaskDispatcher())
+      .enqueueRunValidationTask({ runSessionId: prepared.runSessionId,
+        taskKey: `repair-${prepared.generation}` });
+    return prepared.reclaimedLease ? "reclaimed" : "requeued";
+  } catch {
+    try {
+      await makeRepairImmediatelyEligible({ db: args.db, prepared, nowMs });
+    } catch (error) {
+      if (!isAccountDeletionInProgressError(error)) throw error;
+    }
+    return "failed";
+  }
+}
+
 /**
  * Recovers expired leases and pending sessions whose original task may be gone.
  *
@@ -74,12 +114,6 @@ export async function repairStaleRunValidations(args: {
     args.options?.pendingStaleThresholdMs,
     defaultValidationRepairStaleThresholdMs,
   );
-  const reenqueueCooldownMs = positiveInt(
-    args.options?.reenqueueCooldownMs,
-    defaultValidationRepairReenqueueCooldownMs,
-  );
-  const dispatcher =
-    args.dispatcher ?? createCloudTasksRunValidationTaskDispatcher();
   const candidates = await loadRepairCandidates({
     db: args.db,
     nowMs,
@@ -93,52 +127,12 @@ export async function repairStaleRunValidations(args: {
   let skippedCount = 0;
   let failureCount = 0;
   for (const candidate of candidates) {
-    let prepared: PreparedValidationRepair | undefined;
-    try {
-      prepared = await prepareRepairCandidate({
-        db: args.db,
-        candidate,
-        nowMs,
-        leaseDurationMs,
-        pendingStaleThresholdMs,
-        reenqueueCooldownMs,
-      });
-    } catch (error) {
-      if (isAccountDeletionInProgressError(error)) {
-        skippedCount += 1;
-        continue;
-      }
-      throw error;
-    }
-    if (!prepared) {
-      skippedCount += 1;
-      continue;
-    }
-
-    try {
-      await dispatcher.enqueueRunValidationTask({
-        runSessionId: prepared.runSessionId,
-        taskKey: `repair-${prepared.generation}`,
-      });
-      if (prepared.reclaimedLease) {
-        reclaimedLeaseCount += 1;
-      } else {
-        requeuedPendingCount += 1;
-      }
-    } catch {
-      failureCount += 1;
-      try {
-        await makeRepairImmediatelyEligible({
-          db: args.db,
-          prepared,
-          nowMs,
-        });
-      } catch (makeEligibleError) {
-        if (!isAccountDeletionInProgressError(makeEligibleError)) {
-          throw makeEligibleError;
-        }
-      }
-    }
+    const outcome = await repairRunValidation({ ...args, nowMs,
+      runSessionId: candidate.runSessionId });
+    if (outcome === "reclaimed") reclaimedLeaseCount += 1;
+    else if (outcome === "requeued") requeuedPendingCount += 1;
+    else if (outcome === "failed") failureCount += 1;
+    else skippedCount += 1;
   }
 
   return {
@@ -159,7 +153,7 @@ async function loadRepairCandidates(args: {
   pendingStaleThresholdMs: number;
 }): Promise<ValidationRepairCandidate[]> {
   const sessions = args.db.collection(runSessionsCollection);
-  const [expiredLease, legacyLease, duePending, legacyPending] =
+  const [expiredLease, legacyLease, duePending, legacyPending, orphanedUploaded] =
     await Promise.all([
       sessions
         .where("state", "==", "validating")
@@ -189,6 +183,9 @@ async function loadRepairCandidates(args: {
         )
         .limit(args.batchSize)
         .get(),
+      sessions.where("state", "==", "uploaded")
+        .where("updatedAtMs", "<=", args.nowMs - args.pendingStaleThresholdMs)
+        .limit(args.batchSize).get(),
     ]);
   const candidates = new Map<string, ValidationRepairCandidate>();
   for (const snapshot of [
@@ -196,6 +193,7 @@ async function loadRepairCandidates(args: {
     legacyLease,
     duePending,
     legacyPending,
+    orphanedUploaded,
   ]) {
     for (const doc of snapshot.docs) {
       candidates.set(doc.id, {
@@ -246,7 +244,7 @@ async function prepareRepairCandidate(args: {
       leaseExpiresAtMs !== undefined &&
       leaseExpiresAtMs <= args.nowMs;
     const requeueingPending =
-      state === "pending_validation" &&
+      (state === "pending_validation" || state === "uploaded") &&
       pendingEligibleAtMs !== undefined &&
       pendingEligibleAtMs <= args.nowMs;
     if (!reclaimingLease && !requeueingPending) {
@@ -260,6 +258,7 @@ async function prepareRepairCandidate(args: {
     tx.set(
       args.candidate.ref,
       {
+        ...(state === "uploaded" ? { state: "pending_validation" } : {}),
         ...(reclaimingLease
           ? {
               state: "pending_validation",
@@ -275,7 +274,7 @@ async function prepareRepairCandidate(args: {
           args.nowMs + args.reenqueueCooldownMs,
         message: reclaimingLease
           ? "Expired validation lease recovered; validation retry queued."
-          : "Validation retry recovered by scheduled repair.",
+          : "Validation retry recovered by repair.",
       },
       { merge: true },
     );

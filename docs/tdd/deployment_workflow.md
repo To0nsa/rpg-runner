@@ -131,7 +131,7 @@ If bootstrap creates the issuer before a later failure, inspect it and recover
 with normal `PauseIssuance`/`Deploy`; do not erase resources to rerun bootstrap.
 
 First-time coordinated `Deploy -CutoverReady -EnableInitialEventRetries`
-acknowledges Firebase's prompt for new retry-enabled settlement/projection event
+acknowledges Firebase's prompt for new retry-enabled settlement/projection/deletion event
 handlers. After the ordinary prepared-image, paused-issuer and drain gates, it
 reads the live Functions inventory and deploys only missing
 `runSettlementOnHandoff` / `runProjectionOnAccepted` with `--force`. Existing
@@ -139,7 +139,7 @@ handlers must be active in the selected project/region with retries already
 enabled; drift blocks instead of being changed. The regular full deployment,
 issuer and Firestore commands never inherit this flag. Normal defaults remain
 strict, and a partial successful creation is skipped on retry. This adds no new
-runtime retry policy: the two idempotent handlers already declare it in source.
+runtime retry policy: the registered idempotent event handlers already declare it in source.
 
 Functions derive their runtime and private validator-invoker service accounts
 from the SDK deployment project, rejecting contradictory project variables or a
@@ -442,8 +442,12 @@ Deploy verifies that gate and a freshly drained inventory, then:
    Firestore rules and indexes, using the repository-pinned Firebase CLI and an
    explicit project/config path. It requires all composite indexes to be READY
    before continuing.
-3. Restores private invocation bindings for immediate settlement and both
-   Eventarc targets; a public invoker binding blocks continuation.
+3. Restores private invocation bindings for immediate settlement, the three
+   Eventarc targets and `runPendingWork`; public invoker bindings block continuation.
+   Firebase creates the task queue from its source retry/rate policy. Enqueue IAM
+   is queue-scoped to run control, whose self-`actAs` binding supplies task OIDC.
+   The pending-work queue must be running and remains independent of gameplay
+   queue pause/resume; it does not execute replay simulation.
 4. Calls the existing configure_cloud.ps1 for the immutable worker, bucket IAM,
    resource/probe limits, queue routing and retention policies.
 5. Requests leaderboard board maintenance and publishes the prepared web build.

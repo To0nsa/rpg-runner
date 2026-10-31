@@ -104,11 +104,47 @@ removes each receipt before its owning run record (currently 90 days).
 The shared `runSubmission` endpoint includes an existing receipt beside terminal
 status, so reconnect/poll recovery also avoids a second canonical request.
 
-The validator commits an accepted run, `settlement_pending` grant, and
-`settlement_pending` session before requesting the IAM-only immediate endpoint.
-The immediate request is the latency path. Firestore/Eventarc and the five
-minute `runSettlementRepair` schedule are independent delivery fallbacks. They
-all call the same transaction and must remain enabled.
+The validator atomically commits the accepted run, `settlement_pending` grant
+and session. Retry-enabled Firestore/Eventarc delivery is the primary settlement
+path. The worker acknowledges that durable handoff without awaiting a redundant
+HTTP settlement request. `SETTLEMENT_DELIVERY_MODE=immediate` explicitly restores
+the private HTTP path for rollback; it requires a valid HTTPS endpoint and keeps
+Eventarc enabled. Both use the same Functions-owned transaction.
+
+The run-session event also enqueues one `runPendingWork` recovery task on the
+uploaded/pending-validation transition, delayed 15 minutes. A stable hashed task
+name deduplicates repeated delivery. Enqueue failures propagate to Eventarc;
+only the SDK's actual task-already-exists response is acknowledged. The IAM-only
+task checks durable state, reuses the existing generation/lease-fenced validation
+repair, or settles a pending accepted run. Terminal/missing/deletion-owned runs
+stop. Persisted-data incidents remain quarantined and wallet-neutral.
+
+Pending work returns a retryable failure until its domain checkpoint completes.
+`pending_work` logs its kind/outcome and, for runs, the correlation ID; account
+UIDs and task payloads are not logged by this handler.
+The task queue uses 30-60 second backoff, a 24-hour retry-duration policy and
+1,000-attempt limit, five concurrent dispatches, and 120-second request deadlines.
+Cloud Tasks applies its retry limits; hourly bounded validation/settlement scans
+remain the safety net for legacy work, missed events and exhausted tasks. These
+scans replace the former 15-minute scans. Healthy runs incur one delayed terminal
+check; there is no periodic keepalive or reserved compute.
+
+`accountDeletionOnRequest` schedules the same private task worker for an accepted
+tombstone. It processes bounded pages and yields through the signed-upload quiet
+period. Its hourly safety scan restores missing task delivery. Account deletion,
+retention and privacy details remain in [account deletion](account_deletion_workflow.md).
+The pending-work queue stays running during coordinated cutover; it can enqueue
+onto paused gameplay queues but cannot execute replay validation itself.
+
+Functions default to zero minimum instances. Domain implementations load inside
+their callbacks after cheap identity/state checks, while export registration and
+small configuration policy remain synchronous. Shared boundary validators do not
+load ownership catalogs. The worker deployment explicitly selects automatic
+scaling, zero service/revision minimums and request-based CPU billing. Storage,
+queued work, listeners and hourly maintenance can still incur usage charges;
+this is not a claim of a zero total cloud bill. Configuration follows the
+[task-function contract](https://firebase.google.com/docs/functions/task-functions)
+and [Cloud Run billing settings](https://docs.cloud.google.com/run/docs/configuring/billing-settings).
 
 Validation lease acquisition makes at most two immediate compare-and-set
 attempts. This absorbs the expected race between replay finalization and a
@@ -139,9 +175,9 @@ the explicit retryable lane in stable document-id order. A persisted-data
 invariant transactionally changes the disposition to `quarantined` and records
 the attempt time and incident reason without changing the session's
 `settlement_pending` state, grant, or canonical wallet. Infrastructure failures
-leave the disposition retryable; during pre-release cost containment the
-15-minute schedule remains the retry cadence. Before public release, remeasure
-this fallback path and restore the production cadence and alert timing.
+leave the disposition retryable. Pending-work retries handle normal recovery;
+the hourly cursor scan remains independent. Re-measure recovery delivery and
+alert timing in the target environment before treating this as live evidence.
 
 ## Client completion lifetime
 
@@ -197,7 +233,7 @@ stable JSON fields:
 | --- | --- | --- |
 | `settlement_transaction` | `deliverySource`, `outcome`, `durationMs`, `transactionAttempts`, optional `pendingAgeMs` | One settlement attempt. Outcomes are `settled`, `already_settled`, `not_ready`, or `invariant_violation`. |
 | `settlement_eventarc_delivery` | `deliverySource`, `outcome` | Firestore fallback delivery. |
-| `settlement_repair_scan` | `scannedCount`, `settledCount`, `classifiedCount`, `quarantinedCount`, `failureCount`, `retryablePendingCount`, optional `oldestRetryableAgeMs`, optional `pageCursor`, `noProgress` | Five-minute repair page, cursor progress, and backlog health. |
+| `settlement_repair_scan` | `scannedCount`, `settledCount`, `classifiedCount`, `quarantinedCount`, `failureCount`, `retryablePendingCount`, optional `oldestRetryableAgeMs`, optional `pageCursor`, `noProgress` | Hourly safety-scan page, cursor progress, and backlog health. |
 | `stale_settlement_repair` | `pendingAgeMs`, `outcome` | A repair attempt after the stale threshold. |
 | `settlement_repair_failure` | `errorClass` | A retryable repair infrastructure failure. |
 | `legacy_reward_grant_migration` | `outcome`, `scannedCount`, `settledCount`, `invariantViolationCount` | A bounded migration page. |
@@ -219,7 +255,7 @@ dashboard must show:
 - finalize-to-handoff from validator `settlement_handoff.durationMs`;
 - handoff-to-terminal from `settlement_transaction.pendingAgeMs` where outcome
   is `settled`;
-- immediate dispatch start/outcome/fallback rates and duration;
+- primary Eventarc settlement latency; immediate dispatch rates/duration when rollback mode is enabled;
 - settlement outcomes by `deliverySource`, including idempotent no-ops;
 - stale repair age and result;
 - retryable pending count/oldest age, quarantine count, cursor movement, and
@@ -233,7 +269,7 @@ Initial alert policy:
   15 minutes.
 - Page when no repair attempt succeeds within fifteen minutes after that stale
   threshold.
-- Warn when immediate fallback exceeds 5% over 15 minutes, or when its p95
+- In immediate rollback mode, warn when fallback exceeds 5% over 15 minutes, or when its p95
   start-to-response time exceeds one second.
 - Warn when the payout p99 exceeds 15 seconds over a representative 15-minute
   window. The initial p95 target is two seconds.
@@ -310,7 +346,7 @@ independently in 0.52 seconds.
    migration or code change, never a compensating client award. An approved
    repair must restore all matching invariants before an operator explicitly
    returns the disposition to `retryable`.
-5. For infrastructure failures, restore the immediate/Eventarc/repair delivery
+5. For infrastructure failures, restore Eventarc/pending-work/repair delivery
    path. The durable pending handoff remains the recovery point.
 6. Alert if the repair cursor does not move while retryable count is non-zero,
    or if quarantine count changes. Never bulk-unquarantine without preserving an

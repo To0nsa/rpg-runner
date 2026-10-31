@@ -355,7 +355,7 @@ async function loadRetryablePage(args: {
   return query.get();
 }
 
-async function quarantineSettlementIncident(args: {
+export async function quarantineSettlementIncident(args: {
   db: Firestore;
   runSessionId: string;
   nowMs: number;

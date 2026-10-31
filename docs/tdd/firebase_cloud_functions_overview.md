@@ -398,10 +398,22 @@ Why:
   first-profile load.
 - Bounds each invocation while eventually inventorying both collections.
 
+### `runPendingWork` and `accountDeletionOnRequest`
+
+- IAM-only task handler for per-run recovery and accepted account-deletion pages;
+  clients cannot enqueue work or choose reward authority.
+- Run-session events enqueue a 15-minute delayed recovery check; deletion creation
+  events enqueue immediate continuation. Enqueue errors keep Eventarc retries alive.
+- Existing generation/lease/deletion and settlement transactions remain authoritative.
+- Bounded 30-60 second task retries advance only pending work; hourly safety scans
+  recover legacy/missed delivery and maintain retention.
+- All exports register synchronously; domain modules load only within the handler
+  that needs them. Global minimum instances default to zero.
+
 ### `accountDeletionRepair` (scheduled)
 
 - Leases one bounded page at a time from active account deletion requests.
-- Runs every minute, defers run records with live validator leases, and
+- Runs hourly as a safety scan, restores missing per-account task delivery, defers run records with live validator leases, and
   atomically erases board best entries with affected top-10 views.
 - Deletes expired completions oldest-first in bounded pages and reports expiry
   backlog saturation; 30 days is an expiry deadline with eventual removal.
@@ -420,8 +432,8 @@ Why:
 ### Settlement and projection operations
 
 - `runSettlementOnHandoff` settles an accepted run after Firestore handoff.
-- `runSettlementImmediate` is the validator's low-latency authenticated request
-  to the same idempotent settlement transaction.
+- `runSettlementImmediate` retains the authenticated HTTP rollback path to the
+  same idempotent transaction; Eventarc is the default delivery mode.
 - `runSettlementRepair` scans bounded pending sessions and retries only
   retryable delivery failures; persistent data contradictions are surfaced as
   invariant violations without crediting gold.

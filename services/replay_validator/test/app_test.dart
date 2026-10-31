@@ -4,8 +4,52 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 import 'package:replay_validator/replay_validator.dart';
+import 'package:replay_validator/src/settlement_dispatcher.dart';
 
 void main() {
+  test('durable event delivery is the default even with a rollback URL', () {
+    final app = ReplayValidatorApp.fromEnvironment({
+      'GCLOUD_PROJECT': 'demo',
+      'REPLAY_STORAGE_BUCKET': 'bucket',
+      'SETTLEMENT_DISPATCH_URL': 'https://example.test/settle',
+    });
+    final worker = app.worker as DeterministicValidatorWorker;
+    expect(worker.settlementDispatcher, isA<NoopSettlementDispatcher>());
+  });
+
+  test('immediate settlement is an explicit rollback mode', () {
+    final app = ReplayValidatorApp.fromEnvironment({
+      'GCLOUD_PROJECT': 'demo',
+      'REPLAY_STORAGE_BUCKET': 'bucket',
+      'SETTLEMENT_DELIVERY_MODE': 'immediate',
+      'SETTLEMENT_DISPATCH_URL': 'https://example.test/settle',
+    });
+    expect(
+      (app.worker as DeterministicValidatorWorker).settlementDispatcher,
+      isA<FunctionsSettlementDispatcher>(),
+    );
+  });
+
+  test('invalid delivery configuration fails startup', () {
+    for (final extra in [
+      {'SETTLEMENT_DELIVERY_MODE': 'unknown'},
+      {'SETTLEMENT_DELIVERY_MODE': 'immediate'},
+      {
+        'SETTLEMENT_DELIVERY_MODE': 'immediate',
+        'SETTLEMENT_DISPATCH_URL': 'http://example.test',
+      },
+    ]) {
+      expect(
+        () => ReplayValidatorApp.fromEnvironment({
+          'GCLOUD_PROJECT': 'demo',
+          'REPLAY_STORAGE_BUCKET': 'bucket',
+          ...extra,
+        }),
+        throwsFormatException,
+      );
+    }
+  });
+
   test('live returns ok payload', () async {
     final app = ReplayValidatorApp(
       port: 8080,

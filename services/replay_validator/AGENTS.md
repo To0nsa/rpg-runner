@@ -117,6 +117,7 @@ required environment is present. Important environment variables include:
 - `PORT`
 - `GCLOUD_PROJECT` or `GOOGLE_CLOUD_PROJECT`
 - `REPLAY_STORAGE_BUCKET`
+- `SETTLEMENT_DELIVERY_MODE` (`eventarc` by default; `immediate` is explicit rollback)
 - `SETTLEMENT_DISPATCH_URL`
 - `SETTLEMENT_DISPATCH_TIMEOUT_MS`
 - `VALIDATOR_INTERNAL_ERROR_GRACE_WINDOW_MS`

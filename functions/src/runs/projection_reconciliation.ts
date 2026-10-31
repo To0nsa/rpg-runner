@@ -6,15 +6,19 @@ import {
 } from "firebase-admin/firestore";
 
 import { enqueueBoardProjectionReconciliation } from "./projection_dispatch.js";
+import {
+  resolveProjectionReconciliationBatchSize,
+  projectionReconciliationSchedule,
+} from "./projection_reconciliation_policy.js";
+export {
+  parseProjectionReconciliationBatchSize,
+  projectionReconciliationSchedule,
+} from "./projection_reconciliation_policy.js";
 
 const maintenanceCollection = "system_maintenance";
 const maintenanceDocument = "replay_projection_reconciliation";
 const boardsCollection = "leaderboard_boards";
-const defaultBatchSize = 4;
-const maximumBatchSize = 64;
 const reconciliationIntervalMs = 60 * 60 * 1000;
-
-export const projectionReconciliationSchedule = "every 60 minutes";
 
 export interface ProjectionReconciliationResult {
   nowMs: number;
@@ -150,26 +154,6 @@ export async function reconcileLeaderboardBoardProjections(args: {
   } finally {
     await tasksClient?.close();
   }
-}
-
-/** Parses the checked-in release batch policy with a bounded incident override. */
-export function parseProjectionReconciliationBatchSize(
-  raw: string | undefined,
-): number {
-  const value = raw?.trim();
-  if (!value) {
-    return defaultBatchSize;
-  }
-  return resolveProjectionReconciliationBatchSize(Number(value));
-}
-
-function resolveProjectionReconciliationBatchSize(
-  value: number | undefined,
-): number {
-  if (value == null || !Number.isInteger(value) || value <= 0) {
-    return defaultBatchSize;
-  }
-  return Math.min(value, maximumBatchSize);
 }
 
 function sameSnapshotVersion(

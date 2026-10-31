@@ -4,7 +4,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { measureRewardStage } from "./reward_timing.js";
 import { runCompletionReceiptRef } from "./completion_receipt.js";
 import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
-import { requireObject } from "../ownership/validators.js";
+import { requireObject } from "../validation.js";
 import { assertAccountActive } from "../account/deletion_guard.js";
 import { consumeUserQuota } from "../abuse/quota.js";
 import {
@@ -13,14 +13,9 @@ import {
   systemAuthorityClock,
   type AuthorityClock,
 } from "../authority_time.js";
-import {
-  ensureManagedBoardForModeLevel,
-  resolveBoardProvisioningConfigForGameCompatVersion,
-} from "../boards/provisioning.js";
 import { loadActiveBoardManifest, toBoardManifestJson } from "../boards/store.js";
 import type { JsonObject } from "../ownership/contracts.js";
 import { parseLoadActiveBoardRequest } from "../boards/validators.js";
-import { createRunSession } from "./store.js";
 import { assertSupportedGameCompatVersion } from "./compatibility.js";
 import {
   createDefaultRunSubmissionDependencies,
@@ -137,6 +132,7 @@ export async function handleRunSessionCreate(
     route: "run_create",
     nowMs,
   });
+  const { createRunSession } = await import("./store.js");
   const result = await createRunSession({
     db,
     uid,
@@ -278,6 +274,8 @@ async function loadBoardManifestWithProvisioningFallback(args: {
   gameCompatVersion: string;
   nowMs: number;
 }) {
+  const { ensureManagedBoardForModeLevel, resolveBoardProvisioningConfigForGameCompatVersion } =
+    await import("../boards/provisioning.js");
   const config = resolveBoardProvisioningConfigForGameCompatVersion(
     args.gameCompatVersion,
   );

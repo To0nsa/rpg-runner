@@ -29,6 +29,22 @@ after(async () => {
   await Promise.all(getApps().map((value) => deleteApp(value)));
 });
 
+test("committed upload with a lost enqueue is recovered without rebinding evidence", async () => {
+  const replay = { objectPath: "pending/u/run/replay.bin.gz", storageGeneration: "42",
+    canonicalSha256: "a".repeat(64), contentLengthBytes: 12 };
+  await db.doc("run_sessions/run_uploaded").set({ state: "uploaded",
+    uploadedReplay: replay, updatedAtMs: 1000 });
+  const dispatcher = new FakeValidationDispatcher();
+  const args = { db, dispatcher, nowMs: 20000,
+    options: { pendingStaleThresholdMs: 10000 } };
+  assert.equal((await repairStaleRunValidations(args)).requeuedPendingCount, 1);
+  const record = await db.doc("run_sessions/run_uploaded").get();
+  assert.equal(record.get("state"), "pending_validation");
+  assert.deepEqual(record.get("uploadedReplay"), replay);
+  assert.equal((await repairStaleRunValidations(args)).requeuedPendingCount, 0);
+  assert.equal(dispatcher.requests.length, 1);
+});
+
 test("expired validation lease is fenced off and requeued once", async () => {
   const nowMs = 100_000;
   await db.collection("run_sessions").doc("run_expired").set({

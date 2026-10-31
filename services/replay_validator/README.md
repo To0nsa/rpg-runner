@@ -10,7 +10,7 @@ Current scope:
 - Cloud Tasks endpoint: `POST /tasks/validate`
 - independent Cloud Tasks endpoint: `POST /tasks/project` for optional
   leaderboard and ghost publication retries
-- deterministic validator worker and immediate backend-settlement dispatch after
+- deterministic validator worker and durable Eventarc settlement delivery after
   its durable handoff when required env vars are present
 - token-fenced, expiring validation leases with scheduled lost-task repair
 - bounded replay download, streaming gzip expansion, JSON nesting, frame count,
@@ -232,10 +232,12 @@ interpretation.
 Before this Cloud Run deployment, deploy the paired Firebase Functions
 settlement dispatcher, immediate settlement endpoint, and repair schedule. The
 immediate endpoint's IAM invoker must be only `${VALIDATOR_SA}`. This validator
-revision emits `settlement_pending` for accepted runs, requests that endpoint
-with its Cloud Run identity token, and deliberately does not mark runs terminal
-or credit wallets itself. Eventarc and scheduled repair remain fallback
-delivery paths when immediate dispatch fails or times out.
+revision emits `settlement_pending` for accepted runs and acknowledges the durable
+handoff. Eventarc performs normal settlement; delayed pending-work tasks and
+hourly safety scans recover missed delivery. `SETTLEMENT_DELIVERY_MODE=immediate`
+explicitly enables the retained HTTP rollback path. The worker never credits
+wallets itself. Deployment uses zero minimum instances, automatic scaling and
+request-based billing; no idle reservation or keepalive traffic is introduced.
 Leaderboard and ghost projection are enqueued only after accepted validation;
 their retries use `${PROJECTION_QUEUE_NAME}` and never affect reward settlement.
 
@@ -320,7 +322,8 @@ gcloud run services get-iam-policy runsettlementimmediate \
 
 Firestore Eventarc delivery has a separate, non-public invoker binding. After
 every Firebase Functions deployment, grant the Functions control-plane service
-account access to both Eventarc target services:
+account access to the settlement/projection Eventarc target services. The release
+workflow additionally verifies `accountdeletiononrequest` and `runpendingwork`:
 
 ```bash
 for service in runprojectiononaccepted runsettlementonhandoff; do
