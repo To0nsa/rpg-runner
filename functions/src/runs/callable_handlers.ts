@@ -2,10 +2,13 @@ import type { Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { measureRewardStage } from "./reward_timing.js";
+import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
+import { requireObject } from "../ownership/validators.js";
 import { assertAccountActive } from "../account/deletion_guard.js";
 import { consumeUserQuota } from "../abuse/quota.js";
 import {
   captureAuthorityTimeMs,
+  rejectClientAuthorityTime,
   systemAuthorityClock,
   type AuthorityClock,
 } from "../authority_time.js";
@@ -40,6 +43,31 @@ interface CallableRequestAuthLike {
 interface CallableRequestLike {
   auth?: CallableRequestAuthLike | null;
   data: unknown;
+}
+
+/** One deployed instance serves the submission stages; issuance stays isolated. */
+export async function handleRunSubmission(
+  request: CallableRequestLike,
+  db: Firestore,
+  dependencies?: RunSubmissionDependencies,
+  clock: AuthorityClock = systemAuthorityClock,
+): Promise<{ uploadGrant: UploadGrantRecord } | { submissionStatus: JsonObject }> {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Authentication required.");
+  }
+  assertCallablePayloadBounds(request.data);
+  const data = requireObject(request.data, "request");
+  rejectClientAuthorityTime(data);
+  switch (data.operation) {
+    case "grant":
+      return handleRunSessionCreateUploadGrant(request, db, dependencies, clock);
+    case "finalize":
+      return handleRunSessionFinalizeUpload(request, db, dependencies, clock);
+    case "status":
+      return handleRunSessionLoadStatus(request, db, clock);
+    default:
+      throw new HttpsError("invalid-argument", "Unknown run submission operation.");
+  }
 }
 
 export async function handleRunBoardsLoadActive(
@@ -129,14 +157,15 @@ export async function handleRunSessionCreateUploadGrant(
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
   return measureRewardStage(runSessionId, "grant_handler", async () => {
-    await assertAccountActive(db, uid);
+    await measureRewardStage(runSessionId, "grant_account_guard", () =>
+      assertAccountActive(db, uid));
     const nowMs = captureAuthorityTimeMs(clock);
-    await consumeUserQuota({
+    await measureRewardStage(runSessionId, "grant_quota", () => consumeUserQuota({
       db,
       uid,
       route: "upload_grant",
       nowMs,
-    });
+    }));
     const result = await createRunSessionUploadGrant({
       db,
       uid,

@@ -142,6 +142,13 @@ final class _AppStateRunStartController extends _AppStateController {
           ),
         );
     final descriptor = _runStartDescriptorFromTicket(resolvedTicket);
+    unawaited(
+      _runSubmissionCoordinator.prepareUpload(
+        userId: session.userId,
+        sessionId: session.sessionId,
+        runSessionId: resolvedTicket.runSessionId,
+      ),
+    );
     if (!mode.requiresBoard || descriptor.boardId == null) {
       return descriptor;
     }

@@ -136,6 +136,52 @@ void main() {
       runSessionId: 'run_recovery',
     );
 
+    Future<void> prepare() => coordinator.prepareUpload(
+      userId: 'uid_recovery',
+      sessionId: 'session_recovery',
+      runSessionId: 'run_recovery',
+    );
+
+    test('run preparation reuses a valid grant exactly once', () async {
+      await prepare();
+      await prepare();
+      await queueRecoveryRun();
+      await recover();
+      expect(runSessionApi.grantRunSessionIds, ['run_recovery']);
+      expect(replayUploader.uploadedRunSessionIds, ['run_recovery']);
+    });
+
+    test('expired prepared permission is renewed before uploading', () async {
+      runSessionApi.grantExpiresAtMs = clock.now() + 60000;
+      await prepare();
+      clock.advance(const Duration(seconds: 31));
+      runSessionApi.grantExpiresAtMs = clock.now() + 60000;
+      await queueRecoveryRun();
+      await recover();
+      expect(runSessionApi.grantRunSessionIds.length, 2);
+      expect(replayUploader.uploadedRunSessionIds.length, 1);
+    });
+
+    test('failed preparation does not prevent normal submission', () async {
+      runSessionApi.grantFailure = const RunStartRemoteException(
+        code: 'unavailable',
+        message: 'offline',
+      );
+      await prepare();
+      runSessionApi.grantFailure = null;
+      await queueRecoveryRun();
+      await recover();
+      expect(replayUploader.uploadedRunSessionIds.length, 1);
+    });
+
+    test('account reset discards prepared credentials', () async {
+      await prepare();
+      coordinator.clearPreparedUploads();
+      await queueRecoveryRun();
+      await recover();
+      expect(runSessionApi.grantRunSessionIds.length, 2);
+    });
+
     for (final state in [
       RunSessionState.uploaded,
       RunSessionState.validating,
@@ -639,6 +685,7 @@ class _NoopLocalReplayArtifactStore implements LocalReplayArtifactStore {
 }
 
 class _FakeRunSessionApi implements RunSessionApi {
+  int grantExpiresAtMs = 1_800_000_000_000;
   SubmissionStatus finalizeStatus = SubmissionStatus(
     runSessionId: 'run_default',
     state: RunSessionState.pendingValidation,
@@ -679,7 +726,7 @@ class _FakeRunSessionApi implements RunSessionApi {
       },
       contentType: 'application/octet-stream',
       maxBytes: 8_388_608,
-      expiresAtMs: 1_800_000_000_000,
+      expiresAtMs: grantExpiresAtMs,
     );
   }
 

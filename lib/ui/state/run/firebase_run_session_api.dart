@@ -231,16 +231,12 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
   PluginFirebaseRunSessionSource({
     FirebaseFunctions? functions,
     this.createCallableName = 'runSessionCreate',
-    this.createUploadGrantCallableName = 'runSessionCreateUploadGrant',
-    this.finalizeUploadCallableName = 'runSessionFinalizeUpload',
-    this.loadStatusCallableName = 'runSessionLoadStatus',
+    this.submissionCallableName = 'runSubmission',
   }) : _functions = functions ?? FirebaseFunctions.instance;
 
   final FirebaseFunctions _functions;
   final String createCallableName;
-  final String createUploadGrantCallableName;
-  final String finalizeUploadCallableName;
-  final String loadStatusCallableName;
+  final String submissionCallableName;
 
   @override
   Future<Map<String, dynamic>> createRunSession({
@@ -270,8 +266,9 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
     required String sessionId,
     required String runSessionId,
   }) async {
-    final callable = _functions.httpsCallable(createUploadGrantCallableName);
+    final callable = _functions.httpsCallable(submissionCallableName);
     final result = await callable.call(<String, Object?>{
+      'operation': 'grant',
       'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
@@ -291,8 +288,9 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
     String? objectPath,
     Map<String, Object?>? provisionalSummary,
   }) async {
-    final callable = _functions.httpsCallable(finalizeUploadCallableName);
+    final callable = _functions.httpsCallable(submissionCallableName);
     final result = await callable.call(<String, Object?>{
+      'operation': 'finalize',
       'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,
@@ -312,8 +310,9 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
     required String sessionId,
     required String runSessionId,
   }) async {
-    final callable = _functions.httpsCallable(loadStatusCallableName);
+    final callable = _functions.httpsCallable(submissionCallableName);
     final result = await callable.call(<String, Object?>{
+      'operation': 'status',
       'clientDiagnostics': firebaseAppCheckDiagnostics.toJson(),
       'userId': userId,
       'sessionId': sessionId,

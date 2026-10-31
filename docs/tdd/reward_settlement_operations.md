@@ -65,6 +65,23 @@ latency and must be considered when comparing instrumented and older samples.
 
 ## Authority and delivery
 
+The native client uses the `runSubmission` callable with `operation` equal to
+`grant`, `finalize`, or `status`. One deployed, scale-to-zero instance serves
+these operations; the legacy exports remain available for installed clients.
+Each operation retains its original payload, authentication, deletion fence and
+quota. Ticket issuance stays in `runSessionCreate`, including its independent
+release pause. There is no warm-instance reservation or keepalive timer.
+
+After consuming a ticket for an actual run, AppState starts best-effort upload
+permission preparation without awaiting it. The coordinator keeps at most four
+owner/run-bound promises in memory, joins ongoing preparation, consumes the
+permission once and renews on submission when less than 30 seconds remain or
+the replay exceeds its content binding. Account reset/disposal clears this
+cache; credentials are never persisted. Preparation failure cannot prevent play.
+`upload_grant_prepare`/`upload_grant_reused` distinguish this path. Backend
+`grant_account_guard`, `grant_quota`, `grant_transaction` and `grant_signing`
+separate the remaining warm grant cost; quota enforcement precedes signing.
+
 `settleAcceptedRunSession` is the only code path that changes canonical
 `progression.gold` for a validated replay. It accepts no player-supplied reward
 amount and atomically writes canonical ownership, the reward grant, and the

@@ -44,6 +44,83 @@ class RunSubmissionCoordinator {
   final int verificationDelayedThresholdMs;
   bool _localSubmissionsDiscarded = false;
   final Set<Future<void>> _spoolMutations = <Future<void>>{};
+  final Map<(String, String), Future<RunUploadGrant>> _preparedGrants = {};
+
+  /// Best-effort work for an actual run, never a prerequisite for starting it.
+  /// Credentials stay in memory and are consumed once, with an expiry margin.
+  Future<void> prepareUpload({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+  }) async {
+    if (_localSubmissionsDiscarded) return;
+    final key = (userId, runSessionId);
+    if (_preparedGrants.containsKey(key)) return;
+    while (_preparedGrants.length >= 4) {
+      _preparedGrants.remove(_preparedGrants.keys.first);
+    }
+    final pending = _requestUploadGrant(
+      userId: userId,
+      sessionId: sessionId,
+      runSessionId: runSessionId,
+      stage: 'upload_grant_prepare',
+    );
+    _preparedGrants[key] = pending;
+    try {
+      await pending;
+    } catch (_) {
+      if (identical(_preparedGrants[key], pending)) _preparedGrants.remove(key);
+      // Submission retries authoritatively when the replay is available.
+    }
+  }
+
+  void clearPreparedUploads() => _preparedGrants.clear();
+
+  Future<RunUploadGrant> _requestUploadGrant({
+    required String userId,
+    required String sessionId,
+    required String runSessionId,
+    String stage = 'upload_grant',
+  }) => RunRewardDiagnostics.instance.measure(runSessionId, stage, () async {
+    final grant = await _runSessionApi.createUploadGrant(
+      userId: userId,
+      sessionId: sessionId,
+      runSessionId: runSessionId,
+    );
+    if (grant.runSessionId != runSessionId) {
+      throw const FormatException('Upload grant belongs to another run.');
+    }
+    return grant;
+  });
+
+  Future<RunUploadGrant> _takeUploadGrant({
+    required String userId,
+    required String sessionId,
+    required PendingRunSubmission submission,
+  }) async {
+    final prepared = _preparedGrants.remove((userId, submission.runSessionId));
+    if (prepared != null) {
+      try {
+        final grant = await prepared;
+        if (grant.expiresAtMs > _clock() + 30000 &&
+            grant.contentType == submission.contentType &&
+            grant.maxBytes >= submission.contentLengthBytes) {
+          RunRewardDiagnostics.instance.emit(
+            submission.runSessionId,
+            'upload_grant_reused',
+          );
+          return grant;
+        }
+      } catch (_) {
+        /* Normal submission owns retries after preparation fails. */
+      }
+    }
+    return _requestUploadGrant(
+      userId: userId,
+      sessionId: sessionId,
+      runSessionId: submission.runSessionId,
+    );
+  }
 
   Future<void> _persistSubmission({required PendingRunSubmission submission}) =>
       RunRewardDiagnostics.instance.measure(
@@ -149,6 +226,7 @@ class RunSubmissionCoordinator {
   /// This permanently fences spool mutations for this coordinator instance.
   Future<void> discardAllLocalSubmissions() async {
     _localSubmissionsDiscarded = true;
+    clearPreparedUploads();
     for (final pending in _spoolMutations.toList()) {
       try {
         await pending;
@@ -266,14 +344,10 @@ class RunSubmissionCoordinator {
         );
         await _persistSubmission(submission: pending);
 
-        final uploadGrant = await RunRewardDiagnostics.instance.measure(
-          runSessionId,
-          'upload_grant',
-          () => _runSessionApi.createUploadGrant(
-            userId: userId,
-            sessionId: sessionId,
-            runSessionId: runSessionId,
-          ),
+        final uploadGrant = await _takeUploadGrant(
+          userId: userId,
+          sessionId: sessionId,
+          submission: pending,
         );
 
         pending = pending.copyWith(
@@ -519,6 +593,10 @@ class RunSubmissionCoordinator {
     SubmissionStatus status,
     PendingRunSubmission? pendingSubmission,
   ) async {
+    if (pendingSubmission != null &&
+        status.runSessionId != pendingSubmission.runSessionId) {
+      throw const FormatException('Submission status belongs to another run.');
+    }
     final nowMs = _clock();
     final runSessionId = status.runSessionId;
     if (status.isTerminal) {

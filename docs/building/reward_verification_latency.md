@@ -48,7 +48,7 @@ Implementation order and checks:
    improve short transient retry delays, and serialize local journal mutations.
    Exercise response loss, restart, expiry, final-receipt acknowledgement and
    account fencing in focused client tests.
-2. [ ] Shared run API and upload preparation: additive transport contract with
+2. [x] Shared run API and upload preparation: additive transport contract with
    legacy readers, bounded auth/quota behavior, grant renewal and fine-grained
    handler timings. Verify actual TypeScript/Dart producer-consumer payloads.
 3. [ ] Confirmed completion delivery: minimal owner-only projection/receipts,
@@ -66,7 +66,14 @@ Implementation order and checks:
    build or mutation is included. Earlier five-ticket cancellation approval was
    specific and does not authorize new cancellations.
 
-Current checkpoint: recovery implemented. Root `flutter test --no-pub` for
+Current checkpoint: recovery and shared transport/preparation implemented.
+Functions build and test compilation passed; 31 focused submission/auth emulator
+tests passed. The four client submission, Firebase adapter, app submission and
+run-ticket prefetch test files passed 65 tests; affected run/app analysis passed.
+The shared route rejects client authority time consistently. Grant preparation
+does not run for hub-only ticket prefetch. No cloud mutations have occurred.
+
+Recovery milestone: root `flutter test --no-pub` for
 `run_submission_coordinator_test.dart`, `run_submission_spool_store_test.dart`
 and `app_state_run_submission_test.dart` passed 37 tests; targeted analysis of
 the two changed implementation files and their tests passed. These are local

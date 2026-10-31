@@ -39,6 +39,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
 
   void resetAccount() {
     _generation += 1;
+    _runSubmissionCoordinator.clearPreparedUploads();
     _scheduler.clear();
     _inFlight.clear();
     _acknowledged.clear();
@@ -49,6 +50,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
 
   void dispose() {
     _generation += 1;
+    _runSubmissionCoordinator.clearPreparedUploads();
     _scheduler.dispose();
     RunRewardDiagnostics.instance.clear();
   }

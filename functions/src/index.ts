@@ -50,6 +50,7 @@ import {
   handleRunSessionCreateUploadGrant,
   handleRunSessionFinalizeUpload,
   handleRunSessionLoadStatus,
+  handleRunSubmission,
 } from "./runs/callable_handlers.js";
 import { ensureManagedLeaderboardBoards } from "./boards/provisioning.js";
 import { pruneObsoleteLeaderboardBoards } from "./boards/retention.js";
@@ -309,6 +310,15 @@ export const runSessionCreate = onCall(
     logAppCheckObservation({ functionName: "runSessionCreate", request });
     requirePlayGamesCallableUser(request.auth);
     return handleRunSessionCreate(request, db);
+  },
+);
+
+export const runSubmission = onCall(
+  { ...userCallableAppCheckOptions, minInstances: 0 },
+  async (request) => {
+    logAppCheckObservation({ functionName: "runSubmission", request });
+    requirePlayGamesCallableUser(request.auth);
+    return handleRunSubmission(request, db);
   },
 );
 

@@ -10,6 +10,7 @@ import {
   handleRunSessionCreateUploadGrant,
   handleRunSessionFinalizeUpload,
   handleRunSessionLoadStatus,
+  handleRunSubmission,
 } from "../../src/runs/callable_handlers.js";
 import { runReplaySubmissionCleanup } from "../../src/runs/cleanup.js";
 import { defaultValidationRepairStaleThresholdMs } from "../../src/runs/session_state.js";
@@ -50,6 +51,48 @@ beforeEach(async () => {
 
 after(async () => {
   await Promise.all(getApps().map((value) => deleteApp(value)));
+});
+
+test("shared submission transport preserves the complete legacy flow", async () => {
+  const deps = new FakeRunSubmissionDependencies();
+  const runSessionId = await createPracticeRunSession(db, uid);
+  const payload = { userId: uid, sessionId: "session_1", runSessionId };
+  const grant = await handleRunSubmission(
+    callableRequest({ ...payload, operation: "grant" }, uid), db, deps);
+  assert.ok("uploadGrant" in grant);
+  const objectPath = grant.uploadGrant.objectPath;
+  deps.objectStore.setObjectMetadata(objectPath, {
+    contentLengthBytes: 2048, contentType: "application/octet-stream", generation: "1",
+  });
+  const finalized = await handleRunSubmission(callableRequest({
+    ...payload, operation: "finalize", objectPath, contentLengthBytes: 2048,
+    canonicalSha256: "b".repeat(64),
+  }, uid), db, deps);
+  assert.ok("submissionStatus" in finalized);
+  assert.equal(finalized.submissionStatus.state, "pending_validation");
+  const status = await handleRunSubmission(
+    callableRequest({ ...payload, operation: "status" }, uid), db, deps);
+  assert.deepEqual(status, finalized);
+  assert.equal(deps.taskDispatcher.enqueuedRunSessionIds.length, 1);
+});
+
+for (const operation of ["grant", "finalize", "status"]) {
+  test(`shared ${operation} preserves identity and authority-time checks`, async () => {
+    const payload = { operation, userId: uid, sessionId: "s", runSessionId: "r",
+      contentLengthBytes: 12, canonicalSha256: "a".repeat(64) };
+    await assert.rejects(() => handleRunSubmission(callableRequest(payload), db),
+      (e: { code?: string }) => e.code === "unauthenticated");
+    await assert.rejects(() => handleRunSubmission(callableRequest(payload, "other"), db),
+      (e: { code?: string }) => e.code === "permission-denied");
+    await assert.rejects(() => handleRunSubmission(callableRequest({ ...payload, nowMs: 1 }, uid), db),
+      (e: { code?: string }) => e.code === "invalid-argument");
+  });
+}
+
+test("shared transport cannot create tickets or bypass issuance maintenance", async () => {
+  await assert.rejects(() => handleRunSubmission(
+    callableRequest({ operation: "create", userId: uid }, uid), db),
+  (e: { code?: string }) => e.code === "invalid-argument");
 });
 
 test("active upload grant enforcement is atomic when configured", async () => {

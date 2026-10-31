@@ -181,7 +181,8 @@ export async function createRunSessionUploadGrant(
     .collection(runSessionsCollection)
     .doc(args.runSessionId);
 
-  const uploadGrantTransaction = await args.db.runTransaction(async (tx) => {
+  const uploadGrantTransaction = await measureRewardStage(args.runSessionId,
+    "grant_transaction", () => args.db.runTransaction(async (tx) => {
     await assertAccountActiveInTransaction(tx, args.db, args.uid);
     const session = await loadRunSessionForUpdate(tx, runSessionRef);
     assertRunSessionOwner(session, args.uid);
@@ -263,7 +264,7 @@ export async function createRunSessionUploadGrant(
       activeUploadGrantLimit,
       wouldRejectActiveUploadGrantLimit,
     } as const;
-  });
+  }));
   logger.info("runUploadGrant_active_grants", {
     mode: readAbuseControlMode(),
     activeCount: uploadGrantTransaction.activeUploadGrantCount,
@@ -282,12 +283,13 @@ export async function createRunSessionUploadGrant(
     );
   }
 
-  const issued = await args.dependencies.objectStore.issueUploadGrant({
+  const issued = await measureRewardStage(args.runSessionId, "grant_signing", () =>
+    args.dependencies.objectStore.issueUploadGrant({
     objectPath,
     contentType: replayUploadContentType,
     maxBytes: replayUploadMaxBytes,
     expiresAtMs: leaseExpiresAtMs,
-  });
+  }));
   return {
     uploadGrant: {
       runSessionId: args.runSessionId,
@@ -509,11 +511,11 @@ export async function loadRunSessionSubmissionStatus(
   const snapshot = await runSessionRef.get();
   const session = decodeRunSessionSnapshot(snapshot, args.runSessionId);
   assertRunSessionOwner(session, args.uid);
-  let validatedRun: JsonObject | undefined;
-  if (session.state === "validated" || session.state === "rejected") {
-    validatedRun = await loadValidatedRun(args.db, session.runSessionId);
-  }
-  const rewardGrant = await loadRewardGrant(args.db, session.runSessionId);
+  const [validatedRun, rewardGrant] = await Promise.all([
+    session.state === "validated" || session.state === "rejected"
+      ? loadValidatedRun(args.db, session.runSessionId) : undefined,
+    loadRewardGrant(args.db, session.runSessionId),
+  ]);
   const reward = projectSubmissionReward({
     session,
     rewardGrant,
@@ -1013,6 +1015,8 @@ class CloudStorageReplaySubmissionObjectStore
   }
 }
 
+let sharedTasksClient: CloudTasksClient | undefined;
+
 class CloudTasksRunValidationTaskDispatcher
   implements RunValidationTaskDispatcher
 {
@@ -1023,7 +1027,8 @@ class CloudTasksRunValidationTaskDispatcher
       queueName: string;
       validatorTaskUrl: string;
     },
-    private readonly tasksClient: CloudTasksClient = new CloudTasksClient(),
+    private readonly tasksClient: CloudTasksClient =
+      (sharedTasksClient ??= new CloudTasksClient()),
   ) {}
 
   async enqueueRunValidationTask(args: {

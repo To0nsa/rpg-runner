@@ -236,6 +236,16 @@ Why:
 - Controls who can upload, where, and for which run session.
 - Avoids open-ended client storage writes.
 
+### `runSubmission`
+
+The current native client sends `operation: grant | finalize | status` to this
+single callable, with the corresponding legacy request fields described below.
+Responses retain `uploadGrant` or `submissionStatus`. It delegates to the same
+domain handlers and quota counters, with the same identity/App Check checks.
+It explicitly reserves zero idle instances. `runSessionCreate` remains a
+separate deployment to preserve release-time issuance maintenance. Deploy this
+additive endpoint before distributing clients that use it; legacy exports remain.
+
 ### `runSessionFinalizeUpload`
 
 - Client adapter: `lib/ui/state/run/firebase_run_session_api.dart`

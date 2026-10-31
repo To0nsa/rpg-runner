@@ -2,6 +2,13 @@
 
 ## Status
 
+`runSubmission` is the shared native submission endpoint. Its `grant`,
+`finalize`, and `status` operations use the existing `upload_grant`,
+`finalize_replay_bytes`, and `run_status` quotas respectively. Legacy callable
+names use the same counters, so changing transport cannot reset a quota. The
+shared endpoint retains Play Games identity and configured App Check handling;
+it cannot create tickets or bypass the independent issuance maintenance gate.
+
 Implemented in source. Production enforcement was verified on July 19, 2026
 for the six routes then covered by the canary. The later-added ownership,
 profile, account-delete, and run-status routes were promoted from monitor to
