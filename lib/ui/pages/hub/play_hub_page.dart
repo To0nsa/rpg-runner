@@ -47,7 +47,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
     _RunStartSource source = _RunStartSource.main,
   }) async {
     if (_preparingRunStart) return;
-    _xpBeforeRun = context.read<AppState>().progression.playerProgress.totalXp;
+    _xpBeforeRun = context.read<AppState>().displayedPlayerProgress.totalXp;
     setState(() {
       _preparingRunStart = true;
       _runStartSource = source;
@@ -96,7 +96,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
     final progression = appState.progression;
     final selection = appState.selection;
     final profile = appState.profile;
-    final gold = appState.progression.gold;
+    final gold = appState.displayedGold;
 
     return MenuScaffold(
       showAppBar: false,
@@ -134,10 +134,10 @@ class _PlayHubPageState extends State<PlayHubPage> {
                         ? 'Guest'
                         : profile.displayName,
                     gold: gold,
-                    rewardRevision: appState.ownershipRevision,
+                    rewardRevision: appState.rewardDisplayRevision,
                     playerProgress: appState.isDeveloperMode
                         ? null
-                        : progression.playerProgress,
+                        : appState.displayedPlayerProgress,
                     animateXpFrom: _animateXpFrom,
                   ),
                   SizedBox(height: ui.space.sm),

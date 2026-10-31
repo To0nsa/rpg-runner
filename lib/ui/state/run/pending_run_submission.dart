@@ -46,6 +46,8 @@ final class PendingRunSubmission {
     this.lastErrorCode,
     this.lastErrorMessage,
     this.provisionalSummary,
+    this.presentationBaseRevision,
+    this.presentationBaseGrantId,
   }) : assert(ownerUserId != ''),
        assert(runSessionId != ''),
        assert(replayArtifactId != ''),
@@ -77,6 +79,11 @@ final class PendingRunSubmission {
   final String? lastErrorCode;
   final String? lastErrorMessage;
   final Map<String, Object?>? provisionalSummary;
+
+  /// Local-only account evidence captured before journaling. The retained grant
+  /// anchor prevents projecting an old, already-paid run after history pruning.
+  final int? presentationBaseRevision;
+  final String? presentationBaseGrantId;
 
   bool get isReadyToRetry =>
       step != PendingRunSubmissionStep.retryScheduled || nextAttemptAtMs <= 0;
@@ -132,6 +139,8 @@ final class PendingRunSubmission {
       provisionalSummary: identical(provisionalSummary, _unset)
           ? this.provisionalSummary
           : provisionalSummary as Map<String, Object?>?,
+      presentationBaseRevision: presentationBaseRevision,
+      presentationBaseGrantId: presentationBaseGrantId,
     );
   }
 
@@ -155,6 +164,8 @@ final class PendingRunSubmission {
       'lastErrorCode': ?lastErrorCode,
       'lastErrorMessage': ?lastErrorMessage,
       'provisionalSummary': ?provisionalSummary,
+      'presentationBaseRevision': ?presentationBaseRevision,
+      'presentationBaseGrantId': ?presentationBaseGrantId,
     };
   }
 
@@ -187,6 +198,14 @@ final class PendingRunSubmission {
       updatedAtMs: updatedAtMs,
       attemptCount: attemptCount,
       nextAttemptAtMs: nextAttemptAtMs,
+      presentationBaseRevision: _readOptionalInt(
+        json,
+        'presentationBaseRevision',
+      ),
+      presentationBaseGrantId: _readOptionalString(
+        json,
+        'presentationBaseGrantId',
+      ),
       objectPath: _readOptionalString(json, 'objectPath'),
       uploadCompletedAtMs: _readOptionalInt(json, 'uploadCompletedAtMs'),
       finalizedAtMs: _readOptionalInt(json, 'finalizedAtMs'),

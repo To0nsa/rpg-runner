@@ -94,7 +94,7 @@ void main() {
               tickHz: _tickHz,
               isDeveloperPractice: true,
               provisionalGoldEarned: 50,
-              verifiedGold: 100,
+              displayedGold: 100,
               replaySubmissionJournaled: false,
             ),
           ),
@@ -358,7 +358,7 @@ void main() {
   });
 
   testWidgets(
-    'GameOverOverlay presents provisional gold as a verifying result',
+    'GameOverOverlay presents local gold and XP without verification labels',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -374,13 +374,14 @@ void main() {
             scoreTuning: _tuning,
             tickHz: _tickHz,
             provisionalGoldEarned: 7,
-            verifiedGold: 1234,
+            displayedGold: 1234,
           ),
         ),
       );
 
       expect(find.text('Run reward: +'), findsOneWidget);
-      expect(find.text('Verifying reward…'), findsOneWidget);
+      expect(find.text('+${_expectedTotal ~/ 200} XP'), findsOneWidget);
+      expect(find.text('Verifying reward…'), findsNothing);
       expect(find.textContaining('Reward pending:'), findsNothing);
       expect(find.text('1234'), findsOneWidget);
 
@@ -389,7 +390,7 @@ void main() {
       await tester.tap(find.text('Skip'));
       await tester.pump();
 
-      expect(find.text('Verifying reward…'), findsOneWidget);
+      expect(find.text('Verifying reward…'), findsNothing);
       expect(find.text('1234'), findsOneWidget);
     },
   );
@@ -413,7 +414,7 @@ void main() {
           scoreTuning: _tuning,
           tickHz: _tickHz,
           provisionalGoldEarned: 7,
-          verifiedGold: 1234,
+          displayedGold: 1234,
           replaySubmissionJournaled: false,
         ),
       ),
@@ -626,7 +627,7 @@ void main() {
     });
 
     testWidgets(
-      'gold panel shows provisional reward from runSubmissionStatus',
+      'gold panel uses the supplied wallet and run reward without labels',
       (tester) async {
         await tester.pumpWidget(
           MaterialApp(
@@ -641,7 +642,7 @@ void main() {
               runEndedEvent: _buildEvent(),
               scoreTuning: _tuning,
               tickHz: _tickHz,
-              verifiedGold: 100,
+              displayedGold: 100,
               runSubmissionStatus: provisionalStatus(provisionalGold: 50),
             ),
           ),
@@ -650,7 +651,7 @@ void main() {
         expect(find.text('Wallet: '), findsOneWidget);
         expect(find.text('100'), findsOneWidget);
         expect(find.text('Run reward: +'), findsOneWidget);
-        expect(find.text('Verifying reward…'), findsOneWidget);
+        expect(find.text('Verifying reward…'), findsNothing);
 
         await tester.tap(find.text('Collect Score'));
         await tester.pump();
@@ -658,11 +659,11 @@ void main() {
         await tester.pump();
 
         expect(find.text('100'), findsOneWidget);
-        expect(find.text('Verifying reward…'), findsOneWidget);
+        expect(find.text('Verifying reward…'), findsNothing);
       },
     );
 
-    testWidgets('settlement processing uses the compact reward confirmation', (
+    testWidgets('settlement processing adds no verification label', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -678,7 +679,7 @@ void main() {
             runEndedEvent: _buildEvent(),
             scoreTuning: _tuning,
             tickHz: _tickHz,
-            verifiedGold: 100,
+            displayedGold: 100,
             runSubmissionStatus: provisionalStatus(
               provisionalGold: 50,
               state: protocol.RunSessionState.settlementPending,
@@ -688,7 +689,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Verifying reward…'), findsOneWidget);
+      expect(find.text('Verifying reward…'), findsNothing);
       expect(find.text('Verification: '), findsNothing);
       expect(find.text('Settling Reward'), findsNothing);
     });
@@ -709,7 +710,7 @@ void main() {
             runEndedEvent: _buildEvent(),
             scoreTuning: _tuning,
             tickHz: _tickHz,
-            verifiedGold: 200,
+            displayedGold: 200,
             runSubmissionStatus: finalStatus(
               provisionalGold: 40,
               effectiveGoldDelta: 40,
@@ -721,11 +722,11 @@ void main() {
 
       expect(find.text('Wallet: '), findsOneWidget);
       expect(find.text('200'), findsOneWidget);
-      expect(find.text('Reward verified'), findsOneWidget);
+      expect(find.text('Reward verified'), findsNothing);
     });
 
     testWidgets(
-      'gold panel absent when reward is revoked and verifiedGold is zero',
+      'gold panel absent when reward is revoked and displayedGold is zero',
       (tester) async {
         await tester.pumpWidget(
           MaterialApp(
@@ -740,7 +741,7 @@ void main() {
               runEndedEvent: _buildEvent(),
               scoreTuning: _tuning,
               tickHz: _tickHz,
-              // No verifiedGold — earnedTotal = 0 and actualGold = 0.
+              // No displayedGold — earnedTotal = 0 and actualGold = 0.
               runSubmissionStatus: revokedStatus(provisionalGold: 50),
             ),
           ),
@@ -750,7 +751,7 @@ void main() {
       },
     );
 
-    testWidgets('gold panel shows only verifiedGold when reward is revoked', (
+    testWidgets('gold panel shows only displayedGold when reward is revoked', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -766,7 +767,7 @@ void main() {
             runEndedEvent: _buildEvent(),
             scoreTuning: _tuning,
             tickHz: _tickHz,
-            verifiedGold: 200,
+            displayedGold: 200,
             runSubmissionStatus: revokedStatus(provisionalGold: 50),
           ),
         ),
@@ -778,10 +779,10 @@ void main() {
     });
 
     testWidgets(
-      'verified gold refresh replaces the displayed wallet value without double count',
+      'settlement preserves the already displayed wallet without double count',
       (tester) async {
         late StateSetter updateState;
-        int verifiedGold = 100;
+        int displayedGold = 150;
         RunSubmissionStatus? runSubmissionStatus = provisionalStatus(
           provisionalGold: 50,
         );
@@ -802,7 +803,7 @@ void main() {
                   runEndedEvent: _buildEvent(),
                   scoreTuning: _tuning,
                   tickHz: _tickHz,
-                  verifiedGold: verifiedGold,
+                  displayedGold: displayedGold,
                   runSubmissionStatus: runSubmissionStatus,
                 );
               },
@@ -810,11 +811,11 @@ void main() {
           ),
         );
 
-        expect(find.text('100'), findsOneWidget);
-        expect(find.text('Verifying reward…'), findsOneWidget);
+        expect(find.text('150'), findsOneWidget);
+        expect(find.text('Verifying reward…'), findsNothing);
 
         updateState(() {
-          verifiedGold = 150;
+          displayedGold = 150;
           runSubmissionStatus = finalStatus(
             provisionalGold: 50,
             effectiveGoldDelta: 50,
@@ -825,7 +826,7 @@ void main() {
 
         expect(find.text('150'), findsOneWidget);
         expect(find.text('200'), findsNothing);
-        expect(find.text('Reward verified'), findsOneWidget);
+        expect(find.text('Reward verified'), findsNothing);
       },
     );
   });

@@ -21,6 +21,7 @@ import '../../components/app_button.dart';
 import '../../components/play_button.dart';
 import '../../components/gold_display.dart';
 import '../../state/run/run_submission_status.dart';
+import '../../state/ownership/player_progress.dart';
 import '../../theme/ui_tokens.dart';
 
 // import '../../../core/spells/spell_id.dart';
@@ -44,7 +45,7 @@ class GameOverOverlay extends StatefulWidget {
     required this.scoreTuning,
     required this.tickHz,
     this.provisionalGoldEarned,
-    this.verifiedGold,
+    this.displayedGold,
     this.rewardRevision,
     this.runSubmissionStatus,
     this.replaySubmissionJournaled = true,
@@ -65,7 +66,10 @@ class GameOverOverlay extends StatefulWidget {
   final ScoreTuning scoreTuning;
   final int tickHz;
   final int? provisionalGoldEarned;
-  final int? verifiedGold;
+
+  /// Wallet presentation supplied by AppState, including journaled run rewards.
+  /// This amount must never authorize spending.
+  final int? displayedGold;
   final int? rewardRevision;
   final RunSubmissionStatus? runSubmissionStatus;
   final bool replaySubmissionJournaled;
@@ -125,8 +129,12 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     }
     final ui = context.ui;
     final runRewardGold = _runRewardGold();
-    final verifiedGold = _resolvedVerifiedGold();
-    if (runRewardGold <= 0 && verifiedGold <= 0) {
+    final runRewardXp = _runRewardXp();
+    final displayedGold = (widget.displayedGold ?? 0).clamp(
+      0,
+      9007199254740991,
+    );
+    if (runRewardGold <= 0 && displayedGold <= 0 && runRewardXp <= 0) {
       return null;
     }
 
@@ -144,7 +152,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (verifiedGold > 0)
+            if (displayedGold > 0)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -156,7 +164,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                     ),
                   ),
                   GoldDisplay(
-                    gold: verifiedGold,
+                    gold: displayedGold,
                     rewardRevision: widget.rewardRevision,
                     rewardSurface: 'game_over',
                     variant: GoldDisplayVariant.body,
@@ -164,7 +172,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                 ],
               ),
             if (runRewardGold > 0) ...[
-              if (verifiedGold > 0) SizedBox(height: ui.space.xxs),
+              if (displayedGold > 0) SizedBox(height: ui.space.xxs),
               Wrap(
                 spacing: ui.space.sm,
                 runSpacing: ui.space.xxs,
@@ -181,8 +189,17 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                     gold: runRewardGold,
                     variant: GoldDisplayVariant.body,
                   ),
-                  _buildRewardVerificationLabel(ui),
                 ],
+              ),
+            ],
+            if (runRewardXp > 0) ...[
+              SizedBox(height: ui.space.xxs),
+              Text(
+                '+$runRewardXp XP',
+                style: ui.text.body.copyWith(
+                  color: ui.colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ],
@@ -191,17 +208,12 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     );
   }
 
-  int _resolvedVerifiedGold() {
-    final raw = widget.verifiedGold ?? 0;
-    return raw < 0 ? 0 : raw;
-  }
-
   int _runRewardGold() {
-    if (!_enableGameOverRewardRow || !widget.replaySubmissionJournaled) {
+    if (!_enableGameOverRewardRow) {
       return 0;
     }
     final status = widget.runSubmissionStatus;
-    if (status?.isRewardRevoked == true) {
+    if (status?.isTerminal == true && status?.isRewardFinal != true) {
       return 0;
     }
     final fromReward = status?.isRewardFinal == true
@@ -214,31 +226,11 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     return raw;
   }
 
-  Widget _buildRewardVerificationLabel(UiTokens ui) {
+  int _runRewardXp() {
     final status = widget.runSubmissionStatus;
-    if (status?.isRewardFinal == true) {
-      return Text(
-        'Reward verified',
-        style: ui.text.body.copyWith(
-          color: ui.colors.success,
-          fontWeight: FontWeight.w600,
-        ),
-      );
-    }
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.hourglass_top,
-          color: ui.colors.accentStrong,
-          size: ui.sizes.iconSize.xs,
-        ),
-        SizedBox(width: ui.space.xxs),
-        Text(
-          'Verifying reward…',
-          style: ui.text.body.copyWith(color: ui.colors.textMuted),
-        ),
-      ],
+    if (status?.isTerminal == true && status?.isRewardFinal != true) return 0;
+    return PlayerProgress.xpForScore(
+      status?.serverStatus?.validatedRun?.score ?? _breakdown.totalPoints,
     );
   }
 
@@ -299,7 +291,6 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       return null;
     }
     final shouldShow =
-        status.verificationDelayed ||
         status.phase == RunSubmissionPhase.rejected ||
         status.phase == RunSubmissionPhase.expired ||
         status.phase == RunSubmissionPhase.cancelled ||

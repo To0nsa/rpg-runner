@@ -3,6 +3,8 @@
 // hosts provide a server-issued ticket and an exit path (see the widget/route).
 // Web or native-debug Developer Practice uses an explicit local descriptor, requires
 // world readiness only and never records, submits or rewards a run.
+// Authenticated results show gold/XP immediately. AppState presentation getters
+// include journaled rewards; only canonical progression authorizes spending.
 // Startup awaits the complete initial terrain window with bounded native
 // parallelism. Runtime readiness holds missing publications before simulation;
 // failure recovery retries within the same run and recorder.

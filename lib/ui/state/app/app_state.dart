@@ -44,6 +44,7 @@ import '../boards/run_boards_api.dart';
 import '../run/run_submission_coordinator.dart';
 import '../run/run_submission_spool_store.dart';
 import '../run/run_submission_status.dart';
+import '../run/pending_run_submission.dart';
 import '../run/run_submission_scheduler.dart';
 import '../run/run_session_api.dart';
 import '../run/run_start_remote_exception.dart';
@@ -53,6 +54,7 @@ import '../ownership/ownership_pending_command.dart';
 import '../ownership/ownership_sync_policy.dart';
 import '../ownership/ownership_sync_status.dart';
 import '../ownership/progression_state.dart';
+import '../ownership/player_progress.dart';
 import '../ownership/selection_state.dart';
 import '../profile/user_profile.dart';
 import '../profile/user_profile_remote_api.dart';
@@ -292,6 +294,7 @@ class AppState extends ChangeNotifier {
   final Map<String, RunSubmissionStatus> _runSubmissionStatuses =
       <String, RunSubmissionStatus>{};
   RunSubmissionStatus? _latestVerifiedReward;
+  RunSubmissionStatus? _latestRewardCorrection;
   final Map<_RunTicketPrefetchKey, RunTicket> _runTicketPrefetchCache =
       <_RunTicketPrefetchKey, RunTicket>{};
   final Map<_RunTicketPrefetchKey, Future<void>> _runTicketPrefetchInFlight =
@@ -311,6 +314,34 @@ class AppState extends ChangeNotifier {
       LevelRegistry.isAvailable(_defaultWeeklyFeaturedLevelId);
   MetaState get meta => _meta;
   ProgressionState get progression => _progression;
+
+  /// Presentation includes journaled local rewards. Purchases, unlocks and
+  /// persistence must continue to use canonical [progression].
+  int get displayedGold =>
+      (_progression.gold + _runSubmissionController.previewGold).clamp(
+        0,
+        9007199254740991,
+      );
+
+  PlayerProgress get displayedPlayerProgress {
+    final confirmed = _progression.playerProgress;
+    final xp = _runSubmissionController.previewXp;
+    if (xp == 0) return confirmed;
+    return PlayerProgress(
+      totalXp: (confirmed.totalXp + xp).clamp(0, 9007199254740991),
+      acceptedRuns: confirmed.acceptedRuns,
+      runsByLevel: confirmed.runsByLevel,
+      damageDealt100: confirmed.damageDealt100,
+      damageTaken100: confirmed.damageTaken100,
+    );
+  }
+
+  /// A projected display must not satisfy a verified-account paint diagnostic.
+  int? get rewardDisplayRevision =>
+      _runSubmissionController.hasRewardPreview ? null : _ownershipRevision;
+
+  bool goldNeedsVerification(int cost) =>
+      cost > _progression.gold && cost <= displayedGold;
   bool get achievementsAvailable => _achievementsController.available;
   bool get achievementsClaiming => _achievementsController.claiming;
   Future<void> refreshAchievements() => _achievementsController.refresh();
@@ -346,8 +377,11 @@ class AppState extends ChangeNotifier {
   Future<void> claimInboxReward(String id) => _inboxController.claim(id);
 
   /// Latest newly acknowledged reward; canonical gold is already refreshed.
-  /// Presentation may announce it once without blocking navigation or play.
+  /// Normal settlement is silent because its local reward was already displayed.
   RunSubmissionStatus? get latestVerifiedReward => _latestVerifiedReward;
+
+  /// A terminal failure removed a displayed local reward; announce once.
+  RunSubmissionStatus? get latestRewardCorrection => _latestRewardCorrection;
   RunSubmissionStatus? runSubmissionStatusFor(String runSessionId) =>
       _runSubmissionStatuses[runSessionId];
 
@@ -652,12 +686,14 @@ class AppState extends ChangeNotifier {
 
   void _applyCanonicalState(OwnershipCanonicalState canonical) {
     if (_disposed || _accountDeletionAccepted) return;
+    if (canonical.revision < _ownershipRevision) return;
     _clearRunTicketPrefetchState();
     _profileId = canonical.profileId;
     _selection = canonical.selection;
     _meta = canonical.meta;
     _progression = canonical.progression;
     _ownershipRevision = canonical.revision;
+    _runSubmissionController.reconcileRewardPreviews();
   }
 
   Future<AuthSession> _ensureAuthSession() async {
@@ -686,6 +722,8 @@ class AppState extends ChangeNotifier {
       _ownershipFlushTimer = null;
       _ownershipSyncStatus = OwnershipSyncStatus.idle;
       _runSubmissionStatuses.clear();
+      _ownershipRevision = 0;
+      _progression = ProgressionState.initial;
     }
     _authSession = session;
     return session;

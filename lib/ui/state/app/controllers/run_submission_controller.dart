@@ -12,6 +12,55 @@ final class _AppStateRunSubmissionController extends _AppStateController {
   _completionWatches = {};
   final Map<String, RunSubmissionResponse> _completions = {};
   int _watchEpoch = 0;
+  final Map<String, PendingRunSubmission> _rewardPreviews = {};
+
+  Iterable<PendingRunSubmission> get _visibleRewardPreviews sync* {
+    final applied = _app._progression.appliedRewardGrantIds;
+    for (final pending in _rewardPreviews.values) {
+      if (_acknowledged.contains(pending.runSessionId) ||
+          (applied?.contains(pending.runSessionId) ?? false)) {
+        continue;
+      }
+      // A missing ID in a truncated/legacy history is ambiguous. Keep its
+      // durable journal for recovery, but never add it to a possibly-paid total.
+      if (pending.presentationBaseRevision == _ownershipRevision ||
+          (applied != null &&
+              (applied.length < ProgressionState.rewardGrantHistoryLimit ||
+                  applied.contains(pending.presentationBaseGrantId)))) {
+        yield pending;
+      }
+    }
+  }
+
+  int _summaryCount(PendingRunSubmission pending, String key) {
+    final value = pending.provisionalSummary?[key];
+    return value is int && value >= 0 && value <= 9007199254740991 ? value : 0;
+  }
+
+  int get previewGold => _visibleRewardPreviews.fold(
+    0,
+    (total, pending) => total + _summaryCount(pending, 'goldEarned'),
+  );
+
+  int get previewXp => _visibleRewardPreviews.fold(
+    0,
+    (total, pending) =>
+        total + PlayerProgress.xpForScore(_summaryCount(pending, 'score')),
+  );
+
+  bool get hasRewardPreview => previewGold > 0 || previewXp > 0;
+
+  void _rememberRewardPreview(PendingRunSubmission? pending) {
+    if (pending == null || _acknowledged.contains(pending.runSessionId)) return;
+    _rewardPreviews.putIfAbsent(pending.runSessionId, () => pending);
+    reconcileRewardPreviews();
+  }
+
+  void reconcileRewardPreviews() {
+    final applied = _app._progression.appliedRewardGrantIds;
+    if (applied == null) return;
+    _rewardPreviews.removeWhere((id, _) => applied.contains(id));
+  }
 
   void _stopCompletionWatches() {
     _watchEpoch += 1;
@@ -127,8 +176,10 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     _scheduler.clear();
     _inFlight.clear();
     _acknowledged.clear();
+    _rewardPreviews.clear();
     RunRewardDiagnostics.instance.clear();
     _app._latestVerifiedReward = null;
+    _app._latestRewardCorrection = null;
     _discovery = null;
   }
 
@@ -189,6 +240,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
   }) async {
     final session = await _ensureAuthSession();
     final generation = _generation;
+    final grants = _app._progression.appliedRewardGrantIds;
     final pending = await _runSubmissionCoordinator.enqueueSubmission(
       userId: session.userId,
       runSessionId: runSessionId,
@@ -198,10 +250,16 @@ final class _AppStateRunSubmissionController extends _AppStateController {
       contentLengthBytes: contentLengthBytes,
       contentType: contentType,
       provisionalSummary: provisionalSummary,
+      presentationBaseRevision: _ownershipRevision,
+      presentationBaseGrantId: grants == null || grants.isEmpty
+          ? null
+          : grants.last,
     );
     final status = RunSubmissionStatus.fromPending(pending);
     if (!_isCurrent(session, generation)) return status;
     _runSubmissionStatuses[runSessionId] = status;
+    _rememberRewardPreview(pending);
+    RunRewardDiagnostics.instance.emit(runSessionId, 'local_reward_preview');
     _scheduler.track(runSessionId);
     _watchCompletion(runSessionId, session, generation);
     _notifyListeners();
@@ -262,6 +320,15 @@ final class _AppStateRunSubmissionController extends _AppStateController {
       );
     }
     _runSubmissionStatuses[runSessionId] = status;
+    _rememberRewardPreview(status.pendingSubmission);
+    if (status.isTerminal && !status.isRewardFinal) {
+      final removed = _rewardPreviews.remove(runSessionId);
+      if (removed != null &&
+          (_summaryCount(removed, 'goldEarned') > 0 ||
+              PlayerProgress.xpForScore(_summaryCount(removed, 'score')) > 0)) {
+        _app._latestRewardCorrection = status;
+      }
+    }
     _notifyListeners();
     await _syncCanonicalAfterSubmissionStatuses(
       session: session,
@@ -287,6 +354,12 @@ final class _AppStateRunSubmissionController extends _AppStateController {
       userId: session.userId,
     );
     final statuses = <RunSubmissionStatus>[];
+    if (_isCurrent(session, generation)) {
+      for (final status in local) {
+        _rememberRewardPreview(status.pendingSubmission);
+      }
+      _notifyListeners();
+    }
     for (final status in local) {
       if (!_isCurrent(session, generation)) break;
       statuses.add(
@@ -324,6 +397,7 @@ final class _AppStateRunSubmissionController extends _AppStateController {
           {'phase': status.phase.name, 'retryAtMs': status.nextRetryAtMs},
         );
         _runSubmissionStatuses.putIfAbsent(status.runSessionId, () => status);
+        _rememberRewardPreview(status.pendingSubmission);
         _scheduler.track(
           status.runSessionId,
           notBeforeMs: status.nextRetryAtMs,
@@ -375,11 +449,18 @@ final class _AppStateRunSubmissionController extends _AppStateController {
       if (!_isCurrent(session, generation)) return;
       if (canonical.revision >= _ownershipRevision) {
         _applyCanonicalState(canonical);
+        for (final id in finalIds) {
+          _rewardPreviews.remove(id);
+        }
         await _reconcileSelectionProjectionFromOutbox(
           ownerUserId: session.userId,
         );
       }
       if (!_isCurrent(session, generation)) return;
+      // A newer canonical revision already includes an older final receipt.
+      for (final id in finalIds) {
+        _rewardPreviews.remove(id);
+      }
       for (final id in finalIds) {
         RunRewardDiagnostics.instance.canonical(
           id,

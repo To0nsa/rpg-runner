@@ -180,6 +180,8 @@ class RunSubmissionCoordinator {
     required int contentLengthBytes,
     String contentType = 'application/octet-stream',
     Map<String, Object?>? provisionalSummary,
+    int? presentationBaseRevision,
+    String? presentationBaseGrantId,
   }) async {
     if (_localSubmissionsDiscarded) {
       throw StateError('Local submissions have been discarded.');
@@ -197,6 +199,8 @@ class RunSubmissionCoordinator {
       createdAtMs: nowMs,
       updatedAtMs: nowMs,
       provisionalSummary: provisionalSummary,
+      presentationBaseRevision: presentationBaseRevision,
+      presentationBaseGrantId: presentationBaseGrantId,
     );
     await _persistSubmission(submission: pending);
     return pending;

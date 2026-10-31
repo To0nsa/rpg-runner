@@ -270,7 +270,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final appState = context.watch<AppState>();
     final profile = appState.profile;
     final authSession = appState.authSession;
-    final gold = appState.progression.gold;
+    final gold = appState.displayedGold;
     final progression = appState.progression;
 
     return MenuScaffold(
@@ -294,7 +294,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 _ProfileCardPanel(
                   width: double.infinity,
                   child: _buildStatsPanel(
-                    progression.playerProgress,
+                    appState.displayedPlayerProgress,
                     progression.enemyDefeats.total,
                   ),
                 ),

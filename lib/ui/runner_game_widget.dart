@@ -13,6 +13,7 @@ import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/scoring/run_score_breakdown.dart';
 
 import 'run/run_reward_diagnostics.dart';
 import '../game/game_controller.dart';
@@ -75,6 +76,8 @@ import 'viewport/viewport_metrics.dart';
 /// while desktop controls are mounted, then restored to their prior setting.
 /// Reward completion belongs to AppState and continues after this widget closes;
 /// embedding hosts must forward app foreground state to AppState.
+/// Run gold/XP display immediately; AppState projects journaled rewards into
+/// wallet/XP presentation while keeping spending and level gifts server-owned.
 /// A restart rejected for maintenance or an obsolete client shows a release
 /// dialog while retaining the current session and its submission recovery.
 /// Boss entrances hold controls within the active Core run; the replay clock
@@ -476,9 +479,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     }
   }
 
-  int _verifiedGoldForGameOver() {
+  int _displayedGoldForGameOver() {
     final appState = _maybeAppState();
-    final value = appState?.progression.gold ?? 0;
+    final value = appState?.displayedGold ?? 0;
     return value < 0 ? 0 : value;
   }
 
@@ -649,6 +652,18 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       'distance': event.distance,
       'reason': event.reason.name,
       'goldEarned': event.goldEarned,
+      'score': buildRunScoreBreakdown(
+        tick: event.tick,
+        distanceUnits: event.distance,
+        collectibles: event.stats.collectibles,
+        collectibleScore: event.stats.collectibleScore,
+        enemyKillCounts: event.stats.enemyKillCounts,
+        rescuedNpcs: event.stats.rescuedNpcs,
+        rescuePoints: event.stats.rescuePoints,
+        excludedScoreTicks: event.stats.excludedScoreTicks,
+        tuning: _controller.scoreTuning,
+        tickHz: _controller.tickHz,
+      ).totalPoints,
       'collectibles': event.stats.collectibles,
       'collectibleScore': event.stats.collectibleScore,
       'enemyKillCounts': event.stats.enemyKillCounts,
@@ -988,8 +1003,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                         scoreTuning: _controller.scoreTuning,
                         tickHz: _controller.tickHz,
                         provisionalGoldEarned: _provisionalGoldEarned,
-                        verifiedGold: _verifiedGoldForGameOver(),
-                        rewardRevision: _maybeAppState()?.ownershipRevision,
+                        displayedGold: _displayedGoldForGameOver(),
+                        rewardRevision: _maybeAppState()?.rewardDisplayRevision,
                         runSubmissionStatus: _runSubmissionStatus,
                         replaySubmissionJournaled: _runReplayJournaled,
                         replaySubmissionJournalError: _runReplayJournalError,

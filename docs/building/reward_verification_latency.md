@@ -15,6 +15,29 @@ records the original investigation; it is not a production performance claim.
 
 ## October 31 pipeline rework
 
+### Immediate reward display decision
+
+After measuring APK 5, the owner selected immediate gold/XP presentation with
+no pending labels. This supersedes the earlier unchanged-UX constraint for this
+client change. Spending and level-gift creation still require server settlement.
+
+- [x] Project journaled local run gold/XP into displayed totals; preserve the
+  confirmed account separately and reconcile once across retries, restart,
+  multiple runs, canonical refresh and account replacement.
+- [x] Show run gold/XP immediately, remove normal verification labels/toasts,
+  and use the existing themed dialog when a purchase or paid refresh needs
+  unconfirmed gold. Existing confirmed funds remain usable.
+- [x] Exercise state, persistence, receipt and widget boundaries, including
+  failure/rejection and no double animation/credit; update implemented contracts.
+
+Scope: client presentation and its local journal only. Reuse the deployed
+receipt/account contract and unchanged navigation. No new cloud deployment or
+phone installation is part of this implementation step.
+Local checks and visual review are recorded in the
+[implementation evidence](../verification/immediate-reward-display-2026-10-31.md).
+
+### Earlier pipeline rework
+
 The owner authorized planning and implementation of the pipeline improvements,
 including related improvements found during the work. The implementation starts
 from clean `e85626c7`. Preserve the current UX, XP animation, verified reward

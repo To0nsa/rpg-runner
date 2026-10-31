@@ -534,6 +534,14 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 - Refresh the store through the existing earned-gold refresh flow.
 - Codex discoveries are earned through runs and are never sold here.
 
+Gold displays include journaled run rewards immediately, without a pending badge
+or separate balance. Purchases and paid refreshes still require confirmed funds.
+If the displayed balance can afford an action but its confirmed balance cannot,
+show a dismissible "Your rewards are on their way" modal. Players can continue
+playing. If confirmation arrives while the modal is open, it changes to "Your
+gold is ready"; returning to the store never submits a purchase automatically.
+Already confirmed funds remain usable while another run is being verified.
+
 **Not here**
 
 - Real money pricing / IAP bundles

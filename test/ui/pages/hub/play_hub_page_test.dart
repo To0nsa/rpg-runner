@@ -25,51 +25,54 @@ import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
-  testWidgets('hub top row excludes provisional gold from canonical wallet', (
-    tester,
-  ) async {
-    final runSessionApi = _StatusOnlyRunSessionApi(
-      SubmissionStatus(
-        runSessionId: 'run_hub_pending',
-        state: RunSessionState.pendingValidation,
-        updatedAtMs: 1,
-        reward: SubmissionReward(
-          status: SubmissionRewardStatus.provisional,
-          provisionalGold: 17,
-          effectiveGoldDelta: 0,
-          spendableGoldDelta: 0,
+  testWidgets(
+    'hub does not infer local earnings from server provisional gold',
+    (tester) async {
+      final runSessionApi = _StatusOnlyRunSessionApi(
+        SubmissionStatus(
+          runSessionId: 'run_hub_pending',
+          state: RunSessionState.pendingValidation,
           updatedAtMs: 1,
-          grantId: 'run_hub_pending',
+          reward: SubmissionReward(
+            status: SubmissionRewardStatus.provisional,
+            provisionalGold: 17,
+            effectiveGoldDelta: 0,
+            spendableGoldDelta: 0,
+            updatedAtMs: 1,
+            grantId: 'run_hub_pending',
+          ),
         ),
-      ),
-    );
-    final coordinator = RunSubmissionCoordinator(
-      runSessionApi: runSessionApi,
-      spoolStore: _InMemorySpoolStore(),
-    );
-    final appState = AppState(
-      authApi: _StaticAuthApi(),
-      loadoutOwnershipApi: _NoopOwnershipApi(gold: 321),
-      runSessionApi: runSessionApi,
-      runSubmissionCoordinator: coordinator,
-    );
-    await appState.bootstrap(force: true);
-    await appState.refreshRunSubmissionStatus(runSessionId: 'run_hub_pending');
+      );
+      final coordinator = RunSubmissionCoordinator(
+        runSessionApi: runSessionApi,
+        spoolStore: _InMemorySpoolStore(),
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi(),
+        loadoutOwnershipApi: _NoopOwnershipApi(gold: 321),
+        runSessionApi: runSessionApi,
+        runSubmissionCoordinator: coordinator,
+      );
+      await appState.bootstrap(force: true);
+      await appState.refreshRunSubmissionStatus(
+        runSessionId: 'run_hub_pending',
+      );
 
-    await tester.pumpWidget(_TestApp(appState: appState));
-    await tester.pump();
+      await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.pump();
 
-    final topRow = tester.widget<HubTopRow>(find.byType(HubTopRow));
-    expect(topRow.gold, 321);
-    final row = tester.getRect(find.byType(HubTopRow));
-    final gold = tester.getRect(
-      find.descendant(
-        of: find.byType(HubTopRow),
-        matching: find.byType(GoldDisplay),
-      ),
-    );
-    expect(gold.left, greaterThan(row.center.dx));
-  });
+      final topRow = tester.widget<HubTopRow>(find.byType(HubTopRow));
+      expect(topRow.gold, 321);
+      final row = tester.getRect(find.byType(HubTopRow));
+      final gold = tester.getRect(
+        find.descendant(
+          of: find.byType(HubTopRow),
+          matching: find.byType(GoldDisplay),
+        ),
+      );
+      expect(gold.left, greaterThan(row.center.dx));
+    },
+  );
 
   testWidgets('hub shows account level and XP beside player name', (
     tester,
@@ -155,6 +158,72 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('LEVEL 3  ·  36 / 154 XP'), findsOneWidget);
   });
+
+  testWidgets(
+    'local XP animates once and settlement keeps the displayed total',
+    (tester) async {
+      final ownership = _NoopOwnershipApi(
+        gold: 100,
+        playerProgress: const PlayerProgress(
+          totalXp: 90,
+          acceptedRuns: 1,
+          damageDealt100: 0,
+          damageTaken100: 0,
+        ),
+      );
+      final app = AppState(
+        authApi: _StaticAuthApi(),
+        loadoutOwnershipApi: ownership,
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: const NoopRunSessionApi(),
+          spoolStore: _InMemorySpoolStore(),
+        ),
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap(force: true);
+      await tester.pumpWidget(
+        _RoutedTestApp(appState: app, observer: _RecordingNavigatorObserver()),
+      );
+      await tester.pump();
+      await tester.tap(find.widgetWithText(AppButton, 'PLAY').last);
+      await tester.pump();
+      await app.journalRunReplay(
+        runSessionId: 'hub_local_reward',
+        runMode: RunMode.practice,
+        replayArtifactId: 'replay',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 256,
+        provisionalSummary: {'goldEarned': 17, 'score': 4000},
+      );
+      await tester.pump();
+      Navigator.of(tester.element(find.text('Run Bootstrap Placeholder')))
+          .pop();
+      await tester.pump();
+      expect(find.text('LEVEL 1  ·  90 / 100 XP'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 1200));
+      expect(find.text('LEVEL 2  ·  10 / 124 XP'), findsOneWidget);
+      expect(tester.widget<HubTopRow>(find.byType(HubTopRow)).gold, 117);
+      expect(app.progression.playerProgress.totalXp, 90);
+      expect(app.rewardDisplayRevision, isNull);
+
+      ownership.gold = 117;
+      ownership.revision = 1;
+      ownership.appliedRewardGrantIds = ['hub_local_reward'];
+      ownership.playerProgress = const PlayerProgress(
+        totalXp: 110,
+        acceptedRuns: 2,
+        damageDealt100: 0,
+        damageTaken100: 0,
+      );
+      await app.bootstrap(force: true);
+      await tester.pump();
+      expect(find.text('LEVEL 2  ·  10 / 124 XP'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.text('LEVEL 2  ·  10 / 124 XP'), findsOneWidget);
+      expect(tester.widget<HubTopRow>(find.byType(HubTopRow)).gold, 117);
+      expect(app.rewardDisplayRevision, 1);
+    },
+  );
 
   testWidgets('XP arriving after hub return fills from the previous total', (
     tester,
@@ -387,17 +456,20 @@ class _StaticAuthApi implements AuthApi {
 class _NoopOwnershipApi extends LoadoutOwnershipApi {
   _NoopOwnershipApi({required this.gold, this.playerProgress});
 
-  final int gold;
+  int gold;
+  int revision = 0;
+  List<String> appliedRewardGrantIds = [];
   PlayerProgress? playerProgress;
 
   OwnershipCanonicalState get _canonical => OwnershipCanonicalState(
     profileId: 'profile_hub',
-    revision: 0,
+    revision: revision,
     selection: SelectionState.defaults,
     meta: const MetaService().createNew(),
     progression: ProgressionState.initial.copyWith(
       gold: gold,
       playerProgress: playerProgress,
+      appliedRewardGrantIds: appliedRewardGrantIds,
     ),
   );
 

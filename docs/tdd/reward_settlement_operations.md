@@ -41,6 +41,10 @@ attention. Framework callbacks run after the rendering pipeline flushes; see
 [Flutter's post-frame contract](https://api.flutter.dev/flutter/scheduler/SchedulerBinding/addPostFrameCallback.html).
 Pending presentation correlations are capped at 64 and cleared on account reset
 or AppState disposal.
+Immediate local display emits `local_reward_preview` after durable journaling.
+While local gold/XP contributes to the wallet, its diagnostic revision is null:
+these paints cannot masquerade as verified-account visibility. Existing
+canonical frame events measure the settled display, not its earlier preview.
 An unpainted revision superseded by another account update can remain unobserved;
 do not label the missing sample as instant completion. Disposing or covering a
 screen cannot create a visible-update event.
@@ -221,8 +225,46 @@ ownership. Listener and HTTP results serialize per run and never roll back a
 newer revision. Failed application/refreshes retry even after leaving
 Game Over or restarting the app. Successful acknowledgement removes the receipt;
 repeated status requests do not reload the same acknowledged reward. The app
-announces newly verified gold without interrupting play. Provisional gold remains
-unspendable; this client lifecycle cannot grant rewards.
+shows gold and XP immediately without normal verification badges or completion
+toasts. Only server-confirmed gold is spendable; this lifecycle cannot grant rewards.
+
+### Immediate local reward presentation
+
+`AppState.progression` remains canonical. All wallet surfaces use
+`displayedGold`, and Hub/Profile use `displayedPlayerProgress`. These getters add
+per-run journaled gold and locally calculated XP without altering inventory,
+accepted-run counters, level gifts, purchase commands or canonical persistence.
+Game Over shows the local run rewards while the short durable-save step completes;
+leaving that screen retains the existing journal/save-failure safeguards.
+
+`PendingRunSubmission` retains its existing `provisionalSummary`, now including
+Core's local `score`, plus local-only `presentationBaseRevision` and
+`presentationBaseGrantId` (last known applied grant). Copy/retry preserves both;
+old journals omit them and preview zero XP when no score is available. Neither
+local evidence field enters the replay, upload or backend request.
+
+The client now retains the server's existing `progression.appliedRewardGrantIds`
+in canonical decoding. Matching IDs remove their local contribution synchronously
+with canonical application, even if bootstrap, purchases, claims or another run's
+receipt observe settlement first. A final receipt retains its preview until its
+canonical snapshot or a newer revision is applied. A failed canonical read or
+local acknowledgement cannot add the reward twice or briefly remove it.
+
+The server retains 512 applied IDs. After pruning, absence alone is ambiguous:
+projection requires the unchanged base revision, a complete shorter history, or
+the journal's retained anchor in the current history. Missing legacy history or
+an evicted anchor leaves the journal recoverable but suppresses an ambiguous
+extra contribution until server completion. No synthetic reward is persisted as
+canonical. Account replacement clears previews and starts a fresh revision
+baseline; canonical application rejects older revisions within that account.
+
+`goldNeedsVerification(cost)` identifies actions affordable only with displayed
+local rewards. Store purchases and paid refreshes show the existing themed modal
+instead of sending a command in that case. Confirmed funds remain usable; the
+backend still authorizes every actual purchase. The modal observes account
+changes and becomes ready after settlement, but never retries/submits a purchase.
+Terminal failure removes the local contribution and emits a single correction
+notification. Transient failures retain the durable submission and its preview.
 
 ## Observability contract
 

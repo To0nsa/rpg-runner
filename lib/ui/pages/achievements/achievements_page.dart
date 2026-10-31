@@ -85,7 +85,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                 runSpacing: ui.space.xs,
                 children: [
                   GoldDisplay(
-                    gold: app.progression.gold,
+                    gold: app.displayedGold,
                     label: 'Current Gold',
                     variant: GoldDisplayVariant.headline,
                   ),

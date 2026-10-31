@@ -115,7 +115,7 @@ class _MessagesPageState extends State<MessagesPage> {
                         Expanded(
                           child: Text('Game messages', style: ui.text.headline),
                         ),
-                        GoldDisplay(gold: app.progression.gold),
+                        GoldDisplay(gold: app.displayedGold),
                         SizedBox(width: ui.space.sm),
                         AppIconButton(
                           icon: Icons.refresh,

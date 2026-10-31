@@ -63,8 +63,13 @@ Settlement also compares old and new XP-derived levels and atomically creates
 separate from ordinary run gold, with no historical backfill. See
 [system inbox](system_inbox.md) for delivery and claim invariants.
 
-`ProgressionState.playerProgress` decodes the canonical subtree. The client
-derives level from lifetime XP. For levels 1–29, the XP needed for level `L` to
+`ProgressionState.playerProgress` decodes the canonical subtree. Presentation
+reads `AppState.displayedPlayerProgress`, which adds local journaled
+`floor(score / 200)` XP without changing accepted-run statistics, unlocks,
+canonical ownership or level gifts. Core's existing score breakdown supplies the
+local score in `provisionalSummary`; the validator still computes the accepted
+score independently. Older journals without this score preview no XP.
+The client derives level from lifetime XP. For levels 1–29, the XP needed for level `L` to
 `L + 1` is `round(100 × 1.24^(L - 1))`; round each cost before summing the
 cumulative thresholds. Level 30 starts at 212,895 XP and is the display cap.
 At the cap, `xpInLevel` and `xpForNextLevel` are zero, and the bar shows a full
@@ -86,12 +91,14 @@ shows a dash. The field is display-only and does not enter sorting, replay
 validation, or the materialized Top-10 revision.
 
 The hub captures lifetime XP when Run is pressed. When its route becomes current
-again, `PlayerLevelBar` animates that visual value toward canonical
-`ProgressionState.playerProgress.totalXp`; later canonical increases continue
+again, `PlayerLevelBar` animates that visual value toward
+`AppState.displayedPlayerProgress.totalXp`; later presentation increases continue
 from the currently displayed value. The bar derives each intermediate level
 from lifetime XP, so crossing a threshold fills the prior level and begins the
-next. The Profile bar and initial hub load display canonical progress
-immediately. The UI's `UiProgressAnimator` owns only count interpolation and
+next. Matching settlement removes the local contribution while adding the same
+canonical XP, leaving the animation target unchanged. The Profile bar and initial
+hub load display projected progress immediately. The UI's `UiProgressAnimator`
+owns only count interpolation and
 ticker lifetime; `PlayerLevelBar` decides when to start and how to derive level
 from the displayed XP. Animation state never changes account progress or the
 server settlement flow.

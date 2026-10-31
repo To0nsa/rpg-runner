@@ -24,6 +24,7 @@ import '../../state/ownership/loadout_ownership_api.dart';
 import '../../state/ownership/progression_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'town_store_widgets.dart';
+import 'reward_verification_dialog.dart';
 
 const int _dailyRefreshLimit = 3;
 const int _goldRefreshCost = 50;
@@ -80,12 +81,12 @@ class _TownStorePageState extends State<TownStorePage> {
       0,
       _dailyRefreshLimit - store.refreshesUsedToday,
     );
-    final verifiedGold = appState.progression.gold;
+    final displayedGold = appState.displayedGold;
     final canAnyOfferChange = _canAnyOfferChange(appState, store.activeOffers);
     final canRefreshForGold =
         !_purchaseInFlight &&
         !_refreshInFlight &&
-        appState.progression.gold >= _goldRefreshCost &&
+        displayedGold >= _goldRefreshCost &&
         refreshesRemaining > 0 &&
         canAnyOfferChange;
 
@@ -97,7 +98,7 @@ class _TownStorePageState extends State<TownStorePage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TownStoreCard(
-              gold: verifiedGold,
+              gold: displayedGold,
               refreshesRemaining: refreshesRemaining,
               inFlight: _refreshInFlight,
               canRefresh: canRefreshForGold,
@@ -105,7 +106,7 @@ class _TownStorePageState extends State<TownStorePage> {
               selectedProjectileSourceSpellId:
                   selectedLoadout.projectileSlotSpellId,
               activeOffers: activeOffers,
-              currentGold: appState.progression.gold,
+              currentGold: displayedGold,
               purchaseInFlight: _purchaseInFlight,
               refreshInFlight: _refreshInFlight,
               onConfirmPurchase: (offer) => _confirmPurchase(appState, offer),
@@ -123,6 +124,10 @@ class _TownStorePageState extends State<TownStorePage> {
     if (_purchaseInFlight || _refreshInFlight) {
       return;
     }
+    if (appState.goldNeedsVerification(offer.priceGold)) {
+      await _showRewardVerification(appState, offer.priceGold);
+      return;
+    }
     setState(() {
       _purchaseInFlight = true;
     });
@@ -133,6 +138,10 @@ class _TownStorePageState extends State<TownStorePage> {
       }
       if (result.accepted) {
         _showSnackBar('Purchased ${townStoreOfferDisplayName(offer)}.');
+      } else if (result.rejectedReason ==
+              OwnershipRejectedReason.insufficientGold &&
+          appState.goldNeedsVerification(offer.priceGold)) {
+        await _showRewardVerification(appState, offer.priceGold);
       } else {
         _showSnackBar(_storeRejectedReasonText(result.rejectedReason));
       }
@@ -152,6 +161,10 @@ class _TownStorePageState extends State<TownStorePage> {
 
   Future<void> _confirmRefreshForGold(AppState appState) async {
     if (_purchaseInFlight || _refreshInFlight) {
+      return;
+    }
+    if (appState.goldNeedsVerification(_goldRefreshCost)) {
+      await _showRewardVerification(appState, _goldRefreshCost);
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -207,6 +220,10 @@ class _TownStorePageState extends State<TownStorePage> {
     if (_purchaseInFlight || _refreshInFlight) {
       return;
     }
+    if (appState.goldNeedsVerification(_goldRefreshCost)) {
+      await _showRewardVerification(appState, _goldRefreshCost);
+      return;
+    }
     setState(() {
       _refreshInFlight = true;
     });
@@ -219,6 +236,10 @@ class _TownStorePageState extends State<TownStorePage> {
       }
       if (result.accepted) {
         _showSnackBar('Store refreshed.');
+      } else if (result.rejectedReason ==
+              OwnershipRejectedReason.insufficientGold &&
+          appState.goldNeedsVerification(_goldRefreshCost)) {
+        await _showRewardVerification(appState, _goldRefreshCost);
       } else {
         _showSnackBar(_storeRejectedReasonText(result.rejectedReason));
       }
@@ -240,6 +261,13 @@ class _TownStorePageState extends State<TownStorePage> {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
+
+  Future<void> _showRewardVerification(AppState appState, int cost) =>
+      showDialog<void>(
+        context: context,
+        builder: (_) =>
+            RewardVerificationDialog(appState: appState, cost: cost),
+      );
 }
 
 String _storeRejectedReasonText(OwnershipRejectedReason? reason) {

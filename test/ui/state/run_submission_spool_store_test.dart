@@ -59,6 +59,38 @@ void main() {
       ]);
     });
 
+    test(
+      'reward presentation evidence survives retry and process restart',
+      () async {
+        final pending = PendingRunSubmission(
+          ownerUserId: 'uid_test',
+          runSessionId: 'preview',
+          runMode: RunMode.practice,
+          replayArtifactId: 'replay',
+          canonicalSha256: 'a' * 64,
+          contentLengthBytes: 1234,
+          createdAtMs: 1,
+          updatedAtMs: 1,
+          provisionalSummary: {'goldEarned': 9, 'score': 1735},
+          presentationBaseRevision: 18,
+          presentationBaseGrantId: 'previous',
+        );
+        await store.upsert(
+          submission: pending.copyWith(
+            step: PendingRunSubmissionStep.retryScheduled,
+            attemptCount: 2,
+            nextAttemptAtMs: 3000,
+          ),
+        );
+        final restarted = SharedPrefsRunSubmissionSpoolStore();
+        final restored = (await restarted.load(runSessionId: 'preview'))!;
+        expect(restored.provisionalSummary, {'goldEarned': 9, 'score': 1735});
+        expect(restored.presentationBaseRevision, 18);
+        expect(restored.presentationBaseGrantId, 'previous');
+        expect(restored.attemptCount, 2);
+      },
+    );
+
     test('upsert replaces existing entry with same runSessionId', () async {
       await store.upsert(
         submission: _pending(

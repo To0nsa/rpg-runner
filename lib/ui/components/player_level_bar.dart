@@ -18,7 +18,8 @@ class PlayerLevelBar extends StatefulWidget {
   final int? rewardRevision;
 
   /// Starts a visual catch-up from this lifetime XP when the hub returns.
-  /// The canonical [progress] remains the source of truth throughout.
+  /// [progress] is the app's presentation target, which may include local run XP.
+  /// The animation never grants XP or authorizes level gifts.
   final int? animateFromTotalXp;
 
   @override

@@ -38,6 +38,10 @@ final class PlayerProgress {
   final int damageDealt100;
   final int damageTaken100;
 
+  /// Local reward presentation uses the same score-to-XP rule as settlement.
+  /// This calculation does not grant XP or unlock level gifts.
+  static int xpForScore(int score) => score <= 0 ? 0 : score ~/ 200;
+
   int runsInMode(String mode) => runsByLevel.values.fold<int>(
     0,
     (total, level) => total + (level[mode] ?? 0),

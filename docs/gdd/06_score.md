@@ -251,9 +251,13 @@ Current local scoreboard store uses:
 ## 8. Determinism / anti-cheat posture (sane defaults)
 
 Verification continues after leaving Game Over, visiting the hub or starting
-another run. Pending gold remains unspendable. After server settlement and wallet
-refresh, a brief nonblocking "X gold verified" notification appears. Verification
-never gates navigation. Inactive apps suspend polling; resume/restart recovers
+another run. Results show run gold and XP immediately; the displayed account
+totals include safely journaled local rewards without pending labels. Server
+settlement makes those rewards spendable and replaces their local display once,
+without a routine verification notification. A purchase or paid store refresh
+that needs unconfirmed gold opens a dismissible explanation; existing confirmed
+gold remains usable. Verification never gates navigation. Inactive apps suspend
+polling; resume/restart recovers
 durable submissions. Retries do not issue another payout. Score collection
 animation remains a visual flow and does not authorize rewards.
 

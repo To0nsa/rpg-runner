@@ -33,6 +33,10 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   verified once-only gold/XP and direct receipts: gold painted at 4.505 seconds
   with a cold worker and 2.356 seconds with the same services warm. Controlled
   offline/response-loss acceptance remains open.
+  The follow-up client now displays journaled gold/XP immediately without pending
+  labels, while purchases needing unconfirmed funds show a dismissible modal;
+  see the [presentation contract](tdd/reward_settlement_operations.md#immediate-local-reward-presentation)
+  and [local implementation checks](verification/immediate-reward-display-2026-10-31.md).
 - [Current implementation plans](building/README.md): Android beta/backend
   isolation, reward verification latency and NPC rescue production smoke.
 - [Android beta release plan](building/android_beta_release.md): existing project
@@ -41,10 +45,11 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   environment routing and isolation checks. One shared deployment workflow and
   no player-data migration.
 - [Latest dev app release](verification/reward-pipeline-dev-2026-10-31.md): source
-  `25978623` deployed with the reward pipeline rework; verified dev APK 5 is ready
-  for installation. All client/worker navigation graphs were reused. The
-  [previous build 4](verification/achievements-dev-2026-10-30.md) remains the last
-  phone-verified build; live achievement completion-date and claim smoke remains open.
+  `25978623` deployed with the reward pipeline rework; APK 5 is installed and
+  [measured on the phone](verification/reward-pipeline-phone-2026-10-31.md).
+  All client/worker navigation graphs were reused. The immediate-display UI
+  follow-up is not deployed; live achievement completion-date and claim smoke
+  remains open.
 - [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
   lifecycle/input fixes, event-retention cleanup, full local checks and 18
   mixed-input replay cases pass. Finalized authoring is deployed in `2026.10.7`;

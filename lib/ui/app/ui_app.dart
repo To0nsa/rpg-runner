@@ -56,7 +56,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     widget.services.removeListener(_bindRewardNotifications);
-    _rewardAppState?.removeListener(_onRewardCompleted);
+    _rewardAppState?.removeListener(_onRewardCorrected);
     WidgetsBinding.instance.removeObserver(this);
     widget.services.dispose();
     super.dispose();
@@ -65,28 +65,29 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
   void _bindRewardNotifications() {
     final app = widget.services.readyAppState;
     if (identical(app, _rewardAppState)) return;
-    _rewardAppState?.removeListener(_onRewardCompleted);
+    _rewardAppState?.removeListener(_onRewardCorrected);
     _rewardAppState = app;
-    _lastReward = app?.latestVerifiedReward;
-    app?.addListener(_onRewardCompleted);
+    _lastReward = app?.latestRewardCorrection;
+    app?.addListener(_onRewardCorrected);
   }
 
-  void _onRewardCompleted() {
+  void _onRewardCorrected() {
     final app = _rewardAppState;
-    final reward = app?.latestVerifiedReward;
+    final reward = app?.latestRewardCorrection;
     if (reward == null || identical(reward, _lastReward)) return;
     _lastReward = reward;
-    if (reward.spendableGoldDelta <= 0) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted ||
           !identical(app, _rewardAppState) ||
-          !identical(app?.latestVerifiedReward, reward)) {
+          !identical(app?.latestRewardCorrection, reward)) {
         return;
       }
       _messengerKey.currentState?.showSnackBar(
         SnackBar(
-          content: Text('${reward.spendableGoldDelta} gold verified'),
-          duration: const Duration(seconds: 3),
+          content: const Text(
+            'This run’s rewards could not be confirmed. Your totals have been updated.',
+          ),
+          duration: const Duration(seconds: 5),
           behavior: SnackBarBehavior.floating,
         ),
       );

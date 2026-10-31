@@ -61,6 +61,9 @@ dev, staging and production apps. Its final candidate and Play release are pendi
   score grants XP toward an accelerating level curve capped at 30, while one
   shared per-enemy defeat record serves Library unlocks and Profile totals;
   Profile also shows runs and damage dealt/taken
+- Immediate run gold/XP display with automatic settlement reconciliation;
+  purchases that need unconfirmed gold explain the short wait in a dismissible
+  modal. Confirmed funds remain usable, and level gifts require settlement.
 - [Hall of Honour](docs/gdd/12_achievements.md): five achievements from verified
   runs reaching 10 metres or 10 seconds, next-target rows, expandable dated
   history and manually claimed gold. Deployed to dev; Android build 4 is ready

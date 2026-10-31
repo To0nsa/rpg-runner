@@ -22,6 +22,107 @@ import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
+  for (final action in ['purchase', 'refresh']) {
+    testWidgets(
+      '$action explains unconfirmed funds without submitting a command',
+      (tester) async {
+        final confirmedGold = action == 'purchase' ? 100 : 40;
+        final earnedGold = action == 'purchase' ? 80 : 20;
+        final ownership = _ScriptedOwnershipApi(
+          canonical: _canonicalWithStore(
+            gold: confirmedGold,
+            activeOffers: [_swordOffer()],
+          ),
+        );
+        final app = await _bootstrappedAppState(ownershipApi: ownership);
+        addTearDown(app.dispose);
+        await app.journalRunReplay(
+          runSessionId: 'shop_preview',
+          runMode: RunMode.practice,
+          replayArtifactId: 'replay',
+          canonicalSha256: 'a' * 64,
+          contentLengthBytes: 256,
+          provisionalSummary: {'goldEarned': earnedGold, 'score': 400},
+        );
+        await tester.pumpWidget(_TestApp(appState: app));
+        expect(
+          find.byWidgetPredicate(
+            (w) =>
+                w is GoldDisplay &&
+                w.label == 'Current Gold' &&
+                w.gold == confirmedGold + earnedGold,
+          ),
+          findsOneWidget,
+        );
+        await tester.tap(find.text(action == 'purchase' ? 'Buy' : 'Refresh'));
+        await tester.pumpAndSettle();
+        expect(find.text('Your rewards are on their way'), findsOneWidget);
+        expect(ownership.purchaseStoreOfferCalls, 0);
+        expect(ownership.refreshStoreCalls, 0);
+
+        ownership._canonical = ownership._canonical.copyWith(
+          revision: 1,
+          progression: ownership._canonical.progression.copyWith(
+            gold: confirmedGold + earnedGold,
+            appliedRewardGrantIds: ['shop_preview'],
+          ),
+        );
+        await app.bootstrap(force: true);
+        await tester.pumpAndSettle();
+        expect(find.text('Your gold is ready'), findsOneWidget);
+        expect(app.displayedGold, confirmedGold + earnedGold);
+        expect(ownership.purchaseStoreOfferCalls, 0);
+        expect(ownership.refreshStoreCalls, 0);
+        await tester.tap(find.text('Back to store'));
+        await tester.pumpAndSettle();
+        expect(find.text('Your gold is ready'), findsNothing);
+        if (action == 'purchase') {
+          await tester.tap(find.text('Buy'));
+        } else {
+          await tester.tap(find.text('Refresh'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.widgetWithText(AppButton, 'Refresh').last);
+        }
+        await tester.pumpAndSettle();
+        expect(ownership.purchaseStoreOfferCalls, action == 'purchase' ? 1 : 0);
+        expect(ownership.refreshStoreCalls, action == 'refresh' ? 1 : 0);
+        expect(
+          app.displayedGold,
+          confirmedGold + earnedGold - (action == 'purchase' ? 150 : 50),
+        );
+      },
+    );
+  }
+
+  testWidgets(
+    'confirmed gold remains spendable while another run is verifying',
+    (tester) async {
+      final ownership = _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          gold: 200,
+          activeOffers: [_swordOffer()],
+        ),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: ownership);
+      addTearDown(app.dispose);
+      await app.journalRunReplay(
+        runSessionId: 'later_reward',
+        runMode: RunMode.practice,
+        replayArtifactId: 'replay',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 256,
+        provisionalSummary: {'goldEarned': 80, 'score': 1000},
+      );
+      await tester.pumpWidget(_TestApp(appState: app));
+      await tester.tap(find.text('Buy'));
+      await tester.pumpAndSettle();
+      expect(ownership.purchaseStoreOfferCalls, 1);
+      expect(find.text('Your rewards are on their way'), findsNothing);
+      expect(app.progression.gold, 50);
+      expect(app.displayedGold, 130);
+    },
+  );
+
   testWidgets('Town page renders active offers in a single list', (
     tester,
   ) async {
@@ -277,6 +378,7 @@ Future<AppState> _bootstrappedAppState({
   final appState = AppState(
     authApi: const _StaticAuthApi(),
     loadoutOwnershipApi: ownershipApi,
+    runSubmissionSpoolStore: _InMemorySpoolStore(),
   );
   await appState.bootstrap(force: true);
   return appState;

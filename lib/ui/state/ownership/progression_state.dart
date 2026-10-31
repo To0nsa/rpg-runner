@@ -327,6 +327,7 @@ class ProgressionState {
     this.enemyDefeats = EnemyDefeats.empty,
     this.playerProgress = PlayerProgress.empty,
     this.achievements = AchievementProgress.empty,
+    this.appliedRewardGrantIds = const <String>[],
   });
 
   final int gold;
@@ -336,6 +337,14 @@ class ProgressionState {
   final EnemyDefeats enemyDefeats;
   final PlayerProgress playerProgress;
   final AchievementProgress achievements;
+
+  /// Recent settled run IDs returned by the server, oldest first. Null means
+  /// an older response omitted the evidence; absence is not proof of nonpayment.
+  final List<String>? appliedRewardGrantIds;
+
+  /// The server retains this many IDs. A full list needs a retained journal
+  /// anchor before its missing IDs can safely be projected after a restart.
+  static const rewardGrantHistoryLimit = 512;
 
   static const ProgressionState initial = ProgressionState(
     gold: 0,
@@ -351,6 +360,7 @@ class ProgressionState {
     EnemyDefeats? enemyDefeats,
     PlayerProgress? playerProgress,
     AchievementProgress? achievements,
+    List<String>? appliedRewardGrantIds,
   }) {
     return ProgressionState(
       gold: gold ?? this.gold,
@@ -360,6 +370,8 @@ class ProgressionState {
       enemyDefeats: enemyDefeats ?? this.enemyDefeats,
       playerProgress: playerProgress ?? this.playerProgress,
       achievements: achievements ?? this.achievements,
+      appliedRewardGrantIds:
+          appliedRewardGrantIds ?? this.appliedRewardGrantIds,
     );
   }
 
@@ -372,6 +384,8 @@ class ProgressionState {
       'enemyDefeats': enemyDefeats.toJson(),
       'playerProgress': playerProgress.toJson(),
       'achievements': achievements.toJson(),
+      if (appliedRewardGrantIds != null)
+        'appliedRewardGrantIds': appliedRewardGrantIds,
     };
   }
 
@@ -405,8 +419,19 @@ class ProgressionState {
       ),
       playerProgress: PlayerProgress.fromJson(json['playerProgress']),
       achievements: AchievementProgress.fromJson(json['achievements']),
+      appliedRewardGrantIds: _readAppliedRewardGrantIds(
+        json['appliedRewardGrantIds'],
+      ),
     );
   }
+}
+
+List<String>? _readAppliedRewardGrantIds(Object? raw) {
+  if (raw == null) return null;
+  if (raw is! List || raw.any((id) => id is! String || id.isEmpty)) {
+    throw const FormatException('Invalid applied reward grant IDs.');
+  }
+  return List<String>.unmodifiable(raw.cast<String>());
 }
 
 T? _enumByName<T extends Enum>(List<T> values, String? name) {

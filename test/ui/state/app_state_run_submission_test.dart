@@ -22,6 +22,311 @@ import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/run/run_reward_diagnostics.dart';
 
 void main() {
+  test(
+    'local rewards display once while canonical gold and gifts stay unchanged',
+    () async {
+      final api = _MutableRunSessionApi(
+        finalizeStatus: SubmissionStatus(
+          runSessionId: 'local',
+          state: RunSessionState.pendingValidation,
+          updatedAtMs: 1,
+        ),
+      );
+      final ownership = _StaticOwnershipApi();
+      final spool = _InMemorySpoolStore();
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownership,
+        runSessionApi: api,
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: api,
+          spoolStore: spool,
+          replayUploader: _NoopReplayUploader(),
+        ),
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap();
+      await app.journalRunReplay(
+        runSessionId: 'local',
+        runMode: RunMode.practice,
+        replayArtifactId: 'replay',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 256,
+        provisionalSummary: {'goldEarned': 9, 'score': 20199},
+      );
+      expect(app.displayedGold, 9);
+      expect(app.displayedPlayerProgress.totalXp, 100);
+      expect(app.displayedPlayerProgress.level, 2);
+      expect(app.progression.gold, 0);
+      expect(app.progression.playerProgress.level, 1);
+      expect(app.displayedPlayerProgress.acceptedRuns, 0);
+      expect(app.inboxMessages, isEmpty);
+      expect(app.rewardDisplayRevision, isNull);
+      expect(app.goldNeedsVerification(9), isTrue);
+      expect(app.goldNeedsVerification(10), isFalse);
+      await app.processJournaledRunReplay(runSessionId: 'local');
+      await app.refreshRunSubmissionStatus(runSessionId: 'local');
+      expect(app.displayedGold, 9);
+      expect(app.displayedPlayerProgress.totalXp, 100);
+
+      api.setLoadStatus(
+        SubmissionStatus(
+          runSessionId: 'local',
+          state: RunSessionState.rejected,
+          updatedAtMs: 2,
+        ),
+      );
+      await app.refreshRunSubmissionStatus(runSessionId: 'local');
+      expect(app.displayedGold, 0);
+      expect(app.displayedPlayerProgress.totalXp, 0);
+      expect(app.latestRewardCorrection?.runSessionId, 'local');
+      expect(await spool.loadAll(), isEmpty);
+    },
+  );
+
+  test(
+    'independent previews reconcile with an account refresh before receipts',
+    () async {
+      final ownership = _StaticOwnershipApi();
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownership,
+        runSubmissionSpoolStore: _InMemorySpoolStore(),
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap();
+      for (final (id, gold, score) in [
+        ('first', 9, 1735),
+        ('second', 5, 1090),
+      ]) {
+        await app.journalRunReplay(
+          runSessionId: id,
+          runMode: RunMode.practice,
+          replayArtifactId: id,
+          canonicalSha256: 'a' * 64,
+          contentLengthBytes: 256,
+          provisionalSummary: {'goldEarned': gold, 'score': score},
+        );
+      }
+      expect(app.displayedGold, 14);
+      expect(app.displayedPlayerProgress.totalXp, 13);
+      final confirmed = _canonicalWithGold(
+        gold: 9,
+        revision: 2,
+        playerProgress: const PlayerProgress(
+          totalXp: 8,
+          acceptedRuns: 1,
+          damageDealt100: 0,
+          damageTaken100: 0,
+        ),
+        appliedRewardGrantIds: ['first'],
+      );
+      ownership.setCanonicalState(confirmed);
+      await app.bootstrap(force: true);
+      expect(app.progression.gold, 9);
+      expect(app.displayedGold, 14);
+      expect(app.displayedPlayerProgress.totalXp, 13);
+      expect(app.goldNeedsVerification(9), isFalse);
+      expect(app.goldNeedsVerification(14), isTrue);
+
+      ownership.setCanonicalState(_canonicalWithGold(gold: 0, revision: 1));
+      await app.bootstrap(force: true);
+      expect(app.progression.gold, 9);
+      expect(app.displayedGold, 14);
+    },
+  );
+
+  test(
+    'final response keeps the display steady through failed canonical recovery',
+    () async {
+      final api = _FakeRunSessionApi(
+        finalizeStatus: SubmissionStatus(
+          runSessionId: 'steady',
+          state: RunSessionState.validated,
+          updatedAtMs: 2,
+          reward: SubmissionReward(
+            status: SubmissionRewardStatus.finalReward,
+            provisionalGold: 9,
+            effectiveGoldDelta: 9,
+            spendableGoldDelta: 9,
+            updatedAtMs: 2,
+          ),
+        ),
+      );
+      final ownership = _StaticOwnershipApi();
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownership,
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: api,
+          spoolStore: _InMemorySpoolStore(),
+          replayUploader: _NoopReplayUploader(),
+        ),
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap();
+      await app.journalRunReplay(
+        runSessionId: 'steady',
+        runMode: RunMode.practice,
+        replayArtifactId: 'replay',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 256,
+        provisionalSummary: {'goldEarned': 9, 'score': 1735},
+      );
+      final frames = <(int, int)>[];
+      app.addListener(
+        () => frames.add((
+          app.displayedGold,
+          app.displayedPlayerProgress.totalXp,
+        )),
+      );
+      ownership.failNextLoad = true;
+      await app.processJournaledRunReplay(runSessionId: 'steady');
+      expect(app.displayedGold, 9);
+      expect(app.progression.gold, 0);
+      ownership.setCanonicalState(
+        _canonicalWithGold(
+          gold: 9,
+          revision: 2,
+          playerProgress: const PlayerProgress(
+            totalXp: 8,
+            acceptedRuns: 1,
+            damageDealt100: 0,
+            damageTaken100: 0,
+          ),
+          appliedRewardGrantIds: ['steady'],
+        ),
+      );
+      await app.refreshRunSubmissionStatus(runSessionId: 'steady');
+      expect(frames, isNotEmpty);
+      expect(frames.every((value) => value == (9, 8)), isTrue);
+      expect(app.progression.gold, 9);
+      expect(app.rewardDisplayRevision, 2);
+    },
+  );
+
+  for (final scenario in [
+    'unpaid',
+    'paid',
+    'history pruned',
+    'retained anchor',
+  ]) {
+    test(
+      'restart restores $scenario journal without counting settled rewards twice',
+      () async {
+        final spool = _InMemorySpoolStore();
+        final api = _FakeRunSessionApi(
+          finalizeStatus: SubmissionStatus(
+            runSessionId: 'restart',
+            state: RunSessionState.pendingValidation,
+            updatedAtMs: 1,
+          ),
+        );
+        final ownership = _StaticOwnershipApi();
+        AppState create() => AppState(
+          authApi: _StaticAuthApi.authenticated(),
+          loadoutOwnershipApi: ownership,
+          runSessionApi: api,
+          runSubmissionCoordinator: RunSubmissionCoordinator(
+            runSessionApi: api,
+            spoolStore: spool,
+            replayUploader: _NoopReplayUploader(),
+          ),
+        );
+        if (scenario == 'retained anchor') {
+          ownership.setCanonicalState(
+            _canonicalWithGold(
+              gold: 0,
+              revision: 10,
+              appliedRewardGrantIds: List.generate(512, (i) => 'base_$i'),
+            ),
+          );
+        }
+        final first = create();
+        await first.bootstrap();
+        await first.journalRunReplay(
+          runSessionId: 'restart',
+          runMode: RunMode.practice,
+          replayArtifactId: 'replay',
+          canonicalSha256: 'a' * 64,
+          contentLengthBytes: 256,
+          provisionalSummary: {'goldEarned': 9, 'score': 1735},
+        );
+        first.dispose();
+        if (scenario == 'retained anchor') {
+          ownership.setCanonicalState(
+            _canonicalWithGold(
+              gold: 0,
+              revision: 11,
+              appliedRewardGrantIds: [
+                ...List.generate(511, (i) => 'base_${i + 1}'),
+                'later',
+              ],
+            ),
+          );
+        } else if (scenario != 'unpaid') {
+          ownership.setCanonicalState(
+            _canonicalWithGold(
+              gold: 9,
+              revision: 600,
+              playerProgress: const PlayerProgress(
+                totalXp: 8,
+                acceptedRuns: 1,
+                damageDealt100: 0,
+                damageTaken100: 0,
+              ),
+              appliedRewardGrantIds: scenario == 'paid'
+                  ? ['restart']
+                  : List.generate(512, (i) => 'later_$i'),
+            ),
+          );
+        }
+        final restored = create();
+        addTearDown(restored.dispose);
+        await restored.bootstrap();
+        await restored.processPendingRunSubmissions();
+        expect(restored.displayedGold, 9);
+        expect(restored.displayedPlayerProgress.totalXp, 8);
+        expect(
+          restored.progression.gold,
+          scenario == 'unpaid' || scenario == 'retained anchor' ? 0 : 9,
+        );
+      },
+    );
+  }
+
+  test('account replacement clears local reward presentation before loading the new account', () async {
+    final auth = _StaticAuthApi.authenticated();
+    final ownership = _StaticOwnershipApi();
+    final app = AppState(
+      authApi: auth,
+      loadoutOwnershipApi: ownership,
+      runSubmissionSpoolStore: _InMemorySpoolStore(),
+    );
+    addTearDown(app.dispose);
+    await app.bootstrap();
+    await app.journalRunReplay(
+      runSessionId: 'old_preview',
+      runMode: RunMode.practice,
+      replayArtifactId: 'replay',
+      canonicalSha256: 'a' * 64,
+      contentLengthBytes: 256,
+      provisionalSummary: {'goldEarned': 9, 'score': 1735},
+    );
+    auth._session = const AuthSession(
+      userId: 'u2',
+      sessionId: 's2',
+      isAnonymous: true,
+      expiresAtMs: 0,
+    );
+    ownership.setCanonicalState(_canonicalWithGold(gold: 3, revision: 0));
+    await app.bootstrap(force: true);
+    expect(app.progression.gold, 3);
+    expect(app.displayedGold, 3);
+    expect(app.displayedPlayerProgress.totalXp, 0);
+    expect(app.latestRewardCorrection, isNull);
+  });
+
   for (final scenario in ['confirmed', 'older revision', 'pause and resume', 'during finalize', 'account replacement']) {
     test('completion receipt $scenario applies without a canonical fetch', () async {
       final gate = Completer<void>();
@@ -1047,6 +1352,7 @@ OwnershipCanonicalState _canonicalWithGold({
   CodexProgress codex = CodexProgress.empty,
   EnemyDefeats enemyDefeats = EnemyDefeats.empty,
   PlayerProgress playerProgress = PlayerProgress.empty,
+  List<String> appliedRewardGrantIds = const [],
 }) {
   return OwnershipCanonicalState(
     profileId: 'profile_static',
@@ -1058,6 +1364,7 @@ OwnershipCanonicalState _canonicalWithGold({
       codex: codex,
       enemyDefeats: enemyDefeats,
       playerProgress: playerProgress,
+      appliedRewardGrantIds: appliedRewardGrantIds,
     ),
   );
 }

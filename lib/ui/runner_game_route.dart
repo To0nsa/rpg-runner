@@ -37,6 +37,8 @@ import 'state/ownership/selection_state.dart';
 /// Authenticated hosts keep their AppState alive after this route closes and
 /// forward lifecycle changes to AppState.setRunSubmissionForeground so durable
 /// reward verification can finish and refresh ownership on subsequent screens.
+/// Displayed gold/XP includes journaled local results; spending still uses the
+/// confirmed account. Hosts should use AppState's presentation getters for totals.
 /// Mandatory boss arenas keep this route and its run session alive while Core
 /// holds entrance controls and later resumes normal running after the fight.
 /// [controlScheme] defaults to automatic desktop keyboard/mouse or mobile touch.

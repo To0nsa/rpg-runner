@@ -114,6 +114,10 @@ Rules:
 
 - widgets should call `AppState` or a narrow UI-facing abstraction, not Firebase SDKs directly
 - keep backend contract handling in `lib/ui/state/**`
+- wallet/XP widgets use `AppState.displayedGold` and `displayedPlayerProgress`;
+  canonical `progression` remains the only source for spending, unlocks and
+  persisted ownership. Local reward previews must reconcile against settled
+  grant IDs and never satisfy verified-account paint diagnostics.
 - when a callable/backend contract changes, update both the client adapter and the consuming UI/state flow
 - when a run/replay/leaderboard payload changes, also check
   `packages/run_protocol/**`, `functions/src/**`, and
