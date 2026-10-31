@@ -61,10 +61,10 @@ Implementation order and checks:
 5. [x] Startup/I/O review and integration: remove unused eager dependencies,
    reuse clients, finish TDDs and source-bound evidence, then run affected
    cross-layer suites and relevant release mocks. Review the full task diff.
-6. [ ] Dev rollout (authorized October 31) and live measurement of cold/warm,
-   response-loss/offline recovery and unchanged presentation. No staging/prod
-   build or mutation is included. Earlier five-ticket cancellation approval was
-   specific and does not authorize new cancellations.
+6. [x] Dev rollout (authorized October 31), with live artifact/configuration
+   verification and preserved account/reward data. No staging/prod action.
+7. [ ] Install the verified dev APK and measure cold/warm timing,
+   response-loss/offline recovery and unchanged presentation.
 
 Current checkpoint: all pipeline implementation is in place. Submission recovery,
 shared transport/preparation and confirmed completion retain the existing UX.
@@ -88,22 +88,37 @@ after the last recovery changes, with targeted analysis clean. The dev-only
 Android debug build passed; packaged identity, signature and all navigation
 hashes/sizes were verified. See the source-bound
 [implementation evidence](../verification/reward-pipeline-rework-2026-10-31.md).
-No cloud mutation, installation, release cutover, or new phone measurement has
-occurred.
+These implementation checks preceded cloud deployment. Installation and new
+phone measurement remain pending; current rollout progress is recorded below.
 
 Dev rollout checkpoint: the owner subsequently authorized deployment to dev,
 followed by phone installation and measurement. Frozen `2d8ddb9d` correctly
 selected Coordinated scope with unchanged simulation inputs and tuple. Its
 fresh production dependency audit stopped preparation on the new glob/minimatch
 advisories before cloud mutation. A narrow, matching pnpm/npm runtime override
-addresses these findings; the corrected candidate must be frozen and prepared.
+addresses these findings in frozen candidate `25978623`.
 Both production audits and Node 24 rimraf synchronous/asynchronous compatibility
 probes passed under pnpm and isolated npm; Functions compilation passed.
 Client navigation was seeded with the verified 3,750-graph pack. Live read-only
 inventory found one issued ticket and 11 accepted/settled runs, with no pending
 validation/settlement or identity mismatch. That ticket has no upload, grant or
-validation evidence; separate cancellation authorization is pending. Raw rollout
-evidence is in `.tmp/pipeline-deploy-20261031/`.
+validation evidence. The owner approved cancellation of that exact ticket,
+`run_fcde7ddd37a589268c6fa72b107e76c1581691b1`, when the deployment is ready.
+Candidate preparation passed: 312 backend tests, 304 worker tests and 1,412
+client tests (one skipped), plus the remaining component checks. The verified
+worker image passed all eight final-image benchmark gates and reused all 93,910
+graphs; web and dev APK 5 reused all 3,750 client graphs, with none built.
+The one approved ticket was cancelled transactionally; protected session/reward/
+account hashes remained unchanged. Coordinated Deploy and ResumeIssuance passed;
+all 35 Functions are ACTIVE, all three queues RUNNING, all three expected boards
+ready, and all 36 services have zero reserved-instance minimums. The worker
+serves the verified image with request-based billing and Eventarc settlement.
+The initial Firebase CLI empty-queue-IAM failure was recovered under the release
+lock using only the intended queue-scoped enqueue binding. The candidate, worker
+image, APK and local validation evidence were reused for that recovery.
+The dev APK passed identity, signature, navigation and native-alignment checks.
+See the [dev rollout record](../verification/reward-pipeline-dev-2026-10-31.md).
+Raw rollout evidence is in `.tmp/pipeline-deploy-20261031/`.
 
 Navigation reuse: a standalone validation attempt mistakenly used the main
 checkout's stale pack and regenerated 3,650 graphs before being stopped. The
@@ -125,16 +140,16 @@ Functions build and test compilation passed; 31 focused submission/auth emulator
 tests passed. The four client submission, Firebase adapter, app submission and
 run-ticket prefetch test files passed 65 tests; affected run/app analysis passed.
 The shared route rejects client authority time consistently. Grant preparation
-does not run for hub-only ticket prefetch. No cloud mutations have occurred.
+does not run for hub-only ticket prefetch. These checks preceded cloud deployment.
 
 Recovery milestone: root `flutter test --no-pub` for
 `run_submission_coordinator_test.dart`, `run_submission_spool_store_test.dart`
 and `app_state_run_submission_test.dart` passed 37 tests; targeted analysis of
 the two changed implementation files and their tests passed. These are local
 fake-adapter tests, not live backend evidence. Logs are in ignored
-`.tmp/pipeline-rework-20261031/`. No cloud mutations have occurred. The October 31
-two-run measurements below are the pre-change baseline, not acceptance evidence
-for this rework.
+`.tmp/pipeline-rework-20261031/`. These checks preceded cloud deployment. The
+October 31 two-run measurements below are the pre-change baseline, not acceptance
+evidence for this rework.
 
 ## October 30 diagnostic instrumentation and dev rollout
 

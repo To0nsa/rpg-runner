@@ -466,6 +466,20 @@ Deploy once READY. IAM checks and board-maintenance requests are repeated on
 retry. Operations are sequential because accepted replay settlement and worker
 compatibility depend on that order.
 
+Firebase CLI 15.28.1 can fail on first task-queue deployment when Cloud Tasks
+returns an empty IAM policy without a `bindings` field; its `setEnqueuer` calls
+`existing.bindings.filter`. A generic "unable to set invoker" message alone
+does not establish that cause. Inspect the actual error, live handler IAM and
+queue policy first. If this exact empty-policy failure is confirmed, preserve
+paused issuance and the source-bound cutover record, acquire the environment
+mutation lock, add only the configured run-control account's queue-scoped
+`roles/cloudtasks.enqueuer` binding, verify readback, and retry canonical Deploy.
+That is the same binding Confirm-ReleaseBackend normally applies after the
+Functions phase. Do not widen project permissions, patch the frozen candidate,
+or fabricate a completed deployment checkpoint. The
+[October 31 dev rollout](../verification/reward-pipeline-dev-2026-10-31.md)
+records this recovery against the pinned CLI.
+
 Deploy leaves normal issuance and both queues paused. ResumeIssuance requires
 zero missing expected current boards in the inventory, the exact worker
 digest with 100% traffic on its ready revision, and a byte-matching live

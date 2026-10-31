@@ -28,7 +28,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   serial callable cold starts identified and once-only gold/XP verified.
   [October 31 pipeline rework](verification/reward-pipeline-rework-2026-10-31.md):
   shared submission transport, confirmed account receipts and durable recovery;
-  locally verified with unchanged UX, awaiting dev rollout and new measurement.
+  [deployed to dev](verification/reward-pipeline-dev-2026-10-31.md) with unchanged
+  UX and scale-to-zero configuration; APK 5 installation and new measurement remain.
 - [Current implementation plans](building/README.md): Android beta/backend
   isolation, reward verification latency and NPC rescue production smoke.
 - [Android beta release plan](building/android_beta_release.md): existing project
@@ -36,11 +37,11 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   acceptance, required updates and Play testing; execution underway with
   environment routing and isolation checks. One shared deployment workflow and
   no player-data migration.
-- [Latest dev app release](verification/achievements-dev-2026-10-30.md): source
-  `8a094efb` deployed to dev with Hall of Honour achievements, reusing the worker
-  image, navigation graphs and six unchanged validation components. Android
-  build 4 is verified on the phone with two accepted runs; live achievement
-  completion-date and claim smoke remains open.
+- [Latest dev app release](verification/reward-pipeline-dev-2026-10-31.md): source
+  `25978623` deployed with the reward pipeline rework; verified dev APK 5 is ready
+  for installation. All client/worker navigation graphs were reused. The
+  [previous build 4](verification/achievements-dev-2026-10-30.md) remains the last
+  phone-verified build; live achievement completion-date and claim smoke remains open.
 - [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
   lifecycle/input fixes, event-retention cleanup, full local checks and 18
   mixed-input replay cases pass. Finalized authoring is deployed in `2026.10.7`;
