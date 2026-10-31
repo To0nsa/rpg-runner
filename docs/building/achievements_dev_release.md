@@ -49,10 +49,43 @@ requires a natural end and 100 metres OR 30 seconds. The other four achievements
 retain verified metrics from short runs and manual quits. Existing progress and
 receipts are preserved without historical backfill.
 
+Dev deployment authorized by the owner on October 31 ("ok deploy"). Frozen
+candidate: `8750344dbf992957c9346be70fadfb504282fcd9`, source digest
+`456dae902d5834d3d3d8d9ef011308544ddcd0b18339e7373d5e259fb3159a41`.
+This replaces `08afcc49` before any cloud mutation, adding only two test-file
+corrections exposed by the full client release gate. Focused checks passed
+28 tests and static analysis; the replacement passed the full client gate
+(1,426 passed, one skipped), web build and Chrome smoke check.
+All release actions run in its isolated LF checkout under `.tmp/release-checkouts/`.
+Plan selects Coordinated for `rpg-runner-d7add`, `europe-west1`, with the unchanged
+`2026.10.21 / rules-v2 / score-v4 / ghost-v1` tuple. The canonical LF Plan passes;
+the initial main-worktree Plan rejected CRLF source-byte differences. Git confirms
+no simulation/worker changes against the preceding deployed `25978623` candidate.
+
+Client navigation seed: the preceding verified candidate's 3,750-graph pack,
+manifest SHA-256 `6f65c41f501cc9618ecefd8ae3349d037656aacb567935ab81268f8639a812bd`.
+The producer verified/reused all 3,750 graphs and built none.
+Completed preparation and unfinished-ticket review are recorded in
+[the eligibility release evidence](../verification/achievements-eligibility-dev-2026-10-31.md).
+The owner separately approved cancelling exactly the three reviewed unsubmitted
+tickets, accepting invalidation of any offline runs using them while preserving
+existing gold, XP and achievements. No other run cancellation is authorized.
+Two additional tickets appeared at 20:42 and 21:04 Helsinki time. The latter
+has an upload lease, but neither has an uploaded replay, validation or grant.
+Separate approval for both additions is pending. The final 19:58:20 UTC review
+still found the same five unfinished sessions. Issuance remains open, and no
+tickets have been cancelled. Preparation and image verification are complete;
+reuse their evidence from the frozen candidate when cutover can proceed.
+
 - [x] Update settlement, per-achievement UI descriptions and GDD/TDD contracts.
 - [x] Validate the updated backend and client locally.
-- [ ] Include the updated Functions/client source in a newly authorized dev
-      release and verify short-run, manual-quit and First Steps boundary behavior.
+- [x] Freeze the authorized source and verify the canonical release plan.
+- [x] Complete required release preparation, reusing unchanged component evidence.
+- [x] Verify/reuse the immutable worker image and inspect current live state.
+- [ ] Pause issuance, review the drained inventory, deploy and resume issuance.
+- [ ] Verify live artifacts, ready services, indexes, queues and boards.
+- [ ] Verify short-run, manual-quit and First Steps boundary behavior through
+      signed-in gameplay on the updated client.
 
 The revised policy is not deployed; the preceding release evidence covers the
 earlier policy only.
