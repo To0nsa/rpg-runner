@@ -17,6 +17,16 @@ enum AchievementPresentation {
   static AchievementPresentation? forId(String id) =>
       values.where((value) => value.name == id).firstOrNull;
 
+  /// Only First Steps requires a qualifying completion; other metrics retain quits.
+  String get eligibility => switch (this) {
+    firstSteps =>
+      'Verified Practice, Competitive and Weekly runs count after 100 metres or '
+          '30 seconds and must end naturally. Quitting does not count.',
+    marathoner || roadWarrior || stillStanding || slayer =>
+      'Verified Practice, Competitive and Weekly runs count, including short '
+          'runs and runs you quit.',
+  };
+
   String quantity(int value) => switch (this) {
     firstSteps => '${formatCount(value)} ${value == 1 ? 'run' : 'runs'}',
     marathoner || roadWarrior => '${formatCount(value)} m',

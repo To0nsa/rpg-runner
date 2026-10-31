@@ -28,25 +28,43 @@ test("achievement payload fixture is produced by the real evaluator and claim pa
   assert.equal(progression.gold, 175);
 });
 
-for (const [distanceMeters, durationSeconds, expected] of [
-  [9, 9, false], [10, 0, true], [0, 10, true], [10, 10, true],
+for (const [distanceMeters, durationSeconds, completedRuns] of [
+  [0, 0, 0], [10, 10, 0], [99, 29, 0], [100, 0, 1], [0, 30, 1], [100, 30, 1],
 ] as const) {
-  test(`validity OR gate: ${distanceMeters} m / ${durationSeconds} s`, () => {
-    const progression: JsonObject = { gold: 0 };
-    assert.equal(applyRunAchievements({ progression,
-      validatedRun: evidence({ distanceMeters, durationSeconds }), nowMs }), expected);
-    assert.equal(readAchievementProgress(progression.achievements).entries[0].value, expected ? 1 : 0);
-  });
+  for (const endedReason of ["playerDied", "fellIntoGap", "fellBehindCamera", "bossEncounterFailed", "gaveUp"]) {
+    test(`achievement eligibility: ${endedReason}, ${distanceMeters} m / ${durationSeconds} s`, () => {
+      const progression: JsonObject = { gold: 0 };
+      assert.equal(applyRunAchievements({ progression,
+        validatedRun: evidence({ distanceMeters, durationSeconds, endedReason }), nowMs }), true);
+      const entries = readAchievementProgress(progression.achievements).entries;
+      assert.deepEqual(entries.map((entry) => entry.value), [
+        endedReason === "gaveUp" ? 0 : completedRuns,
+        distanceMeters, distanceMeters, durationSeconds, 30,
+      ]);
+      assert.equal(entries[4].tiers[0].achievedAtMs, nowMs, "verified kills can earn Slayer on any run");
+      assert.equal(progression.gold, 0, "achievement gold still requires a claim");
+    });
+  }
 }
 
-test("quits and legacy evidence never grant progress, and old totals are not backfilled", () => {
+test("a long manual quit earns metric tiers without counting a completed run", () => {
+  const progression: JsonObject = { gold: 0 };
+  applyRunAchievements({ progression,
+    validatedRun: evidence({ endedReason: "gaveUp", durationSeconds: 300 }), nowMs });
+  const entries = readAchievementProgress(progression.achievements).entries;
+  assert.deepEqual(entries.map((entry) => entry.value), [0, 1500, 1500, 300, 30]);
+  assert.equal(entries[0].tiers[0].achievedAtMs, null);
+  assert.ok(entries.slice(1).every((entry) => entry.tiers[0].achievedAtMs === nowMs));
+  claimAchievementGold(progression, null, nowMs + 1);
+  assert.equal(progression.gold, 175);
+});
+
+test("legacy evidence grants no progress, and old totals are not backfilled", () => {
   const progression: JsonObject = {
     gold: 50, enemyDefeats: { byEnemy: { grojib: 90000 } },
     playerProgress: { acceptedRuns: 1000 },
   };
-  for (const run of [evidence({ endedReason: "gaveUp" }), { accepted: true }]) {
-    assert.equal(applyRunAchievements({ progression, validatedRun: run, nowMs }), false);
-  }
+  assert.equal(applyRunAchievements({ progression, validatedRun: { accepted: true }, nowMs }), false);
   applyRunAchievements({ progression, validatedRun: evidence(), nowMs });
   const entries = readAchievementProgress(progression.achievements).entries;
   assert.equal(entries[0].value, 1);
@@ -70,6 +88,15 @@ test("best distance uses a maximum; totals add; earned dates survive later runs 
   claimAchievementGold(progression, "marathoner", nowMs + 20);
   assert.equal(progression.gold, 100);
   assert.equal(readAchievementProgress(progression.achievements).entries[1].tiers[0].achievedAtMs, nowMs);
+  const before = structuredClone(readAchievementProgress(progression.achievements));
+  applyRunAchievements({ progression,
+    validatedRun: evidence({ distanceMeters: 1, durationSeconds: 1, endedReason: "gaveUp" }), nowMs: nowMs + 30 });
+  const after = readAchievementProgress(progression.achievements);
+  assert.deepEqual(after.entries[0], before.entries[0], "a quit preserves previously completed runs");
+  assert.deepEqual(after.entries[1], before.entries[1], "a shorter quit preserves best distance and receipts");
+  assert.equal(after.entries[2].value, 2001);
+  assert.equal(after.entries[3].value, 301);
+  assert.equal(after.entries[4].value, 90);
 });
 
 test("snapshotted rewards survive tuning; final tiers remain claimable", () => {
@@ -88,7 +115,8 @@ test("snapshotted rewards survive tuning; final tiers remain claimable", () => {
 test("malformed evidence, corrupt receipts and overflow fail without a partial grant", () => {
   for (const patch of [{ distanceMeters: -1 }, { durationSeconds: 1.5 },
     { endedReason: "unknown" }, { accepted: false },
-    { codex: { schemaVersion: 1, enemyKills: { grojib: -1 } } }]) {
+    { codex: { schemaVersion: 1, enemyKills: { grojib: -1 } } },
+    { endedReason: "gaveUp", codex: { schemaVersion: 1, enemyKills: { grojib: -1 } } }]) {
     assert.throws(() => applyRunAchievements({ progression: { gold: 0 },
       validatedRun: evidence(patch), nowMs }));
   }

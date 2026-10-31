@@ -14,10 +14,11 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Town and Codex](gdd/codex.md): Théodonis city map, Store, Library,
   enemy/level discoveries and Éloïse's opening; [persistence contract](tdd/codex.md).
 - [Hall of Honour achievements](gdd/12_achievements.md): five milestones from
-  qualifying verified runs, expandable completion dates and direct gold claims
+  verified runs, expandable completion dates and direct gold claims
   in the selected Town building; [technical contract](tdd/achievements.md).
-  [Deployed to dev](verification/achievements-dev-2026-10-30.md); Android build 4
-  is verified on the phone. Live achievement-menu/claim acceptance remains pending.
+  [Original dev release](verification/achievements-dev-2026-10-30.md); Android
+  build 4 is verified on the phone. Revised eligibility awaits deployment;
+  live achievement-menu/claim acceptance remains pending.
 - [Player progression](gdd/player_progression.md): account level and lifetime
   combat stats; [implementation contract](tdd/player_progression.md).
 - [Prepared navigation and reward completion](tdd/prepared_navigation.md): trusted

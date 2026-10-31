@@ -12,6 +12,7 @@ export const achievementDefinitions = [
 // Bronze matches a level gift; Gold funds one current store unlock.
 export const achievementTierGold = [25, 75, 150] as const;
 
-// Either minimum qualifies a natural run end; manual quits never qualify.
-export const achievementMinimumDistanceMeters = 10;
-export const achievementMinimumDurationSeconds = 10;
+// First Steps requires a natural end and either minimum to deter restart farming.
+// Distance (metres), time alive (seconds) and kill achievements have no minimum.
+export const completedRunMinimumDistanceMeters = 100;
+export const completedRunMinimumDurationSeconds = 30;

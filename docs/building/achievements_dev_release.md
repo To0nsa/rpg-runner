@@ -41,3 +41,35 @@ override. The phone remained disconnected at 20:37 UTC. Android version 4
 was ready for installation at release completion; keep this checklist open for
 the remaining menu/claim acceptance. See the
 [deployment evidence](../verification/achievements-dev-2026-10-30.md).
+
+## October 31 eligibility update
+
+This source change is outside the frozen October 30 candidate. First Steps now
+requires a natural end and 100 metres OR 30 seconds. The other four achievements
+retain verified metrics from short runs and manual quits. Existing progress and
+receipts are preserved without historical backfill.
+
+- [x] Update settlement, per-achievement UI descriptions and GDD/TDD contracts.
+- [x] Validate the updated backend and client locally.
+- [ ] Include the updated Functions/client source in a newly authorized dev
+      release and verify short-run, manual-quit and First Steps boundary behavior.
+
+The revised policy is not deployed; the preceding release evidence covers the
+earlier policy only.
+
+Local validation on October 31, against the eligibility implementation and tests
+in this change, from the repository root:
+
+- `corepack pnpm --dir functions build` and
+  `corepack pnpm --dir functions build:test`: passed.
+- `corepack pnpm --dir functions exec firebase emulators:exec --config ../firebase.test.json --project demo-rpg-runner-functions-tests --only firestore "node --test lib_test/test/ownership/achievements.test.js lib_test/test/runs/run_projection.test.js"`:
+  85 tests passed against the local demo Firestore emulator, including boundary,
+  short-run/manual-quit and concurrent settlement checks across all three modes.
+- `dart analyze lib/ui/pages/achievements test/ui/pages/meta/achievements_page_test.dart`:
+  no issues.
+- `flutter test test/ui/pages/meta/achievements_page_test.dart`: 7 tests passed,
+  including both eligibility descriptions and compact/enlarged-text layouts.
+
+The initial sandbox Firebase launch failed on user-configuration access, and the
+Flutter launch stalled; successful checks used approved local tooling access.
+No live backend, deployment or device acceptance was performed for this policy.

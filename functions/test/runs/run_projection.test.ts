@@ -470,7 +470,7 @@ test("achievements settle once in every mode without historical credit", async (
   for (const mode of ["practice", "competitive", "weekly"] as const) {
     const runSessionId = await seedCodexRun(mode, "forest", 100, { grojib: 10 });
     await db.collection("validated_runs").doc(runSessionId).update({
-      distanceMeters: 10, durationSeconds: 0, endedReason: "playerDied",
+      distanceMeters: 100, durationSeconds: 0, endedReason: "playerDied",
       playerRunStats: { schemaVersion: 1, damageDealt100: 1, damageTaken100: 1 },
     });
     const outcomes = await Promise.all([
@@ -481,10 +481,35 @@ test("achievements settle once in every mode without historical credit", async (
   }
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   const progress = readAchievementProgress(canonical.progression.achievements);
-  assert.deepEqual(progress.entries.map((entry) => entry.value), [3, 10, 30, 0, 30]);
+  assert.deepEqual(progress.entries.map((entry) => entry.value), [3, 100, 300, 0, 30]);
   assert.equal(canonical.progression.gold, 3, "achievement rewards are not automatic");
   assert.ok(progress.entries[0].tiers[0].achievedAtMs! >= nowMs);
   assert.equal(progress.entries[0].tiers[0].claimedAtMs, null);
+});
+
+test("short runs and manual quits settle achievement metrics once in every mode", async () => {
+  for (const mode of ["practice", "competitive", "weekly"] as const) {
+    for (const [endedReason, distanceMeters, durationSeconds, kills] of [
+      ["playerDied", 10, 5, 1], ["gaveUp", 10, 5, 1], ["gaveUp", 500, 300, 9],
+    ] as const) {
+      const runSessionId = await seedCodexRun(mode, "forest", 100, { grojib: kills });
+      await db.collection("validated_runs").doc(runSessionId).update({
+        distanceMeters, durationSeconds, endedReason,
+        playerRunStats: { schemaVersion: 1, damageDealt100: 1, damageTaken100: 1 },
+      });
+      const outcomes = await Promise.all([
+        settleAcceptedRunSession({ db, runSessionId, nowMs }),
+        settleAcceptedRunSession({ db, runSessionId, nowMs: nowMs + 1 }),
+      ]);
+      assert.deepEqual(outcomes.sort(), ["already_settled", "settled"]);
+    }
+  }
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  const progress = readAchievementProgress(canonical.progression.achievements);
+  assert.deepEqual(progress.entries.map((entry) => entry.value), [0, 500, 1560, 930, 33]);
+  assert.equal(progress.entries[0].tiers[0].achievedAtMs, null);
+  assert.ok(progress.entries.slice(1).every((entry) => entry.tiers[0].achievedAtMs !== null));
+  assert.equal(canonical.progression.gold, 9, "achievement rewards still require a claim");
 });
 
 test("achievement claims enforce revision, identity, deletion and durable payment receipts", async () => {

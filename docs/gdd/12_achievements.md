@@ -1,7 +1,7 @@
 # Hall of Honour achievements
 
-Implemented on 2026-10-30. Dev backend/web are deployed and Android build 4 is
-verified; device installation and live menu acceptance remain pending. See the
+Originally deployed to dev on 2026-10-30. The revised eligibility rules below
+were implemented locally on 2026-10-31 and await deployment. See the
 [release evidence](../verification/achievements-dev-2026-10-30.md) and
 [technical contract](../tdd/achievements.md).
 
@@ -16,10 +16,10 @@ its staff, history and institutional role are not established world canon.
 | Achievement | Metric | Bronze | Silver | Gold |
 | --- | --- | --- | --- | --- |
 | First Steps | Qualifying runs ended | 1 | 10 | 50 |
-| Marathoner | Best distance in one qualifying run | 500 m | 1,000 m | 2,500 m |
-| Road Warrior | Total distance across qualifying runs | 1,000 m | 10,000 m | 50,000 m |
-| Still Standing | Total time alive across qualifying runs | 5 minutes | 1 hour | 5 hours |
-| Slayer | Enemies defeated across qualifying runs | 25 | 250 | 2,500 |
+| Marathoner | Best distance in one verified run | 500 m | 1,000 m | 2,500 m |
+| Road Warrior | Total distance across verified runs | 1,000 m | 10,000 m | 50,000 m |
+| Still Standing | Total time alive across verified runs | 5 minutes | 1 hour | 5 hours |
+| Slayer | Enemies defeated across verified runs | 25 | 250 | 2,500 |
 
 Each achievement pays **25 / 75 / 150 gold**, respectively. Rewards are additive:
 250 gold per achievement and 1,250 gold across all five. These are conservative
@@ -28,21 +28,27 @@ Future tuning must preserve already earned rewards and completion history.
 
 ## Qualifying progress
 
-An ordinary Practice, Competitive or Weekly run must end naturally, pass replay
-validation and reach **at least 10 metres OR 10 seconds**. Death, falling into a
-gap, falling behind the camera and a failed boss encounter count. Manually
-quitting does not. The same qualifying gate applies to all five metrics,
-including kills; failed startup, pending/rejected validation and local Developer
-Practice grant no achievement progress.
+All achievements use replay-validated ordinary Practice, Competitive or Weekly
+runs. **First Steps only** requires a natural ending and **at least 100 metres OR
+30 seconds**. Death, falling into a gap, falling behind the camera and a failed
+boss encounter count. Manually quitting never counts as a completed First Steps
+run, even after reaching the participation minimum.
+
+Marathoner, Road Warrior, Still Standing and Slayer count verified distance,
+time alive and kills even when the player quits or reaches neither participation
+minimum. Failed startup, pending/rejected validation and local Developer Practice
+grant no achievement progress.
 
 Progress belongs to the account across characters, sessions, devices and board
 windows. Previously accumulated stats, distances and enemy defeats are not
-credited. Only newly settled qualifying runs count. An accepted run may advance
-multiple achievements and pass multiple tiers at once. Marathoner keeps the
-best single-run distance; Road Warrior and Still Standing accumulate runs.
+credited. Only newly settled runs count under the applicable rules. An accepted
+run may advance multiple achievements and pass multiple tiers at once. Marathoner
+keeps the best single-run distance; Road Warrior and Still Standing accumulate runs.
 Slayer uses the same replay-confirmed defeat attribution as Profile and Library,
-including bosses and summons, but only from qualifying runs. Consequently its
-total can differ from the ungated lifetime Profile total.
+including bosses and summons. Its total can differ from the lifetime Profile
+total because of its later start and the earlier eligibility policy. The revised
+rules preserve existing progress, completion dates and claims; previously settled
+runs are not reprocessed or backfilled.
 
 ## Menu and claims
 

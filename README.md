@@ -65,9 +65,10 @@ dev, staging and production apps. Its final candidate and Play release are pendi
   purchases that need unconfirmed gold explain the short wait in a dismissible
   modal. Confirmed funds remain usable, and level gifts require settlement.
 - [Hall of Honour](docs/gdd/12_achievements.md): five achievements from verified
-  runs reaching 10 metres or 10 seconds, next-target rows, expandable dated
-  history and manually claimed gold. Deployed to dev; Android build 4 is ready
-  for device installation ([release evidence](docs/verification/achievements-dev-2026-10-30.md)).
+  runs, next-target rows, expandable dated history and manually claimed gold.
+  First Steps requires a natural end after 100 metres or 30 seconds; distance,
+  time and kills count even on short or manually ended runs. These revised rules
+  await deployment; [earlier dev release](docs/verification/achievements-dev-2026-10-30.md).
 - Debug-only Developer Practice with persistent local loadouts and all playable
   equipment/abilities, using the existing menus without backend run sessions
 - In-game HUD, pause, game-over, and scoring, with left/top off-screen player

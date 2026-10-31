@@ -1,18 +1,18 @@
 # Achievement settlement and claims
 
-Implemented on 2026-10-30. Dev backend/web are deployed; Android build 4 passed
-inspection and awaits installation/device acceptance. See the
+Originally deployed to dev on 2026-10-30. The revised eligibility rules below
+were implemented locally on 2026-10-31 and await deployment. See the
 [release evidence](../verification/achievements-dev-2026-10-30.md).
 Player-facing rules and tuning live in the [Hall of Honour GDD](../gdd/12_achievements.md).
 
 ## Ownership and reuse
 
 `functions/src/ownership/achievement_catalog.ts` owns stable IDs, metric bindings,
-total/best aggregation, thresholds, gold amounts and the qualifying minimum.
+total/best aggregation, thresholds, gold amounts and the completed-run minimum.
 `achievements.ts` owns decoding, settlement evaluation and gold claims. These
 operate on canonical ownership, not Core state or an independent inventory.
 
-Core and the replay worker already produce distance, duration, natural end reason
+Core and the replay worker already produce distance, duration, end reason
 and enemy defeat evidence in `ValidatedRun`; their protocol does not change.
 The evaluator consumes that verified evidence in the existing terminal settlement
 transaction alongside [player progression](player_progression.md) and
@@ -71,11 +71,19 @@ allow arbitrary client payloads or duplicate wallet logic.
 
 `settleAcceptedRunSession` calls the evaluator after verified player progression
 and discovery evaluation. Existing session, ticket, identity, mode, board, score,
-deletion and reward-grant checks remain authoritative. Qualification requires
-distance >= 10 OR duration >= 10, and one of `fellBehindCamera`, `fellIntoGap`,
-`playerDied`, `bossEncounterFailed`. `gaveUp` is excluded. All five metrics use
-that gate. Ordinary verified Practice, Competitive and Weekly share this path;
+deletion and reward-grant checks remain authoritative. Only the `runs` metric
+(First Steps) requires distance >= 100 metres OR duration >= 30 seconds, and one
+of `fellBehindCamera`, `fellIntoGap`, `playerDied`, `bossEncounterFailed`.
+`gaveUp` and runs below both minima contribute zero completed runs. Best/total
+distance, duration and enemy kills use all verified runs, including those short
+runs and manual quits. Unknown end reasons and malformed evidence still fail
+closed. Ordinary verified Practice, Competitive and Weekly share this path;
 Developer Practice has no server session and cannot enter it.
+
+This eligibility change applies at new settlement without a schema migration:
+catalog IDs, tier thresholds and reward amounts are unchanged. Existing counters,
+completion dates and claim receipts are retained. Earlier terminal runs are not
+reprocessed to remove old First Steps credit or add previously excluded metrics.
 
 The evaluator increments totals or takes the best value and records newly reached
 tiers. It never credits achievement gold. An achievement change participates in
@@ -125,10 +133,11 @@ responses falling back to an ownership read. Final zero-gold rewards use the
 same path. The page has no manual refresh control or separate polling loop.
 
 `/meta/town/hall-of-honour` uses existing menu layout, buttons, gold display and
-theme tokens. `AchievementPresentation` holds labels, icons, units and UTC date
-formatting. Rows have account-scoped expansion state. `ProgressMeter` and
-`formatCount` were extracted from Library; its existing `UiProgressAnimator`,
-unlock timing and `LibraryProgressTracker` remain in the Library owner.
+theme tokens. `AchievementPresentation` holds labels, icons, units, per-achievement
+eligibility descriptions and UTC date formatting. Rows have account-scoped
+expansion state. `ProgressMeter` and `formatCount` were extracted from Library;
+its existing `UiProgressAnimator`, unlock timing and `LibraryProgressTracker`
+remain in the Library owner.
 The shared `AttentionMarker` indicates available gold on the Town callout.
 The building anchor is normalized `(0.395, 0.708)` on `assets/Théodonis.jpg`;
 the artwork is unchanged. Long shared map labels wrap in narrow viewports.
@@ -144,7 +153,8 @@ worker image; backend settlement changes still require coordinated cutover.
 
 The TypeScript producer test compares real evaluator/claim output with
 `functions/test/fixtures/achievement_progress.json`; Dart decoding and UI tests
-consume the same fixture. Backend tests cover qualification, no backfill, atomic
+consume the same fixture. Backend tests cover the First Steps OR boundary, all
+natural endings, short/manual-quit metrics, no backfill, atomic
 settlement, stable dates, malformed state, overflow, concurrent claims, idempotency,
 stale revisions, forged payloads, UID mismatch and deletion. Flutter tests cover
 canonical-only gold, retries, late refresh/account/deletion responses, Developer

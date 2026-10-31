@@ -3,7 +3,7 @@ import { RewardGrantInvariantViolationError } from "./reward_grants.js";
 import { readRunEnemyDefeats } from "./run_discoveries.js";
 import {
   achievementDefinitions, achievementTierGold as tierGold,
-  achievementMinimumDistanceMeters, achievementMinimumDurationSeconds,
+  completedRunMinimumDistanceMeters, completedRunMinimumDurationSeconds,
   type AchievementMetric,
 } from "./achievement_catalog.js";
 const naturalEnds = new Set([
@@ -70,7 +70,9 @@ export function readAchievementProgress(raw: unknown): AchievementProgress {
   return { schemaVersion: 1, entries };
 }
 
-/** Called only by terminal settlement; its transaction prevents run replays. */
+/** Applies verified metrics, gating only completed runs on participation/natural end.
+ * Called only by terminal settlement; its transaction prevents run replays.
+ */
 export function applyRunAchievements(args: {
   progression: JsonObject;
   validatedRun: Record<string, unknown>;
@@ -84,16 +86,17 @@ export function applyRunAchievements(args: {
   if (run.accepted !== true) fail();
   const distance = count(run.distanceMeters);
   const seconds = count(run.durationSeconds);
-  if (run.endedReason === "gaveUp") return false;
-  if (typeof run.endedReason !== "string" || !naturalEnds.has(run.endedReason)) fail();
-  // A meaningful natural run end prevents instant restart farming in all modes.
-  if (distance < achievementMinimumDistanceMeters && seconds < achievementMinimumDurationSeconds) return false;
+  if (typeof run.endedReason !== "string" ||
+      (!naturalEnds.has(run.endedReason) && run.endedReason !== "gaveUp")) fail();
+  // Short runs and manual quits retain earned metrics without farming run counts.
+  const completedRun = naturalEnds.has(run.endedReason) &&
+    (distance >= completedRunMinimumDistanceMeters || seconds >= completedRunMinimumDurationSeconds);
   const kills = Object.values(readRunEnemyDefeats(run.codex))
     .reduce<number>((sum, value) => count(sum + count(value)), 0);
   const progress = readAchievementProgress(args.progression.achievements);
   const earnedAt = confirmationTime(args.nowMs);
   const metrics: Record<AchievementMetric, number> = {
-    runs: 1, distanceMeters: distance, durationSeconds: seconds, enemyKills: kills,
+    runs: completedRun ? 1 : 0, distanceMeters: distance, durationSeconds: seconds, enemyKills: kills,
   };
   for (const [index, entry] of progress.entries.entries()) {
     const definition = achievementDefinitions[index];

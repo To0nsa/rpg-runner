@@ -92,8 +92,7 @@ class AchievementTile extends StatelessWidget {
           ),
           children: [
             Text(
-              'Practice, Competitive and Weekly runs count after 10 metres or '
-              '10 seconds. Quitting does not count.',
+              presentation.eligibility,
               style: ui.text.body.copyWith(color: ui.colors.textMuted),
             ),
             for (var index = 0; index < entry.tiers.length; index += 1)

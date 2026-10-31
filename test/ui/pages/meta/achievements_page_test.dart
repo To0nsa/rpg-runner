@@ -57,6 +57,11 @@ void main() {
     expect(find.text('0 runs / 1 run'), findsOneWidget);
     await tester.tap(find.text('First Steps'));
     await tester.pumpAndSettle();
+    expect(find.textContaining('100 metres or 30 seconds'), findsOneWidget);
+    expect(
+      find.textContaining('must end naturally. Quitting does not count.'),
+      findsOneWidget,
+    );
     final readsBeforeCompletion = ownershipReads;
 
     app.setRunSubmissionForeground(true);
@@ -141,7 +146,11 @@ void main() {
       expect(find.text('Gold'), findsOneWidget);
       expect(find.text('Reach 500 metres in one run.'), findsOneWidget);
       expect(find.text('Achieved 30 Oct 2026 (UTC)'), findsNWidgets(2));
-      expect(find.textContaining('10 metres or 10 seconds'), findsOneWidget);
+      expect(
+        find.textContaining('including short runs and runs you quit'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('100 metres or 30 seconds'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
