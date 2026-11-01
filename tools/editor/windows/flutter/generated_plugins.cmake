@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   battery_plus
+  cloud_firestore
   file_selector_windows
   firebase_app_check
   firebase_auth

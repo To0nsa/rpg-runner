@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
@@ -49,6 +50,12 @@ class GameController extends ChangeNotifier {
   }
 
   final GameCore _core;
+
+  /// Local training control; normal run cores reject this operation.
+  void selectTrainingEnemy(EnemyId? enemy) {
+    if (!_isShutdown) _core.selectTrainingEnemy(enemy);
+  }
+
   bool _isShutdown = false;
   TerrainReadiness _terrainReadiness = TerrainReadiness.ready;
   Object? _terrainError;

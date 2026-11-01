@@ -18,7 +18,11 @@ import 'chunk_pattern_source.dart';
 typedef SpawnEnemy = void Function(SpawnEnemyRequest request);
 
 /// Why a streamed enemy request was emitted.
-enum EnemySpawnRequestSource { authoredMarker, deferredHashashEdge }
+enum EnemySpawnRequestSource {
+  authoredMarker,
+  deferredHashashEdge,
+  trainingField,
+}
 
 /// Spawn request payload emitted by [TrackStreamer].
 class SpawnEnemyRequest {

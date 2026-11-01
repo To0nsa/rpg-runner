@@ -5,12 +5,14 @@ import 'package:provider/provider.dart';
 
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app/app_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'gears_tab.dart';
 import 'skills_tab.dart';
+import 'training_field_tab.dart';
 
 // Keep multi-character backend logic intact; UI currently exposes only primary.
 const List<PlayerCharacterDefinition> _loadoutSetupUiCharacters = [
@@ -24,8 +26,25 @@ class LoadoutSetupPage extends StatefulWidget {
   State<LoadoutSetupPage> createState() => _LoadoutSetupPageState();
 }
 
-class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
+class _LoadoutSetupPageState extends State<LoadoutSetupPage>
+    with SingleTickerProviderStateMixin {
   bool _seeded = false;
+  late final TabController _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this)..addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() => setState(() {});
+
+  @override
+  void dispose() {
+    _tabs.removeListener(_onTabChanged);
+    _tabs.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -45,70 +64,54 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage> {
     final ui = context.ui;
     final selectedDef = _loadoutSetupUiCharacters.first;
 
-    return DefaultTabController(
-      length: 2,
-      initialIndex: 0,
-      child: MenuScaffold(
-        appBarTitle: SizedBox(
-          height: 44,
-          child: TabBar(
-            dividerColor: ui.colors.outline.withValues(alpha: 0.35),
-            indicatorColor: Colors.transparent,
-            labelColor: ui.colors.accentStrong,
-            unselectedLabelColor: ui.colors.textPrimary.withValues(alpha: 0.5),
-            labelStyle: ui.text.label.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-            unselectedLabelStyle: ui.text.label.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-            tabs: const [
-              Tab(
-                child: _LoadoutTopTabLabel(
-                  icon: Icons.shield_outlined,
-                  text: 'Gear',
-                ),
-              ),
-              Tab(
-                child: _LoadoutTopTabLabel(
-                  icon: Icons.auto_awesome_outlined,
-                  text: 'Skills',
-                ),
-              ),
-            ],
+    return MenuScaffold(
+      appBarTitle: SizedBox(
+        height: 44,
+        child: TabBar(
+          controller: _tabs,
+          dividerColor: ui.colors.outline.withValues(alpha: 0.35),
+          indicatorColor: Colors.transparent,
+          labelColor: ui.colors.accentStrong,
+          unselectedLabelColor: ui.colors.textPrimary.withValues(alpha: 0.5),
+          labelStyle: ui.text.label.copyWith(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
           ),
-        ),
-        centerAppBarTitle: true,
-        child: MenuLayout(
-          scrollable: false,
-          child: _LoadoutSetupBody(characterId: selectedDef.id),
+          unselectedLabelStyle: ui.text.label.copyWith(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+          tabs: const [
+            Tab(
+              child: _LoadoutTopTabLabel(
+                icon: Icons.shield_outlined,
+                text: 'Gear',
+              ),
+            ),
+            Tab(
+              child: _LoadoutTopTabLabel(
+                icon: Icons.auto_awesome_outlined,
+                text: 'Skills',
+              ),
+            ),
+            Tab(
+              child: _LoadoutTopTabLabel(
+                icon: Icons.sports_martial_arts,
+                text: 'Training Field',
+              ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-}
-
-class _LoadoutSetupBody extends StatelessWidget {
-  const _LoadoutSetupBody({required this.characterId});
-
-  final PlayerCharacterId characterId;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: TabBarView(
-            children: [
-              GearsTab(characterId: characterId),
-              SkillsBar(characterId: characterId),
-            ],
-          ),
-        ),
-      ],
+      centerAppBarTitle: true,
+      child: _tabs.index == 2
+          ? const TrainingFieldTab()
+          : MenuLayout(
+              scrollable: false,
+              child: _tabs.index == 0
+                  ? GearsTab(characterId: selectedDef.id)
+                  : SkillsBar(characterId: selectedDef.id),
+            ),
     );
   }
 }
@@ -127,7 +130,12 @@ class _LoadoutTopTabLabel extends StatelessWidget {
       children: [
         Icon(icon, size: ui.sizes.iconSize.sm),
         SizedBox(width: ui.space.xs),
-        Text(text.toUpperCase()),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(text.toUpperCase()),
+          ),
+        ),
       ],
     );
   }

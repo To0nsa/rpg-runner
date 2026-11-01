@@ -129,6 +129,8 @@ import 'players/player_catalog.dart';
 import 'players/player_archetype.dart';
 import 'players/player_character_definition.dart';
 import 'playtest/chunk_playtest_scenario.dart';
+import 'training/training_field_definition.dart';
+import 'training/training_field_session.dart';
 import 'playtest/level_playtest_scenario.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spellBook/spell_book_catalog.dart';
@@ -321,7 +323,33 @@ class GameCore {
     );
   }
 
+  /// Local build testing, intentionally outside registered run construction.
+  factory GameCore.trainingField({
+    required TrainingFieldDefinition definition,
+    required PlayerCharacterDefinition playerCharacter,
+    required EquippedLoadoutDef equippedLoadout,
+    int tickHz = defaultTickHz,
+    TerrainCandidatePreparation terrainPreparation = prepareTerrainCandidate,
+  }) => GameCore._fromLevel(
+    terrainPreparation: terrainPreparation,
+    seed: 1,
+    runId: 0,
+    tickHz: tickHz,
+    levelDefinition: definition.buildLevel(),
+    playerCharacter: playerCharacter,
+    equippedLoadoutOverride: equippedLoadout,
+    projectileCatalog: const ProjectileCatalog(),
+    spellBookCatalog: const SpellBookCatalog(),
+    enemyCatalog: const EnemyCatalog(),
+    weaponCatalog: const WeaponCatalog(),
+    accessoryCatalog: const AccessoryCatalog(),
+    terrainHarnessGeometry: null,
+    stagedTerrainCatalogOverride: definition.terrainCatalog,
+    trainingField: TrainingFieldSession(definition),
+  );
+
   GameCore._fromLevel({
+    TrainingFieldSession? trainingField,
     TerrainCandidatePreparation terrainPreparation = prepareTerrainCandidate,
     TerrainGraphMaterializer graphMaterializer =
         const TerrainGraphMaterializer.eager(),
@@ -338,7 +366,8 @@ class GameCore {
     required EquippedLoadoutDef? equippedLoadoutOverride,
     required TerrainGeometry? terrainHarnessGeometry,
     required StagedTerrainCatalog? stagedTerrainCatalogOverride,
-  }) : _terrainPreparation = terrainPreparation,
+  }) : _trainingField = trainingField,
+       _terrainPreparation = terrainPreparation,
        _graphMaterializer = graphMaterializer,
        _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
@@ -873,6 +902,9 @@ class GameCore {
       _world,
       player: _player,
       archetype: playerArchetype,
+      supportYTicks: _trainingField == null
+          ? null
+          : physicsCoordinateToTicks(_trainingField.definition.playerStartY),
     );
   }
 
@@ -927,6 +959,21 @@ class GameCore {
 
   /// Core level configuration for this run.
   final LevelDefinition _levelDefinition;
+  final TrainingFieldSession? _trainingField;
+
+  /// Queues a local selection for the next marked chunk; mutation happens only
+  /// inside the next simulation tick, after its terrain has been published.
+  void selectTrainingEnemy(EnemyId? enemy) {
+    final training = _trainingField;
+    if (training == null) {
+      throw StateError('This is not a Training Field session.');
+    }
+    if (gameOver) return;
+    training.selectEnemy(
+      enemy,
+      playerX: _world.transform.posX[_world.transform.indexOf(_player)],
+    );
+  }
 
   // ─── Derived Tunings ───
   // These are pre-computed from base tunings using tickHz.
@@ -1751,6 +1798,12 @@ class GameCore {
       enemyRequests: pendingTrackSpawns.enemyRequests,
       spawnedChunks: pendingTrackSpawns.spawnedChunks,
     );
+    _trainingField?.step(
+      _world,
+      cameraRight: _camera.right(),
+      chunks: _trackManager.activeChunks,
+      spawn: _spawnTrackEnemy,
+    );
     final playerTransform = _world.transform.indexOf(_player);
     final playerCollider = _world.colliderAabb.indexOf(_player);
     _encounters.activate(
@@ -2351,6 +2404,7 @@ class GameCore {
     required List<SpawnEnemyRequest> enemyRequests,
     required List<TrackSpawnedChunk> spawnedChunks,
   }) {
+    if (_trainingField != null) return;
     _synchronizeEncounters();
     _world.traps.synchronize(_trackManager.activeChunks, _stagedTerrainCatalog);
     _world.interactions.synchronize(
@@ -2436,7 +2490,8 @@ class GameCore {
         ),
         supportSelection: supportSelection,
         requestedSupportYTicks:
-            request.source == EnemySpawnRequestSource.deferredHashashEdge
+            request.source == EnemySpawnRequestSource.deferredHashashEdge ||
+                request.source == EnemySpawnRequestSource.trainingField
             ? physicsCoordinateToTicks(
                 fallbackSupportY,
                 name: 'enemySpawnSupportY',

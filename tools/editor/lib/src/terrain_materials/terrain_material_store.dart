@@ -110,6 +110,7 @@ final class TerrainMaterialStore {
 Set<String> _scanMaterialReferences(EditorWorkspace workspace) {
   final roots = <String>[
     'assets/authoring/level/prefab_defs.json',
+    'assets/authoring/level/training_field.json',
     'assets/authoring/level/chunks',
   ];
   final references = <String>{};

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../chunks/chunk_domain_plugin.dart';
+import '../../../training/training_field_domain_plugin.dart';
+import '../trainingField/training_field_page.dart';
 import '../../../entities/entity_domain_plugin.dart';
 import '../../../levels/level_domain_plugin.dart';
 import '../../../parallax/parallax_domain_models.dart';
@@ -86,6 +88,7 @@ const String entitiesRouteId = 'entities';
 const String prefabCreatorRouteId = 'prefab_creator';
 const String chunkCreatorRouteId = 'chunk_creator';
 const String levelCreatorRouteId = 'level_creator';
+const String trainingFieldRouteId = 'training_field';
 const String parallaxEditorRouteId = 'parallax_editor';
 const String terrainMaterialsRouteId = 'terrain_materials';
 
@@ -117,6 +120,18 @@ final List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
     label: 'Level Creator',
     pluginId: LevelDomainPlugin.pluginId,
     buildPage: _buildLevelCreatorPage,
+  ),
+  EditorHomeRoute(
+    id: trainingFieldRouteId,
+    label: 'Training Field',
+    pluginId: TrainingFieldDomainPlugin.pluginId,
+    buildPage: ({required key, required controller, required navigation}) =>
+        TrainingFieldPage(
+          key: key,
+          controller: controller,
+          onShellStateChanged: navigation.onShellStateChanged,
+          initialLocation: navigation.initialLocation as ChunkCreatorLocation?,
+        ),
   ),
   EditorHomeRoute(
     id: parallaxEditorRouteId,

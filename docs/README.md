@@ -3,6 +3,8 @@
 Audit and planning restarted on September 15, 2026. Start here for current work.
 
 - [Current audits](audit/README.md).
+- [Training Field](gdd/training_field.md): local build testing from character
+  setup and a separate two-chunk layout editor; [technical contract](tdd/training_field.md).
 - [System messages and level gifts](gdd/messages.md): manual 25-gold claims for
   newly reached levels, protected inbox deletion, 30-day retention and an attention marker;
   [technical contract and operator sending](tdd/system_inbox.md), including the

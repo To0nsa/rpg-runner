@@ -14,6 +14,7 @@ It currently owns editor UX, validation, and deterministic import/export for:
 - chunk authoring data
 - parallax theme authoring data
 - level metadata authoring data
+- the independent two-chunk Training Field layout and spawn positions
 
 The editor may author data consumed by gameplay, but gameplay authority stays
 outside the editor:
@@ -103,6 +104,8 @@ reading five other files first.
   - `Prefab Creator` route -> `PrefabDomainPlugin`
   - `Chunk Creator` route -> `ChunkDomainPlugin`
   - `Level Creator` route -> `LevelDomainPlugin`
+  - `Training Field` route -> `TrainingFieldDomainPlugin` (layout only;
+    runtime training rules remain in Core and the game UI)
   - `Parallax` route -> `ParallaxDomainPlugin`
   - `Terrain Materials` route -> `TerrainMaterialDomainPlugin`
 - route/plugin mapping and session-coherent route switching:

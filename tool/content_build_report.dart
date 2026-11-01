@@ -53,6 +53,8 @@ final class ContentBuildSnapshot {
   static const _generatedInputs = {
     'packages/runner_core/lib/track/authored_chunk_patterns.dart',
     'packages/runner_core/lib/track/staged_authored_terrain.dart',
+    'packages/runner_core/lib/training/authored_training_field.dart',
+    'packages/runner_core/lib/training/authored_training_terrain.dart',
     'packages/runner_core/lib/levels/level_id.dart',
     'packages/runner_core/lib/levels/level_registry.dart',
   };

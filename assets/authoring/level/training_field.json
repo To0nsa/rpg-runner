@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "visualThemeId": "forest",
+  "playerStart": {
+    "x": 300,
+    "y": 224
+  },
+  "enemySpawn": {
+    "chunkIndex": 1,
+    "x": 300,
+    "y": 224
+  },
+  "chunks": [
+    {
+      "schemaVersion": 2,
+      "chunkKey": "training_field_1",
+      "id": "training_field_1",
+      "revision": 1,
+      "status": "active",
+      "levelId": "training_field",
+      "tileSize": 16,
+      "width": 600,
+      "height": 270,
+      "difficulty": "easy",
+      "assemblyGroupId": "default",
+      "tags": [],
+      "tileLayers": [],
+      "prefabs": [],
+      "markers": [],
+      "collisionShapes": [
+        {
+          "shapeId": "ground_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 0,
+              "y": 224
+            },
+            {
+              "x": 600,
+              "y": 224
+            },
+            {
+              "x": 600,
+              "y": 270
+            },
+            {
+              "x": 0,
+              "y": 270
+            }
+          ],
+          "surfaceKind": "ground",
+          "materialKey": "grass_dirt"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 2,
+      "chunkKey": "training_field_2",
+      "id": "training_field_2",
+      "revision": 1,
+      "status": "active",
+      "levelId": "training_field",
+      "tileSize": 16,
+      "width": 600,
+      "height": 270,
+      "difficulty": "easy",
+      "assemblyGroupId": "default",
+      "tags": [],
+      "tileLayers": [],
+      "prefabs": [],
+      "markers": [],
+      "collisionShapes": [
+        {
+          "shapeId": "ground_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 0,
+              "y": 224
+            },
+            {
+              "x": 600,
+              "y": 224
+            },
+            {
+              "x": 600,
+              "y": 270
+            },
+            {
+              "x": 0,
+              "y": 270
+            }
+          ],
+          "surfaceKind": "ground",
+          "materialKey": "grass_dirt"
+        }
+      ]
+    }
+  ]
+}

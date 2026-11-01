@@ -5,7 +5,7 @@ Standalone authoring tool for `rpg_runner` content workflows.
 Use **Back / Forward** in the shared toolbar, or **Alt+Left / Alt+Right**, to
 return through your editing journey. Opening a prefab, collision, or atlas from
 a Chunk lets you return to the same Chunk and scene view. Choosing a tool from
-the page selector also resumes its last open item. This works across all six
+the page selector also resumes its last open item. This works across all seven
 tools; navigation locations are remembered for the current editor session.
 Chunk Creator also restores its existing-owner search, Difficulty, and Group
 filters when returning to the tool.
@@ -34,6 +34,13 @@ flutter run -d windows
 ```
 
 ## Current Capabilities
+
+**Training Field** has its own page and source file. Edit its two normal-size
+chunks using the shared terrain, prefab, and layer tools, and set the player
+start and single enemy contact point in **Spawn positions**. Save then Build to
+update the game's Training Field tab. The editor checks both loop joins and
+spawn clearance. Camera, opponent selection, HUD and reset rules belong to the
+game and have no editor controls. See the [contract](../../docs/tdd/training_field.md).
 
 Chunk Creator's owner metadata includes **Mandatory boss arena** and a **Boss**
 selector for Bringer of Death, Voidborn Goddess, Shoggoth and Voidcaller. Set its

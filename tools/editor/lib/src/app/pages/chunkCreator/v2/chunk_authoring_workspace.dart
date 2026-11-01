@@ -117,6 +117,9 @@ class ChunkAuthoringWorkspace extends StatefulWidget {
     this.onOpenPrefabTarget,
     this.onPlayRequested,
     this.playtestPlatformSupported = false,
+    this.fixedLayout = false,
+    this.layoutInspector,
+    this.layoutOverlayBuilder,
   });
 
   final EditorSessionController controller;
@@ -132,6 +135,13 @@ class ChunkAuthoringWorkspace extends StatefulWidget {
 
   /// Whether this host supports the Windows-only Phase 5 Play surface.
   final bool playtestPlatformSupported;
+
+  /// Reuses geometry tools for a bounded layout without level/owner lifecycle,
+  /// encounters, or gameplay marker catalogs. Persistence stays in its plugin.
+  final bool fixedLayout;
+  final Widget? layoutInspector;
+  final Widget Function(ChunkV2FileData, TerrainPolygonViewportTransform)?
+  layoutOverlayBuilder;
 
   @override
   State<ChunkAuthoringWorkspace> createState() =>
@@ -680,17 +690,38 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _buildHeader(scene),
+          if (!widget.fixedLayout) _buildHeader(scene),
           const SizedBox(height: _gap),
           Expanded(
             child: ChunkWorkspaceLayout(
               minimumWideWidth: _minimumWideWorkspaceWidth,
               gap: _gap,
-              ownerSidebar: _buildChunkOwnerSidebar(
-                document,
-                scene,
-                authoring?.chunk,
-              ),
+              ownerSidebar: widget.fixedLayout
+                  ? SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          ToolPanelCard(
+                            title: 'Layout',
+                            child: Column(
+                              children: [
+                                for (final (index, chunk)
+                                    in scene.chunks.indexed)
+                                  ListTile(
+                                    title: Text('Chunk ${index + 1}'),
+                                    selected:
+                                        _selectedChunkKey == chunk.chunkKey,
+                                    onTap: () =>
+                                        unawaited(_selectOwner(chunk.chunkKey)),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          if (widget.layoutInspector != null)
+                            widget.layoutInspector!,
+                        ],
+                      ),
+                    )
+                  : _buildChunkOwnerSidebar(document, scene, authoring?.chunk),
               scene: authoring == null
                   ? _buildEmptyPanel(
                       key: const ValueKey<String>('chunk_creation_scene'),
@@ -1966,7 +1997,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     final readiness = playtestReadiness;
     return <ValidationIssue>[
       ...widget.controller.issues,
-      if (!readiness.isReady)
+      if (!widget.fixedLayout && !readiness.isReady)
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'playtest_unavailable',
@@ -2227,21 +2258,22 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       });
                     },
             ),
-            FilterChip(
-              key: const ValueKey<String>('chunk_marker_placement_toggle'),
-              label: const Text('Marker placement'),
-              selected: _showMarkerPlacements,
-              onSelected: _visualPreview
-                  ? null
-                  : (selected) {
-                      setState(() {
-                        _showMarkerPlacements = selected;
-                        if (selected) {
-                          _refreshMarkerPlacementProjection();
-                        }
-                      });
-                    },
-            ),
+            if (!widget.fixedLayout)
+              FilterChip(
+                key: const ValueKey<String>('chunk_marker_placement_toggle'),
+                label: const Text('Marker placement'),
+                selected: _showMarkerPlacements,
+                onSelected: _visualPreview
+                    ? null
+                    : (selected) {
+                        setState(() {
+                          _showMarkerPlacements = selected;
+                          if (selected) {
+                            _refreshMarkerPlacementProjection();
+                          }
+                        });
+                      },
+              ),
             DropdownButton<ChunkV2TerrainActor>(
               key: const ValueKey<String>('chunk_actor_terrain_selector'),
               value: _selectedTerrainActor,
@@ -2284,31 +2316,35 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           scrollDirection: Axis.horizontal,
           child: SegmentedButton<ChunkSceneDomain>(
             key: const ValueKey<String>('chunk_scene_domain_selector'),
-            segments: const <ButtonSegment<ChunkSceneDomain>>[
+            segments: <ButtonSegment<ChunkSceneDomain>>[
               ButtonSegment<ChunkSceneDomain>(
                 value: ChunkSceneDomain.terrain,
                 label: Text('Terrain'),
               ),
-              ButtonSegment<ChunkSceneDomain>(
-                value: ChunkSceneDomain.water,
-                label: Text('Water'),
-              ),
+              if (!widget.fixedLayout)
+                const ButtonSegment<ChunkSceneDomain>(
+                  value: ChunkSceneDomain.water,
+                  label: Text('Water'),
+                ),
               ButtonSegment<ChunkSceneDomain>(
                 value: ChunkSceneDomain.prefabs,
                 label: Text('Prefabs'),
               ),
-              ButtonSegment<ChunkSceneDomain>(
-                value: ChunkSceneDomain.markers,
-                label: Text('Markers'),
-              ),
-              ButtonSegment<ChunkSceneDomain>(
-                value: ChunkSceneDomain.traps,
-                label: Text('Traps'),
-              ),
-              ButtonSegment<ChunkSceneDomain>(
-                value: ChunkSceneDomain.encounters,
-                label: Text('Encounters'),
-              ),
+              if (!widget.fixedLayout)
+                const ButtonSegment<ChunkSceneDomain>(
+                  value: ChunkSceneDomain.markers,
+                  label: Text('Markers'),
+                ),
+              if (!widget.fixedLayout)
+                const ButtonSegment<ChunkSceneDomain>(
+                  value: ChunkSceneDomain.traps,
+                  label: Text('Traps'),
+                ),
+              if (!widget.fixedLayout)
+                const ButtonSegment<ChunkSceneDomain>(
+                  value: ChunkSceneDomain.encounters,
+                  label: Text('Encounters'),
+                ),
               ButtonSegment<ChunkSceneDomain>(
                 value: ChunkSceneDomain.layers,
                 label: Text('Layers'),
@@ -2746,6 +2782,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                   foreground: Stack(
                     fit: StackFit.expand,
                     children: <Widget>[
+                      if (widget.layoutOverlayBuilder != null)
+                        widget.layoutOverlayBuilder!(chunk, transform),
                       if (!_visualPreview && _showElevationGuides)
                         if (_documentOrNull?.levels
                                 .where(

@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flame/game.dart';
+import 'package:rpg_runner/game/runner_flame_game.dart';
+import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/snapshots/enums.dart';
+import 'package:rpg_runner/ui/state/ownership/enemy_defeats.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/meta/meta_service.dart';
@@ -19,6 +24,105 @@ import 'package:runner_core/abilities/ability_def.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/skills/skills_radial_pane.dart';
 
 void main() {
+  testWidgets(
+    'Training tab keeps appbar, filters opponents, resets death and leaving',
+    (tester) async {
+      final appState = await _bootstrappedAppState(
+        progression: ProgressionState.initial.copyWith(
+          enemyDefeats: EnemyDefeats(
+            byEnemy: {'derf': 10, 'grojib': 9, 'bringerOfDeath': 10},
+          ),
+        ),
+      );
+      addTearDown(appState.dispose);
+      final originalProgression = appState.progression;
+      await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.pumpAndSettle();
+      expect(find.byType(Tab), findsNWidgets(3));
+      Future<RunnerFlameGame> enter() async {
+        await tester.tap(find.byType(Tab).at(2));
+        await tester.pump();
+        final game = tester
+            .widget<GameWidget<RunnerFlameGame>>(
+              find.byType(GameWidget<RunnerFlameGame>),
+            )
+            .game!;
+        await _trainingReady(tester, game);
+        expect(game.loadState.value.phase, RunLoadPhase.worldReady);
+        expect(find.byType(Tab), findsNWidgets(3));
+        return game;
+      }
+
+      final first = await enter();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      expect(first.controller.snapshot.paused, isTrue);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      if (find.text('Resume').evaluate().isNotEmpty) {
+        await tester.tap(find.text('Resume'));
+        await tester.pump();
+      }
+      await tester.tap(find.byKey(const ValueKey('training-enemy-settings')));
+      // Flame keeps scheduling frames while its controller is paused.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Derf'), findsOneWidget);
+      expect(find.text('Grojib'), findsNothing);
+      expect(find.text('Bringer of Death'), findsNothing);
+      await tester.tap(find.text('Derf'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      // Drive real Core movement off the left edge to exercise the death UI.
+      first.controller.setPaused(false);
+      for (var i = 0; i < 360 && !first.controller.snapshot.gameOver; i++) {
+        first.controller.enqueue(
+          MoveAxisCommand(tick: first.controller.tick + 1, axis: -1),
+        );
+        first.controller.advanceFrame(1 / 60);
+      }
+      await tester.pump();
+      expect(first.controller.snapshot.gameOver, isTrue);
+      expect(find.byKey(const ValueKey('training-reset')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('training-reset')));
+      await tester.pump();
+      final reset = tester
+          .widget<GameWidget<RunnerFlameGame>>(
+            find.byType(GameWidget<RunnerFlameGame>),
+          )
+          .game!;
+      expect(reset, isNot(same(first)));
+      await _trainingReady(tester, reset);
+      expect(reset.controller.snapshot.gameOver, isFalse);
+      expect(
+        reset.controller.snapshot.entities.where(
+          (e) => e.kind == EntityKind.enemy,
+        ),
+        isEmpty,
+      );
+      expect(find.byTooltip('Choose training opponent'), findsOneWidget);
+      await tester.tap(find.byType(Tab).first);
+      await tester.pumpAndSettle();
+      final oldTick = reset.controller.tick;
+      reset.controller.advanceFrame(1);
+      expect(reset.controller.tick, oldTick);
+      final fresh = await enter();
+      expect(fresh, isNot(same(reset)));
+      expect(find.byTooltip('Choose training opponent'), findsOneWidget);
+      expect(
+        fresh.controller.snapshot.entities.where(
+          (e) => e.kind == EntityKind.enemy,
+        ),
+        isEmpty,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      expect(appState.progression, same(originalProgression));
+    },
+    variant: TargetPlatformVariant({
+      TargetPlatform.android,
+      TargetPlatform.windows,
+    }),
+  );
   testWidgets(
     'GearsTab shows + Town shortcut and navigates after confirmation',
     (tester) async {
@@ -114,10 +218,28 @@ void main() {
   );
 }
 
-Future<AppState> _bootstrappedAppState() async {
+Future<void> _trainingReady(WidgetTester tester, RunnerFlameGame game) async {
+  for (
+    var i = 0;
+    i < 800 && game.loadState.value.phase != RunLoadPhase.worldReady;
+    i++
+  ) {
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+    expect(tester.takeException(), isNull);
+  }
+  expect(game.loadState.value.phase, RunLoadPhase.worldReady);
+  await tester.pump();
+}
+
+Future<AppState> _bootstrappedAppState({
+  ProgressionState progression = ProgressionState.initial,
+}) async {
   final appState = AppState(
     authApi: const _StaticAuthApi(),
-    loadoutOwnershipApi: _NoopOwnershipApi(),
+    loadoutOwnershipApi: _NoopOwnershipApi(progression: progression),
   );
   await appState.bootstrap(force: true);
   return appState;
@@ -195,13 +317,15 @@ class _StaticAuthApi implements AuthApi {
 }
 
 class _NoopOwnershipApi extends LoadoutOwnershipApi {
-  final OwnershipCanonicalState _canonical = OwnershipCanonicalState(
-    profileId: defaultOwnershipProfileId,
-    revision: 0,
-    selection: SelectionState.defaults,
-    meta: const MetaService().createNew(),
-    progression: ProgressionState.initial,
-  );
+  _NoopOwnershipApi({required ProgressionState progression})
+    : _canonical = OwnershipCanonicalState(
+        profileId: defaultOwnershipProfileId,
+        revision: 0,
+        selection: SelectionState.defaults,
+        meta: const MetaService().createNew(),
+        progression: progression,
+      );
+  final OwnershipCanonicalState _canonical;
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({

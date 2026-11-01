@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed Training Field](../archive/2026-11-02/building/training_field.md):
+  disposable build testing in character setup and an independent two-chunk
+  layout editor. Core, UI, source and editor checks pass locally; not deployed.
+
 - [Completed Hall of Honour achievements](../archive/2026-10-30/building/achievements.md):
   five verified milestones, direct gold claims, next-target rows and expandable
   completion dates. [Dev deployment](../verification/achievements-dev-2026-10-30.md)

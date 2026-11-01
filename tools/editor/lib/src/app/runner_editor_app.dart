@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tool_ui/tool_ui.dart';
 
 import '../chunks/chunk_domain_plugin.dart';
+import '../training/training_field_domain_plugin.dart';
 import '../entities/entity_domain_plugin.dart';
 import '../domain/authoring_plugin_registry.dart';
 import '../levels/level_domain_plugin.dart';
@@ -24,6 +25,7 @@ void runEditorApp({required String initialWorkspacePath}) {
       EntityDomainPlugin(),
       PrefabDomainPlugin(),
       ChunkDomainPlugin(),
+      TrainingFieldDomainPlugin(),
       LevelDomainPlugin(),
       ParallaxDomainPlugin(),
       TerrainMaterialDomainPlugin(),

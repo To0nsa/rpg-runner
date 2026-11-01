@@ -60,10 +60,13 @@ abstract interface class WorldMotionAuthority {
   /// selected with a streamed chunk cannot be placed against stale geometry.
   void publishPendingWorld();
 
+  /// An explicit [supportYTicks] admits a local start beneath other platforms;
+  /// ordinary runs omit it and land on the first support from above the world.
   void initializePlayer(
     EcsWorld world, {
     required EntityId player,
     required PlayerArchetype archetype,
+    int? supportYTicks,
   });
 
   /// Publishes tick-start ownership and prior-support state before consumers.
@@ -488,6 +491,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     EcsWorld world, {
     required EntityId player,
     required PlayerArchetype archetype,
+    int? supportYTicks,
   }) {
     if (_geometry.edges.isEmpty) {
       throw StateError('Terrain motion requires exposed terrain edges.');
@@ -519,14 +523,42 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final radius = world.worldContactCapsule.radiusTicks[capsuleIndex];
     final halfSegment =
         world.worldContactCapsule.verticalHalfSegmentTicks[capsuleIndex];
+    // Explicit local layouts can start below another platform. Ordinary runs
+    // retain their topmost-support opening placement.
+    final authoredPlacement = supportYTicks == null
+        ? null
+        : _placementQuery.resolveGrounded(
+            TerrainGroundPlacementRequest(
+              desiredBodyCenterXTicks: bodyX,
+              minimumSupportYTicks: supportYTicks,
+              maximumSupportYTicks: supportYTicks,
+              capsule: TerrainPlacementCapsule(
+                radiusTicks: radius,
+                verticalHalfSegmentTicks: halfSegment,
+                resolvedOffsetXTicks: offsetX,
+                offsetYTicks: offsetY,
+              ),
+              traversalProfile: archetype.terrainTraversalProfile,
+              supportRequirement:
+                  const TerrainSupportRequirement.groundedSpawn(),
+            ),
+          );
+    if (authoredPlacement != null && !authoredPlacement.isValid) {
+      throw StateError(
+        'Player start has invalid terrain placement: ${authoredPlacement.validity.name}.',
+      );
+    }
     final startCapsule = UprightCapsule(
       center: TerrainPoint(
         bodyX + offsetX,
-        _minimumGeometryY -
-            radius -
-            halfSegment -
-            terrainCollisionSkinTicks -
-            terrainPhysicsTicksPerWorldUnit,
+        authoredPlacement != null
+            ? authoredPlacement.capsuleCenter!.yTicks -
+                  terrainPhysicsTicksPerWorldUnit
+            : (_minimumGeometryY -
+                  radius -
+                  halfSegment -
+                  terrainCollisionSkinTicks -
+                  terrainPhysicsTicksPerWorldUnit),
       ),
       radiusTicks: radius,
       verticalHalfSegmentTicks: halfSegment,

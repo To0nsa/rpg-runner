@@ -1,6 +1,8 @@
 /// Repository-independent authored chunk compilation and materialization.
 library;
 
+export 'src/training_field_source.dart';
+
 export 'src/chunk_runtime_materialization.dart';
 export 'src/polygon_terrain_artifact_validation.dart';
 export 'src/polygon_terrain_compilation.dart';

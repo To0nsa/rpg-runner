@@ -53,9 +53,15 @@ class GameOverlay extends StatefulWidget {
     this.controlScheme = RunnerControlScheme.touch,
     this.indicatorFrames,
     this.viewportMetrics,
+    this.trainingField = false,
+    this.resourcesTrailing,
   });
 
   final GameController controller;
+
+  /// Training shares the controls/resources but has no runner HUD or menus.
+  final bool trainingField;
+  final Widget? resourcesTrailing;
   final RunnerControlScheme controlScheme;
   final MovementControlMode movementControlMode;
   final int movementInputEpoch;
@@ -261,17 +267,19 @@ class GameOverlay extends StatefulWidget {
               hasProjectileSlot: hasProjectileSlot,
             ),
           ),
-        PauseOverlay(
-          visible: uiState.showPauseOverlay,
-          exitConfirmOpen: exitConfirmOpen,
-          onResume: onExitConfirmResume,
-          onExit: onExitConfirmExit,
-        ),
-        ReadyOverlay(
-          visible: uiState.showReadyOverlay,
-          onTap: onStart,
-          desktop: desktop,
-        ),
+        if (!trainingField)
+          PauseOverlay(
+            visible: uiState.showPauseOverlay,
+            exitConfirmOpen: exitConfirmOpen,
+            onResume: onExitConfirmResume,
+            onExit: onExitConfirmExit,
+          ),
+        if (!trainingField)
+          ReadyOverlay(
+            visible: uiState.showReadyOverlay,
+            onTap: onStart,
+            desktop: desktop,
+          ),
         if (uiState.isRunning)
           TerrainLoadingOverlay(
             readiness: controller.terrainReadiness,
@@ -293,27 +301,31 @@ class GameOverlay extends StatefulWidget {
                     compact: constraints.maxWidth < 584,
                     warningSignal: warnings,
                   ),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      heightFactor: 1,
-                      child: SurvivalTimerOverlay(controller: controller),
+                  ?resourcesTrailing,
+                  if (!trainingField)
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: 1,
+                        child: SurvivalTimerOverlay(controller: controller),
+                      ),
                     ),
-                  ),
-                  TopRightHudOverlay(
-                    controller: controller,
-                    uiState: uiState,
-                    onStart: onStart,
-                    onTogglePause: onTogglePause,
-                    showExitButton: showExitButton,
-                    onExit: onExit,
-                  ),
+                  if (!trainingField)
+                    TopRightHudOverlay(
+                      controller: controller,
+                      uiState: uiState,
+                      onStart: onStart,
+                      onTogglePause: onTogglePause,
+                      showExitButton: showExitButton,
+                      onExit: onExit,
+                    ),
                 ],
               ),
             ),
           ),
         ),
-        BossArenaHud(controller: controller, panelKey: bossPanelKey),
+        if (!trainingField)
+          BossArenaHud(controller: controller, panelKey: bossPanelKey),
         if (!desktop)
           AimCancelButtonOverlay(
             projectileAimPreview: projectileAimPreview,
@@ -326,7 +338,7 @@ class GameOverlay extends StatefulWidget {
             triggerSignal: playerImpactFeedbackSignal,
           ),
         ),
-        BossEntranceBorderOverlay(controller: controller),
+        if (!trainingField) BossEntranceBorderOverlay(controller: controller),
       ],
     );
   }
