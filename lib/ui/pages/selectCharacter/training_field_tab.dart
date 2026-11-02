@@ -328,35 +328,39 @@ class _TrainingFieldTabState extends State<TrainingFieldTab>
                 },
               ),
               if (session.ready)
-                GameOverlay(
-                  controller: session.controller,
-                  input: _actions,
-                  projectileAimPreview: session.projectilePreview,
-                  meleeAimPreview: session.meleePreview,
-                  aimCancelHitboxRect: _cancelRect,
-                  forceAimCancelSignal: _cancelSignal,
-                  playerImpactFeedbackSignal: _impactSignal,
-                  uiState: state,
-                  onStart: _resume,
-                  onTogglePause: _pause,
-                  showExitButton: false,
-                  onExit: null,
-                  exitConfirmOpen: false,
-                  onExitConfirmResume: _resume,
-                  onExitConfirmExit: () {},
-                  trainingField: true,
-                  movementControlMode: movement,
-                  movementInputEpoch: _movementEpoch,
-                  controlScheme: _usesDesktop
-                      ? RunnerControlScheme.desktop
-                      : RunnerControlScheme.touch,
-                  resourcesTrailing: IconButton(
-                    key: const ValueKey('training-enemy-settings'),
-                    tooltip: _selectedEnemy == null
-                        ? 'Choose training opponent'
-                        : 'Opponent: ${_selectedEnemy!.displayName}',
-                    onPressed: snapshot.gameOver ? null : _chooseEnemy,
-                    icon: const Icon(Icons.settings),
+                // Scaffold includes the overlaid app bar in body padding.
+                // Keep the HUD clear of it without shrinking the game canvas.
+                SafeArea(
+                  child: GameOverlay(
+                    controller: session.controller,
+                    input: _actions,
+                    projectileAimPreview: session.projectilePreview,
+                    meleeAimPreview: session.meleePreview,
+                    aimCancelHitboxRect: _cancelRect,
+                    forceAimCancelSignal: _cancelSignal,
+                    playerImpactFeedbackSignal: _impactSignal,
+                    uiState: state,
+                    onStart: _resume,
+                    onTogglePause: _pause,
+                    showExitButton: false,
+                    onExit: null,
+                    exitConfirmOpen: false,
+                    onExitConfirmResume: _resume,
+                    onExitConfirmExit: () {},
+                    trainingField: true,
+                    movementControlMode: movement,
+                    movementInputEpoch: _movementEpoch,
+                    controlScheme: _usesDesktop
+                        ? RunnerControlScheme.desktop
+                        : RunnerControlScheme.touch,
+                    resourcesTrailing: IconButton(
+                      key: const ValueKey('training-enemy-settings'),
+                      tooltip: _selectedEnemy == null
+                          ? 'Choose training opponent'
+                          : 'Opponent: ${_selectedEnemy!.displayName}',
+                      onPressed: snapshot.gameOver ? null : _chooseEnemy,
+                      icon: const Icon(Icons.settings),
+                    ),
                   ),
                 ),
               if (snapshot.gameOver)

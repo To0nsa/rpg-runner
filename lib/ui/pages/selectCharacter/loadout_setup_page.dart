@@ -65,6 +65,7 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
     final selectedDef = _loadoutSetupUiCharacters.first;
 
     return MenuScaffold(
+      overlayAppBar: _tabs.index == 2,
       appBarTitle: SizedBox(
         height: 44,
         child: TabBar(

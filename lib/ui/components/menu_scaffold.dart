@@ -21,6 +21,7 @@ class MenuScaffold extends StatelessWidget {
     this.centerAppBarTitle = false,
     this.showAppBar = true,
     this.useBodySafeArea = false,
+    this.overlayAppBar = false,
   });
 
   /// The main content of the page.
@@ -53,6 +54,10 @@ class MenuScaffold extends StatelessWidget {
   /// Whether to wrap the body in [SafeArea]. Defaults to false.
   final bool useBodySafeArea;
 
+  /// Lets content draw beneath the transparent app bar. Overlay content should
+  /// inset its interactive HUD using the body's safe-area padding.
+  final bool overlayAppBar;
+
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
@@ -70,6 +75,7 @@ class MenuScaffold extends StatelessWidget {
             shadowColor: Colors.transparent,
             elevation: 0,
             scrolledUnderElevation: 0,
+            forceMaterialTransparency: overlayAppBar,
             iconTheme: IconThemeData(color: ui.colors.textPrimary),
             centerTitle: centerAppBarTitle,
             titleSpacing: appBarTitle != null ? 0 : null,
@@ -80,7 +86,7 @@ class MenuScaffold extends StatelessWidget {
         ? SafeArea(maintainBottomViewPadding: true, child: child)
         : child;
 
-    if (showAppBar) {
+    if (showAppBar && !overlayAppBar) {
       content = Padding(
         padding: EdgeInsets.only(
           top: MediaQuery.paddingOf(context).top + kToolbarHeight,

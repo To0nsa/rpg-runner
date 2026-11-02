@@ -47,6 +47,12 @@ unmount or Reset. The parent mounts this tab only while selected. The picker use
 the same Library unlock rule as Codex and rechecks it on confirmation. Selecting
 None, death Reset, and returning to the tab never restore an old opponent choice.
 
+Character setup opts into `MenuScaffold.overlayAppBar` only for Training Field.
+The game viewport uses the full page behind the transparent app bar; only the
+HUD consumes the body's safe-area padding, which includes the app bar. This
+keeps tabs and controls accessible without reducing the game scale to fit a
+shorter content area. Rendering and desktop aim share the full viewport metrics.
+
 ## Editor ownership
 
 The Training Field plugin owns its source envelope, dependency baselines,

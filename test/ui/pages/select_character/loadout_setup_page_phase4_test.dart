@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/loadout_setup_page.dart';
+import 'package:rpg_runner/ui/hud/game/game_overlay.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
@@ -27,6 +28,10 @@ void main() {
   testWidgets(
     'Training tab keeps appbar, filters opponents, resets death and leaving',
     (tester) async {
+      // Match the game's landscape aspect ratio: reserving toolbar height
+      // would force the pixel-perfect viewport down to a smaller scale.
+      await tester.binding.setSurfaceSize(const Size(1200, 540));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       final appState = await _bootstrappedAppState(
         progression: ProgressionState.initial.copyWith(
           enemyDefeats: EnemyDefeats(
@@ -50,6 +55,17 @@ void main() {
         await _trainingReady(tester, game);
         expect(game.loadState.value.phase, RunLoadPhase.worldReady);
         expect(find.byType(Tab), findsNWidgets(3));
+        expect(
+          tester.getRect(find.byType(GameWidget<RunnerFlameGame>)),
+          tester.getRect(find.byType(Scaffold)),
+        );
+        final appBar = tester.widget<AppBar>(find.byType(AppBar));
+        expect(appBar.backgroundColor, Colors.transparent);
+        expect(appBar.forceMaterialTransparency, isTrue);
+        expect(
+          tester.getTopLeft(find.byType(GameOverlay)).dy,
+          greaterThanOrEqualTo(tester.getBottomLeft(find.byType(AppBar)).dy),
+        );
         return game;
       }
 
@@ -102,6 +118,10 @@ void main() {
       expect(find.byTooltip('Choose training opponent'), findsOneWidget);
       await tester.tap(find.byType(Tab).first);
       await tester.pumpAndSettle();
+      expect(
+        tester.widget<AppBar>(find.byType(AppBar)).forceMaterialTransparency,
+        isFalse,
+      );
       final oldTick = reset.controller.tick;
       reset.controller.advanceFrame(1);
       expect(reset.controller.tick, oldTick);
