@@ -7,7 +7,7 @@ import 'package:rpg_runner/ui/components/map_label_button.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:rpg_runner/ui/app/ui_router.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
-import 'package:rpg_runner/ui/pages/library/enemy_portrait.dart';
+import 'package:rpg_runner/ui/components/enemy_portrait.dart';
 import 'package:rpg_runner/ui/codex/codex_catalog.dart';
 import 'package:rpg_runner/ui/pages/library/codex_entry_page.dart';
 import 'package:rpg_runner/ui/pages/library/library_page.dart';

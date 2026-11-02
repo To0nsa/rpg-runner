@@ -21,8 +21,10 @@ import '../../runner_game_ui_state.dart';
 import '../../scoped/scoped_game_context_menu.dart';
 import '../../state/app/app_state.dart';
 import '../../state/settings/control_settings.dart';
+import '../../theme/ui_tokens.dart';
 import '../../viewport/game_viewport.dart';
 import '../../viewport/viewport_metrics.dart';
+import 'training_opponent_dialog.dart';
 
 /// Mounted only while the Training tab is selected. Leaving destroys the world.
 class TrainingFieldTab extends StatefulWidget {
@@ -221,37 +223,19 @@ class _TrainingFieldTabState extends State<TrainingFieldTab>
     var chosen = false;
     final enemy = await showDialog<EnemyId?>(
       context: context,
+      barrierColor: context.ui.colors.scrim,
       builder: (context) {
         final defeats = context.watch<AppState>().progression.enemyDefeats;
         final enemies = CodexCatalog.bestiaryEntries.where(
           (id) => !id.isArenaOnly && CodexCatalog.enemyUnlocked(defeats, id),
         );
-        return SimpleDialog(
-          title: const Text('Training opponent'),
-          children: [
-            SimpleDialogOption(
-              onPressed: () {
-                chosen = true;
-                Navigator.pop(context);
-              },
-              child: const Text('None'),
-            ),
-            for (final id in enemies)
-              SimpleDialogOption(
-                onPressed: () {
-                  chosen = true;
-                  Navigator.pop(context, id);
-                },
-                child: Text(id.displayName),
-              ),
-            if (enemies.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Unlock enemy entries in the Library to practise against them.',
-                ),
-              ),
-          ],
+        return TrainingOpponentDialog(
+          enemies: enemies,
+          selectedEnemy: _selectedEnemy,
+          onSelected: (id) {
+            chosen = true;
+            Navigator.pop(context, id);
+          },
         );
       },
     );

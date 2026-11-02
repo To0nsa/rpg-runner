@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 
-import '../../assets/ui_asset_lifecycle.dart';
-import '../../theme/ui_tokens.dart';
+import '../assets/ui_asset_lifecycle.dart';
+import '../theme/ui_tokens.dart';
 
-/// Static idle art, including locked discoveries; no animation ticker is needed.
+/// Shared, cached idle frame for enemy previews; no animation ticker is needed.
 class EnemyPortrait extends StatefulWidget {
   const EnemyPortrait({super.key, required this.enemy});
   final EnemyId enemy;

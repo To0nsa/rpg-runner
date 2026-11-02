@@ -47,6 +47,11 @@ unmount or Reset. The parent mounts this tab only while selected. The picker use
 the same Library unlock rule as Codex and rechecks it on confirmation. Selecting
 None, death Reset, and returning to the tab never restore an old opponent choice.
 
+`TrainingOpponentDialog` uses the shared `AppDialog` shell with scrollable content
+and fixed title/actions. Its `EnemyPortrait` component is shared with the Library
+and reads cached static frames from `UiAssetLifecycle`; the picker owns no separate
+image cache or animation loop.
+
 Character setup opts into `MenuScaffold.overlayAppBar` only for Training Field.
 The game viewport uses the full page behind the transparent app bar; only the
 HUD consumes the body's safe-area padding, which includes the app bar. This

@@ -9,12 +9,16 @@ class AppDialog extends StatelessWidget {
     super.key,
     this.title,
     this.content,
+    this.scrollable = false,
     this.actions = const <Widget>[],
     this.maxWidth = 440,
   });
 
   final String? title;
   final Widget? content;
+
+  /// Scrolls overflowing content while keeping the title and actions visible.
+  final bool scrollable;
   final List<Widget> actions;
   final double maxWidth;
 
@@ -47,7 +51,10 @@ class AppDialog extends StatelessWidget {
               ],
               if (content != null) ...[
                 if (title != null) SizedBox(height: ui.space.xs),
-                content!,
+                if (scrollable)
+                  Flexible(child: SingleChildScrollView(child: content!))
+                else
+                  content!,
               ],
               if (actions.isNotEmpty) ...[
                 SizedBox(height: ui.space.sm),

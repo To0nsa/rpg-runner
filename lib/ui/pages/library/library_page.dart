@@ -6,9 +6,9 @@ import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/levels/level_id.dart';
 
 import '../../codex/codex_catalog.dart';
+import '../../components/enemy_portrait.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/menu_icon_column.dart';
-import 'enemy_portrait.dart';
 import '../../state/app/app_state.dart';
 import '../../state/ownership/codex_progress.dart';
 import '../../state/ownership/enemy_defeats.dart';

@@ -8,6 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
+import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
+import 'package:rpg_runner/ui/components/app_dialog.dart';
+import 'package:rpg_runner/ui/components/enemy_portrait.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/loadout_setup_page.dart';
 import 'package:rpg_runner/ui/hud/game/game_overlay.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
@@ -85,9 +88,22 @@ void main() {
       expect(find.text('Derf'), findsOneWidget);
       expect(find.text('Grojib'), findsNothing);
       expect(find.text('Bringer of Death'), findsNothing);
+      expect(find.byType(AppDialog), findsOneWidget);
+      expect(find.byType(EnemyPortrait), findsOneWidget);
+      expect(first.controller.snapshot.paused, isTrue);
       await tester.tap(find.text('Derf'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byTooltip('Opponent: Derf'), findsOneWidget);
+      expect(first.controller.snapshot.paused, isFalse);
+      await tester.tap(find.byKey(const ValueKey('training-enemy-settings')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Close'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byTooltip('Opponent: Derf'), findsOneWidget);
+      expect(first.controller.snapshot.paused, isFalse);
       // Drive real Core movement off the left edge to exercise the death UI.
       first.controller.setPaused(false);
       for (var i = 0; i < 360 && !first.controller.snapshot.gameOver; i++) {
@@ -272,8 +288,14 @@ class _TestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<AppState>.value(
-      value: appState,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AppState>.value(value: appState),
+        Provider<UiAssetLifecycle>(
+          create: (_) => UiAssetLifecycle(),
+          dispose: (_, owner) => owner.dispose(),
+        ),
+      ],
       child: MaterialApp(
         theme: ThemeData(
           useMaterial3: true,

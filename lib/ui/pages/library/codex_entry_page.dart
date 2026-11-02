@@ -7,12 +7,12 @@ import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/levels/level_id.dart';
 
 import '../../codex/codex_catalog.dart';
+import '../../components/enemy_portrait.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app/app_state.dart';
 import '../../text/number_format.dart';
 import '../../theme/ui_tokens.dart';
 import 'codex_widgets.dart';
-import 'enemy_portrait.dart';
 
 /// Rechecks the current account's gate even when an entry route is already open.
 class CodexEntryPage extends StatelessWidget {
