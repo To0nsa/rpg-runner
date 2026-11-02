@@ -2,8 +2,9 @@
 
 Training Field is the third tab in character setup, beside Gear and Skills. All
 three tabs remain visible while testing the selected character and equipped build.
-The transparent app bar overlays the game in this tab; resources and controls
-remain below the tabs while the game uses the full page viewport.
+The transparent app bar overlays the game in this tab. Only the resource bars
+and their settings cog use safe-area padding below the tabs. Controls and screen
+feedback use the full page area.
 
 Two normal 600 × 270 chunks repeat in order: 1, 2, 1, 2. The character moves
 continuously through the world. The existing camera follows forward progress,

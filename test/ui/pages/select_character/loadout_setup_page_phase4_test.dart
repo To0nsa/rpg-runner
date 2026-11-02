@@ -13,6 +13,11 @@ import 'package:rpg_runner/ui/components/app_dialog.dart';
 import 'package:rpg_runner/ui/components/enemy_portrait.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/loadout_setup_page.dart';
 import 'package:rpg_runner/ui/hud/game/game_overlay.dart';
+import 'package:rpg_runner/ui/hud/game/desktop_controls_overlay.dart';
+import 'package:rpg_runner/ui/hud/game/player_impact_border_overlay.dart';
+import 'package:rpg_runner/ui/hud/game/screen_border_vignette.dart';
+import 'package:rpg_runner/ui/hud/game/top_left_hud_overlay.dart';
+import 'package:rpg_runner/ui/controls/runner_controls_overlay_radial.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
@@ -44,7 +49,10 @@ void main() {
       );
       addTearDown(appState.dispose);
       final originalProgression = appState.progression;
-      await tester.pumpWidget(_TestApp(appState: appState));
+      const screenPadding = EdgeInsets.fromLTRB(24, 12, 18, 16);
+      await tester.pumpWidget(
+        _TestApp(appState: appState, screenPadding: screenPadding),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(Tab), findsNWidgets(3));
       Future<RunnerFlameGame> enter() async {
@@ -65,14 +73,45 @@ void main() {
         final appBar = tester.widget<AppBar>(find.byType(AppBar));
         expect(appBar.backgroundColor, Colors.transparent);
         expect(appBar.forceMaterialTransparency, isTrue);
+        final screen = tester.getRect(find.byType(Scaffold));
+        expect(tester.getRect(find.byType(GameOverlay)), screen);
+        expect(tester.getRect(find.byType(PlayerImpactBorderOverlay)), screen);
         expect(
-          tester.getTopLeft(find.byType(GameOverlay)).dy,
+          tester.getTopLeft(find.byType(TopLeftHudOverlay)).dy,
           greaterThanOrEqualTo(tester.getBottomLeft(find.byType(AppBar)).dy),
         );
+        expect(
+          tester.getTopLeft(find.byType(TopLeftHudOverlay)).dx,
+          greaterThanOrEqualTo(screenPadding.left),
+        );
+        expect(
+          tester
+              .getTopLeft(find.byKey(const ValueKey('training-enemy-settings')))
+              .dy,
+          greaterThanOrEqualTo(tester.getBottomLeft(find.byType(AppBar)).dy),
+        );
+        if (find.byType(RunnerControlsOverlay).evaluate().isNotEmpty) {
+          expect(tester.getRect(find.byType(RunnerControlsOverlay)), screen);
+        } else {
+          final controls = tester.widget<DesktopControlsOverlay>(
+            find.byType(DesktopControlsOverlay),
+          );
+          expect(
+            tester.getBottomLeft(find.byKey(controls.panelKey)).dy,
+            screen.bottom - UiTokens.standard.space.xs,
+          );
+        }
         return game;
       }
 
       final first = await enter();
+      final overlay = tester.widget<GameOverlay>(find.byType(GameOverlay));
+      (overlay.playerImpactFeedbackSignal as ValueNotifier<int>).value++;
+      await tester.pump();
+      expect(
+        tester.getRect(find.byType(ScreenBorderVignette)),
+        tester.getRect(find.byType(Scaffold)),
+      );
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       expect(first.controller.snapshot.paused, isTrue);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -282,9 +321,13 @@ Future<AppState> _bootstrappedAppState({
 }
 
 class _TestApp extends StatelessWidget {
-  const _TestApp({required this.appState});
+  const _TestApp({
+    required this.appState,
+    this.screenPadding = EdgeInsets.zero,
+  });
 
   final AppState appState;
+  final EdgeInsets screenPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -297,6 +340,10 @@ class _TestApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(padding: screenPadding),
+          child: child!,
+        ),
         theme: ThemeData(
           useMaterial3: true,
           extensions: <ThemeExtension<dynamic>>[

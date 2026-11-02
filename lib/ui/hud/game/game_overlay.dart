@@ -131,9 +131,16 @@ class GameOverlay extends StatefulWidget {
             hudObstacles: [hudRowKey, bossPanelKey, if (desktop) desktopBarKey],
           ),
         if (desktop)
-          DesktopControlsOverlay(
-            controller: controller,
-            panelKey: desktopBarKey,
+          MediaQuery.removePadding(
+            context: context,
+            removeLeft: trainingField,
+            removeTop: trainingField,
+            removeRight: trainingField,
+            removeBottom: trainingField,
+            child: DesktopControlsOverlay(
+              controller: controller,
+              panelKey: desktopBarKey,
+            ),
           )
         else
           IgnorePointer(
@@ -288,38 +295,46 @@ class GameOverlay extends StatefulWidget {
           ),
         Align(
           alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: LayoutBuilder(
-              builder: (context, constraints) => Row(
-                key: hudRowKey,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TopLeftHudOverlay(
-                    controller: controller,
-                    active: uiState.isRunning,
-                    compact: constraints.maxWidth < 584,
-                    warningSignal: warnings,
-                  ),
-                  ?resourcesTrailing,
-                  if (!trainingField)
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        heightFactor: 1,
-                        child: SurvivalTimerOverlay(controller: controller),
-                      ),
-                    ),
-                  if (!trainingField)
-                    TopRightHudOverlay(
+          // Training draws beneath the app bar; only its resource row consumes
+          // the safe area so controls and screen feedback keep full-page bounds.
+          child: SafeArea(
+            left: trainingField,
+            top: trainingField,
+            right: trainingField,
+            bottom: trainingField,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: LayoutBuilder(
+                builder: (context, constraints) => Row(
+                  key: hudRowKey,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TopLeftHudOverlay(
                       controller: controller,
-                      uiState: uiState,
-                      onStart: onStart,
-                      onTogglePause: onTogglePause,
-                      showExitButton: showExitButton,
-                      onExit: onExit,
+                      active: uiState.isRunning,
+                      compact: constraints.maxWidth < 584,
+                      warningSignal: warnings,
                     ),
-                ],
+                    ?resourcesTrailing,
+                    if (!trainingField)
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          heightFactor: 1,
+                          child: SurvivalTimerOverlay(controller: controller),
+                        ),
+                      ),
+                    if (!trainingField)
+                      TopRightHudOverlay(
+                        controller: controller,
+                        uiState: uiState,
+                        onStart: onStart,
+                        onTogglePause: onTogglePause,
+                        showExitButton: showExitButton,
+                        onExit: onExit,
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

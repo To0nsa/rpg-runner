@@ -53,10 +53,11 @@ and reads cached static frames from `UiAssetLifecycle`; the picker owns no separ
 image cache or animation loop.
 
 Character setup opts into `MenuScaffold.overlayAppBar` only for Training Field.
-The game viewport uses the full page behind the transparent app bar; only the
-HUD consumes the body's safe-area padding, which includes the app bar. This
-keeps tabs and controls accessible without reducing the game scale to fit a
-shorter content area. Rendering and desktop aim share the full viewport metrics.
+The game viewport and `GameOverlay` use the full page behind the transparent app
+bar. Only the resources row (including its settings cog) consumes the body's
+safe-area padding, which includes the app bar. Touch controls, the desktop control
+bar, aim cancellation, damage borders, and terrain-recovery dimming use full-page
+bounds. Rendering and desktop aim share the full viewport metrics.
 
 ## Editor ownership
 
