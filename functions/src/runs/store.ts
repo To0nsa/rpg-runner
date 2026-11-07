@@ -1,3 +1,4 @@
+import { selectedLoadout } from "../ownership/character_builds.js";
 import { randomUUID } from "node:crypto";
 
 import type { Firestore } from "firebase-admin/firestore";
@@ -113,7 +114,7 @@ export async function createRunSession(
     uid: args.uid,
   });
   canonicalLoadMs = Date.now() - canonicalLoadStartMs;
-  const snapshot = deriveStartSnapshot(canonicalState.selection);
+  const snapshot = deriveStartSnapshot(canonicalState.selection, canonicalState.progression);
   const authorizedLoadout = normalizeAuthorizedLoadout({
     loadout: snapshot.loadoutSnapshot,
     meta: canonicalState.meta,
@@ -459,7 +460,7 @@ function isMissingBoardError(error: unknown): boolean {
   return error.message.startsWith("No board found for ");
 }
 
-function deriveStartSnapshot(selection: JsonObject): StartSnapshot {
+function deriveStartSnapshot(selection: JsonObject, progression: JsonObject): StartSnapshot {
   const modeRaw =
     typeof selection.runMode === "string"
       ? selection.runMode
@@ -470,15 +471,10 @@ function deriveStartSnapshot(selection: JsonObject): StartSnapshot {
     selection.characterId,
     "selection.characterId",
   );
-  const loadoutsByCharacter = requireSelectionObject(
-    selection.loadoutsByCharacter,
-    "selection.loadoutsByCharacter",
-  );
-  const loadoutRaw = loadoutsByCharacter[playerCharacterId];
-  const loadoutSnapshot = requireSelectionObject(
-    loadoutRaw,
-    `selection.loadoutsByCharacter.${playerCharacterId}`,
-  );
+  const loadoutSnapshot = selectedLoadout(selection, playerCharacterId, progression);
+  if (loadoutSnapshot === null) {
+    throw new HttpsError("failed-precondition", "The selected build is missing or locked.");
+  }
   return {
     mode,
     levelId,
@@ -495,14 +491,4 @@ function requireSelectionString(value: unknown, fieldName: string): string {
     );
   }
   return value.trim();
-}
-
-function requireSelectionObject(value: unknown, fieldName: string): JsonObject {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new HttpsError(
-      "failed-precondition",
-      `${fieldName} must be an object in canonical selection state.`,
-    );
-  }
-  return value as JsonObject;
 }

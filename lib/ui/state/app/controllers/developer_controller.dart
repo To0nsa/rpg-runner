@@ -114,62 +114,66 @@ final class _AppStateDeveloperController extends _AppStateController {
   SelectionState _normalize(SelectionState selection) {
     final meta = _unlockedMeta(selection);
     final helper = _app._selectionOwnershipController;
-    final loadouts = <PlayerCharacterId, EquippedLoadoutDef>{};
+    var normalized = selection.atPlayerLevel(
+      _app.progression.playerProgress.level,
+    );
     for (final id in PlayerCharacterId.values) {
       final defaults = SelectionState.defaults.loadoutFor(id);
-      final gear = meta.equippedFor(id);
-      final ownership = meta.abilityOwnershipFor(id);
-      var loadout = helper._copyLoadout(
-        selection.loadoutFor(id),
-        mask: PlayerCharacterRegistry.resolve(id).catalog.loadoutSlotMask,
-        mainWeaponId: gear.mainWeaponId,
-        offhandWeaponId: gear.offhandWeaponId,
-        spellBookId: gear.spellBookId,
-        accessoryId: gear.accessoryId,
-      );
-      final abilities = <AbilitySlot, AbilityKey>{
-        AbilitySlot.primary: loadout.abilityPrimaryId,
-        AbilitySlot.secondary: loadout.abilitySecondaryId,
-        AbilitySlot.projectile: loadout.abilityProjectileId,
-        AbilitySlot.spell: loadout.abilitySpellId,
-        AbilitySlot.mobility: loadout.abilityMobilityId,
-        AbilitySlot.jump: loadout.abilityJumpId,
-      };
-      final defaultAbilities = <AbilitySlot, AbilityKey>{
-        AbilitySlot.primary: defaults.abilityPrimaryId,
-        AbilitySlot.secondary: defaults.abilitySecondaryId,
-        AbilitySlot.projectile: defaults.abilityProjectileId,
-        AbilitySlot.spell: defaults.abilitySpellId,
-        AbilitySlot.mobility: defaults.abilityMobilityId,
-        AbilitySlot.jump: defaults.abilityJumpId,
-      };
-      for (final slot in AbilitySlot.values) {
-        if (!ownership
-            .learnedAbilityIdsForSlot(slot)
-            .contains(abilities[slot])) {
-          loadout = helper._withAbilityInLoadout(
-            loadout: loadout,
-            slot: slot,
-            abilityId: defaultAbilities[slot]!,
+      for (var index = 0; index < SelectionState.buildCount; index++) {
+        final source = selection.loadoutFor(id, buildIndex: index);
+        final gear = _validGear(id, source, defaults);
+        final ownership = meta.abilityOwnershipFor(id);
+        var loadout = helper._copyLoadout(
+          source,
+          mask: PlayerCharacterRegistry.resolve(id).catalog.loadoutSlotMask,
+          mainWeaponId: gear.mainWeaponId,
+          offhandWeaponId: gear.offhandWeaponId,
+          spellBookId: gear.spellBookId,
+          accessoryId: gear.accessoryId,
+        );
+        final abilities = <AbilitySlot, AbilityKey>{
+          AbilitySlot.primary: loadout.abilityPrimaryId,
+          AbilitySlot.secondary: loadout.abilitySecondaryId,
+          AbilitySlot.projectile: loadout.abilityProjectileId,
+          AbilitySlot.spell: loadout.abilitySpellId,
+          AbilitySlot.mobility: loadout.abilityMobilityId,
+          AbilitySlot.jump: loadout.abilityJumpId,
+        };
+        final defaultAbilities = <AbilitySlot, AbilityKey>{
+          AbilitySlot.primary: defaults.abilityPrimaryId,
+          AbilitySlot.secondary: defaults.abilitySecondaryId,
+          AbilitySlot.projectile: defaults.abilityProjectileId,
+          AbilitySlot.spell: defaults.abilitySpellId,
+          AbilitySlot.mobility: defaults.abilityMobilityId,
+          AbilitySlot.jump: defaults.abilityJumpId,
+        };
+        for (final slot in AbilitySlot.values) {
+          if (!ownership
+              .learnedAbilityIdsForSlot(slot)
+              .contains(abilities[slot])) {
+            loadout = helper._withAbilityInLoadout(
+              loadout: loadout,
+              slot: slot,
+              abilityId: defaultAbilities[slot]!,
+            );
+          }
+        }
+        if (!ownership.learnedProjectileSpellIds.contains(
+          loadout.projectileSlotSpellId,
+        )) {
+          loadout = helper._copyLoadout(
+            loadout,
+            projectileSlotSpellId: defaults.projectileSlotSpellId,
           );
         }
+        normalized = normalized.withLoadoutFor(id, loadout, buildIndex: index);
       }
-      if (!ownership.learnedProjectileSpellIds.contains(
-        loadout.projectileSlotSpellId,
-      )) {
-        loadout = helper._copyLoadout(
-          loadout,
-          projectileSlotSpellId: defaults.projectileSlotSpellId,
-        );
-      }
-      loadouts[id] = loadout;
     }
-    return selection.copyWith(
+    return normalized.copyWith(
       selectedRunMode: RunMode.practice,
       selectedLevelId: LevelRegistry.isAvailable(selection.selectedLevelId)
           ? selection.selectedLevelId
           : LevelRegistry.defaultLevelId,
-      loadoutsByCharacter: loadouts,
     );
   }
 

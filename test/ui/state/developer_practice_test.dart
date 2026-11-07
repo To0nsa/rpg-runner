@@ -22,6 +22,40 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../test_support/app_startup_fakes.dart';
 
 void main() {
+  test('Developer Practice restores build 1 and keeps level locks on every character', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = SharedPrefsDeveloperProfileStore();
+    await store.saveSelection(
+      SelectionState.defaults
+          .selectBuild(PlayerCharacterId.bountyHunter, 2)
+          .copyWith(buildName: 'Third'),
+    );
+    final state = AppState.developer(store: store);
+    addTearDown(state.dispose);
+    await state.bootstrap();
+    expect(
+      state.selection.selectedBuildIndexFor(PlayerCharacterId.bountyHunter),
+      0,
+    );
+    expect(
+      state.selection.buildsFor(PlayerCharacterId.bountyHunter).builds[2].name,
+      'Third',
+    );
+    for (final id in PlayerCharacterId.values) {
+      await expectLater(state.selectBuild(id, 1), throwsStateError);
+      await expectLater(state.selectBuild(id, 2), throwsStateError);
+    }
+    await state.setBuildName('Willow test');
+    await state.selectBuild(PlayerCharacterId.eloise, 0);
+    expect(state.selection.buildName, 'Build 1');
+    await state.selectBuild(PlayerCharacterId.bountyHunter, 0);
+    expect(state.selection.buildName, 'Willow test');
+    final restored = AppState.developer(store: store);
+    addTearDown(restored.dispose);
+    await restored.bootstrap();
+    expect(restored.selection.buildName, 'Willow test');
+  });
+
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
 

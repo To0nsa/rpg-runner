@@ -80,7 +80,7 @@ The only developer persistence is:
 
 - `developer_practice.enabled.v1`: active-mode preference.
 - `developer_practice.selection.v1`: existing `SelectionState` serialization,
-  containing level, character, build name and each character's loadout.
+  containing level, character and each character's three named builds (schema 2).
 
 Writes are ordered; pending loadout saves finish before run start or profile
 switch. A failed save can be retried by the next flush. Corrupt serialized
@@ -94,6 +94,10 @@ in force. Enemy abilities are excluded. Stale equipment/ability selections are
 repaired using current character defaults. Core's `LoadoutValidator` checks the
 selected loadout before each run. The normal starter-inventory normalization
 policy is unchanged. No currency, reward ledger or progression is generated.
+
+Build slots retain the normal level 5/12 locks, even though catalog gear and
+skills are unlocked. This isolated profile stays at level 1 because it earns no
+XP. A locked saved selection falls back to Build 1. See [character builds](character_builds.md).
 
 ## Runs and presentation
 

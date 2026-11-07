@@ -172,11 +172,12 @@ the updated Functions and installation of a rebuilt client are still required.
 
 ## Request bounds
 
-Every callable request parser applies the same JSON boundary before domain
+Every callable request parser applies the bounded JSON boundary before domain
 logic:
 
 - serialized UTF-8 payload: 32 KiB;
-- maximum nesting depth: 8;
+- maximum nesting depth: 8, or 9 for ownership command envelopes containing
+  [saved builds](character_builds.md);
 - maximum string length: 2,048 characters;
 - maximum array length: 128;
 - maximum object fields: 64;

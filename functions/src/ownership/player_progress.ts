@@ -4,7 +4,7 @@ import { RewardGrantInvariantViolationError } from "./reward_grants.js";
 /** One XP per 200 validated score points keeps 30,000-point runs at 150 XP. */
 const xpScoreDivisor = 200;
 
-/** Mirrors the client's capped display level from settled lifetime XP. */
+/** Derives the capped account level used by build unlocks and client presentation. */
 export function playerLevelFromTotalXp(totalXp: number): number {
   let xpBeforeLevel = 0;
   for (let level = 1; level < 30; level += 1) {

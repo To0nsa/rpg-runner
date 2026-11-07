@@ -2,8 +2,9 @@ import 'dart:math' as math;
 
 /// Account-wide totals earned from accepted, replay-validated runs.
 ///
-/// Damage is stored in hundredths of HP. Level is a display-only value derived
-/// from lifetime XP, so an account cannot hold conflicting XP and level values.
+/// Damage is stored in hundredths of HP. Level is a derived value used by UI and
+/// build unlocks. Lifetime XP is the only stored source, so an account cannot
+/// hold conflicting XP and level values.
 final class PlayerProgress {
   /// Highest displayed account level; lifetime XP can continue to grow.
   static const maxLevel = 30;

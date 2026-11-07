@@ -1,3 +1,5 @@
+import { starterSelection } from "../../src/ownership/defaults.js";
+import { buildAt, characterBuilds } from "../../src/ownership/character_builds.js";
 import assert from "node:assert/strict";
 import { after, beforeEach, test } from "node:test";
 
@@ -265,44 +267,7 @@ test("createRunSession binds competitive ticket to active monthly board", async 
   const canonicalRef = canonicalDocRef(db, uid, defaultCanonicalProfileId);
   await canonicalRef.set(
     {
-      selection: {
-        schemaVersion: 1,
-        levelId: "field",
-        runMode: "competitive",
-        runType: "competitive",
-        characterId: "eloise",
-        buildName: "Build 1",
-        loadoutsByCharacter: {
-          eloise: {
-            mask: 7,
-            mainWeaponId: "plainsteel",
-            offhandWeaponId: "roadguard",
-            spellBookId: "apprenticePrimer",
-            projectileSlotSpellId: "acidBolt",
-            accessoryId: "strengthBelt",
-            abilityPrimaryId: "eloise.seeker_slash",
-            abilitySecondaryId: "eloise.shield_block",
-            abilityProjectileId: "eloise.snap_shot",
-            abilitySpellId: "eloise.arcane_haste",
-            abilityMobilityId: "eloise.dash",
-            abilityJumpId: "eloise.jump",
-          },
-          eloiseWip: {
-            mask: 7,
-            mainWeaponId: "plainsteel",
-            offhandWeaponId: "roadguard",
-            spellBookId: "apprenticePrimer",
-            projectileSlotSpellId: "acidBolt",
-            accessoryId: "strengthBelt",
-            abilityPrimaryId: "eloise.seeker_slash",
-            abilitySecondaryId: "eloise.shield_block",
-            abilityProjectileId: "eloise.snap_shot",
-            abilitySpellId: "eloise.arcane_haste",
-            abilityMobilityId: "eloise.dash",
-            abilityJumpId: "eloise.jump",
-          },
-        },
-      },
+      selection: { ...starterSelection(), runMode: "competitive", runType: "competitive" },
     },
     { merge: true },
   );
@@ -474,29 +439,9 @@ test("createRunSession rejects mode mismatch between request and canonical selec
 test("createRunSession rejects canonical loadout containing unowned content", async () => {
   await loadOrCreateCanonicalState({ db, uid });
   const canonicalRef = canonicalDocRef(db, uid, defaultCanonicalProfileId);
-  await canonicalRef.set(
-    {
-      selection: {
-        loadoutsByCharacter: {
-          eloise: {
-            mask: 7,
-            mainWeaponId: "plainsteel",
-            offhandWeaponId: "roadguard",
-            spellBookId: "bastionCodex",
-            projectileSlotSpellId: "acidBolt",
-            accessoryId: "strengthBelt",
-            abilityPrimaryId: "eloise.seeker_slash",
-            abilitySecondaryId: "eloise.shield_block",
-            abilityProjectileId: "eloise.snap_shot",
-            abilitySpellId: "eloise.arcane_haste",
-            abilityMobilityId: "eloise.dash",
-            abilityJumpId: "eloise.jump",
-          },
-        },
-      },
-    },
-    { merge: true },
-  );
+  const selection = starterSelection();
+  (buildAt(selection, "eloise", 0)!.loadout as Record<string, unknown>).spellBookId = "bastionCodex";
+  await canonicalRef.set({ selection }, { merge: true });
 
   await assert.rejects(
     () =>
@@ -735,3 +680,19 @@ function restoreEnv(name: string, value: string | undefined): void {
   }
   process.env[name] = value;
 }
+
+
+test("run tickets use the selected unlocked build and reject a locked stored selection", async () => {
+  await loadOrCreateCanonicalState({ db, uid });
+  const canonicalRef = canonicalDocRef(db, uid, defaultCanonicalProfileId);
+  const selection = starterSelection();
+  characterBuilds(selection, "eloise")!.selectedBuildIndex = 1;
+  (buildAt(selection, "eloise", 1)!.loadout as Record<string, unknown>).projectileSlotSpellId = "holyBolt";
+  await canonicalRef.set({ selection }, { merge: true });
+  const args = { db, uid, mode: "practice" as const, levelId: "field", gameCompatVersion: currentGameCompatVersion };
+  await assert.rejects(() => createRunSession(args), (error: { message?: string }) =>
+    (error.message ?? "").includes("locked"));
+  await canonicalRef.set({ progression: { playerProgress: { totalXp: 570 } } }, { merge: true });
+  const result = await createRunSession(args);
+  assert.equal((result.runTicket.loadoutSnapshot as Record<string, unknown>).projectileSlotSpellId, "holyBolt");
+});

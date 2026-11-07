@@ -156,7 +156,7 @@ function projectileCommand(
     sessionId: "session_1",
     expectedRevision,
     commandId,
-    payload: {
+    payload: { buildIndex: 0,
       characterId: "eloise",
       spellId: "holyBolt",
     },

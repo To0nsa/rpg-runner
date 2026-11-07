@@ -3,7 +3,9 @@
 Player level is an account-wide record of runs played, shared by both selectable
 characters. Each newly reached level delivers a manually claimed 25-gold
 [inbox gift](messages.md). Previously reached levels are not backfilled.
-Level itself grants no combat stat bonus or direct leaderboard advantage.
+Confirmed account level unlocks Build 2 at level 5 and Build 3 at level 12 for
+both characters. Build 1 is always available. These are saved configurations;
+level itself grants no combat stat bonus. Developer Practice shows the same locks.
 
 Each accepted, replay-validated Practice, Competitive or Weekly run earns
 `floor(validatedScore / 200)` XP. A zero-score run earns zero XP but still counts
@@ -44,6 +46,5 @@ total but do not appear in the displayed mode totals.
 
 Damage displays in whole HP, rounded from stored hundredths. Existing Library
 kills are preserved. XP, run count and damage totals begin with runs validated after
-tracking is enabled; historical runs are not backfilled. The player level
-and stats are descriptive, so score and gameplay tuning can evolve without
+tracking is enabled; historical runs are not backfilled. Lifetime stats are descriptive, so score and gameplay tuning can evolve without
 changing a previously earned level or replay outcome.

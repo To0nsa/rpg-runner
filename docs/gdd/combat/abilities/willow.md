@@ -1,11 +1,17 @@
 # Willow
 
 Willow is the playable bounty hunter. Choose Éloïse or Willow before opening
-the character builder; each keeps her own gear and six ability selections.
-Tap a card to select its character; `Change build` opens that character's builder.
-Both cards fit on one screen, with a dark overlay marking the unselected choice.
-The builder's character-name button returns to selection. Start and Restart
-use the remembered build without making the player choose again.
+the character builder. Each character has three independent builds with their
+own gear, ranged weapon and six abilities. Tap a card to select its character,
+or a build button to open that configuration. Build 1 is available immediately;
+Build 2 unlocks at confirmed account level 5 and Build 3 at level 12. Locked
+buttons show their required level, including in Developer Practice.
+
+Both cards fit on one screen, with illustration/name on the left, build buttons
+on the right, and a dark overlay marking the unselected character. Builds start
+as Build 1/2/3 and can be renamed from the builder header using up to 12
+characters. Start, Restart and Training Field use the remembered build.
+
 
 Willow and Éloïse share the same apparent body size in menus and gameplay.
 Willow's grounded feet meet the floor across all three weapon variants; held

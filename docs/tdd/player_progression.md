@@ -4,6 +4,9 @@
 defeat evidence, with separate counters for their 10-metre-or-10-second natural
 run eligibility. They do not backfill these historical lifetime totals.
 
+Build-slot authorization uses confirmed account level derived from lifetime XP;
+local reward previews never unlock a slot. See [character builds](character_builds.md).
+
 ## Authority and data flow
 
 Core records actual HP lost in `DamageSystem`'s post-mitigation callback.

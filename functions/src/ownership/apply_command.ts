@@ -1,3 +1,4 @@
+import { buildAt, isBuildUnlocked, record, syncEquippedBuilds } from "./character_builds.js";
 import { isPlayerEquippableProjectileId } from "./projectile_spells.js";
 import { characterContentAllowed } from "./character_catalog.js";
 import { storeOfferDefinitions } from "./store_pricing.js";
@@ -100,6 +101,8 @@ function applySetSelection(
   const selection = normalizeAuthorizedSelection({
     selection: payload.selection,
     meta: canonical.meta,
+    progression: canonical.progression,
+    previousSelection: canonical.selection,
   });
   if (selection === null) {
     return rejected("invalidCommand");
@@ -107,6 +110,7 @@ function applySetSelection(
   return accepted({
     ...canonical,
     selection,
+    meta: syncEquippedBuilds(selection, canonical.meta),
   });
 }
 
@@ -131,11 +135,13 @@ function applySetLoadout(
     return rejected("invalidCommand");
   }
   const selection = ensureSelectionObject(canonical.selection);
-  const loadouts = ensureMap(selection, "loadoutsByCharacter");
-  loadouts[characterId] = normalizedLoadout;
+  const build = editableBuild(canonical, selection, characterId, payload.buildIndex);
+  if (build === null) return rejected("invalidCommand");
+  build.loadout = normalizedLoadout;
   return accepted({
     ...canonical,
     selection,
+    meta: syncEquippedBuilds(selection, canonical.meta),
   });
 }
 
@@ -172,21 +178,16 @@ function applyEquipGear(
     return rejected("invalidCommand");
   }
 
-  const meta = ensureMetaObject(canonical.meta);
-  const equippedByCharacter = ensureMap(meta, "equippedByCharacter");
-  const equipped = ensureMap(equippedByCharacter, characterId);
-  equipped[gearField] = itemId;
-
-  // Keep selection loadout gear in sync with equipped gear.
   const selection = ensureSelectionObject(canonical.selection);
-  const loadouts = ensureMap(selection, "loadoutsByCharacter");
-  const loadout = ensureMap(loadouts, characterId);
+  const build = editableBuild(canonical, selection, characterId, payload.buildIndex);
+  const loadout = record(build?.loadout);
+  if (loadout === null) return rejected("invalidCommand");
   loadout[gearField] = itemId;
 
   return accepted({
     ...canonical,
     selection,
-    meta,
+    meta: syncEquippedBuilds(selection, canonical.meta),
   });
 }
 
@@ -224,8 +225,9 @@ function applySetAbilitySlot(
   }
 
   const selection = ensureSelectionObject(canonical.selection);
-  const loadouts = ensureMap(selection, "loadoutsByCharacter");
-  const loadout = ensureMap(loadouts, characterId);
+  const build = editableBuild(canonical, selection, characterId, payload.buildIndex);
+  const loadout = record(build?.loadout);
+  if (loadout === null) return rejected("invalidCommand");
   loadout[abilityField] = abilityId;
 
   return accepted({
@@ -256,8 +258,9 @@ function applySetProjectileSpell(
     return rejected("invalidCommand");
   }
   const selection = ensureSelectionObject(canonical.selection);
-  const loadouts = ensureMap(selection, "loadoutsByCharacter");
-  const loadout = ensureMap(loadouts, characterId);
+  const build = editableBuild(canonical, selection, characterId, payload.buildIndex);
+  const loadout = record(build?.loadout);
+  if (loadout === null) return rejected("invalidCommand");
   loadout.projectileSlotSpellId = spellId;
   return accepted({
     ...canonical,
@@ -620,4 +623,9 @@ function gearSlotToItemDomain(slot: string): string | null {
     default:
       return null;
   }
+}
+
+function editableBuild(canonical: OwnershipCanonicalState, selection: JsonObject,
+  characterId: string, index: unknown): JsonObject | null {
+  return isBuildUnlocked(index, canonical.progression) ? buildAt(selection, characterId, index) : null;
 }

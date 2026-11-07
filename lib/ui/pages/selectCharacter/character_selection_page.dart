@@ -11,6 +11,7 @@ import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/player_idle_preview.dart';
 import '../../state/app/app_state.dart';
+import '../../state/ownership/selection_state.dart';
 import '../../theme/ui_tokens.dart';
 
 /// Selects a character in place or opens its independently remembered build.
@@ -24,22 +25,27 @@ class _CharacterSelectionPageState extends State<CharacterSelectionPage> {
   bool _saving = false;
   String? _error;
 
-  Future<void> _select(PlayerCharacterId id, {bool openBuild = false}) async {
+  Future<void> _select(PlayerCharacterId id, {int? buildIndex}) async {
     if (_saving) return;
     setState(() {
       _saving = true;
       _error = null;
     });
     try {
-      await context.read<AppState>().setCharacter(id);
+      final state = context.read<AppState>();
+      if (buildIndex == null) {
+        await state.setCharacter(id);
+      } else {
+        await state.selectBuild(id, buildIndex);
+      }
       if (!mounted) return;
-      if (openBuild) {
+      if (buildIndex != null) {
         Navigator.of(context).pushReplacementNamed(UiRoutes.setupLoadout);
       }
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not select this character. Please try again.';
+        _error = 'Could not save this selection. Please try again.';
       });
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -49,7 +55,8 @@ class _CharacterSelectionPageState extends State<CharacterSelectionPage> {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final selected = context.watch<AppState>().selection.selectedCharacterId;
+    final state = context.watch<AppState>();
+    final selected = state.selection.selectedCharacterId;
     return MenuScaffold(
       title: 'Choose your character',
       child: MenuLayout(
@@ -73,7 +80,10 @@ class _CharacterSelectionPageState extends State<CharacterSelectionPage> {
                           selected: selected == character.id,
                           enabled: !_saving,
                           onSelect: () => _select(character.id),
-                          onBuild: () => _select(character.id, openBuild: true),
+                          builds: state.selection.buildsFor(character.id),
+                          isUnlocked: state.isBuildUnlocked,
+                          onBuild: (index) =>
+                              _select(character.id, buildIndex: index),
                         ),
                       ),
                   ],
@@ -103,10 +113,15 @@ class _CharacterCard extends StatelessWidget {
     required this.enabled,
     required this.onSelect,
     required this.onBuild,
+    required this.builds,
+    required this.isUnlocked,
   });
   final PlayerCharacterDefinition character;
   final bool selected, enabled;
-  final VoidCallback onSelect, onBuild;
+  final VoidCallback onSelect;
+  final ValueChanged<int> onBuild;
+  final CharacterBuilds builds;
+  final bool Function(int) isUnlocked;
 
   @override
   Widget build(BuildContext context) {
@@ -138,48 +153,149 @@ class _CharacterCard extends StatelessWidget {
                   ),
                 ),
               Padding(
-                padding: EdgeInsets.all(ui.space.md),
-                child: Column(
+                padding: EdgeInsets.all(ui.space.sm),
+                child: Row(
                   children: [
                     Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final preview = PlayerIdlePreview(
-                            characterId: character.id,
-                            size: math.min(
-                              180,
-                              math.min(
-                                constraints.maxWidth,
-                                constraints.maxHeight,
-                              ),
-                            ),
-                          );
-                          return Center(
-                            child: selected
-                                ? preview
-                                : ColorFiltered(
-                                    colorFilter: const ColorFilter.mode(
-                                      UiBrandPalette.unselectedCardScrim,
-                                      BlendMode.srcATop,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final preview = PlayerIdlePreview(
+                                  characterId: character.id,
+                                  size: math.min(
+                                    180,
+                                    math.min(
+                                      constraints.maxWidth,
+                                      constraints.maxHeight,
                                     ),
-                                    child: preview,
                                   ),
-                          );
-                        },
+                                );
+                                return Center(
+                                  child: selected
+                                      ? preview
+                                      : ColorFiltered(
+                                          colorFilter: const ColorFilter.mode(
+                                            UiBrandPalette.unselectedCardScrim,
+                                            BlendMode.srcATop,
+                                          ),
+                                          child: preview,
+                                        ),
+                                );
+                              },
+                            ),
+                          ),
+                          Text(
+                            character.displayName,
+                            style: ui.text.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: ui.space.sm),
+                        ],
                       ),
                     ),
-                    Text(character.displayName, style: ui.text.title),
-                    SizedBox(height: ui.space.sm),
-                    SizedBox(
-                      width: 220,
-                      child: AppButton(
-                        label: 'Change build',
-                        onPressed: enabled ? onBuild : null,
+                    SizedBox(width: ui.space.sm),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (
+                            var index = 0;
+                            index < SelectionState.buildCount;
+                            index++
+                          ) ...[
+                            if (index > 0) SizedBox(height: ui.space.sm),
+                            _BuildButton(
+                              key: ValueKey(
+                                'build-${character.id.name}-$index',
+                              ),
+                              name: builds.builds[index].name,
+                              selected:
+                                  selected && builds.selectedIndex == index,
+                              requiredLevel:
+                                  SelectionState.buildUnlockLevels[index],
+                              unlocked: isUnlocked(index),
+                              onPressed: enabled ? () => onBuild(index) : null,
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Keep locked buttons readable and consume taps without selecting the card.
+class _BuildButton extends StatelessWidget {
+  const _BuildButton({
+    super.key,
+    required this.name,
+    required this.selected,
+    required this.requiredLevel,
+    required this.unlocked,
+    required this.onPressed,
+  });
+  final String name;
+  final bool selected, unlocked;
+  final int requiredLevel;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    return Semantics(
+      button: true,
+      onTap: unlocked ? onPressed : null,
+      enabled: unlocked && onPressed != null,
+      selected: selected,
+      label: unlocked ? name : '$name, unlocks at level $requiredLevel',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: unlocked ? null : () {},
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  label: name,
+                  size: AppButtonSize.xs,
+                  variant: selected
+                      ? AppButtonVariant.primary
+                      : AppButtonVariant.secondary,
+                  onPressed: unlocked ? onPressed : null,
+                ),
+              ),
+              if (!unlocked)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.lock_outline,
+                        size: 12,
+                        color: ui.colors.textMuted,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Level $requiredLevel',
+                        style: ui.text.body.copyWith(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),

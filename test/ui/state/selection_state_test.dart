@@ -78,83 +78,111 @@ void main() {
       expect(state.buildName, SelectionState.defaults.buildName);
     });
 
-    test('fromJson reads current schema payload and fills missing entries', () {
-      final state = SelectionState.fromJson(<String, dynamic>{
-        'schemaVersion': SelectionState.schemaVersion,
-        'characterId': PlayerCharacterId.eloise.name,
-        'loadoutsByCharacter': <String, Object?>{
-          PlayerCharacterId.eloise.name: <String, Object?>{
-            'abilityJumpId': 'eloise.custom_jump',
-          },
-        },
-      });
-
-      expect(state.selectedCharacterId, PlayerCharacterId.eloise);
+    test('all three named builds round trip without sharing edits', () {
+      const id = PlayerCharacterId.bountyHunter;
+      var state = SelectionState.defaults
+          .selectBuild(id, 1)
+          .copyWith(buildName: 'Crossbow')
+          .withLoadoutFor(
+            id,
+            const EquippedLoadoutDef(abilityJumpId: 'custom.jump'),
+          );
+      state = state.selectBuild(id, 2).copyWith(buildName: 'Shotgun');
+      final restored = SelectionState.fromJson(state.toJson());
+      expect(restored.buildName, 'Shotgun');
+      expect(restored.buildsFor(id).builds.map((b) => b.name), [
+        'Build 1',
+        'Crossbow',
+        'Shotgun',
+      ]);
       expect(
-        state.loadoutFor(PlayerCharacterId.eloise).abilityJumpId,
-        'eloise.custom_jump',
+        restored.loadoutFor(id, buildIndex: 1).abilityJumpId,
+        'custom.jump',
       );
-      for (final id in PlayerCharacterId.values) {
-        if (id == PlayerCharacterId.eloise) {
-          continue;
-        }
+      expect(
+        restored.loadoutFor(id).abilityJumpId,
+        SelectionState.defaults.loadoutFor(id).abilityJumpId,
+      );
+      expect(
+        restored.loadoutFor(PlayerCharacterId.eloise).abilityJumpId,
+        'eloise.jump',
+      );
+      expect(restored.toJson().containsKey('loadoutsByCharacter'), isFalse);
+      expect(restored.toJson().containsKey('buildName'), isFalse);
+    });
+
+    test(
+      'malformed slots and unavailable equipment restore character defaults',
+      () {
+        final json = SelectionState.defaults.toJson();
+        final branches = json['buildsByCharacter'] as Map;
+        final eloise = branches['eloise'] as Map;
+        eloise['selectedBuildIndex'] = 30;
+        final build = (eloise['builds'] as List).first as Map;
+        build['loadout'] = {
+          'accessoryId': 'removed',
+          'abilityJumpId': 'custom.jump',
+        };
+        branches.remove('bountyHunter');
+        final restored = SelectionState.fromJson(json);
+        expect(restored.selectedBuildIndexFor(PlayerCharacterId.eloise), 0);
         expect(
-          state.loadoutFor(id).abilityJumpId,
-          SelectionState.defaults.loadoutFor(id).abilityJumpId,
+          restored.loadoutFor(PlayerCharacterId.eloise).mask,
+          PlayerCharacterRegistry.eloise.catalog.loadoutSlotMask,
         );
-      }
-    });
+        expect(
+          restored.loadoutFor(PlayerCharacterId.eloise).abilityJumpId,
+          'custom.jump',
+        );
+        expect(
+          restored.loadoutFor(PlayerCharacterId.eloise).accessoryId,
+          AccessoryId.strengthBelt,
+        );
+        expect(
+          restored.loadoutFor(PlayerCharacterId.bountyHunter).abilityJumpId,
+          'bounty_hunter.jump',
+        );
+      },
+    );
 
-    test('fromJson missing mask falls back to character-authored mask', () {
-      final state = SelectionState.fromJson(<String, dynamic>{
-        'schemaVersion': SelectionState.schemaVersion,
-        'characterId': PlayerCharacterId.eloise.name,
-        'loadoutsByCharacter': <String, Object?>{
-          PlayerCharacterId.eloise.name: <String, Object?>{
-            'abilityJumpId': 'eloise.custom_jump',
-          },
-        },
-      });
+    test(
+      'locked persisted selections fall back without destroying saved builds',
+      () {
+        const id = PlayerCharacterId.eloise;
+        final state = SelectionState.defaults
+            .selectBuild(id, 2)
+            .copyWith(buildName: 'Third');
+        expect(state.atPlayerLevel(11).selectedBuildIndexFor(id), 0);
+        expect(state.atPlayerLevel(12).selectedBuildIndexFor(id), 2);
+        expect(state.atPlayerLevel(1).buildsFor(id).builds[2].name, 'Third');
+        for (final (level, count) in [
+          (1, 1),
+          (4, 1),
+          (5, 2),
+          (11, 2),
+          (12, 3),
+        ]) {
+          for (var i = 0; i < 3; i++) {
+            expect(SelectionState.isBuildUnlocked(i, level), i < count);
+          }
+        }
+        expect(SelectionState.isBuildUnlocked(-1, 30), isFalse);
+        expect(SelectionState.isBuildUnlocked(3, 30), isFalse);
+        expect(() => state.selectBuild(id, 3), throwsRangeError);
+      },
+    );
 
-      expect(
-        state.loadoutFor(PlayerCharacterId.eloise).mask,
-        PlayerCharacterRegistry.resolve(PlayerCharacterId.eloise)
-            .catalog
-            .loadoutSlotMask,
-      );
-    });
-
-    test('toJson writes loadoutsByCharacter only', () {
-      final state = SelectionState.defaults.withLoadoutFor(
-        PlayerCharacterId.eloise,
-        const EquippedLoadoutDef(abilityJumpId: 'eloise.custom_jump'),
-      );
-
-      final json = state.toJson();
-      expect(json['schemaVersion'], SelectionState.schemaVersion);
-      expect(json.containsKey('loadoutsByCharacter'), isTrue);
-      expect(json.containsKey('loadout'), isFalse);
-      final loadouts = json['loadoutsByCharacter']! as Map<String, Object?>;
-      final eloise =
-          loadouts[PlayerCharacterId.eloise.name]! as Map<String, Object?>;
-      expect(eloise['abilityJumpId'], 'eloise.custom_jump');
-    });
-
-    test('fromJson unknown accessory id falls back to current default', () {
-      final state = SelectionState.fromJson(<String, dynamic>{
-        'schemaVersion': SelectionState.schemaVersion,
-        'characterId': PlayerCharacterId.eloise.name,
-        'loadoutsByCharacter': <String, Object?>{
-          PlayerCharacterId.eloise.name: <String, Object?>{
-            'accessoryId': 'ironBracers',
-          },
-        },
-      });
-
-      expect(
-        state.loadoutFor(PlayerCharacterId.eloise).accessoryId,
-        AccessoryId.strengthBelt,
-      );
-    });
+    test(
+      'names count visible characters and preserve a slot-specific default',
+      () {
+        final emoji = String.fromCharCodes([0x1f469, 0x1f3fd, 0x200d, 0x1f680]);
+        expect(SelectionState.normalizeBuildName(emoji * 13), emoji * 12);
+        expect(
+          SelectionState.normalizeBuildName('  ', buildIndex: 2),
+          'Build 3',
+        );
+        expect(SelectionState.normalizeBuildName('  My build  '), 'My build');
+      },
+    );
   });
 }

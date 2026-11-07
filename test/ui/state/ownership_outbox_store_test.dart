@@ -34,31 +34,49 @@ void main() {
       expect(all.single.payloadJson['selectedLevelId'], 'forest');
     });
 
-    test('drops unscoped legacy rows and reads scoped stored rows', () async {
-      final prefs = await SharedPreferences.getInstance();
-      final unscopedLegacyRow = _command(key: 'selection:runMode').toJson()
-        ..remove('ownerUserId');
-      await prefs.setString(
-        SharedPrefsOwnershipOutboxStore.storageKey,
-        jsonEncode(<Object?>[unscopedLegacyRow]),
-      );
+    test(
+      'drops obsolete unscoped rows and reads current scoped rows',
+      () async {
+        final prefs = await SharedPreferences.getInstance();
+        final unscopedLegacyRow = _command(key: 'selection:runMode').toJson()
+          ..remove('ownerUserId');
+        await prefs.setString(
+          SharedPrefsOwnershipOutboxStore.storageKey,
+          jsonEncode(<Object?>[unscopedLegacyRow]),
+        );
 
-      final legacyLoaded = await store.loadAll(ownerUserId: 'uid_test');
-      expect(legacyLoaded, isEmpty);
+        final legacyLoaded = await store.loadAll(ownerUserId: 'uid_test');
+        expect(legacyLoaded, isEmpty);
 
-      await prefs.setString(
-        SharedPrefsOwnershipOutboxStore.storageKey,
-        jsonEncode(<String, Object?>{
-          'version': 2,
-          'entries': <Object?>[
-            _command(key: 'gear:eloise:mainWeapon').toJson(),
-          ],
-        }),
-      );
-      final wrappedLoaded = await store.loadAll(ownerUserId: 'uid_test');
-      expect(wrappedLoaded, hasLength(1));
-      expect(wrappedLoaded.single.coalesceKey, 'gear:eloise:mainWeapon');
-    });
+        await prefs.setString(
+          SharedPrefsOwnershipOutboxStore.storageKey,
+          jsonEncode(<String, Object?>{
+            'version': 4,
+            'entries': <Object?>[
+              _command(key: 'gear:eloise:mainWeapon').toJson(),
+            ],
+          }),
+        );
+        final wrappedLoaded = await store.loadAll(ownerUserId: 'uid_test');
+        expect(wrappedLoaded, hasLength(1));
+        expect(wrappedLoaded.single.coalesceKey, 'gear:eloise:mainWeapon');
+      },
+    );
+
+    test(
+      'discards pre-build commands without replaying them into a slot',
+      () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          SharedPrefsOwnershipOutboxStore.storageKey,
+          jsonEncode({
+            'version': 3,
+            'entries': [_command(key: 'gear:eloise:mainWeapon').toJson()],
+          }),
+        );
+        expect(await store.loadAll(ownerUserId: 'uid_test'), isEmpty);
+      },
+    );
 
     test('keeps same coalesce keys isolated by owner UID', () async {
       await store.upsertCoalesced(
@@ -94,7 +112,7 @@ void main() {
       await prefs.setString(
         SharedPrefsOwnershipOutboxStore.storageKey,
         jsonEncode(<String, Object?>{
-          'version': 2,
+          'version': 4,
           'entries': <Object?>[
             <String, Object?>{'coalesceKey': 7},
             _command(key: 'selection:character').toJson(),

@@ -275,10 +275,12 @@ class SetLoadoutCommand extends OwnershipCommand {
     required super.expectedRevision,
     required super.commandId,
     required this.characterId,
+    required this.buildIndex,
     required this.loadout,
   });
 
   final PlayerCharacterId characterId;
+  final int buildIndex;
   final EquippedLoadoutDef loadout;
 
   @override
@@ -288,6 +290,7 @@ class SetLoadoutCommand extends OwnershipCommand {
   Map<String, Object?> payloadToJson() {
     return <String, Object?>{
       'characterId': characterId.name,
+      'buildIndex': buildIndex,
       'loadout': _loadoutToJson(loadout),
     };
   }
@@ -300,11 +303,13 @@ class SetAbilitySlotCommand extends OwnershipCommand {
     required super.expectedRevision,
     required super.commandId,
     required this.characterId,
+    required this.buildIndex,
     required this.slot,
     required this.abilityId,
   });
 
   final PlayerCharacterId characterId;
+  final int buildIndex;
   final AbilitySlot slot;
   final AbilityKey abilityId;
 
@@ -315,6 +320,7 @@ class SetAbilitySlotCommand extends OwnershipCommand {
   Map<String, Object?> payloadToJson() {
     return <String, Object?>{
       'characterId': characterId.name,
+      'buildIndex': buildIndex,
       'slot': slot.name,
       'abilityId': abilityId,
     };
@@ -328,10 +334,12 @@ class SetProjectileSpellCommand extends OwnershipCommand {
     required super.expectedRevision,
     required super.commandId,
     required this.characterId,
+    required this.buildIndex,
     required this.spellId,
   });
 
   final PlayerCharacterId characterId;
+  final int buildIndex;
   final ProjectileId spellId;
 
   @override
@@ -341,6 +349,7 @@ class SetProjectileSpellCommand extends OwnershipCommand {
   Map<String, Object?> payloadToJson() {
     return <String, Object?>{
       'characterId': characterId.name,
+      'buildIndex': buildIndex,
       'spellId': spellId.name,
     };
   }
@@ -353,11 +362,13 @@ class EquipGearCommand extends OwnershipCommand {
     required super.expectedRevision,
     required super.commandId,
     required this.characterId,
+    required this.buildIndex,
     required this.slot,
     required this.itemId,
   });
 
   final PlayerCharacterId characterId;
+  final int buildIndex;
   final GearSlot slot;
   final Object itemId;
 
@@ -368,6 +379,7 @@ class EquipGearCommand extends OwnershipCommand {
   Map<String, Object?> payloadToJson() {
     return <String, Object?>{
       'characterId': characterId.name,
+      'buildIndex': buildIndex,
       'slot': slot.name,
       ..._gearItemToJson(slot, itemId),
     };

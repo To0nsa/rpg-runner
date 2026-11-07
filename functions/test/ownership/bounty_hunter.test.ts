@@ -1,3 +1,4 @@
+import { buildAt } from "../../src/ownership/character_builds.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { applyOwnershipCommand } from "../../src/ownership/apply_command.js";
@@ -11,8 +12,8 @@ import type { JsonObject, OwnershipCommandEnvelope } from "../../src/ownership/c
 
 test("fresh profiles include Willow and selection requires her complete branch", () => {
   const state = starterCanonicalState("default", "test");
-  const loadouts = state.selection.loadoutsByCharacter as JsonObject;
-  assert.deepEqual(loadouts.bountyHunter, hunterStarterLoadout);
+  const loadouts = state.selection.buildsByCharacter as JsonObject;
+  assert.deepEqual(buildAt(state.selection, "bountyHunter", 0)?.loadout, hunterStarterLoadout);
   assert.ok(normalizeAuthorizedSelection(state));
   assert.ok(normalizeAuthorizedLoadout({ loadout: hunterStarterLoadout, meta: state.meta, characterId: "bountyHunter" }));
   delete loadouts.bountyHunter;
@@ -36,10 +37,10 @@ test("character ownership and equipment families are both enforced", () => {
   for (const characterId of ["eloise", "bountyHunter"]) {
     const wrongGun = characterId === "eloise" ? "hunterPistol" : "acidBolt";
     const base: OwnershipCommandEnvelope = { type: "setProjectileSpell", userId: "test", sessionId: "s", expectedRevision: 0, commandId: "test",
-      payload: { characterId, spellId: wrongGun } };
+      payload: { buildIndex: 0, characterId, spellId: wrongGun } };
     assert.equal(applyOwnershipCommand(state, base).accepted, false);
     assert.equal(applyOwnershipCommand(state, { ...base, type: "learnProjectileSpell" }).accepted, false);
-    assert.equal(applyOwnershipCommand(state, { ...base, type: "equipGear", payload: {
+    assert.equal(applyOwnershipCommand(state, { ...base, type: "equipGear", payload: { buildIndex: 0,
       characterId, slot: "mainWeapon", itemDomain: "weapon", itemId: characterId === "eloise" ? "hunterBlade" : "plainsteel",
     } }).accepted, false);
   }

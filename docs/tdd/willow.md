@@ -11,15 +11,14 @@ character, `bounty_hunter.*` for abilities and `hunter*` for equipment/projectil
 asset paths retain the source pack's `bounty_hunter` name. No aliases are needed.
 `PlayerCharacterRegistry.playable` exposes Éloïse and Willow, excluding Éloïse WIP.
 
-Hub Edit opens `/setup/character`. Tapping a card persists selection through
-`AppState.setCharacter` while staying on the chooser. Each card's `Change build`
-button awaits that selection before replacing the route with the builder.
-The two cards fit the viewport without scrolling. Unselected cards share the
-level selector's dark scrim; names and animated previews identify the choices.
-Failed selection stays on the chooser with an error and enabled retry.
-Builder tabs use the selected character and independent saved loadouts. Start,
-Restart and Training Field consume that same selection. Developer Practice
-unlocks compatible catalog content through its existing local profile owner.
+Hub Edit opens `/setup/character`. Card taps select in place; three build
+buttons on each card select an independent saved configuration before opening
+the builder. Build 2 requires level 5 and Build 3 requires level 12. Unselected
+cards share the level selector's dark scrim and both fit without scrolling.
+Builder actions show the current build name with a 12-character rename control.
+Start, Restart and Training Field resolve the selected build. Developer Practice
+unlocks compatible catalog content while retaining build-level locks. See the
+[build persistence and authorization contract](character_builds.md).
 
 `CharacterEquipmentPolicy` gates gear by character catalog weapon families and
 ranged sources by their required weapon types. Core meta normalization and UI

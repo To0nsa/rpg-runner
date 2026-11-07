@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 
 import '../../components/menu_layout.dart';
-import '../../app/ui_routes.dart';
+import 'build_name_action.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app/app_state.dart';
 import '../../theme/ui_tokens.dart';
@@ -44,70 +44,68 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
     final characterId = context.watch<AppState>().selection.selectedCharacterId;
     final selectedDef = PlayerCharacterRegistry.resolve(characterId);
 
-    return MenuScaffold(
-      overlayAppBar: _tabs.index == 2,
-      appBarActions: [
-        TextButton.icon(
-          onPressed: () =>
-              Navigator.of(context)
-                  .pushReplacementNamed(UiRoutes.selectCharacter),
-          icon: const Icon(Icons.swap_horiz, size: 18),
-          label: Text(selectedDef.displayName),
-        ),
-      ],
-      appBarTitle: SizedBox(
-        height: 44,
-        child: TabBar(
-          controller: _tabs,
-          dividerColor: ui.colors.outline.withValues(alpha: 0.35),
-          indicatorColor: Colors.transparent,
-          labelColor: ui.colors.accentStrong,
-          unselectedLabelColor: ui.colors.textPrimary.withValues(alpha: 0.5),
-          labelStyle: ui.text.label.copyWith(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+    // Rename owns a separate dialog route that handles the keyboard. Keep the
+    // fixed-height gear/skills layout behind that modal at its normal size.
+    return MediaQuery.removeViewInsets(
+      context: context,
+      removeBottom: true,
+      child: MenuScaffold(
+        overlayAppBar: _tabs.index == 2,
+        appBarActions: const [BuildNameAction()],
+        appBarTitle: SizedBox(
+          height: 44,
+          child: TabBar(
+            controller: _tabs,
+            dividerColor: ui.colors.outline.withValues(alpha: 0.35),
+            indicatorColor: Colors.transparent,
+            labelColor: ui.colors.accentStrong,
+            unselectedLabelColor: ui.colors.textPrimary.withValues(alpha: 0.5),
+            labelStyle: ui.text.label.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+            unselectedLabelStyle: ui.text.label.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+            tabs: const [
+              Tab(
+                child: _LoadoutTopTabLabel(
+                  icon: Icons.shield_outlined,
+                  text: 'Gear',
+                ),
+              ),
+              Tab(
+                child: _LoadoutTopTabLabel(
+                  icon: Icons.auto_awesome_outlined,
+                  text: 'Skills',
+                ),
+              ),
+              Tab(
+                child: _LoadoutTopTabLabel(
+                  icon: Icons.sports_martial_arts,
+                  text: 'Training Field',
+                ),
+              ),
+            ],
           ),
-          unselectedLabelStyle: ui.text.label.copyWith(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-          tabs: const [
-            Tab(
-              child: _LoadoutTopTabLabel(
-                icon: Icons.shield_outlined,
-                text: 'Gear',
-              ),
-            ),
-            Tab(
-              child: _LoadoutTopTabLabel(
-                icon: Icons.auto_awesome_outlined,
-                text: 'Skills',
-              ),
-            ),
-            Tab(
-              child: _LoadoutTopTabLabel(
-                icon: Icons.sports_martial_arts,
-                text: 'Training Field',
-              ),
-            ),
-          ],
         ),
+        centerAppBarTitle: true,
+        child: _tabs.index == 2
+            ? TrainingFieldTab(key: ValueKey(characterId))
+            : MenuLayout(
+                scrollable: false,
+                child: _tabs.index == 0
+                    ? GearsTab(
+                        key: ValueKey(characterId),
+                        characterId: selectedDef.id,
+                      )
+                    : SkillsBar(
+                        key: ValueKey(characterId),
+                        characterId: selectedDef.id,
+                      ),
+              ),
       ),
-      centerAppBarTitle: true,
-      child: _tabs.index == 2
-          ? TrainingFieldTab(key: ValueKey(characterId))
-          : MenuLayout(
-              scrollable: false,
-              child: _tabs.index == 0
-                  ? GearsTab(
-                      key: ValueKey(characterId),
-                      characterId: selectedDef.id,
-                    )
-                  : SkillsBar(
-                      key: ValueKey(characterId),
-                      characterId: selectedDef.id,
-                    ),
-            ),
     );
   }
 }

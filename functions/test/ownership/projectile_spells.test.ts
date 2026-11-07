@@ -11,7 +11,7 @@ import { storeOfferDefinitions } from "../../src/ownership/store_pricing.js";
 function command(type: OwnershipCommandType, spellId: string): OwnershipCommandEnvelope {
   return { type, userId: "test", sessionId: "session", expectedRevision: 0,
     commandId: `test-${type}-${spellId}`,
-    payload: { characterId: "eloise", spellId,
+    payload: { buildIndex: 0, characterId: "eloise", spellId,
       offerId: `projectileSpell:projectile:${spellId}` } };
 }
 

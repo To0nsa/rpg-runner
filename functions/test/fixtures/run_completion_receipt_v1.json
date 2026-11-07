@@ -6,53 +6,179 @@
     "profileId": "main",
     "revision": 1,
     "selection": {
-      "schemaVersion": 1,
+      "schemaVersion": 2,
       "levelId": "field",
+      "runMode": "practice",
       "runType": "practice",
       "characterId": "eloise",
-      "buildName": "Build 1",
-      "loadoutsByCharacter": {
+      "buildsByCharacter": {
         "eloise": {
-          "mask": 7,
-          "mainWeaponId": "plainsteel",
-          "offhandWeaponId": "roadguard",
-          "spellBookId": "apprenticePrimer",
-          "projectileSlotSpellId": "acidBolt",
-          "accessoryId": "strengthBelt",
-          "abilityPrimaryId": "eloise.seeker_slash",
-          "abilitySecondaryId": "eloise.shield_block",
-          "abilityProjectileId": "eloise.snap_shot",
-          "abilitySpellId": "eloise.arcane_haste",
-          "abilityMobilityId": "eloise.dash",
-          "abilityJumpId": "eloise.jump"
+          "selectedBuildIndex": 0,
+          "builds": [
+            {
+              "name": "Build 1",
+              "loadout": {
+                "mask": 7,
+                "mainWeaponId": "plainsteel",
+                "offhandWeaponId": "roadguard",
+                "spellBookId": "apprenticePrimer",
+                "projectileSlotSpellId": "acidBolt",
+                "accessoryId": "strengthBelt",
+                "abilityPrimaryId": "eloise.seeker_slash",
+                "abilitySecondaryId": "eloise.shield_block",
+                "abilityProjectileId": "eloise.snap_shot",
+                "abilitySpellId": "eloise.arcane_haste",
+                "abilityMobilityId": "eloise.dash",
+                "abilityJumpId": "eloise.jump"
+              }
+            },
+            {
+              "name": "Build 2",
+              "loadout": {
+                "mask": 7,
+                "mainWeaponId": "plainsteel",
+                "offhandWeaponId": "roadguard",
+                "spellBookId": "apprenticePrimer",
+                "projectileSlotSpellId": "acidBolt",
+                "accessoryId": "strengthBelt",
+                "abilityPrimaryId": "eloise.seeker_slash",
+                "abilitySecondaryId": "eloise.shield_block",
+                "abilityProjectileId": "eloise.snap_shot",
+                "abilitySpellId": "eloise.arcane_haste",
+                "abilityMobilityId": "eloise.dash",
+                "abilityJumpId": "eloise.jump"
+              }
+            },
+            {
+              "name": "Build 3",
+              "loadout": {
+                "mask": 7,
+                "mainWeaponId": "plainsteel",
+                "offhandWeaponId": "roadguard",
+                "spellBookId": "apprenticePrimer",
+                "projectileSlotSpellId": "acidBolt",
+                "accessoryId": "strengthBelt",
+                "abilityPrimaryId": "eloise.seeker_slash",
+                "abilitySecondaryId": "eloise.shield_block",
+                "abilityProjectileId": "eloise.snap_shot",
+                "abilitySpellId": "eloise.arcane_haste",
+                "abilityMobilityId": "eloise.dash",
+                "abilityJumpId": "eloise.jump"
+              }
+            }
+          ]
         },
         "eloiseWip": {
-          "mask": 7,
-          "mainWeaponId": "plainsteel",
-          "offhandWeaponId": "roadguard",
-          "spellBookId": "apprenticePrimer",
-          "projectileSlotSpellId": "acidBolt",
-          "accessoryId": "strengthBelt",
-          "abilityPrimaryId": "eloise.seeker_slash",
-          "abilitySecondaryId": "eloise.shield_block",
-          "abilityProjectileId": "eloise.snap_shot",
-          "abilitySpellId": "eloise.arcane_haste",
-          "abilityMobilityId": "eloise.dash",
-          "abilityJumpId": "eloise.jump"
+          "selectedBuildIndex": 0,
+          "builds": [
+            {
+              "name": "Build 1",
+              "loadout": {
+                "mask": 7,
+                "mainWeaponId": "plainsteel",
+                "offhandWeaponId": "roadguard",
+                "spellBookId": "apprenticePrimer",
+                "projectileSlotSpellId": "acidBolt",
+                "accessoryId": "strengthBelt",
+                "abilityPrimaryId": "eloise.seeker_slash",
+                "abilitySecondaryId": "eloise.shield_block",
+                "abilityProjectileId": "eloise.snap_shot",
+                "abilitySpellId": "eloise.arcane_haste",
+                "abilityMobilityId": "eloise.dash",
+                "abilityJumpId": "eloise.jump"
+              }
+            },
+            {
+              "name": "Build 2",
+              "loadout": {
+                "mask": 7,
+                "mainWeaponId": "plainsteel",
+                "offhandWeaponId": "roadguard",
+                "spellBookId": "apprenticePrimer",
+                "projectileSlotSpellId": "acidBolt",
+                "accessoryId": "strengthBelt",
+                "abilityPrimaryId": "eloise.seeker_slash",
+                "abilitySecondaryId": "eloise.shield_block",
+                "abilityProjectileId": "eloise.snap_shot",
+                "abilitySpellId": "eloise.arcane_haste",
+                "abilityMobilityId": "eloise.dash",
+                "abilityJumpId": "eloise.jump"
+              }
+            },
+            {
+              "name": "Build 3",
+              "loadout": {
+                "mask": 7,
+                "mainWeaponId": "plainsteel",
+                "offhandWeaponId": "roadguard",
+                "spellBookId": "apprenticePrimer",
+                "projectileSlotSpellId": "acidBolt",
+                "accessoryId": "strengthBelt",
+                "abilityPrimaryId": "eloise.seeker_slash",
+                "abilitySecondaryId": "eloise.shield_block",
+                "abilityProjectileId": "eloise.snap_shot",
+                "abilitySpellId": "eloise.arcane_haste",
+                "abilityMobilityId": "eloise.dash",
+                "abilityJumpId": "eloise.jump"
+              }
+            }
+          ]
         },
         "bountyHunter": {
-          "mask": 7,
-          "mainWeaponId": "hunterBlade",
-          "offhandWeaponId": "hunterBombKit",
-          "spellBookId": "hunterFieldKit",
-          "accessoryId": "strengthBelt",
-          "projectileSlotSpellId": "hunterPistol",
-          "abilityPrimaryId": "bounty_hunter.quick_cut",
-          "abilitySecondaryId": "bounty_hunter.blast_bomb",
-          "abilityProjectileId": "bounty_hunter.snap_shot",
-          "abilitySpellId": "bounty_hunter.hunters_focus",
-          "abilityMobilityId": "bounty_hunter.dash",
-          "abilityJumpId": "bounty_hunter.jump"
+          "selectedBuildIndex": 0,
+          "builds": [
+            {
+              "name": "Build 1",
+              "loadout": {
+                "mask": 7,
+                "mainWeaponId": "hunterBlade",
+                "offhandWeaponId": "hunterBombKit",
+                "spellBookId": "hunterFieldKit",
+                "accessoryId": "strengthBelt",
+                "projectileSlotSpellId": "hunterPistol",
+                "abilityPrimaryId": "bounty_hunter.quick_cut",
+                "abilitySecondaryId": "bounty_hunter.blast_bomb",
+                "abilityProjectileId": "bounty_hunter.snap_shot",
+                "abilitySpellId": "bounty_hunter.hunters_focus",
+                "abilityMobilityId": "bounty_hunter.dash",
+                "abilityJumpId": "bounty_hunter.jump"
+              }
+            },
+            {
+              "name": "Build 2",
+              "loadout": {
+                "mask": 7,
+                "mainWeaponId": "hunterBlade",
+                "offhandWeaponId": "hunterBombKit",
+                "spellBookId": "hunterFieldKit",
+                "accessoryId": "strengthBelt",
+                "projectileSlotSpellId": "hunterPistol",
+                "abilityPrimaryId": "bounty_hunter.quick_cut",
+                "abilitySecondaryId": "bounty_hunter.blast_bomb",
+                "abilityProjectileId": "bounty_hunter.snap_shot",
+                "abilitySpellId": "bounty_hunter.hunters_focus",
+                "abilityMobilityId": "bounty_hunter.dash",
+                "abilityJumpId": "bounty_hunter.jump"
+              }
+            },
+            {
+              "name": "Build 3",
+              "loadout": {
+                "mask": 7,
+                "mainWeaponId": "hunterBlade",
+                "offhandWeaponId": "hunterBombKit",
+                "spellBookId": "hunterFieldKit",
+                "accessoryId": "strengthBelt",
+                "projectileSlotSpellId": "hunterPistol",
+                "abilityPrimaryId": "bounty_hunter.quick_cut",
+                "abilitySecondaryId": "bounty_hunter.blast_bomb",
+                "abilityProjectileId": "bounty_hunter.snap_shot",
+                "abilitySpellId": "bounty_hunter.hunters_focus",
+                "abilityMobilityId": "bounty_hunter.dash",
+                "abilityJumpId": "bounty_hunter.jump"
+              }
+            }
+          ]
         }
       }
     },

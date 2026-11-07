@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from "node:util";
+import { buildAt, buildUnlockLevels, isBuildUnlocked, record, selectionSchemaVersion, validBuildName } from "./character_builds.js";
 import type { JsonObject } from "./contracts.js";
 import { knownCharacterIds } from "./defaults.js";
 import { characterContentAllowed } from "./character_catalog.js";
@@ -5,7 +7,6 @@ import { storeOfferDefinitions, type StoreSlot } from "./store_pricing.js";
 
 const knownLevelIds = ["forest", "field"] as const;
 const knownRunModes = ["practice", "competitive", "weekly"] as const;
-const maxBuildNameLength = 24;
 const allowedLoadoutMask = 0b111;
 
 interface LoadoutField {
@@ -35,57 +36,42 @@ const loadoutFields: readonly LoadoutField[] = [
 export function normalizeAuthorizedSelection(args: {
   selection: unknown;
   meta: JsonObject;
+  progression: JsonObject;
+  previousSelection?: JsonObject;
 }): JsonObject | null {
   const selection = asRecord(args.selection);
-  if (selection === null || selection.schemaVersion !== 1) {
-    return null;
-  }
+  if (selection === null || selection.schemaVersion !== selectionSchemaVersion) return null;
   const levelId = nonEmptyString(selection.levelId);
-  const runMode = nonEmptyString(selection.runMode) ??
-    nonEmptyString(selection.runType);
+  const runMode = nonEmptyString(selection.runMode) ?? nonEmptyString(selection.runType);
   const legacyRunType = nonEmptyString(selection.runType);
   const characterId = nonEmptyString(selection.characterId);
-  const buildName = nonEmptyString(selection.buildName);
-  if (
-    levelId === null ||
-    !knownLevelIds.includes(levelId as (typeof knownLevelIds)[number]) ||
-    runMode === null ||
-    !knownRunModes.includes(runMode as (typeof knownRunModes)[number]) ||
-    (legacyRunType !== null && legacyRunType !== runMode) ||
-    characterId === null ||
-    !isKnownCharacterId(characterId) ||
-    buildName === null ||
-    buildName.length > maxBuildNameLength
-  ) {
-    return null;
-  }
-
-  const loadouts = asRecord(selection.loadoutsByCharacter);
-  if (loadouts === null) {
-    return null;
-  }
-  const normalizedLoadouts: JsonObject = {};
-  for (const knownCharacterId of knownCharacterIds) {
-    const normalized = normalizeAuthorizedLoadout({
-      loadout: loadouts[knownCharacterId],
-      meta: args.meta,
-      characterId: knownCharacterId,
-    });
-    if (normalized === null) {
-      return null;
+  if (levelId === null || !knownLevelIds.includes(levelId as (typeof knownLevelIds)[number]) ||
+      runMode === null || !knownRunModes.includes(runMode as (typeof knownRunModes)[number]) ||
+      (legacyRunType !== null && legacyRunType !== runMode) ||
+      characterId === null || !isKnownCharacterId(characterId)) return null;
+  const branches = asRecord(selection.buildsByCharacter);
+  if (branches === null) return null;
+  const normalizedBranches: JsonObject = {};
+  for (const id of knownCharacterIds) {
+    const branch = record(branches[id]);
+    if (branch === null || !isBuildUnlocked(branch.selectedBuildIndex, args.progression) ||
+        !Array.isArray(branch.builds) || branch.builds.length !== buildUnlockLevels.length) return null;
+    const builds: JsonObject[] = [];
+    for (let index = 0; index < buildUnlockLevels.length; index++) {
+      const build = record(branch.builds[index]);
+      const name = validBuildName(build?.name);
+      const loadout = normalizeAuthorizedLoadout({ loadout: build?.loadout, meta: args.meta, characterId: id });
+      if (name === null || loadout === null) return null;
+      const normalized = { name, loadout };
+      // Locked slots can be carried in a selection, but cannot be edited.
+      if (args.previousSelection !== undefined && !isBuildUnlocked(index, args.progression) &&
+          !isDeepStrictEqual(normalized, buildAt(args.previousSelection, id, index))) return null;
+      builds.push(normalized);
     }
-    normalizedLoadouts[knownCharacterId] = normalized;
+    normalizedBranches[id] = { selectedBuildIndex: branch.selectedBuildIndex, builds };
   }
-
-  return {
-    schemaVersion: 1,
-    levelId,
-    runMode,
-    runType: runMode,
-    characterId,
-    buildName,
-    loadoutsByCharacter: normalizedLoadouts,
-  };
+  return { schemaVersion: selectionSchemaVersion, levelId, runMode, runType: runMode,
+    characterId, buildsByCharacter: normalizedBranches };
 }
 
 export function normalizeAuthorizedLoadout(args: {

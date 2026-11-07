@@ -13,10 +13,114 @@ import 'package:rpg_runner/ui/state/ownership/ownership_outbox_store.dart';
 import 'package:rpg_runner/ui/state/ownership/ownership_pending_command.dart';
 import 'package:rpg_runner/ui/state/ownership/ownership_sync_policy.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
+import 'package:rpg_runner/ui/state/ownership/player_progress.dart';
 import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
+  for (final (xp, available) in [(568, 1), (569, 2), (4023, 2), (4024, 3)]) {
+    test('confirmed XP $xp controls build selection', () async {
+      final api = _RecordingOwnershipApi()
+        ..progression = ProgressionState.initial.copyWith(
+          playerProgress: PlayerProgress(
+            totalXp: xp,
+            acceptedRuns: 0,
+            damageDealt100: 0,
+            damageTaken100: 0,
+          ),
+        );
+      final state = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: api,
+      );
+      addTearDown(state.dispose);
+      await state.bootstrap();
+      for (var index = 0; index < 3; index++) {
+        expect(state.isBuildUnlocked(index), index < available);
+        if (index < available) {
+          await state.selectBuild(PlayerCharacterId.eloise, index);
+          expect(
+            state.selection.selectedBuildIndexFor(PlayerCharacterId.eloise),
+            index,
+          );
+        } else {
+          await expectLater(
+            state.selectBuild(PlayerCharacterId.eloise, index),
+            throwsStateError,
+          );
+        }
+      }
+    });
+  }
+
+  test('switch flushes original build edits and later edits have a separate address', () async {
+    final api = _RecordingOwnershipApi()
+      ..progression = ProgressionState.initial.copyWith(
+        playerProgress: const PlayerProgress(
+          totalXp: 5000,
+          acceptedRuns: 0,
+          damageDealt100: 0,
+          damageTaken100: 0,
+        ),
+      );
+    final outbox = InMemoryOwnershipOutboxStore();
+    final state = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: api,
+      ownershipOutboxStore: outbox,
+    );
+    addTearDown(state.dispose);
+    await state.bootstrap();
+    await state.setAbilitySlot(
+      characterId: PlayerCharacterId.eloise,
+      slot: AbilitySlot.spell,
+      abilityId: 'eloise.focus',
+    );
+    final queued = await outbox.loadAll(ownerUserId: state.authSession.userId);
+    expect(queued.single.payloadJson['buildIndex'], 0);
+    expect(queued.single.coalesceKey, 'ability:eloise:0:spell');
+    await state.selectBuild(PlayerCharacterId.eloise, 2);
+    expect(api.abilityBuildIndices, [0]);
+    await state.setBuildName('Third');
+    await state.setAbilitySlot(
+      characterId: PlayerCharacterId.eloise,
+      slot: AbilitySlot.spell,
+      abilityId: 'eloise.arcane_haste',
+    );
+    expect(
+      (await outbox.loadAll(ownerUserId: state.authSession.userId))
+          .single
+          .coalesceKey,
+      'ability:eloise:2:spell',
+    );
+    await state.selectBuild(PlayerCharacterId.eloise, 0);
+    expect(api.abilityBuildIndices, [0, 2]);
+    expect(state.selection.buildName, 'Build 1');
+    expect(
+      state.selection.buildsFor(PlayerCharacterId.eloise).builds[2].name,
+      'Third',
+    );
+    await expectLater(state.setBuildName('1234567890123'), throwsArgumentError);
+    await expectLater(state.setBuildName(' '), throwsArgumentError);
+  });
+
+  test('rejected build selection and rename report failure and preserve canonical state', () async {
+    final api = _RejectedBuildOwnershipApi();
+    final state = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: api,
+    );
+    addTearDown(state.dispose);
+    await state.bootstrap();
+    await expectLater(
+      state.selectBuild(PlayerCharacterId.bountyHunter, 0),
+      throwsStateError,
+    );
+    expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
+    await expectLater(state.setBuildName('Changed'), throwsStateError);
+    expect(state.selection.buildName, 'Build 1');
+  });
+
   test('concurrent bootstrap calls share one canonical read', () async {
     final ownership = _DelayedCanonicalOwnershipApi();
     final app = AppState(
@@ -565,6 +669,8 @@ class _RecordingOwnershipApi extends LoadoutOwnershipApi {
   int setSelectionCalls = 0;
   int setAbilitySlotCalls = 0;
   AbilityKey? lastSetAbilityId;
+  final abilityBuildIndices = <int>[];
+  ProgressionState progression = ProgressionState.initial;
   SelectionState _selection = SelectionState.defaults;
   final MetaService _metaService = const MetaService();
 
@@ -574,7 +680,7 @@ class _RecordingOwnershipApi extends LoadoutOwnershipApi {
       revision: _revision,
       selection: _selection,
       meta: _metaService.createNew(),
-      progression: ProgressionState.initial,
+      progression: progression,
     );
   }
 
@@ -620,6 +726,7 @@ class _RecordingOwnershipApi extends LoadoutOwnershipApi {
   ) async {
     setAbilitySlotCalls += 1;
     lastSetAbilityId = command.abilityId;
+    abilityBuildIndices.add(command.buildIndex);
     return _acceptedResult();
   }
 
@@ -927,5 +1034,17 @@ AuthSession _sessionFor({required String userId, required String sessionId}) {
     isAnonymous: false,
     expiresAtMs: 0,
     linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.playGames},
+  );
+}
+
+class _RejectedBuildOwnershipApi extends _RecordingOwnershipApi {
+  @override
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async => OwnershipCommandResult(
+    canonicalState: _canonical(),
+    newRevision: _revision,
+    replayedFromIdempotency: false,
+    rejectedReason: OwnershipRejectedReason.invalidCommand,
   );
 }

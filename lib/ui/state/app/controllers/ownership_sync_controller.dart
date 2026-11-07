@@ -345,6 +345,7 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
             expectedRevision: attempt.expectedRevision,
             commandId: attempt.commandId,
             characterId: characterId,
+            buildIndex: command.payloadJson['buildIndex'] as int,
             slot: slot,
             abilityId: abilityId,
           ),
@@ -367,6 +368,7 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
             expectedRevision: attempt.expectedRevision,
             commandId: attempt.commandId,
             characterId: characterId,
+            buildIndex: command.payloadJson['buildIndex'] as int,
             spellId: spellId,
           ),
         );
@@ -390,6 +392,7 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
             expectedRevision: attempt.expectedRevision,
             commandId: attempt.commandId,
             characterId: characterId,
+            buildIndex: command.payloadJson['buildIndex'] as int,
             slot: slot,
             itemId: itemId,
           ),

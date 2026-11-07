@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart' show StringCharacters;
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -13,163 +14,258 @@ import '../../levels/level_id_ui.dart';
 
 export 'package:run_protocol/run_mode.dart';
 
-/// Persistent menu selection state.
+/// A named, independent equipment and ability configuration.
+class CharacterBuild {
+  const CharacterBuild({required this.name, required this.loadout});
+  final String name;
+  final EquippedLoadoutDef loadout;
+
+  CharacterBuild copyWith({String? name, EquippedLoadoutDef? loadout}) =>
+      CharacterBuild(name: name ?? this.name, loadout: loadout ?? this.loadout);
+}
+
+/// The fixed build slots and remembered selection for one character.
+class CharacterBuilds {
+  CharacterBuilds({
+    required List<CharacterBuild> builds,
+    this.selectedIndex = 0,
+  }) : builds = List.unmodifiable(builds) {
+    if (builds.length != SelectionState.buildCount) {
+      throw ArgumentError('Exactly three builds are required.');
+    }
+    RangeError.checkValidIndex(selectedIndex, builds, 'selectedIndex');
+  }
+  final List<CharacterBuild> builds;
+  final int selectedIndex;
+  CharacterBuild get selected => builds[selectedIndex];
+
+  CharacterBuilds select(int index) =>
+      CharacterBuilds(builds: builds, selectedIndex: index);
+
+  CharacterBuilds replace(int index, CharacterBuild build) {
+    final next = List<CharacterBuild>.of(builds);
+    next[index] = build;
+    return CharacterBuilds(builds: next, selectedIndex: selectedIndex);
+  }
+}
+
+/// Persistent menu selections. Each character owns three independent builds.
 class SelectionState {
   SelectionState({
     required this.selectedLevelId,
     required this.selectedRunMode,
     required this.selectedCharacterId,
-    required Map<PlayerCharacterId, EquippedLoadoutDef> loadoutsByCharacter,
-    required this.buildName,
-  }) : loadoutsByCharacter = Map.unmodifiable(
-         _ensureLoadoutsForAllCharacters(loadoutsByCharacter),
-       );
+    required Map<PlayerCharacterId, CharacterBuilds> buildsByCharacter,
+  }) : buildsByCharacter = Map.unmodifiable({
+         for (final id in PlayerCharacterId.values)
+           id: buildsByCharacter[id] ?? _defaultBuilds(id),
+       });
 
-  static const String defaultBuildName = 'Build 1';
-  static const int buildNameMaxLength = 24;
-  static const int schemaVersion = 1;
+  static const buildCount = 3;
+  static const buildUnlockLevels = [1, 5, 12];
+  static const buildNameMaxLength = 12;
+  static const schemaVersion = 2;
+  static String defaultBuildName(int index) => 'Build ${index + 1}';
+  static bool isBuildUnlocked(int index, int playerLevel) =>
+      index >= 0 &&
+      index < buildCount &&
+      playerLevel >= buildUnlockLevels[index];
 
-  static final SelectionState defaults = SelectionState(
+  static final defaults = SelectionState(
     selectedLevelId: LevelRegistry.defaultLevelId,
     selectedRunMode: RunMode.practice,
     selectedCharacterId: PlayerCharacterId.eloise,
-    loadoutsByCharacter: _seedLoadoutsWithDefaults(),
-    buildName: defaultBuildName,
+    buildsByCharacter: const {},
   );
 
   final LevelId selectedLevelId;
   final RunMode selectedRunMode;
   final PlayerCharacterId selectedCharacterId;
-  final Map<PlayerCharacterId, EquippedLoadoutDef> loadoutsByCharacter;
-  final String buildName;
-
+  final Map<PlayerCharacterId, CharacterBuilds> buildsByCharacter;
+  String get buildName => buildsFor(selectedCharacterId).selected.name;
   bool get isCompetitive => selectedRunMode == RunMode.competitive;
-
-  EquippedLoadoutDef loadoutFor(PlayerCharacterId id) {
-    return loadoutsByCharacter[id] ?? _defaultLoadoutForCharacter(id);
-  }
+  CharacterBuilds buildsFor(PlayerCharacterId id) => buildsByCharacter[id]!;
+  int selectedBuildIndexFor(PlayerCharacterId id) =>
+      buildsFor(id).selectedIndex;
+  EquippedLoadoutDef loadoutFor(PlayerCharacterId id, {int? buildIndex}) =>
+      buildsFor(id).builds[buildIndex ?? selectedBuildIndexFor(id)].loadout;
 
   SelectionState copyWith({
     LevelId? selectedLevelId,
     RunMode? selectedRunMode,
     PlayerCharacterId? selectedCharacterId,
-    Map<PlayerCharacterId, EquippedLoadoutDef>? loadoutsByCharacter,
+    Map<PlayerCharacterId, CharacterBuilds>? buildsByCharacter,
     String? buildName,
   }) {
+    final character = selectedCharacterId ?? this.selectedCharacterId;
+    final builds = {...(buildsByCharacter ?? this.buildsByCharacter)};
+    if (buildName != null) {
+      final slots = builds[character]!;
+      builds[character] = slots.replace(
+        slots.selectedIndex,
+        slots.selected.copyWith(
+          name: normalizeBuildName(buildName, buildIndex: slots.selectedIndex),
+        ),
+      );
+    }
     return SelectionState(
       selectedLevelId: selectedLevelId ?? this.selectedLevelId,
       selectedRunMode: selectedRunMode ?? this.selectedRunMode,
-      selectedCharacterId: selectedCharacterId ?? this.selectedCharacterId,
-      loadoutsByCharacter: loadoutsByCharacter ?? this.loadoutsByCharacter,
-      buildName: buildName == null
-          ? this.buildName
-          : normalizeBuildName(buildName),
+      selectedCharacterId: character,
+      buildsByCharacter: builds,
     );
   }
+
+  SelectionState withBuildNameFor(
+    PlayerCharacterId id,
+    int index,
+    String name,
+  ) {
+    final slots = buildsFor(id);
+    return copyWith(
+      buildsByCharacter: {
+        ...buildsByCharacter,
+        id: slots.replace(
+          index,
+          slots.builds[index].copyWith(
+            name: normalizeBuildName(name, buildIndex: index),
+          ),
+        ),
+      },
+    );
+  }
+
+  SelectionState selectBuild(PlayerCharacterId id, int index) => copyWith(
+    selectedCharacterId: id,
+    buildsByCharacter: {...buildsByCharacter, id: buildsFor(id).select(index)},
+  );
 
   SelectionState withLoadoutFor(
     PlayerCharacterId id,
-    EquippedLoadoutDef loadout,
-  ) {
-    final next = Map<PlayerCharacterId, EquippedLoadoutDef>.from(
-      loadoutsByCharacter,
+    EquippedLoadoutDef loadout, {
+    int? buildIndex,
+  }) {
+    final slots = buildsFor(id);
+    final index = buildIndex ?? slots.selectedIndex;
+    return copyWith(
+      buildsByCharacter: {
+        ...buildsByCharacter,
+        id: slots.replace(
+          index,
+          slots.builds[index].copyWith(loadout: loadout),
+        ),
+      },
     );
-    next[id] = loadout;
-    return copyWith(loadoutsByCharacter: next);
   }
 
-  Map<String, Object?> toJson() {
-    return <String, Object?>{
-      'schemaVersion': schemaVersion,
-      'levelId': selectedLevelId.name,
-      'runMode': selectedRunMode.name,
-      // Keep legacy key for backward compatibility with older payload readers.
-      'runType': selectedRunMode.name,
-      'characterId': selectedCharacterId.name,
-      'loadoutsByCharacter': <String, Object?>{
-        for (final id in PlayerCharacterId.values)
-          id.name: _loadoutToJson(loadoutFor(id)),
-      },
-      'buildName': buildName,
-    };
-  }
+  /// Locked saved selections cannot bypass the account's unlock level.
+  SelectionState atPlayerLevel(int level) => copyWith(
+    buildsByCharacter: {
+      for (final entry in buildsByCharacter.entries)
+        entry.key: isBuildUnlocked(entry.value.selectedIndex, level)
+            ? entry.value
+            : entry.value.select(0),
+    },
+  );
+
+  Map<String, Object?> toJson() => {
+    'schemaVersion': schemaVersion,
+    'levelId': selectedLevelId.name,
+    'runMode': selectedRunMode.name,
+    'runType': selectedRunMode.name,
+    'characterId': selectedCharacterId.name,
+    'buildsByCharacter': {
+      for (final entry in buildsByCharacter.entries)
+        entry.key.name: {
+          'selectedBuildIndex': entry.value.selectedIndex,
+          'builds': [
+            for (final build in entry.value.builds)
+              {'name': build.name, 'loadout': _loadoutToJson(build.loadout)},
+          ],
+        },
+    },
+  };
 
   static SelectionState fromJson(Map<String, dynamic> json) {
-    final storedSchemaVersion = json['schemaVersion'];
-    if (storedSchemaVersion is! int || storedSchemaVersion != schemaVersion) {
-      return SelectionState.defaults;
+    if (json['schemaVersion'] != schemaVersion ||
+        json['buildsByCharacter'] is! Map) {
+      return defaults;
     }
-
-    final loadoutsRaw = json['loadoutsByCharacter'];
-    if (loadoutsRaw is! Map) {
-      return SelectionState.defaults;
+    final raw = json['buildsByCharacter'] as Map;
+    final builds = <PlayerCharacterId, CharacterBuilds>{};
+    for (final id in PlayerCharacterId.values) {
+      final branch = raw[id.name];
+      final fallback = _defaultBuilds(id);
+      if (branch is! Map ||
+          branch['builds'] is! List ||
+          (branch['builds'] as List).length != buildCount) {
+        builds[id] = fallback;
+        continue;
+      }
+      final list = branch['builds'] as List;
+      final selected = branch['selectedBuildIndex'];
+      builds[id] = CharacterBuilds(
+        selectedIndex: selected is int && selected >= 0 && selected < buildCount
+            ? selected
+            : 0,
+        builds: [
+          for (var i = 0; i < buildCount; i++)
+            if (list[i] is Map)
+              CharacterBuild(
+                name: normalizeBuildName(
+                  _stringOrNull((list[i] as Map)['name']),
+                  buildIndex: i,
+                ),
+                loadout: _loadoutFromJson(
+                  (list[i] as Map)['loadout'],
+                  fallback: fallback.builds[i].loadout,
+                ),
+              )
+            else
+              fallback.builds[i],
+        ],
+      );
     }
-
     final levelId = _enumFromName(
       LevelId.values,
-      json['levelId'] as String?,
+      _stringOrNull(json['levelId']),
       LevelRegistry.defaultLevelId,
     );
-    final runMode = _enumFromName(
-      RunMode.values,
-      _stringOrNull(json['runMode']) ?? _stringOrNull(json['runType']),
-      RunMode.practice,
-    );
-    final characterId = _enumFromName(
-      PlayerCharacterId.values,
-      json['characterId'] as String?,
-      PlayerCharacterId.eloise,
-    );
-    final loadouts = _seedLoadoutsWithDefaults();
-    for (final id in PlayerCharacterId.values) {
-      final raw = loadoutsRaw[id.name];
-      if (raw is Map<String, dynamic>) {
-        loadouts[id] = _loadoutFromJson(raw, fallback: loadouts[id]!);
-      } else if (raw is Map) {
-        loadouts[id] = _loadoutFromJson(
-          Map<String, dynamic>.from(raw),
-          fallback: loadouts[id]!,
-        );
-      }
-    }
-    final buildName = normalizeBuildName(
-      json['buildName'] is String ? json['buildName'] as String : null,
-    );
-
     return SelectionState(
       selectedLevelId: levelId.isSelectableInStandardUi
           ? levelId
           : LevelRegistry.defaultLevelId,
-      selectedRunMode: runMode,
-      selectedCharacterId: characterId,
-      loadoutsByCharacter: loadouts,
-      buildName: buildName,
+      selectedRunMode: _enumFromName(
+        RunMode.values,
+        _stringOrNull(json['runMode']) ?? _stringOrNull(json['runType']),
+        RunMode.practice,
+      ),
+      selectedCharacterId: _enumFromName(
+        PlayerCharacterId.values,
+        _stringOrNull(json['characterId']),
+        PlayerCharacterId.eloise,
+      ),
+      buildsByCharacter: builds,
     );
   }
 
-  static String normalizeBuildName(String? raw) {
+  static String normalizeBuildName(String? raw, {int buildIndex = 0}) {
     final trimmed = (raw ?? '').trim();
-    if (trimmed.isEmpty) return defaultBuildName;
-    if (trimmed.length <= buildNameMaxLength) return trimmed;
-    return trimmed.substring(0, buildNameMaxLength);
+    return trimmed.isEmpty
+        ? defaultBuildName(buildIndex)
+        : trimmed.characters.take(buildNameMaxLength).toString();
   }
 }
 
-Map<PlayerCharacterId, EquippedLoadoutDef> _seedLoadoutsWithDefaults() {
-  return <PlayerCharacterId, EquippedLoadoutDef>{
-    for (final id in PlayerCharacterId.values)
-      id: _defaultLoadoutForCharacter(id),
-  };
-}
-
-Map<PlayerCharacterId, EquippedLoadoutDef> _ensureLoadoutsForAllCharacters(
-  Map<PlayerCharacterId, EquippedLoadoutDef> source,
-) {
-  return <PlayerCharacterId, EquippedLoadoutDef>{
-    for (final id in PlayerCharacterId.values)
-      id: source[id] ?? _defaultLoadoutForCharacter(id),
-  };
-}
+CharacterBuilds _defaultBuilds(PlayerCharacterId id) => CharacterBuilds(
+  builds: [
+    for (var i = 0; i < SelectionState.buildCount; i++)
+      CharacterBuild(
+        name: SelectionState.defaultBuildName(i),
+        loadout: _defaultLoadoutForCharacter(id),
+      ),
+  ],
+);
 
 T _enumFromName<T extends Enum>(List<T> values, String? name, T fallback) {
   if (name == null) return fallback;

@@ -40,10 +40,10 @@ void main() {
           await SharedPrefsDeveloperProfileStore().loadEnabled(),
           savedMode,
         );
-        await state.setBuildName('Browser build');
+        await state.setBuildName('Web build');
         expect(
           (await SharedPrefsDeveloperProfileStore().loadSelection()).buildName,
-          'Browser build',
+          'Web build',
         );
       },
     );

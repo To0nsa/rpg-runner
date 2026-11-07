@@ -1,3 +1,4 @@
+import { buildAt, selectedLoadout } from "../../src/ownership/character_builds.js";
 import assert from "node:assert/strict";
 import { after, beforeEach, test } from "node:test";
 
@@ -684,7 +685,7 @@ test("equipGear keeps meta and selection gear in sync", async () => {
       sessionId,
       expectedRevision: unlocked.newRevision,
       commandId: "cmd_equip_gear",
-      payload: {
+      payload: { buildIndex: 0,
         characterId: "eloise",
         slot: "spellBook",
         itemDomain: "spellBook",
@@ -715,7 +716,7 @@ test("equipGear rejects known but unowned gear", async () => {
       sessionId,
       expectedRevision: 0,
       commandId: "cmd_equip_unowned_gear",
-      payload: {
+      payload: { buildIndex: 0,
         characterId: "eloise",
         slot: "spellBook",
         itemDomain: "spellBook",
@@ -742,7 +743,7 @@ test("ability and projectile selection reject unowned content", async () => {
       sessionId,
       expectedRevision: 0,
       commandId: "cmd_set_unowned_ability",
-      payload: {
+      payload: { buildIndex: 0,
         characterId: "eloise",
         slot: "primary",
         abilityId: "eloise.bloodletter_slash",
@@ -760,7 +761,7 @@ test("ability and projectile selection reject unowned content", async () => {
       sessionId,
       expectedRevision: 0,
       commandId: "cmd_set_unowned_projectile",
-      payload: {
+      payload: { buildIndex: 0,
         characterId: "eloise",
         spellId: "fireBolt",
       },
@@ -771,8 +772,7 @@ test("ability and projectile selection reject unowned content", async () => {
 
 test("whole selection and loadout commands reject unowned nested content", async () => {
   const selection = starterSelection();
-  const loadouts = selection.loadoutsByCharacter as Record<string, unknown>;
-  const eloiseLoadout = loadouts.eloise as Record<string, unknown>;
+  const eloiseLoadout = buildAt(selection, "eloise", 0)!.loadout as JsonObject;
   eloiseLoadout.spellBookId = "bastionCodex";
 
   const selectionResult = await executeOwnershipCommand({
@@ -790,7 +790,7 @@ test("whole selection and loadout commands reject unowned nested content", async
   assert.equal(selectionResult.rejectedReason, "invalidCommand");
 
   const loadout = structuredClone(
-    (starterSelection().loadoutsByCharacter as JsonObject).eloise,
+    buildAt(starterSelection(), "eloise", 0)!.loadout,
   ) as JsonObject;
   loadout.spellBookId = "bastionCodex";
   const loadoutResult = await executeOwnershipCommand({
@@ -802,7 +802,7 @@ test("whole selection and loadout commands reject unowned nested content", async
       sessionId,
       expectedRevision: 0,
       commandId: "cmd_set_unowned_loadout",
-      payload: {
+      payload: { buildIndex: 0,
         characterId: "eloise",
         loadout,
       },
@@ -821,7 +821,7 @@ test("invalid character payload rejects with invalidCommand", async () => {
       sessionId,
       expectedRevision: 0,
       commandId: "cmd_invalid_character",
-      payload: {
+      payload: { buildIndex: 0,
         characterId: "unknownCharacter",
         slot: "spell",
         abilityId: "eloise.focus",
@@ -1419,7 +1419,7 @@ function setProjectileSpellCommand(args: {
     sessionId: args.sessionId ?? sessionId,
     expectedRevision: args.expectedRevision,
     commandId: args.commandId,
-    payload: {
+    payload: { buildIndex: 0,
       characterId: "eloise",
       spellId: args.spellId,
     },
@@ -1663,9 +1663,7 @@ function loadoutFor(
   canonical: OwnershipCanonicalState,
   characterId: string,
 ): Record<string, unknown> {
-  const selection = asRecord(canonical.selection);
-  const loadoutsByCharacter = asRecord(selection.loadoutsByCharacter);
-  return asRecord(loadoutsByCharacter[characterId]);
+  return selectedLoadout(canonical.selection, characterId, canonical.progression)!;
 }
 
 function equippedFor(

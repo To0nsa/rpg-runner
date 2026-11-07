@@ -3,6 +3,9 @@
 Audit and planning restarted on September 15, 2026. Start here for current work.
 
 - [Current audits](audit/README.md).
+- [Character builds](tdd/character_builds.md): three saved configurations per
+  character, level 5/12 locks and a 12-character rename control;
+  [local verification](verification/character-builds-2026-11-07.md).
 - [Willow](gdd/combat/abilities/willow.md): playable bounty hunter with 25
   abilities, three weapons, unlimited cooldown bombs and character selection;
   [technical contract](tdd/willow.md) and [local verification](verification/willow-2026-11-07.md).

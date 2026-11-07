@@ -462,6 +462,12 @@ class AppState extends ChangeNotifier {
     itemId: itemId,
   );
 
+  bool isBuildUnlocked(int index) =>
+      SelectionState.isBuildUnlocked(index, _progression.playerProgress.level);
+
+  Future<void> selectBuild(PlayerCharacterId characterId, int index) =>
+      _selectionOwnershipController.selectBuild(characterId, index);
+
   Future<void> setBuildName(String buildName) =>
       _selectionOwnershipController.setBuildName(buildName);
 

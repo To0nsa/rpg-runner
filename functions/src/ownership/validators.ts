@@ -2,7 +2,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { requireNonEmptyString, requireBoundedIdentifier, requireObject } from "../validation.js";
 export { requireNonEmptyString, requireBoundedIdentifier, requireObject } from "../validation.js";
 
-import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
+import { assertCallablePayloadBounds, defaultCallablePayloadBounds } from "../abuse/payload_bounds.js";
 import {
   type JsonObject,
   type OwnershipCommandEnvelope,
@@ -38,7 +38,9 @@ export function parseLoadCanonicalRequest(raw: unknown): LoadCanonicalRequest {
 }
 
 export function parseExecuteCommandRequest(raw: unknown): ExecuteCommandRequest {
-  assertCallablePayloadBounds(raw);
+  // A selection contains character -> slots -> build -> loadout. Keep the
+  // shared byte/node ceilings; only this command envelope needs depth nine.
+  assertCallablePayloadBounds(raw, { ...defaultCallablePayloadBounds, maxDepth: 9 });
   const data = requireObject(raw, "request");
   const commandRaw = requireObject(data.command, "command");
   const type = requireNonEmptyString(commandRaw.type, "command.type");

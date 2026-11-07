@@ -1,3 +1,4 @@
+import { buildUnlockLevels, selectionSchemaVersion } from "./character_builds.js";
 import { initialAchievementProgress, readAchievementProgress } from "./achievements.js";
 import type {
   CanonicalDocument,
@@ -46,18 +47,20 @@ const starterLoadout: JsonObject = {
 };
 
 export function starterSelection(): JsonObject {
-  return structuredClone({
-    schemaVersion: 1,
+  return {
+    schemaVersion: selectionSchemaVersion,
     levelId: "field",
+    runMode: "practice",
     runType: "practice",
     characterId: "eloise",
-    buildName: "Build 1",
-    loadoutsByCharacter: {
-      eloise: starterLoadout,
-      eloiseWip: starterLoadout,
-      bountyHunter: hunterStarterLoadout,
-    },
-  } satisfies JsonObject);
+    buildsByCharacter: Object.fromEntries(knownCharacterIds.map((id) => [id, {
+      selectedBuildIndex: 0,
+      builds: buildUnlockLevels.map((_, index) => ({
+        name: `Build ${index + 1}`,
+        loadout: structuredClone(id === "bountyHunter" ? hunterStarterLoadout : starterLoadout),
+      })),
+    }])),
+  };
 }
 
 export function starterMeta(): JsonObject {

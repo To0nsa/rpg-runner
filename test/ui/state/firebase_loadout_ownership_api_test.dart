@@ -84,6 +84,7 @@ void main() {
         expectedRevision: 0,
         commandId: 'cmd-1',
         characterId: PlayerCharacterId.eloise,
+        buildIndex: 0,
         slot: AbilitySlot.spell,
         abilityId: 'eloise.focus',
       ),

@@ -11,7 +11,7 @@ test("Double Dash must be purchased before it can be equipped", () => {
   const equip: OwnershipCommandEnvelope = {
     type: "setAbilitySlot", userId: "test", sessionId: "session",
     expectedRevision: 0, commandId: "equip-double-dash",
-    payload: { characterId: "eloise", slot: "mobility", abilityId: "eloise.double_dash" },
+    payload: { buildIndex: 0, characterId: "eloise", slot: "mobility", abilityId: "eloise.double_dash" },
   };
   assert.equal(applyOwnershipCommand(state, equip).accepted, false);
   const definition = storeOfferDefinitions.find(d => d.itemId === "eloise.double_dash");

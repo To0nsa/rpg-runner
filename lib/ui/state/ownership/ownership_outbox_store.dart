@@ -115,7 +115,7 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
   }) : _prefsProvider = prefsProvider ?? SharedPreferences.getInstance;
 
   static const String storageKey = 'ui.ownership_outbox.v2';
-  static const int _storageVersion = 3;
+  static const int _storageVersion = 4;
 
   final Future<SharedPreferences> Function() _prefsProvider;
   Future<void> _mutationQueue = Future<void>.value();
@@ -243,10 +243,9 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
   }
 
   List<Object?> _decodeRows(Object? decoded) {
-    if (decoded is List) {
-      return List<Object?>.from(decoded);
-    }
-    if (decoded is Map) {
+    // Earlier commands have no build identity and must never be replayed into
+    // whichever slot happens to be selected now.
+    if (decoded is Map && decoded['version'] == _storageVersion) {
       final map = Map<String, Object?>.from(decoded);
       final rows = map['entries'];
       if (rows is List) {

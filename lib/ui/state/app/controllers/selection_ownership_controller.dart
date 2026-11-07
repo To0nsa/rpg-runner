@@ -47,10 +47,12 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
   }
 
   Future<void> setLoadout(EquippedLoadoutDef loadout) async {
+    final characterId = _selection.selectedCharacterId;
     final developer = _app._developerController;
     if (developer != null) {
       return developer.setLoadout(_selection.selectedCharacterId, loadout);
     }
+    final buildIndex = _selection.selectedBuildIndexFor(characterId);
     final session = await _ensureAuthSession();
     final result = await _ownershipApi.setLoadout(
       SetLoadoutCommand(
@@ -58,7 +60,8 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
         sessionId: session.sessionId,
         expectedRevision: _ownershipRevision,
         commandId: _newCommandId(),
-        characterId: _selection.selectedCharacterId,
+        characterId: characterId,
+        buildIndex: buildIndex,
         loadout: loadout,
       ),
     );
@@ -82,25 +85,34 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
         ),
       );
     }
+    final buildIndex = _selection.selectedBuildIndexFor(characterId);
     final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final currentLoadout = _selection.loadoutFor(characterId);
+    final currentLoadout = _selection.loadoutFor(
+      characterId,
+      buildIndex: buildIndex,
+    );
     final nextLoadout = _withAbilityInLoadout(
       loadout: currentLoadout,
       slot: slot,
       abilityId: abilityId,
     );
     _clearRunTicketPrefetchState();
-    _selection = _selection.withLoadoutFor(characterId, nextLoadout);
+    _selection = _selection.withLoadoutFor(
+      characterId,
+      nextLoadout,
+      buildIndex: buildIndex,
+    );
     _notifyListeners();
     await _enqueueOwnershipCommand(
       OwnershipPendingCommand(
         ownerUserId: session.userId,
-        coalesceKey: 'ability:${characterId.name}:${slot.name}',
+        coalesceKey: 'ability:${characterId.name}:$buildIndex:${slot.name}',
         commandType: OwnershipPendingCommandType.setAbilitySlot,
         policyTier: OwnershipSyncTier.writeBehind,
         payloadJson: <String, Object?>{
           'characterId': characterId.name,
+          'buildIndex': buildIndex,
           'slot': slot.name,
           'abilityId': abilityId,
         },
@@ -124,24 +136,33 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
         ),
       );
     }
+    final buildIndex = _selection.selectedBuildIndexFor(characterId);
     final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final currentLoadout = _selection.loadoutFor(characterId);
+    final currentLoadout = _selection.loadoutFor(
+      characterId,
+      buildIndex: buildIndex,
+    );
     final nextLoadout = _copyLoadout(
       currentLoadout,
       projectileSlotSpellId: spellId,
     );
     _clearRunTicketPrefetchState();
-    _selection = _selection.withLoadoutFor(characterId, nextLoadout);
+    _selection = _selection.withLoadoutFor(
+      characterId,
+      nextLoadout,
+      buildIndex: buildIndex,
+    );
     _notifyListeners();
     await _enqueueOwnershipCommand(
       OwnershipPendingCommand(
         ownerUserId: session.userId,
-        coalesceKey: 'projectile:${characterId.name}',
+        coalesceKey: 'projectile:${characterId.name}:$buildIndex',
         commandType: OwnershipPendingCommandType.setProjectileSpell,
         policyTier: OwnershipSyncTier.writeBehind,
         payloadJson: <String, Object?>{
           'characterId': characterId.name,
+          'buildIndex': buildIndex,
           'spellId': spellId.name,
         },
         createdAtMs: nowMs,
@@ -166,16 +187,24 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
         ),
       );
     }
+    final buildIndex = _selection.selectedBuildIndexFor(characterId);
     final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final currentLoadout = _selection.loadoutFor(characterId);
+    final currentLoadout = _selection.loadoutFor(
+      characterId,
+      buildIndex: buildIndex,
+    );
     final nextLoadout = _withGearInLoadout(
       loadout: currentLoadout,
       slot: slot,
       itemId: itemId,
     );
     _clearRunTicketPrefetchState();
-    _selection = _selection.withLoadoutFor(characterId, nextLoadout);
+    _selection = _selection.withLoadoutFor(
+      characterId,
+      nextLoadout,
+      buildIndex: buildIndex,
+    );
     _meta = _meta.setEquippedFor(
       characterId,
       _withGearInMeta(
@@ -188,11 +217,12 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     await _enqueueOwnershipCommand(
       OwnershipPendingCommand(
         ownerUserId: session.userId,
-        coalesceKey: 'gear:${characterId.name}:${slot.name}',
+        coalesceKey: 'gear:${characterId.name}:$buildIndex:${slot.name}',
         commandType: OwnershipPendingCommandType.equipGear,
         policyTier: OwnershipSyncTier.writeBehind,
         payloadJson: <String, Object?>{
           'characterId': characterId.name,
+          'buildIndex': buildIndex,
           'slot': slot.name,
           'itemId': _gearItemIdAsName(slot: slot, itemId: itemId),
         },
@@ -202,11 +232,33 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     );
   }
 
+  Future<void> selectBuild(PlayerCharacterId id, int index) async {
+    if (!_app.isBuildUnlocked(index)) {
+      throw StateError('This build is locked.');
+    }
+    // A switch is a save boundary. Keep retries in their original slot and do
+    // not replace a whole selection while earlier edits are still outstanding.
+    await _app.ensureOwnershipSyncedBeforeRunStart();
+    if (!_app.isBuildUnlocked(index)) throw StateError('This build is locked.');
+    await _setSelection(_selection.selectBuild(id, index));
+  }
+
   Future<void> setBuildName(String buildName) async {
-    final normalized = SelectionState.normalizeBuildName(buildName);
-    if (normalized == _selection.buildName) return;
-    final nextSelection = _selection.copyWith(buildName: normalized);
-    await _setSelection(nextSelection);
+    if (buildName.trim().isEmpty ||
+        SelectionState.normalizeBuildName(buildName) != buildName.trim()) {
+      throw ArgumentError('Use 1–12 characters for the build name.');
+    }
+    final characterId = _selection.selectedCharacterId;
+    final index = _selection.selectedBuildIndexFor(characterId);
+    await _app.ensureOwnershipSyncedBeforeRunStart();
+    if (!_app.isBuildUnlocked(index)) throw StateError('This build is locked.');
+    if (buildName.trim() ==
+        _selection.buildsFor(characterId).builds[index].name) {
+      return;
+    }
+    await _setSelection(
+      _selection.withBuildNameFor(characterId, index, buildName.trim()),
+    );
   }
 
   Future<OwnershipCommandResult> purchaseStoreOffer({
@@ -296,6 +348,9 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     );
     _applyOwnershipResult(result);
     _notifyListeners();
+    if (!result.accepted) {
+      throw StateError('The build could not be saved. Please try again.');
+    }
   }
 
   Future<void> _updateSelectionOptimistically(

@@ -16,6 +16,7 @@ import 'package:rpg_runner/ui/pages/selectCharacter/character_selection_page.dar
 import 'package:rpg_runner/ui/pages/selectCharacter/loadout_setup_page.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
+import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_skill_icon_theme.dart';
@@ -31,11 +32,12 @@ void main() {
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({});
-      await tester.binding.setSurfaceSize(size);
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final state = AppState.developer(
-        store: SharedPrefsDeveloperProfileStore(),
-      );
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = size;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      final store = _RenameStore();
+      final state = AppState.developer(store: store);
       final assets = UiAssetLifecycle();
       addTearDown(state.dispose);
       addTearDown(assets.dispose);
@@ -45,7 +47,7 @@ void main() {
         spellId: ProjectileId.hunterCrossbow,
       );
       final eloise =
-          (state.selection.toJson()['loadoutsByCharacter'] as Map)['eloise'];
+          (state.selection.toJson()['buildsByCharacter'] as Map)['eloise'];
       final eloiseName = PlayerCharacterRegistry.eloise.displayName;
       await tester.runAsync(() async {
         for (final (family, path) in [
@@ -69,6 +71,7 @@ void main() {
           child: MaterialApp(
             theme: ThemeData(
               useMaterial3: true,
+              fontFamily: 'Inter',
               extensions: [
                 UiTokens.standard,
                 UiButtonTheme.standard,
@@ -92,13 +95,16 @@ void main() {
       final eloiseCard = find.byKey(const ValueKey('character-card-eloise'));
       final buildWillow = find.descendant(
         of: willowCard,
-        matching: find.text('Change build'),
+        matching: find.text('Build 1'),
       );
       final buildEloise = find.descendant(
         of: eloiseCard,
-        matching: find.text('Change build'),
+        matching: find.text('Build 1'),
       );
-      expect(find.text('Change build'), findsNWidgets(2));
+      expect(find.text('Build 1'), findsNWidgets(2));
+      expect(find.text('Change build'), findsNothing);
+      expect(find.text('Level 5'), findsNWidgets(2));
+      expect(find.text('Level 12'), findsNWidgets(2));
       expect(find.text('Eloise WIP'), findsNothing);
       expect(find.text('CURRENT CHARACTER'), findsNothing);
       expect(
@@ -136,7 +142,7 @@ void main() {
                   .toImage();
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
           await File(
-            '.tmp/willow_selection_${size.width.toInt()}x${size.height.toInt()}.png',
+            '.tmp/character_builds_${size.width.toInt()}x${size.height.toInt()}.png',
           ).writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
@@ -179,17 +185,86 @@ void main() {
         ProjectileId.hunterCrossbow,
       );
       expect(
-        (state.selection.toJson()['loadoutsByCharacter'] as Map)['eloise'],
+        (state.selection.toJson()['buildsByCharacter'] as Map)['eloise'],
         eloise,
       );
       expect(tester.takeException(), isNull);
-      await tester.tap(find.widgetWithText(TextButton, 'Willow'));
+      expect(find.byIcon(Icons.swap_horiz), findsNothing);
+      await _capture(tester, boundary, size, 'builder');
+      await tester.tap(find.byTooltip('Rename build'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
+      await _capture(tester, boundary, size, 'rename');
+      tester.view.viewInsets = FakeViewPadding(
+        bottom: 140 * tester.view.devicePixelRatio,
+      );
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getRect(find.text('Save')).bottom,
+        lessThanOrEqualTo(size.height - 140),
+      );
+      expect(find.text('Save').hitTestable(), findsOneWidget);
+      await _capture(tester, boundary, size, 'rename_keyboard');
+      tester.view.resetViewInsets();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.enterText(find.byType(TextField), '123456789012345');
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '123456789012',
+      );
+      await tester.enterText(find.byType(TextField), ' ');
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect(find.text('Enter a build name.'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(state.selection.buildName, 'Build 1');
+      await tester.tap(find.byTooltip('Rename build'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.enterText(find.byType(TextField), 'My Willow');
+      store.failNextSave = true;
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(
+        find.text('Could not save the name. Please try again.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.byType(Dialog), findsNothing);
+      expect(state.selection.buildName, 'My Willow');
+      expect(find.text('My Willow'), findsOneWidget);
+      final navigator = tester.state<NavigatorState>(
+        find.byType(Navigator).first,
+      );
+      navigator.pushReplacementNamed(UiRoutes.selectCharacter);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      expect(find.text('My Willow'), findsOneWidget);
+      await tester.tap(
+        find.descendant(of: eloiseCard, matching: find.text('Build 2')),
+      );
+      await tester.pump();
+      expect(find.byType(CharacterSelectionPage), findsOneWidget);
+      expect(
+        state.selection.selectedCharacterId,
+        PlayerCharacterId.bountyHunter,
+      );
       await tester.tap(buildEloise);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
       expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
+      expect(state.selection.buildName, 'Build 1');
       expect(
         state.selection
             .loadoutFor(PlayerCharacterId.bountyHunter)
@@ -199,5 +274,37 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     });
+  }
+}
+
+Future<void> _capture(
+  WidgetTester tester,
+  GlobalKey boundary,
+  Size size,
+  String view,
+) async {
+  if (Platform.environment['BOUNTY_HUNTER_CAPTURE'] != 'true') return;
+  await tester.runAsync(() async {
+    final image =
+        await (boundary.currentContext!.findRenderObject()
+                as RenderRepaintBoundary)
+            .toImage();
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    await File(
+      '.tmp/character_builds_${view}_${size.width.toInt()}x${size.height.toInt()}.png',
+    ).writeAsBytes(bytes!.buffer.asUint8List());
+    image.dispose();
+  });
+}
+
+class _RenameStore extends SharedPrefsDeveloperProfileStore {
+  bool failNextSave = false;
+  @override
+  Future<void> saveSelection(SelectionState selection) async {
+    if (failNextSave) {
+      failNextSave = false;
+      throw StateError('Disk unavailable');
+    }
+    await super.saveSelection(selection);
   }
 }
