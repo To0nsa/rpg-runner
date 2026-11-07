@@ -137,6 +137,11 @@ flutter:
     - assets/images/entities/npc/huntress_2/character/
     - assets/images/entities/npc/medieval_warrior_pack_3/
     - assets/images/entities/player/
+    - assets/images/entities/player/bounty_hunter/
+    - assets/images/entities/player/bounty_hunter/crossbow/
+    - assets/images/entities/player/bounty_hunter/effects/
+    - assets/images/entities/player/bounty_hunter/gun/
+    - assets/images/entities/player/bounty_hunter/shotgun/
     - assets/images/entities/regenerationItems/
     - assets/images/entities/spells/
     - assets/images/entities/spells/acid/beam/
