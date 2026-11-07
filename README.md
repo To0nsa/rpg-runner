@@ -1,6 +1,12 @@
-# RPG Runner
+# Lothringen: The Long Run
 
 A Flutter + Flame action runner focused on deterministic gameplay architecture.
+
+The game checkout lives at `C:\dev\Lothringen\long-run`. Shared world and brand
+references live in `..\Brand`, and the tabletop line lives in
+`..\les-soleils-dor`. The game keeps its own Git repository inside the parent
+Lothringen workspace. Package names and deployed application/cloud identities
+are independent of this local folder name.
 
 This is a portfolio-style game project designed to demonstrate production-minded engineering for mobile games: clean layering, testable simulation, and systems ready for replay/online expansion.
 

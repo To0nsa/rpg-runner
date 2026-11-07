@@ -1,6 +1,8 @@
 # AGENTS.md
 
 Instructions for **Lothringen: The Long Run**.
+Use `C:\dev\Lothringen\long-run` for game commands and Git. The old
+`C:\dev\rpg_runner` path contains compatibility links only, including Git metadata.
 
 ## Start here
 
@@ -150,7 +152,7 @@ coordinated cutover. Historical and mocked evidence cannot establish live state.
 ## World, brand and assets
 
 For lore, naming, tone, visuals or setting-driven game design, consult the
-companion repository `C:\dev\Lothringen\`:
+parent Lothringen repository (`..\` from this game checkout):
 
 - `Brand/Identity.md` and `Brand/CrossMediaExpressionRules.md`: world pillars and
   runner expression through resource pressure, risk/reward and build adaptation

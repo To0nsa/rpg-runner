@@ -126,3 +126,7 @@ node_modules
 
 !tools/admin/windows/runner/resources/
 !tools/admin/windows/runner/resources/app_icon.ico
+
+# Local tooling scratch and migration backups
+/.tmp/
+/tmp/
