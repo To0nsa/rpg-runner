@@ -50,6 +50,14 @@ save and open the builder, and locked buttons consume taps. The selected
 character retains the level-selector scrim behavior. Builder actions show the
 current build name and edit icon. Rename has Save/Cancel, keyboard submission,
 validation, a busy state and retryable errors.
+
+Gear and Skills keep their widget subtrees mounted while switching builder
+tabs, retaining the selected slot, inspected item/ability and scroll positions.
+Hidden editors disable tickers and focus and keep their viewport size when the
+app bar overlays Training Field. This browsing state lasts only for the builder
+route and selected character; it is not persisted in the saved build. Training
+Field mounts only while selected and creates a fresh session on every return.
+
 The builder does not shrink behind the modal keyboard. On short landscape
 viewports the input and actions share a row so the editable name remains visible.
 

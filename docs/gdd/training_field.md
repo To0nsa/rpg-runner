@@ -27,6 +27,10 @@ returns to the player start, and clears the enemy selection. Leaving the tab
 discards everything; returning creates a fresh field with the current build.
 Training grants no currency, experience, scores, Library discoveries, or rewards.
 
+Gear and Skills retain their selected slot, inspected item or skill, and scroll
+position when switching tabs, including visits to Training Field. This browsing
+state is kept while the character builder remains open.
+
 The editor's dedicated Training Field page authors only terrain, platforms,
 decorations, the player start, and one enemy spawn. It does not configure camera
 behavior, repetition, opponents, HUD, death, or reset. The initial supplied layout

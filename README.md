@@ -37,6 +37,8 @@ dev, staging and production apps. Its final candidate and Play release are pendi
 - Animated, authorable water regions with deterministic player and ground-enemy swimming;
   see the [pool authoring guide](docs/gdd/swimming.md)
 - 2 playable characters: Éloïse and [Willow](docs/gdd/combat/abilities/willow.md), with three independent named builds each (unlocked at levels 1/5/12), a character-selection screen, 25 new abilities, three guns, regenerating Supplies and unlimited cooldown bombs.
+- Character-builder Gear and Skills tabs retain browsing state across tab switches;
+  [Training Field](docs/gdd/training_field.md) starts fresh on every visit.
 - Pose-aligned combat capsules, shared fixed-tick animation clocks, and exact
   [combat debug geometry](docs/tdd/combat_pose_geometry.md)
 - Authored abilities (mobility, melee, ranged, defense, utility)

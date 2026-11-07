@@ -33,6 +33,11 @@ import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_skill_icon_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 import 'package:game_presentation/game_icon.dart';
+import 'package:game_presentation/ability_text.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:rpg_runner/ui/pages/selectCharacter/gear/gear_picker_candidates_panel.dart';
+import 'package:rpg_runner/ui/pages/selectCharacter/gears_tab.dart';
+import 'package:rpg_runner/ui/pages/selectCharacter/skills/skills_list_pane.dart';
 import 'package:rpg_runner/ui/controls/action_button.dart';
 import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
 import 'package:runner_core/abilities/ability_def.dart';
@@ -43,6 +48,131 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/skills/skills_radial_pane.dart';
 
 void main() {
+  testWidgets(
+    'Gear and Skills retain browsing state across tabs and Training Field',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.binding.setSurfaceSize(const Size(1000, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final appState = AppState.developer(
+        store: SharedPrefsDeveloperProfileStore(),
+      );
+      addTearDown(appState.dispose);
+      await appState.bootstrap();
+      await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byType(GearsTab),
+              matching: find.byType(InkWell),
+            )
+            .at(1),
+      );
+      await tester.pumpAndSettle();
+      final gearPanel = find.byType(GearPickerCandidatesPanel).hitTestable();
+      final gearBefore = tester.widget<GearPickerCandidatesPanel>(gearPanel);
+      expect(gearBefore.slot, GearSlot.offhandWeapon);
+      final candidateIndex = gearBefore.candidates.indexWhere(
+        (candidate) => candidate.id != gearBefore.equippedId,
+      );
+      expect(candidateIndex, greaterThanOrEqualTo(0));
+      final inspectedGear = gearBefore.candidates[candidateIndex].id;
+      await tester.tap(
+        find
+            .descendant(of: gearPanel, matching: find.byType(InkWell))
+            .at(candidateIndex),
+      );
+      await tester.pumpAndSettle();
+      final gearRect = tester.getRect(gearPanel);
+
+      await tester.tap(find.byType(Tab).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(SkillsRadialPane),
+          matching: find.byIcon(
+            abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).icon,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final skillList = find.byType(SkillsListPane);
+      final lastSkill = tester
+          .widget<SkillsListPane>(skillList)
+          .candidates
+          .last;
+      final skillScroll = find.descendant(
+        of: skillList,
+        matching: find.byType(Scrollable),
+      );
+      await tester.drag(skillScroll, const Offset(0, -600));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: skillList,
+          matching: find.text(abilityDisplayName(lastSkill.id)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final skillOffset = tester
+          .state<ScrollableState>(skillScroll)
+          .position
+          .pixels;
+      expect(skillOffset, greaterThan(0));
+      final skillRect = tester.getRect(skillList);
+
+      void expectGear() {
+        final panel = tester.widget<GearPickerCandidatesPanel>(gearPanel);
+        expect(panel.slot, GearSlot.offhandWeapon);
+        expect(panel.selectedId, inspectedGear);
+        expect(panel.equippedId, gearBefore.equippedId);
+        expect(tester.getRect(gearPanel), gearRect);
+      }
+
+      void expectSkills() {
+        final list = tester.widget<SkillsListPane>(skillList);
+        expect(list.selectedSlot, AbilitySlot.spell);
+        expect(list.selectedAbilityId, lastSkill.id);
+        expect(
+          tester.state<ScrollableState>(skillScroll).position.pixels,
+          closeTo(skillOffset, 0.01),
+        );
+        expect(tester.getRect(skillList), skillRect);
+      }
+
+      await tester.tap(find.byType(Tab).first);
+      await tester.pumpAndSettle();
+      expectGear();
+      await tester.tap(find.byType(Tab).at(1));
+      await tester.pumpAndSettle();
+      expectSkills();
+
+      for (final returnTab in [0, 1]) {
+        await tester.tap(find.byType(Tab).at(2));
+        await tester.pump();
+        final game = tester
+            .widget<GameWidget<RunnerFlameGame>>(
+              find.byType(GameWidget<RunnerFlameGame>),
+            )
+            .game!;
+        await _trainingReady(tester, game);
+        await tester.tap(find.byType(Tab).at(returnTab));
+        await tester.pumpAndSettle();
+        expect(find.byType(GameWidget<RunnerFlameGame>), findsNothing);
+        if (returnTab == 0) {
+          expectGear();
+        } else {
+          expectSkills();
+        }
+      }
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+  );
+
   for (final character in [
     PlayerCharacterId.eloise,
     PlayerCharacterId.bountyHunter,

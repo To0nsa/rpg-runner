@@ -86,10 +86,13 @@ class MenuScaffold extends StatelessWidget {
         ? SafeArea(maintainBottomViewPadding: true, child: child)
         : child;
 
-    if (showAppBar && !overlayAppBar) {
+    // Keep the body subtree mounted when a page switches app-bar overlay mode.
+    if (showAppBar) {
       content = Padding(
         padding: EdgeInsets.only(
-          top: MediaQuery.paddingOf(context).top + kToolbarHeight,
+          top: overlayAppBar
+              ? 0
+              : MediaQuery.paddingOf(context).top + kToolbarHeight,
         ),
         child: content,
       );

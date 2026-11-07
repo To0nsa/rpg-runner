@@ -43,6 +43,12 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
     final ui = context.ui;
     final characterId = context.watch<AppState>().selection.selectedCharacterId;
     final selectedDef = PlayerCharacterRegistry.resolve(characterId);
+    final trainingActive = _tabs.index == 2;
+    // Hidden editors keep the same viewport while training draws under the bar,
+    // so their scroll positions are not clamped by a temporary size change.
+    final editorTopInset = trainingActive
+        ? MediaQuery.paddingOf(context).top + kToolbarHeight
+        : 0.0;
 
     // Rename owns a separate dialog route that handles the keyboard. Keep the
     // fixed-height gear/skills layout behind that modal at its normal size.
@@ -50,7 +56,7 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
       context: context,
       removeBottom: true,
       child: MenuScaffold(
-        overlayAppBar: _tabs.index == 2,
+        overlayAppBar: trainingActive,
         appBarActions: const [BuildNameAction()],
         appBarTitle: SizedBox(
           height: 44,
@@ -91,20 +97,32 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
           ),
         ),
         centerAppBarTitle: true,
-        child: _tabs.index == 2
-            ? TrainingFieldTab(key: ValueKey(characterId))
-            : MenuLayout(
-                scrollable: false,
-                child: _tabs.index == 0
-                    ? GearsTab(
-                        key: ValueKey(characterId),
-                        characterId: selectedDef.id,
-                      )
-                    : SkillsBar(
-                        key: ValueKey(characterId),
-                        characterId: selectedDef.id,
-                      ),
+        child: IndexedStack(
+          key: ValueKey(characterId),
+          index: _tabs.index,
+          sizing: StackFit.expand,
+          children: [
+            for (final (index, tab) in <(int, Widget)>[
+              (0, GearsTab(characterId: selectedDef.id)),
+              (1, SkillsBar(characterId: selectedDef.id)),
+            ])
+              TickerMode(
+                enabled: _tabs.index == index,
+                child: ExcludeFocus(
+                  excluding: _tabs.index != index,
+                  child: Padding(
+                    padding: EdgeInsets.only(top: editorTopInset),
+                    child: MenuLayout(scrollable: false, child: tab),
+                  ),
+                ),
               ),
+            // Training owns a disposable session; only the editors are retained.
+            if (trainingActive)
+              const TrainingFieldTab()
+            else
+              const SizedBox.shrink(),
+          ],
+        ),
       ),
     );
   }
