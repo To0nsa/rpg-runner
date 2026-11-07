@@ -36,6 +36,18 @@ enum AnimKey {
   transform,
   casterHit,
   casterDeath,
+  twinStrike,
+  tripleStrike,
+  lunge,
+  bombDrop,
+  slide,
+  doubleJump,
+  rangedAir,
+  rangedRun,
+  airHit,
+  airDeath,
+  bombFuse,
+  bombExplosion,
 }
 
 /// Broad entity classification for rendering and (future) networking.

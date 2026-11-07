@@ -7,6 +7,7 @@ import '../../contracts/render_anim_set_definition.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../npcs/npc_catalog.dart';
 import '../../players/characters/eloise.dart';
+import '../../players/player_character_definition.dart';
 import '../../collision/terrain/terrain_numeric.dart';
 import '../collider_aabb_utils.dart';
 import '../actor_facing.dart';
@@ -19,9 +20,11 @@ final class CombatHurtboxSystem {
   const CombatHurtboxSystem({
     required this.tickHz,
     this.playerRenderAnim = eloiseRenderAnim,
+    this.playerCharacterId = PlayerCharacterId.eloise,
   });
   final int tickHz;
   final RenderAnimSetDefinition playerRenderAnim;
+  final PlayerCharacterId playerCharacterId;
 
   void step(EcsWorld world) {
     final poses = world.animState;
@@ -46,7 +49,11 @@ final class CombatHurtboxSystem {
           ? ActorHurtboxCatalog.enemy(world.enemy.enemyId[ei], anim, frame)
           : ni != null
           ? ActorHurtboxCatalog.npc(world.npc.npcId[ni], anim, frame)
-          : ActorHurtboxCatalog.player(anim, frame);
+          : ActorHurtboxCatalog.player(
+              anim,
+              frame,
+              characterId: playerCharacterId,
+            );
       if (capsule == null) {
         final scale = terrainPhysicsTicksPerWorldUnit.toDouble();
         final c = world.worldContactCapsule;

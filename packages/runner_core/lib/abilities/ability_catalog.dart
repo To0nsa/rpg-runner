@@ -6,6 +6,7 @@ import 'catalog/voidcaller_ability_defs.dart';
 import 'catalog/shoggoth_minion_ability_defs.dart';
 import 'catalog/void_tentacle_ability_defs.dart';
 import 'catalog/eloise_ability_defs.dart';
+import 'catalog/bounty_hunter_ability_defs.dart';
 import 'catalog/grojib_ability_defs.dart';
 import 'catalog/hashash_ability_defs.dart';
 import 'catalog/unoco_ability_defs.dart';
@@ -48,6 +49,7 @@ class AbilityCatalog implements AbilityResolver {
         ...grojibAbilityDefs,
         ...hashashAbilityDefs,
         ...eloiseAbilityDefs,
+        ...bountyHunterAbilityDefs,
         ...npcAbilityDefs,
       });
 

@@ -2,6 +2,8 @@ import '../enemies/enemy_id.dart';
 import '../npcs/npc_id.dart';
 import '../snapshots/enums.dart';
 import 'combat_geometry.dart';
+import 'bounty_hunter_pose_catalog.dart';
+import '../players/player_character_definition.dart';
 
 /// Torso/head/leg poses, excluding weapons, hair trails and attack smears.
 /// Feet remain on the reviewed source support line; compact rolls deliberately
@@ -27,15 +29,21 @@ abstract final class ActorHurtboxCatalog {
     CombatCapsule(1, -10, 0, 14, 9),
     CombatCapsule(0, -11, 0, 14, 9),
   ];
-  static CombatCapsule? player(AnimKey key, int frame) => switch (key) {
-    AnimKey.roll => _roll[frame % _roll.length],
-    AnimKey.strike => _playerStrike[frame % _playerStrike.length],
-    AnimKey.backStrike => const CombatCapsule(2, -10, 1, 14, 9),
-    AnimKey.dash => const CombatCapsule(-4, -7, 4, 14, 9),
-    AnimKey.jump || AnimKey.fall => const CombatCapsule(0, -12, 0, 8, 9),
-    AnimKey.hit => const CombatCapsule(-3, -10, 0, 14, 9),
-    _ => null,
-  };
+  static CombatCapsule? player(
+    AnimKey key,
+    int frame, {
+    PlayerCharacterId characterId = PlayerCharacterId.eloise,
+  }) => characterId == PlayerCharacterId.bountyHunter
+      ? BountyHunterPoseCatalog.hurtbox(key, frame)
+      : switch (key) {
+          AnimKey.roll => _roll[frame % _roll.length],
+          AnimKey.strike => _playerStrike[frame % _playerStrike.length],
+          AnimKey.backStrike => const CombatCapsule(2, -10, 1, 14, 9),
+          AnimKey.dash => const CombatCapsule(-4, -7, 4, 14, 9),
+          AnimKey.jump || AnimKey.fall => const CombatCapsule(0, -12, 0, 8, 9),
+          AnimKey.hit => const CombatCapsule(-3, -10, 0, 14, 9),
+          _ => null,
+        };
 
   static CombatCapsule? npc(NpcId id, AnimKey key, int frame) {
     if (key == AnimKey.strike || key == AnimKey.strike2) {

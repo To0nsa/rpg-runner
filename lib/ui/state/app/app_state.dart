@@ -12,10 +12,10 @@ import 'package:runner_core/meta/ability_ownership_state.dart';
 import 'package:runner_core/meta/inventory_state.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/players/character_ability_namespace.dart';
+import 'package:runner_core/players/character_equipment_policy.dart';
 import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/spellBook/spell_book_catalog.dart';
 import 'package:runner_core/weapons/weapon_catalog.dart';
-import 'package:runner_core/weapons/weapon_category.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
@@ -74,7 +74,7 @@ part 'controllers/developer_controller.dart';
 part 'controllers/inbox_controller.dart';
 part 'controllers/achievements_controller.dart';
 
-const String _defaultGameCompatVersion = '2026.10.21';
+const String _defaultGameCompatVersion = '2026.11.7';
 
 const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
 const int _runTicketPrefetchCacheMaxEntries = 4;

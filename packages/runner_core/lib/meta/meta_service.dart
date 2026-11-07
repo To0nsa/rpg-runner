@@ -1,7 +1,7 @@
 import '../accessories/accessory_catalog.dart';
 import '../accessories/accessory_id.dart';
 import '../abilities/ability_catalog.dart';
-import '../abilities/ability_def.dart' show AbilityKey, AbilitySlot, WeaponType;
+import '../abilities/ability_def.dart' show AbilityKey, AbilitySlot;
 import '../projectiles/projectile_catalog.dart';
 import '../projectiles/projectile_id.dart';
 import '../spellBook/spell_book_catalog.dart';
@@ -19,6 +19,7 @@ import '../players/player_character_definition.dart';
 import '../players/player_catalog.dart';
 import '../players/character_ability_namespace.dart';
 import '../players/player_character_registry.dart';
+import '../players/character_equipment_policy.dart';
 
 /// Slot candidate DTO consumed by gear picker UI.
 ///
@@ -67,12 +68,20 @@ class MetaService {
 
   /// Returns starter unlocked main/off-hand weapon IDs.
   Set<WeaponId> _startingUnlockedWeaponIds() {
-    return <WeaponId>{MetaDefaults.mainWeaponId, MetaDefaults.offhandWeaponId};
+    return {
+      for (final character in PlayerCharacterRegistry.all) ...[
+        character.catalog.weaponId,
+        character.catalog.offhandWeaponId,
+      ],
+    };
   }
 
   /// Returns starter unlocked spellbook IDs.
   Set<SpellBookId> _startingUnlockedSpellBookIds() {
-    return <SpellBookId>{MetaDefaults.spellBookId};
+    return {
+      for (final character in PlayerCharacterRegistry.all)
+        character.catalog.spellBookId,
+    };
   }
 
   /// Returns starter unlocked accessory IDs.
@@ -91,8 +100,12 @@ class MetaService {
   }
 
   /// Returns all candidates for [slot], including locked entries.
-  List<GearSlotCandidate> candidatesForSlot(MetaState state, GearSlot slot) {
-    return switch (slot) {
+  List<GearSlotCandidate> candidatesForSlot(
+    MetaState state,
+    GearSlot slot, {
+    PlayerCharacterId characterId = PlayerCharacterId.eloise,
+  }) {
+    final candidates = switch (slot) {
       GearSlot.mainWeapon => _weaponCandidatesForCategory(
         state,
         WeaponCategory.primary,
@@ -104,6 +117,15 @@ class MetaService {
       GearSlot.spellBook => _spellBookCandidates(state),
       GearSlot.accessory => _accessoryCandidates(state),
     };
+    return candidates
+        .where(
+          (candidate) => CharacterEquipmentPolicy.allowsGear(
+            characterId,
+            slot,
+            candidate.id,
+          ),
+        )
+        .toList();
   }
 
   /// Builds weapon candidates for [category] with unlock markers.
@@ -179,6 +201,7 @@ class MetaService {
     );
     unlockedSpellBooks
       ..removeWhere((id) => !allowedSpellBooks.contains(id))
+      ..addAll(allowedSpellBooks)
       ..add(MetaDefaults.spellBookId);
     final unlockedAccessories =
         Set<AccessoryId>.from(inventory.unlockedAccessoryIds)
@@ -195,7 +218,7 @@ class MetaService {
     final equippedByCharacter = <PlayerCharacterId, EquippedGear>{};
     for (final id in PlayerCharacterId.values) {
       final gear = state.equippedFor(id);
-      equippedByCharacter[id] = _normalizeEquipped(gear, inventory);
+      equippedByCharacter[id] = _normalizeEquipped(gear, inventory, id);
     }
 
     final abilityOwnershipByCharacter =
@@ -229,7 +252,7 @@ class MetaService {
     final catalog = PlayerCharacterRegistry.resolve(characterId).catalog;
     final projectileSpells = <ProjectileId>{
       for (final id in catalog.startingProjectileSpellIds)
-        if (_isSpellProjectile(id)) id,
+        if (CharacterEquipmentPolicy.allowsProjectile(characterId, id)) id,
     };
     final abilityIdsBySlot = _startingAbilityIdsBySlotForCharacter(characterId);
 
@@ -323,7 +346,7 @@ class MetaService {
   }) {
     final learnedProjectileSpellIds = <ProjectileId>{
       for (final id in abilityOwnership.learnedProjectileSpellIds)
-        if (_isSpellProjectile(id)) id,
+        if (CharacterEquipmentPolicy.allowsProjectile(characterId, id)) id,
     };
     final learnedAbilityIdsBySlot = <AbilitySlot, Set<AbilityKey>>{
       for (final slot in AbilitySlot.values)
@@ -357,7 +380,7 @@ class MetaService {
 
   bool _isSpellProjectile(ProjectileId id) {
     return playerEquippableProjectileIds.contains(id) &&
-        projectiles.tryGet(id)?.weaponType == WeaponType.spell;
+        projectiles.tryGet(id) != null;
   }
 
   bool _isAbilityForSlotAndCharacter(
@@ -377,27 +400,47 @@ class MetaService {
   }
 
   /// Validates and repairs a single character loadout against [inventory].
-  EquippedGear _normalizeEquipped(EquippedGear gear, InventoryState inventory) {
+  EquippedGear _normalizeEquipped(
+    EquippedGear gear,
+    InventoryState inventory,
+    PlayerCharacterId characterId,
+  ) {
+    final defaults = CharacterEquipmentPolicy.defaults(characterId);
     var mainWeaponId = gear.mainWeaponId;
     final mainDef = weapons.tryGet(mainWeaponId);
     if (mainDef == null ||
+        !CharacterEquipmentPolicy.allowsGear(
+          characterId,
+          GearSlot.mainWeapon,
+          mainWeaponId,
+        ) ||
         mainDef.category != WeaponCategory.primary ||
         !inventory.unlockedWeaponIds.contains(mainWeaponId)) {
-      mainWeaponId = MetaDefaults.mainWeaponId;
+      mainWeaponId = defaults.mainWeaponId;
     }
 
     var offhandWeaponId = gear.offhandWeaponId;
     final offDef = weapons.tryGet(offhandWeaponId);
     if (offDef == null ||
+        !CharacterEquipmentPolicy.allowsGear(
+          characterId,
+          GearSlot.offhandWeapon,
+          offhandWeaponId,
+        ) ||
         offDef.category != WeaponCategory.offHand ||
         !inventory.unlockedWeaponIds.contains(offhandWeaponId)) {
-      offhandWeaponId = MetaDefaults.offhandWeaponId;
+      offhandWeaponId = defaults.offhandWeaponId;
     }
 
     var spellBookId = gear.spellBookId;
     if (spellBooks.tryGet(spellBookId) == null ||
+        !CharacterEquipmentPolicy.allowsGear(
+          characterId,
+          GearSlot.spellBook,
+          spellBookId,
+        ) ||
         !inventory.unlockedSpellBookIds.contains(spellBookId)) {
-      spellBookId = MetaDefaults.spellBookId;
+      spellBookId = defaults.spellBookId;
     }
 
     var accessoryId = gear.accessoryId;
@@ -425,6 +468,9 @@ class MetaService {
   }) {
     final normalized = normalize(state);
     final current = normalized.equippedFor(characterId);
+    if (!CharacterEquipmentPolicy.allowsGear(characterId, slot, itemId)) {
+      return normalized;
+    }
 
     switch (slot) {
       case GearSlot.mainWeapon:

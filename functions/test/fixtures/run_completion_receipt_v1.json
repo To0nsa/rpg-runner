@@ -39,6 +39,20 @@
           "abilitySpellId": "eloise.arcane_haste",
           "abilityMobilityId": "eloise.dash",
           "abilityJumpId": "eloise.jump"
+        },
+        "bountyHunter": {
+          "mask": 7,
+          "mainWeaponId": "hunterBlade",
+          "offhandWeaponId": "hunterBombKit",
+          "spellBookId": "hunterFieldKit",
+          "accessoryId": "strengthBelt",
+          "projectileSlotSpellId": "hunterPistol",
+          "abilityPrimaryId": "bounty_hunter.quick_cut",
+          "abilitySecondaryId": "bounty_hunter.blast_bomb",
+          "abilityProjectileId": "bounty_hunter.snap_shot",
+          "abilitySpellId": "bounty_hunter.hunters_focus",
+          "abilityMobilityId": "bounty_hunter.dash",
+          "abilityJumpId": "bounty_hunter.jump"
         }
       }
     },
@@ -47,16 +61,25 @@
       "inventory": {
         "weapons": [
           "plainsteel",
-          "roadguard"
+          "roadguard",
+          "hunterBlade",
+          "hunterBombKit"
         ],
         "spellBooks": [
-          "apprenticePrimer"
+          "apprenticePrimer",
+          "hunterFieldKit"
         ],
         "accessories": [
           "strengthBelt"
         ]
       },
       "equippedByCharacter": {
+        "bountyHunter": {
+          "mainWeaponId": "hunterBlade",
+          "offhandWeaponId": "hunterBombKit",
+          "spellBookId": "hunterFieldKit",
+          "accessoryId": "strengthBelt"
+        },
         "eloise": {
           "mainWeaponId": "plainsteel",
           "offhandWeaponId": "roadguard",
@@ -71,6 +94,34 @@
         }
       },
       "abilityOwnershipByCharacter": {
+        "bountyHunter": {
+          "projectileSpells": [
+            "hunterPistol",
+            "hunterCrossbow",
+            "hunterShotgun"
+          ],
+          "abilitiesBySlot": {
+            "primary": [
+              "bounty_hunter.quick_cut"
+            ],
+            "secondary": [
+              "bounty_hunter.blast_bomb"
+            ],
+            "projectile": [
+              "bounty_hunter.snap_shot"
+            ],
+            "mobility": [
+              "bounty_hunter.dash"
+            ],
+            "spell": [
+              "bounty_hunter.hunters_focus",
+              "bounty_hunter.prepare_charges"
+            ],
+            "jump": [
+              "bounty_hunter.jump"
+            ]
+          }
+        },
         "eloise": {
           "projectileSpells": [
             "acidBolt",

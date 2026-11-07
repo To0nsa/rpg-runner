@@ -1,4 +1,6 @@
 import { isPlayerEquippableProjectileId } from "./projectile_spells.js";
+import { characterContentAllowed } from "./character_catalog.js";
+import { storeOfferDefinitions } from "./store_pricing.js";
 import { claimAchievementGold } from "./achievements.js";
 import type {
   JsonObject,
@@ -162,6 +164,7 @@ function applyEquipGear(
     gearField === null ||
     !isAuthorizedGear({
       meta: canonical.meta,
+      characterId,
       slot: slot as "mainWeapon" | "offhandWeapon" | "spellBook" | "accessory",
       itemId,
     })
@@ -268,7 +271,8 @@ function applyLearnProjectileSpell(
 ): ApplyCommandResult {
   const characterId = nonEmptyString(payload.characterId);
   const spellId = nonEmptyString(payload.spellId);
-  if (characterId === null || spellId === null || !isPlayerEquippableProjectileId(spellId)) {
+  if (characterId === null || spellId === null || !isPlayerEquippableProjectileId(spellId) ||
+      !characterContentAllowed(characterId, "projectileSpell", "projectile", spellId)) {
     return rejected("invalidCommand");
   }
   if (!isKnownCharacterId(characterId)) {
@@ -294,7 +298,9 @@ function applyLearnSpellAbility(
 ): ApplyCommandResult {
   const characterId = nonEmptyString(payload.characterId);
   const abilityId = nonEmptyString(payload.abilityId);
-  if (characterId === null || abilityId === null) {
+  if (characterId === null || abilityId === null ||
+      !characterContentAllowed(characterId, "ability", "spell", abilityId) ||
+      !storeOfferDefinitions.some((entry) => entry.domain === "ability" && entry.slot === "spell" && entry.itemId === abilityId)) {
     return rejected("invalidCommand");
   }
   if (!isKnownCharacterId(characterId)) {

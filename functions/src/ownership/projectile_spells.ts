@@ -2,6 +2,7 @@
 export const playerEquippableProjectileIds = [
   "iceBolt", "fireBolt", "acidBolt", "darkBolt", "earthBolt", "holyBolt",
   "waterBolt", "thunderBolt",
+  "hunterPistol", "hunterCrossbow", "hunterShotgun",
 ] as const;
 
 export function isPlayerEquippableProjectileId(id: string): boolean {

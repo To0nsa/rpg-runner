@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+
 import '../../../components/app_button.dart';
+
 import 'package:game_presentation/game_icon.dart';
 import 'package:game_presentation/ability_text.dart';
+
 import '../../../theme/ui_skill_icon_theme.dart';
 import '../../../theme/ui_tokens.dart';
 import '../ability/ability_picker_presenter.dart';
@@ -42,7 +45,7 @@ class SkillsListPane extends StatelessWidget {
           Align(
             alignment: Alignment.center,
             child: Text(
-              '${_slotTitle(selectedSlot).toUpperCase()} SKILLS',
+              '${(selectedSlot == AbilitySlot.spell && (selectedAbilityId?.startsWith('bounty_hunter.') ?? false) ? 'Fieldcraft' : _slotTitle(selectedSlot)).toUpperCase()} SKILLS',
               style: ui.text.headline.copyWith(
                 color: ui.colors.textPrimary,
                 fontSize: 14,

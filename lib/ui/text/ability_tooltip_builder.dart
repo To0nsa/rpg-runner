@@ -5,8 +5,11 @@ import 'package:runner_core/combat/status/status.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 
 import 'ability_tag_resolver.dart';
+import 'bounty_hunter_ability_description.dart';
+
 import 'package:game_presentation/ability_text.dart';
 import 'package:game_presentation/gear_text.dart';
+
 import 'semantic_text.dart';
 
 class AbilityCostLine {
@@ -116,7 +119,12 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         _damageBreakdown(impact.damage100, impact.damageType),
     ];
     final descriptionWithHighlights = _DescriptionWithHighlights(
-      description: [baseDescription.description, ...breakdowns].join(' '),
+      description: [baseDescription.description, ...breakdowns]
+          .join(' ')
+          .replaceAll(
+            'Mana',
+            def.id.startsWith('bounty_hunter.') ? 'Supplies' : 'Mana',
+          ),
       dynamicValues: [...baseDescription.dynamicValues, ...breakdowns],
     );
     return AbilityTooltip(
@@ -136,7 +144,17 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       tags: tags,
       cooldownSeconds: _cooldownSeconds(def),
       maxDurationSeconds: _maxDurationSeconds(def),
-      costLines: List<AbilityCostLine>.unmodifiable(_costLines(def, ctx)),
+      costLines: List<AbilityCostLine>.unmodifiable(
+        _costLines(def, ctx).map(
+          (line) => AbilityCostLine(
+            label: line.label,
+            value: line.value.replaceAll(
+              'Mana',
+              def.id.startsWith('bounty_hunter.') ? 'Supplies' : 'Mana',
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -144,6 +162,13 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     AbilityDef def,
     AbilityTooltipContext ctx,
   ) {
+    final hunterDescription = bountyHunterAbilityDescription(
+      def,
+      ctx.activeProjectileId,
+    );
+    if (hunterDescription != null) {
+      return _DescriptionWithHighlights(description: hunterDescription);
+    }
     if (def.selfPurgeProfileId != PurgeProfileId.none) {
       return _selfPurgeDescription(def);
     }

@@ -1,5 +1,6 @@
 import type { JsonObject, OwnershipRejectedReason } from "./contracts.js";
 import { sha256Hex } from "./hash.js";
+import { characterContentAllowed } from "./character_catalog.js";
 import {
   type StoreBucket,
   type StoreDomain,
@@ -276,7 +277,8 @@ function normalizeStoreState(args: {
   const refreshesUsedToday =
     refreshDayKeyRaw === fallbackDayKey ? refreshesUsedTodayRaw : 0;
   const activeOffers = parseStoreOffers(candidate?.activeOffers).filter(
-    (offer) => !isDefinitionOwned(offer, snapshot),
+    (offer) => characterContentAllowed(snapshot.selectedCharacterId, offer.domain, offer.slot, offer.itemId) &&
+      !isDefinitionOwned(offer, snapshot),
   );
 
   const offersByBucket = new Map<StoreBucket, StoreOffer>();
@@ -463,6 +465,7 @@ function eligibleDefinitionsForBucket(args: {
   excludedItemId?: string;
 }): StoreOfferDefinition[] {
   return storeDefinitionsForBucket(args.bucket).filter((definition) => {
+    if (!characterContentAllowed(args.ownership.selectedCharacterId, definition.domain, definition.slot, definition.itemId)) return false;
     if (args.excludedItemId && definition.itemId === args.excludedItemId) {
       return false;
     }

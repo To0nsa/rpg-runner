@@ -1,23 +1,16 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 
 import '../../components/menu_layout.dart';
+import '../../app/ui_routes.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app/app_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'gears_tab.dart';
 import 'skills_tab.dart';
 import 'training_field_tab.dart';
-
-// Keep multi-character backend logic intact; UI currently exposes only primary.
-const List<PlayerCharacterDefinition> _loadoutSetupUiCharacters = [
-  PlayerCharacterRegistry.eloise,
-];
 
 class LoadoutSetupPage extends StatefulWidget {
   const LoadoutSetupPage({super.key});
@@ -28,7 +21,6 @@ class LoadoutSetupPage extends StatefulWidget {
 
 class _LoadoutSetupPageState extends State<LoadoutSetupPage>
     with SingleTickerProviderStateMixin {
-  bool _seeded = false;
   late final TabController _tabs;
 
   @override
@@ -47,25 +39,22 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_seeded) return;
-    final appState = context.read<AppState>();
-    final selection = appState.selection;
-    final defs = _loadoutSetupUiCharacters;
-    if (defs.first.id != selection.selectedCharacterId) {
-      unawaited(appState.setCharacter(defs.first.id));
-    }
-    _seeded = true;
-  }
-
-  @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final selectedDef = _loadoutSetupUiCharacters.first;
+    final characterId = context.watch<AppState>().selection.selectedCharacterId;
+    final selectedDef = PlayerCharacterRegistry.resolve(characterId);
 
     return MenuScaffold(
       overlayAppBar: _tabs.index == 2,
+      appBarActions: [
+        TextButton.icon(
+          onPressed: () =>
+              Navigator.of(context)
+                  .pushReplacementNamed(UiRoutes.selectCharacter),
+          icon: const Icon(Icons.swap_horiz, size: 18),
+          label: Text(selectedDef.displayName),
+        ),
+      ],
       appBarTitle: SizedBox(
         height: 44,
         child: TabBar(
@@ -106,12 +95,18 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
       ),
       centerAppBarTitle: true,
       child: _tabs.index == 2
-          ? const TrainingFieldTab()
+          ? TrainingFieldTab(key: ValueKey(characterId))
           : MenuLayout(
               scrollable: false,
               child: _tabs.index == 0
-                  ? GearsTab(characterId: selectedDef.id)
-                  : SkillsBar(characterId: selectedDef.id),
+                  ? GearsTab(
+                      key: ValueKey(characterId),
+                      characterId: selectedDef.id,
+                    )
+                  : SkillsBar(
+                      key: ValueKey(characterId),
+                      characterId: selectedDef.id,
+                    ),
             ),
     );
   }

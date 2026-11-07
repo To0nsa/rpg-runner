@@ -43,6 +43,7 @@ class ProjectileSystem {
       // authority after GravitySystem. We only keep direction in sync with
       // resolved velocity for hitbox orientation / rendering.
       if (projectiles.usePhysics[pi]) {
+        if (world.bomb.has(e)) continue;
         final vx = transforms.velX[ti];
         final vy = transforms.velY[ti];
         final len2 = vx * vx + vy * vy;

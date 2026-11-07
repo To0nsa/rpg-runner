@@ -1,5 +1,6 @@
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
 
 /// Maps an ability definition to the payload context used by tooltip text.
 ///
@@ -19,10 +20,14 @@ WeaponType? payloadWeaponTypeForTooltip({
       return null;
     case AbilityPayloadSource.projectile:
       if (slot == AbilitySlot.projectile && selectedSourceSpellId != null) {
-        return WeaponType.spell;
+        return const ProjectileCatalog()
+            .tryGet(selectedSourceSpellId)
+            ?.weaponType;
       }
       return null;
     case AbilityPayloadSource.spellBook:
-      return WeaponType.spell;
+      return def.requiredWeaponTypes.contains(WeaponType.fieldKit)
+          ? WeaponType.fieldKit
+          : WeaponType.spell;
   }
 }

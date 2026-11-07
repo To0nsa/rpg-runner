@@ -1,6 +1,7 @@
 import '../stats/gear_stat_bonuses.dart';
 import 'spell_book_def.dart';
 import 'spell_book_id.dart';
+import '../abilities/ability_def.dart';
 
 /// Lookup table for spell books.
 class SpellBookCatalog {
@@ -8,6 +9,11 @@ class SpellBookCatalog {
 
   SpellBookDef get(SpellBookId id) {
     switch (id) {
+      case SpellBookId.hunterFieldKit:
+        return const SpellBookDef(
+          id: SpellBookId.hunterFieldKit,
+          weaponType: WeaponType.fieldKit,
+        );
       case SpellBookId.apprenticePrimer:
         return const SpellBookDef(
           id: SpellBookId.apprenticePrimer,

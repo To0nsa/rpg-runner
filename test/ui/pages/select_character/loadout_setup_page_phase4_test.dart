@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flame/game.dart';
 import 'package:rpg_runner/game/runner_flame_game.dart';
 import 'package:runner_core/commands/command.dart';
@@ -30,9 +34,102 @@ import 'package:game_presentation/game_icon.dart';
 import 'package:rpg_runner/ui/controls/action_button.dart';
 import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
 import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/skills/skills_radial_pane.dart';
 
 void main() {
+  for (final (gun, folder) in [
+    (ProjectileId.hunterPistol, 'gun'),
+    (ProjectileId.hunterCrossbow, 'crossbow'),
+    (ProjectileId.hunterShotgun, 'shotgun'),
+  ]) {
+    testWidgets('Willow training loads $gun and renders its bomb blast', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.binding.setSurfaceSize(const Size(1200, 540));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final state = AppState.developer(
+        store: SharedPrefsDeveloperProfileStore(),
+      );
+      addTearDown(state.dispose);
+      await state.bootstrap();
+      await state.setCharacter(PlayerCharacterId.bountyHunter);
+      await state.setProjectileSpell(
+        characterId: PlayerCharacterId.bountyHunter,
+        spellId: gun,
+      );
+      final boundary = GlobalKey();
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: boundary,
+          child: _TestApp(appState: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(Tab).at(2));
+      await tester.pump();
+      final game = tester
+          .widget<GameWidget<RunnerFlameGame>>(
+            find.byType(GameWidget<RunnerFlameGame>),
+          )
+          .game!;
+      await _trainingReady(tester, game);
+      expect(game.controller.playerCharacter.displayName, 'Willow');
+      expect(
+        game.controller.playerCharacter.renderAnim.sourcesByKey.values.join(),
+        contains('/$folder/'),
+      );
+      game.controller.setPaused(false);
+      // Let the spawn pose finish, then use the same commands as run controls.
+      for (var i = 0; i < 60; i++) {
+        game.controller.advanceFrame(1 / 60);
+      }
+      game.controller.enqueue(
+        SecondaryPressedCommand(tick: game.controller.tick + 1),
+      );
+      for (var i = 0; i < 84; i++) {
+        game.controller.advanceFrame(1 / 60);
+      }
+      expect(
+        game.controller.snapshot.entities.where(
+          (e) =>
+              e.projectileId == ProjectileId.hunterBomb &&
+              e.anim == AnimKey.bombExplosion,
+        ),
+        hasLength(1),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      if (Platform.environment['BOUNTY_HUNTER_CAPTURE'] == 'true') {
+        await tester.runAsync(() async {
+          final image =
+              await (boundary.currentContext!.findRenderObject()
+                      as RenderRepaintBoundary)
+                  .toImage();
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+          await File('.tmp/bounty_training_$folder.png')
+              .writeAsBytes(bytes!.buffer.asUint8List());
+          image.dispose();
+        });
+      }
+      game.controller.enqueue(
+        ProjectilePressedCommand(tick: game.controller.tick + 1),
+      );
+      for (var i = 0; i < 8; i++) {
+        game.controller.advanceFrame(1 / 60);
+      }
+      expect(
+        game.controller.snapshot.entities.where((e) => e.projectileId == gun),
+        hasLength(gun == ProjectileId.hunterShotgun ? 3 : 1),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+  }
   testWidgets(
     'Training tab keeps appbar, filters opponents, resets death and leaving',
     (tester) async {

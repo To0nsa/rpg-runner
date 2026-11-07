@@ -15,6 +15,7 @@ final class ProjectilePoseSystem {
     final store = world.projectile;
     for (var i = 0; i < store.denseEntities.length; i++) {
       final id = store.projectileId[i];
+      if (world.bomb.has(store.denseEntities[i])) continue;
       if (id == ProjectileId.unknown || id == ProjectileId.poisonDart) continue;
       store.spawnTick[i] ??= currentTick;
       final age = math.max(0, currentTick - store.spawnTick[i]!);

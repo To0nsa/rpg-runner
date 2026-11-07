@@ -14,6 +14,12 @@ class UiIconCoords {
 /// A weapon icon can come from a sprite sheet ([coords] + [spriteAssetPath]) or
 /// a dedicated raster asset ([imageAssetPath]).
 class UiWeaponIconSpec {
+  const UiWeaponIconSpec.empty()
+    : coords = null,
+      spriteAssetPath = null,
+      imageAssetPath = null,
+      tilePx = 32;
+
   const UiWeaponIconSpec.sprite({
     required this.coords,
     required this.spriteAssetPath,
@@ -38,6 +44,8 @@ const String _shieldIconBasePath = 'assets/images/icons/gear-icons/shields/';
 /// Full weapon icon mapping for loadout and gear picker UI.
 UiWeaponIconSpec uiIconSpecForWeapon(WeaponId id) {
   return switch (id) {
+    WeaponId.hunterBlade ||
+    WeaponId.hunterBombKit => const UiWeaponIconSpec.empty(),
     WeaponId.plainsteel => const UiWeaponIconSpec.sprite(
       coords: UiIconCoords(5, 1),
       spriteAssetPath: _swordUiSpritePath,
@@ -108,6 +116,7 @@ UiIconCoords? uiIconCoordsForWeapon(WeaponId id) {
 
 UiIconCoords? uiIconCoordsForSpellBook(SpellBookId id) {
   return switch (id) {
+    SpellBookId.hunterFieldKit => null,
     SpellBookId.apprenticePrimer => const UiIconCoords(13, 0),
     SpellBookId.bastionCodex => const UiIconCoords(13, 1),
     SpellBookId.emberGrimoire => const UiIconCoords(13, 2),

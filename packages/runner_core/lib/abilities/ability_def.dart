@@ -19,7 +19,18 @@ enum AbilitySlot { primary, secondary, projectile, mobility, spell, jump }
 enum AbilityCategory { melee, ranged, mobility, defense, utility }
 
 /// Weapon family classification used for ability gating.
-enum WeaponType { oneHandedSword, shield, spell, spear, bow }
+enum WeaponType {
+  oneHandedSword,
+  shield,
+  spell,
+  spear,
+  bow,
+  hunterBlade,
+  bombKit,
+  firearm,
+  crossbow,
+  fieldKit,
+}
 
 /// Where this ability should fetch its combat payload from at commit-time.
 ///
@@ -116,7 +127,11 @@ class ProjectileHitDelivery extends HitDeliveryDef {
     this.chain = false,
     this.chainCount = 0,
     this.hitPolicy = HitPolicy.oncePerTarget,
-  }) : assert(chainCount >= 0, 'Chain count must be non-negative'),
+    this.shotCount = 1,
+    this.spreadRadians = 0,
+  }) : assert(shotCount > 0),
+       assert(spreadRadians >= 0),
+       assert(chainCount >= 0, 'Chain count must be non-negative'),
        assert(!chain || chainCount > 0, 'If chain is true, count must be > 0');
 
   final ProjectileId projectileId;
@@ -124,11 +139,42 @@ class ProjectileHitDelivery extends HitDeliveryDef {
   final bool chain;
   final int chainCount;
   final HitPolicy hitPolicy;
+
+  /// Symmetric fan, in radians; total damage is divided across all shots.
+  final int shotCount;
+  final double spreadRadians;
+}
+
+/// A dropped ballistic projectile whose fuse begins on release. Contact never
+/// detonates it; the blast radius is in world units and the fuse in 60 Hz ticks.
+class BombHitDelivery extends ProjectileHitDelivery {
+  const BombHitDelivery({
+    required super.projectileId,
+    this.fuseTicks = 60,
+    this.radius = 48,
+  }) : assert(fuseTicks > 0),
+       assert(radius > 0);
+  final int fuseTicks;
+  final double radius;
 }
 
 /// For abilities that affect the user (Buff/Block) or have no hitbox (Dash).
 class SelfHitDelivery extends HitDeliveryDef {
   const SelfHitDelivery();
+}
+
+/// Marks one captured hostile for this attacker only; duration uses 60 Hz ticks.
+class MarkHitDelivery extends SelfHitDelivery {
+  const MarkHitDelivery({
+    this.range = 320,
+    this.durationTicks = 300,
+    this.bonusBp = 2500,
+  }) : assert(range > 0),
+       assert(durationTicks > 0),
+       assert(bonusBp >= 0);
+  final double range;
+  final int durationTicks;
+  final int bonusBp;
 }
 
 /// Placement of a captured target-point attack before its windup begins.
@@ -424,6 +470,8 @@ class AbilityDef {
     this.grantsRiposteOnGuardedHit = false,
     this.mobilityImpact = MobilityImpactDef.none,
     this.mobilitySpeedX,
+    this.requiresGrounded = false,
+    this.activeForwardSpeedX,
     this.mobilityRecast,
     this.groundJumpSpeedY,
     this.airJumpSpeedY,
@@ -496,6 +544,10 @@ class AbilityDef {
        assert(
          mobilitySpeedX == null || mobilitySpeedX > 0,
          'mobilitySpeedX must be positive when defined.',
+       ),
+       assert(
+         activeForwardSpeedX == null ||
+             (activeForwardSpeedX > 0 && category == AbilityCategory.melee),
        ),
        assert(
          groundJumpSpeedY == null || groundJumpSpeedY > 0,
@@ -658,6 +710,13 @@ class AbilityDef {
   /// Each mobility ability defines its own speed. Non-mobility abilities
   /// leave this `null`.
   final double? mobilitySpeedX;
+
+  /// Ground-only actions reject airborne commits without spending resources.
+  final bool requiresGrounded;
+
+  /// Optional combat lunge velocity during the active phase, in world units/s.
+  /// Terrain collision still owns displacement; this grants no invulnerability.
+  final double? activeForwardSpeedX;
 
   /// Optional single follow-up; does not grant independently recharging uses.
   final MobilityRecastDef? mobilityRecast;

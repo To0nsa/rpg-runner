@@ -129,6 +129,7 @@ class JumpSystem {
       jumpState.coyoteTicksLeft[ji] = 0;
       if (!canGroundJump) {
         jumpState.airJumpsUsed[ji] += 1;
+        if (!swimming) jumpState.lastAirJumpTick[ji] = currentTick;
       }
 
       _invalidateIntent(intent, intentIndex);
@@ -159,6 +160,7 @@ class JumpSystem {
     if (grounded) {
       jumpState.coyoteTicksLeft[jumpStateIndex] = tuning.coyoteTicks;
       jumpState.airJumpsUsed[jumpStateIndex] = 0;
+      jumpState.lastAirJumpTick[jumpStateIndex] = -1;
     } else if (jumpState.coyoteTicksLeft[jumpStateIndex] > 0) {
       jumpState.coyoteTicksLeft[jumpStateIndex] -= 1;
     }

@@ -7,6 +7,7 @@ import '../util/vec2.dart';
 import '../traps/trap_catalog.dart';
 import '../traps/trap_id.dart';
 import 'projectile_id.dart';
+import 'bounty_hunter_projectile_render.dart';
 
 // -----------------------------------------------------------------------------
 // Ice Bolt render animation strip definitions (authoring-time)
@@ -448,6 +449,14 @@ class ProjectileRenderCatalog {
 
   RenderAnimSetDefinition get(ProjectileId id) {
     switch (id) {
+      case ProjectileId.hunterPistol:
+        return BountyHunterProjectileRender.pistol;
+      case ProjectileId.hunterCrossbow:
+        return BountyHunterProjectileRender.crossbow;
+      case ProjectileId.hunterShotgun:
+        return BountyHunterProjectileRender.shotgun;
+      case ProjectileId.hunterBomb:
+        return BountyHunterProjectileRender.bomb;
       case ProjectileId.unknown:
         throw ArgumentError.value(
           id,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/projectiles/projectile_id.dart';
+
 import '../../../components/app_button.dart';
 import '../../../theme/ui_tokens.dart';
 import '../ability/ability_picker_presenter.dart';
@@ -12,6 +13,7 @@ Future<void> showProjectileSourceDialog(
   required List<ProjectileSourceOption> options,
   required ProjectileId? initialSelection,
   required ValueChanged<ProjectileId?> onSelect,
+  String title = 'Select Projectile Source',
 }) {
   return showDialog<void>(
     context: context,
@@ -27,6 +29,7 @@ Future<void> showProjectileSourceDialog(
           .toDouble();
 
       return _ProjectileSourceDialog(
+        title: title,
         options: options,
         initialSelection: initialSelection,
         maxWidth: maxWidth,
@@ -41,6 +44,7 @@ Future<void> showProjectileSourceDialog(
 /// expandable detail panels before dismissing.
 class _ProjectileSourceDialog extends StatefulWidget {
   const _ProjectileSourceDialog({
+    required this.title,
     required this.options,
     required this.initialSelection,
     required this.maxWidth,
@@ -49,6 +53,7 @@ class _ProjectileSourceDialog extends StatefulWidget {
   });
 
   final List<ProjectileSourceOption> options;
+  final String title;
   final ProjectileId? initialSelection;
   final double maxWidth;
   final double maxHeight;
@@ -99,7 +104,7 @@ class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Select Projectile Source',
+                widget.title,
                 style: ui.text.headline.copyWith(color: ui.colors.textPrimary),
               ),
               SizedBox(height: ui.space.sm),

@@ -48,7 +48,9 @@ class AnimSystem {
          supportsRanged: true,
          supportsSpawn: true,
          supportsStun: true,
-         directionalStrike: true,
+         directionalStrike: playerRenderAnim.sourcesByKey.containsKey(
+           AnimKey.backStrike,
+         ),
        ) {
     _buildHitAnimTicksById(tickHz);
     _buildSpawnAnimTicksById(tickHz);
@@ -204,7 +206,34 @@ class AnimSystem {
       activeActionFrame: activeAction.frame,
     );
 
-    final result = AnimResolver.resolve(_playerProfile, signals);
+    var result = AnimResolver.resolve(_playerProfile, signals);
+    final variant = switch (result.anim) {
+      AnimKey.hit when !common.grounded => AnimKey.airHit,
+      AnimKey.death when !common.grounded => AnimKey.airDeath,
+      _ => result.anim,
+    };
+    if (playerRenderAnim.sourcesByKey.containsKey(variant)) {
+      result = AnimResult(anim: variant, animFrame: result.animFrame);
+    }
+    final ji = world.jumpState.tryIndexOf(player);
+    if (ji != null &&
+        !common.grounded &&
+        (result.anim == AnimKey.jump || result.anim == AnimKey.fall) &&
+        playerRenderAnim.sourcesByKey.containsKey(AnimKey.doubleJump)) {
+      final start = world.jumpState.lastAirJumpTick[ji];
+      final duration = anim_utils.ticksForKey(
+        key: AnimKey.doubleJump,
+        frameCounts: playerRenderAnim.frameCountsByKey,
+        stepTimeSecondsByKey: playerRenderAnim.stepTimeSecondsByKey,
+        tickHz: _tickHz,
+      );
+      if (start >= 0 && currentTick - start < duration) {
+        result = AnimResult(
+          anim: AnimKey.doubleJump,
+          animFrame: currentTick - start,
+        );
+      }
+    }
     world.animState.anim[ai] = result.anim;
     world.animState.animFrame[ai] = _terrainLocomotionAnimFrame(
       world,
@@ -513,7 +542,11 @@ class AnimSystem {
       active: world.activeAbility.activeTicks[index],
       recovery: world.activeAbility.recoveryTicks[index],
     );
-    return (anim: actionAnim, frame: pose * step);
+    // Each firing phase has eight authored running poses on the same sheet.
+    final frame = actionAnim == AnimKey.rangedRun
+        ? (pose * 8 + (currentTick ~/ step) % 8) * step
+        : pose * step;
+    return (anim: actionAnim, frame: frame);
   }
 
   AnimKey _resolveActionAnimKey(
@@ -524,6 +557,23 @@ class AnimSystem {
     required AbilityDef ability,
   }) {
     // Back-strike is a directional variant of melee strike.
+    final isPlayer = !world.enemy.has(entity) && !world.npc.has(entity);
+    if (isPlayer && ability.animKey == AnimKey.ranged) {
+      if (!WorldSupportView(world).isGrounded(entity) &&
+          playerRenderAnim.sourcesByKey.containsKey(AnimKey.rangedAir)) {
+        return AnimKey.rangedAir;
+      }
+      final ti = world.transform.tryIndexOf(entity);
+      if (ti != null &&
+          world.transform.velX[ti].abs() > _playerProfile.minMoveSpeed &&
+          playerRenderAnim.sourcesByKey.containsKey(AnimKey.rangedRun)) {
+        return AnimKey.rangedRun;
+      }
+    }
+    if (isPlayer &&
+        !playerRenderAnim.sourcesByKey.containsKey(AnimKey.backStrike)) {
+      return ability.animKey;
+    }
     if (ability.animKey != AnimKey.strike) return ability.animKey;
     if (ability.hitDelivery is! MeleeHitDelivery) return ability.animKey;
     if (!world.movement.has(entity)) return ability.animKey;

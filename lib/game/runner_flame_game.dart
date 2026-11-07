@@ -68,14 +68,16 @@ class RunnerFlameGame extends FlameGame {
     required this.input,
     required this.projectileAimPreview,
     required this.meleeAimPreview,
-    required this.playerCharacter,
+    required PlayerCharacterDefinition playerCharacter,
     Images? imageCache,
     this.parallaxThemes,
     this.terrainMaterials,
     this.ghostRenderListenable,
     this.ghostPreparation,
     CombatFeedbackTuning combatFeedbackTuning = const CombatFeedbackTuning(),
-  }) : _enemyRenderRegistry = EnemyRenderRegistry(
+  }) : assert(playerCharacter.id == controller.playerCharacter.id),
+       playerCharacter = controller.playerCharacter,
+       _enemyRenderRegistry = EnemyRenderRegistry(
          enemyCatalog: controller.enemyCatalog,
        ),
        _combatFeedbackTuning = combatFeedbackTuning,
@@ -95,7 +97,7 @@ class RunnerFlameGame extends FlameGame {
     _liveWorldSync = LiveWorldSyncSystem(
       controller: controller,
       world: world,
-      playerCharacter: playerCharacter,
+      playerCharacter: this.playerCharacter,
       enemyRenderRegistry: _enemyRenderRegistry,
       npcRenderRegistry: _npcRenderRegistry,
       projectileRenderRegistry: _projectileRenderRegistry,

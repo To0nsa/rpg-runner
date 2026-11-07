@@ -1,5 +1,6 @@
 import type { JsonObject } from "./contracts.js";
 import { knownCharacterIds } from "./defaults.js";
+import { characterContentAllowed } from "./character_catalog.js";
 import { storeOfferDefinitions, type StoreSlot } from "./store_pricing.js";
 
 const knownLevelIds = ["forest", "field"] as const;
@@ -112,6 +113,7 @@ export function normalizeAuthorizedLoadout(args: {
     const itemId = nonEmptyString(loadout[definition.field]);
     if (
       itemId === null ||
+      !characterContentAllowed(args.characterId, definition.domain, definition.slot, itemId) ||
       !isKnownContent({
         domain: definition.domain,
         slot: definition.slot,
@@ -134,14 +136,16 @@ export function normalizeAuthorizedLoadout(args: {
 
 export function isAuthorizedGear(args: {
   meta: JsonObject;
+  characterId: string;
   slot: "mainWeapon" | "offhandWeapon" | "spellBook" | "accessory";
   itemId: string;
 }): boolean {
   return (
+    characterContentAllowed(args.characterId, "gear", args.slot, args.itemId) &&
     isKnownContent({ domain: "gear", slot: args.slot, itemId: args.itemId }) &&
     isOwnedContent({
       meta: args.meta,
-      characterId: knownCharacterIds[0],
+      characterId: args.characterId,
       domain: "gear",
       slot: args.slot,
       itemId: args.itemId,
@@ -157,6 +161,7 @@ export function isAuthorizedAbility(args: {
 }): boolean {
   return (
     isKnownCharacterId(args.characterId) &&
+    characterContentAllowed(args.characterId, "ability", args.slot, args.abilityId) &&
     isKnownContent({
       domain: "ability",
       slot: args.slot,
@@ -179,6 +184,7 @@ export function isAuthorizedProjectileSpell(args: {
 }): boolean {
   return (
     isKnownCharacterId(args.characterId) &&
+    characterContentAllowed(args.characterId, "projectileSpell", "projectile", args.spellId) &&
     isKnownContent({
       domain: "projectileSpell",
       slot: "projectile",

@@ -1,5 +1,6 @@
 import '../snapshots/enums.dart';
 import 'combat_geometry.dart';
+import 'bounty_hunter_pose_catalog.dart';
 import 'voidborn_goddess_pose_catalog.dart';
 import 'shoggoth_pose_catalog.dart';
 import 'voidcaller_pose_catalog.dart';
@@ -305,7 +306,8 @@ abstract final class CombatPoseCatalog {
         'bringer.scythe_sweep' => bringerScythe.timing,
         'bringer.death_pillar' => bringerCast,
         _ =>
-          VoidbornGoddessPoseCatalog.timingFor(abilityId) ??
+          BountyHunterPoseCatalog.timingFor(abilityId) ??
+              VoidbornGoddessPoseCatalog.timingFor(abilityId) ??
               ShoggothPoseCatalog.timingFor(abilityId) ??
               VoidcallerPoseCatalog.timingFor(abilityId) ??
               ShoggothMinionPoseCatalog.timingFor(abilityId) ??

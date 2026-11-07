@@ -92,6 +92,9 @@ import 'ecs/systems/mobility_system.dart';
 import 'ecs/systems/world_motion_authority.dart';
 import 'ecs/systems/mobility_impact_system.dart';
 import 'ecs/systems/player_movement_system.dart';
+import 'ecs/systems/bomb_system.dart';
+import 'ecs/systems/combat_lunge_system.dart';
+import 'ecs/systems/target_mark_system.dart';
 import 'ecs/systems/jump_system.dart';
 import 'ecs/systems/projectile_hit_system.dart';
 import 'ecs/systems/projectile_system.dart';
@@ -404,7 +407,10 @@ class GameCore {
        _projectiles = projectileCatalog,
        _spellBooks = spellBookCatalog,
        _enemyCatalog = enemyCatalog,
-       _playerCharacter = playerCharacter,
+       _playerCharacter = playerCharacter.withProjectile(
+         equippedLoadoutOverride?.projectileSlotSpellId ??
+             playerCharacter.catalog.projectileSlotSpellId,
+       ),
        _weapons = weaponCatalog,
        _accessories = accessoryCatalog,
        _statsResolver = CharacterStatsResolver(
@@ -637,6 +643,7 @@ class GameCore {
     );
     _jumpSystem = JumpSystem(abilities: abilityCatalog);
     _mobilitySystem = MobilitySystem(statsCache: _resolvedStatsCache);
+    _combatLungeSystem = CombatLungeSystem(abilities: abilityCatalog);
     _cooldownSystem = CooldownSystem();
     _gravitySystem = GravitySystem();
 
@@ -653,8 +660,12 @@ class GameCore {
 
     // Hitbox management.
     _projectilePoseSystem = ProjectilePoseSystem(tickHz: tickHz);
-    _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem(tickHz: tickHz);
+    _hitboxFollowOwnerSystem = HitboxFollowOwnerSystem(
+      tickHz: tickHz,
+      playerRenderAnim: _playerCharacter.renderAnim,
+    );
     _combatHurtboxSystem = CombatHurtboxSystem(
+      playerCharacterId: _playerCharacter.id,
       tickHz: tickHz,
       playerRenderAnim: _playerCharacter.renderAnim,
     );
@@ -664,6 +675,7 @@ class GameCore {
     _invulnerabilitySystem = InvulnerabilitySystem();
     _damageMiddlewareSystem = DamageMiddlewareSystem(
       middlewares: [
+        TargetMarkMiddleware(),
         HashashTeleportEvadeMiddleware(tickHz: tickHz),
         GoddessDodgeMiddleware(
           tryBeginDodge: (world, boss, player, tick) =>
@@ -733,6 +745,15 @@ class GameCore {
           .terrainRuntimeBundle
           .edgeIndex,
     );
+    _bombSystem = BombSystem(
+      tickHz: tickHz,
+      pathClear: ProjectileAimVisibility(
+        () => (_worldMotionAuthority as TerrainMultiBodyWorldMotionAuthority)
+            .terrainRuntimeBundle
+            .edgeIndex,
+        blockOneWay: false,
+      ).isClear,
+    );
     _abilityActivationSystem = AbilityActivationSystem(
       tickHz: tickHz,
       inputBufferTicks: _abilities.inputBufferTicks,
@@ -762,13 +783,17 @@ class GameCore {
 
     // Projectile execution.
     _projectileLaunchSystem = ProjectileLaunchSystem(
+      abilities: abilityCatalog,
       projectiles: _projectiles,
       tickHz: tickHz,
     );
     _targetPointImpactSystem = TargetPointImpactSystem(
       queueImpactEvent: (event) => _events.add(event),
     );
-    _selfAbilitySystem = SelfAbilitySystem();
+    _selfAbilitySystem = SelfAbilitySystem(
+      abilities: abilityCatalog,
+      tickHz: tickHz,
+    );
     _meleeStrikeSystem = MeleeStrikeSystem();
 
     // Navigation infrastructure.
@@ -1001,6 +1026,9 @@ class GameCore {
   final SpellBookCatalog _spellBooks;
   final EnemyCatalog _enemyCatalog;
   final PlayerCharacterDefinition _playerCharacter;
+
+  /// Captured character and weapon art definition for this run.
+  PlayerCharacterDefinition get playerCharacter => _playerCharacter;
   final WeaponCatalog _weapons;
   final AccessoryCatalog _accessories;
   final CharacterStatsResolver _statsResolver;
@@ -1035,6 +1063,8 @@ class GameCore {
   late final PlayerMovementSystem _movementSystem;
   late final JumpSystem _jumpSystem;
   late final MobilitySystem _mobilitySystem;
+  late final CombatLungeSystem _combatLungeSystem;
+  late final BombSystem _bombSystem;
   late final WorldMotionAuthority _worldMotionAuthority;
   late final CooldownSystem _cooldownSystem;
   late final GravitySystem _gravitySystem;
@@ -1941,6 +1971,7 @@ class GameCore {
       fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,
     );
     _mobilitySystem.step(_world, _movement, currentTick: tick);
+    _combatLungeSystem.step(_world);
     // Accepted damage from the preceding tick overrides horizontal control;
     // gravity and the terrain controller still own falling and containment.
     _knockbackSystem.step(_world, currentTick: tick);
@@ -2066,6 +2097,7 @@ class GameCore {
 
     // ─── Phase 12: Hit resolution + mobility impacts ───
     // Detect overlaps and queue damage events.
+    _bombSystem.step(_world, _broadphaseGrid, currentTick: tick);
     _projectileHitSystem.step(
       _world,
       _broadphaseGrid,

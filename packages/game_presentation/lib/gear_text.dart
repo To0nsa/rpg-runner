@@ -181,6 +181,8 @@ String _titleCaseEnum(String source) {
 const String _defaultDescription = 'No description available yet.';
 
 const Map<WeaponId, String> _weaponDisplayNameOverrides = <WeaponId, String>{
+  WeaponId.hunterBlade: 'Hunter Blade',
+  WeaponId.hunterBombKit: 'Bomb Kit',
   WeaponId.plainsteel: 'Plainsteel',
   WeaponId.waspfang: 'Waspfang',
   WeaponId.cinderedge: 'Cinderedge',
@@ -202,6 +204,9 @@ const Map<WeaponId, String> _weaponDisplayNameOverrides = <WeaponId, String>{
 };
 
 const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
+  WeaponId.hunterBlade: 'A close-range blade for cuts, combos and lunges.',
+  WeaponId.hunterBombKit:
+      'Unlimited bombs with a fuse and cooldown. Costs no Supplies.',
   WeaponId.plainsteel: 'Baseline one-handed sword with consistent output.',
   WeaponId.waspfang: 'Bleed pressure sword with lower upfront power.',
   WeaponId.cinderedge: 'Crit-focused blade that ignites on critical strikes.',
@@ -234,6 +239,10 @@ const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
 
 const Map<ProjectileId, String> _projectileDisplayNameOverrides =
     <ProjectileId, String>{
+      ProjectileId.hunterPistol: 'Pistol',
+      ProjectileId.hunterCrossbow: 'Crossbow',
+      ProjectileId.hunterShotgun: 'Shotgun',
+      ProjectileId.hunterBomb: 'Bomb',
       ProjectileId.iceBolt: 'Ice Bolt',
       ProjectileId.fireBolt: 'Fire Bolt',
       ProjectileId.acidBolt: 'Acid Bolt',
@@ -246,6 +255,11 @@ const Map<ProjectileId, String> _projectileDisplayNameOverrides =
 
 const Map<ProjectileId, String> _projectileDescriptionOverrides =
     <ProjectileId, String>{
+      ProjectileId.hunterPistol:
+          'Fast bullets with balanced range. Uses regenerating Supplies.',
+      ProjectileId.hunterCrossbow: 'Long-range bolts with 15% more total damage. Uses regenerating Supplies.',
+      ProjectileId.hunterShotgun: 'Short-range shells split into at least three pellets with 30% more total damage. Uses regenerating Supplies.',
+      ProjectileId.hunterBomb: 'A timed blast blocked by solid terrain.',
       ProjectileId.iceBolt: 'Spell projectile that chills on hit.',
       ProjectileId.fireBolt: 'Spell projectile that burns on hit.',
       ProjectileId.acidBolt:
@@ -262,6 +276,7 @@ const Map<ProjectileId, String> _projectileDescriptionOverrides =
 
 const Map<SpellBookId, String> _spellBookDisplayNameOverrides =
     <SpellBookId, String>{
+      SpellBookId.hunterFieldKit: 'Field Kit',
       SpellBookId.apprenticePrimer: 'Apprentice Primer',
       SpellBookId.bastionCodex: 'Bastion Codex',
       SpellBookId.emberGrimoire: 'Ember Grimoire',
@@ -274,6 +289,8 @@ const Map<SpellBookId, String> _spellBookDisplayNameOverrides =
 
 const Map<SpellBookId, String>
 _spellBookDescriptionOverrides = <SpellBookId, String>{
+  SpellBookId.hunterFieldKit:
+      'Equipment for fieldcraft, recovery and preparing Supplies.',
   SpellBookId.apprenticePrimer:
       'Baseline spellbook with small power and mana gains.',
   SpellBookId.bastionCodex:

@@ -137,9 +137,9 @@ ProjectileId? _resolveProjectilePayload({
   final selectedSpell = projectiles.tryGet(selectedSpellId);
   final supportsSpell =
       selectedSpell != null &&
-      selectedSpell.weaponType == WeaponType.spell &&
+      playerEquippableProjectileIds.contains(selectedSpellId) &&
       (ability.requiredWeaponTypes.isEmpty ||
-          ability.requiredWeaponTypes.contains(WeaponType.spell));
+          ability.requiredWeaponTypes.contains(selectedSpell.weaponType));
   if (supportsSpell) return selectedSpellId;
   return null;
 }

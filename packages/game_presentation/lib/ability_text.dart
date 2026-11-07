@@ -21,6 +21,7 @@ String _titleCaseSnake(String source) {
 }
 
 const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
+  'bounty_hunter.hunters_focus': "Hunter's Focus",
   'grojib.strike2': 'Second Strike',
 
   // Primary: sword arts.

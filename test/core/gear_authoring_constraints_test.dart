@@ -22,6 +22,14 @@ void main() {
       for (final id in WeaponId.values) {
         final def = catalog.get(id);
         final stats = _statMap(def.stats);
+        if (id == WeaponId.hunterBlade || id == WeaponId.hunterBombKit) {
+          // Hunter starter kits select a delivery family; ability/weapon tuning
+          // owns their output rather than additional passive gear modifiers.
+          expect(stats.values, everyElement(0));
+          expect(def.procs, isEmpty);
+          expect(def.reactiveProcs, isEmpty);
+          continue;
+        }
         final outgoingCount = def.procs.length;
         final reactiveCount = def.reactiveProcs.length;
         final positiveCount = _positiveStatCount(stats);
@@ -159,6 +167,11 @@ void main() {
 
       for (final id in SpellBookId.values) {
         final def = catalog.get(id);
+        if (id == SpellBookId.hunterFieldKit) {
+          expect(_statMap(def.stats).values, everyElement(0));
+          expect(def.procs, isEmpty);
+          continue;
+        }
         expect(def.procs, isEmpty, reason: '$id');
         final stats = _statMap(def.stats);
 
@@ -202,86 +215,77 @@ void main() {
     });
 
     test('accessory catalog respects low-health sustain proc invariants', () {
-        const catalog = AccessoryCatalog();
-        final identity = <String>{};
-        final usedProcIdentities = <String>{};
+      const catalog = AccessoryCatalog();
+      final identity = <String>{};
+      final usedProcIdentities = <String>{};
 
-        for (final id in AccessoryId.values) {
-          final def = catalog.get(id);
-          final stats = _statMap(def.stats);
-          _expectProcClusterConstraints(
-            id: id,
-            procs: const <WeaponProc>[],
-            reactiveProcs: def.reactiveProcs,
-          );
+      for (final id in AccessoryId.values) {
+        final def = catalog.get(id);
+        final stats = _statMap(def.stats);
+        _expectProcClusterConstraints(
+          id: id,
+          procs: const <WeaponProc>[],
+          reactiveProcs: def.reactiveProcs,
+        );
 
-          for (final entry in stats.entries) {
-            final value = entry.value;
-            if (value == 0) continue;
-            expect(value.abs() >= 500, isTrue, reason: '$id ${entry.key}');
-            expect(
-              value % 500 == 0,
-              isTrue,
-              reason: '$id ${entry.key}: $value',
-            );
-            expect(
-              _isWithinStatBounds(entry.key, value),
-              isTrue,
-              reason: '$id ${entry.key}: $value',
-            );
-          }
-
-          for (final proc in def.reactiveProcs) {
-            expect(proc.hook, ReactiveProcHook.onLowHealth, reason: '$id');
-            expect(proc.target, ReactiveProcTarget.self, reason: '$id');
-            expect(proc.chanceBp, 10000, reason: '$id');
-            expect(
-              proc.lowHealthThresholdBp >= 2500 &&
-                  proc.lowHealthThresholdBp <= 3500,
-              isTrue,
-              reason: '$id threshold',
-            );
-            expect(
-              proc.internalCooldownTicks >= 1800,
-              isTrue,
-              reason: '$id cooldown',
-            );
-            expect(
-              _statusFamily(proc.statusProfileId),
-              _StatusFamily.sustain,
-              reason: '$id',
-            );
-            final procIdentity = _reactiveProcIdentityKey(
-              slot: 'accessory',
-              proc: proc,
-            );
-            expect(
-              usedProcIdentities.add(procIdentity),
-              isTrue,
-              reason: '$id duplicate proc identity $procIdentity',
-            );
-          }
-
-          _expectAccessoryStatTemplate(
-            id: id,
-            hasProc: def.reactiveProcs.isNotEmpty,
-            positiveCount: _positiveStatCount(stats),
-            negativeCount: _negativeStatCount(stats),
-          );
+        for (final entry in stats.entries) {
+          final value = entry.value;
+          if (value == 0) continue;
+          expect(value.abs() >= 500, isTrue, reason: '$id ${entry.key}');
+          expect(value % 500 == 0, isTrue, reason: '$id ${entry.key}: $value');
           expect(
-            identity.add(
-              _identitySignature(
-                stats,
-                const <WeaponProc>[],
-                def.reactiveProcs,
-              ),
-            ),
+            _isWithinStatBounds(entry.key, value),
             isTrue,
-            reason: '$id duplicate identity',
+            reason: '$id ${entry.key}: $value',
           );
         }
-      },
-    );
+
+        for (final proc in def.reactiveProcs) {
+          expect(proc.hook, ReactiveProcHook.onLowHealth, reason: '$id');
+          expect(proc.target, ReactiveProcTarget.self, reason: '$id');
+          expect(proc.chanceBp, 10000, reason: '$id');
+          expect(
+            proc.lowHealthThresholdBp >= 2500 &&
+                proc.lowHealthThresholdBp <= 3500,
+            isTrue,
+            reason: '$id threshold',
+          );
+          expect(
+            proc.internalCooldownTicks >= 1800,
+            isTrue,
+            reason: '$id cooldown',
+          );
+          expect(
+            _statusFamily(proc.statusProfileId),
+            _StatusFamily.sustain,
+            reason: '$id',
+          );
+          final procIdentity = _reactiveProcIdentityKey(
+            slot: 'accessory',
+            proc: proc,
+          );
+          expect(
+            usedProcIdentities.add(procIdentity),
+            isTrue,
+            reason: '$id duplicate proc identity $procIdentity',
+          );
+        }
+
+        _expectAccessoryStatTemplate(
+          id: id,
+          hasProc: def.reactiveProcs.isNotEmpty,
+          positiveCount: _positiveStatCount(stats),
+          negativeCount: _negativeStatCount(stats),
+        );
+        expect(
+          identity.add(
+            _identitySignature(stats, const <WeaponProc>[], def.reactiveProcs),
+          ),
+          isTrue,
+          reason: '$id duplicate identity',
+        );
+      }
+    });
   });
 }
 

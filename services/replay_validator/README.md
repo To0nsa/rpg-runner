@@ -71,7 +71,12 @@ geometry version describe the measured horizon, not exhaustive route coverage.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The validator source accepts prepared game compatibility `2026.10.21`;
+The validator source accepts local game compatibility `2026.11.7`, including
+[Willow's gameplay and weapon variants](../../docs/tdd/willow.md). This local
+change has not been deployed. The existing version gate rejects older gameplay
+tickets; no new account migration is included.
+
+The previously deployed gameplay compatibility was `2026.10.21`;
 replay/command format `1`, `rules-v2`, `score-v4`, and `ghost-v1` are the
 supported ranked tuple. This source includes mandatory boss arenas, whose
 entrance, defeat credit and excluded survival-score ticks are replayed through

@@ -8,7 +8,8 @@ import '../collision/terrain/terrain_query_buffer.dart';
 /// The query buffer is reused while the index is unchanged. A streamed terrain
 /// publication replaces the buffer together with its index at the next query.
 final class ProjectileAimVisibility {
-  ProjectileAimVisibility(this._indexProvider);
+  ProjectileAimVisibility(this._indexProvider, {this.blockOneWay = true});
+  final bool blockOneWay;
 
   final TerrainEdgeIndex Function() _indexProvider;
   TerrainEdgeIndex? _index;
@@ -40,6 +41,7 @@ final class ProjectileAimVisibility {
     for (var i = 0; i < buffer.candidateCount; i += 1) {
       final edge = buffer.edgeAt(i, index.edges);
       if (edge.collisionMode == TerrainCollisionMode.oneWay) {
+        if (!blockOneWay) continue;
         final startSide =
             (startX - edge.start.xTicks) * edge.outwardNormal.xTicks +
             (startY - edge.start.yTicks) * edge.outwardNormal.yTicks;

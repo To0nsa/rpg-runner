@@ -2,6 +2,7 @@ library;
 
 import 'characters/eloise.dart';
 import 'characters/eloise_wip.dart';
+import 'characters/bounty_hunter.dart';
 import 'player_character_definition.dart';
 
 class PlayerCharacterRegistry {
@@ -10,7 +11,19 @@ class PlayerCharacterRegistry {
   static const PlayerCharacterDefinition eloise = eloiseCharacter;
   static const PlayerCharacterDefinition eloiseWip = eloiseWipCharacter;
 
-  static const List<PlayerCharacterDefinition> all = [eloise, eloiseWip];
+  static final PlayerCharacterDefinition bountyHunter = bountyHunterCharacter;
+
+  static final List<PlayerCharacterDefinition> all = List.unmodifiable([
+    eloise,
+    eloiseWip,
+    bountyHunter,
+  ]);
+
+  /// Public selection excludes the retained development-only Éloïse identity.
+  static final List<PlayerCharacterDefinition> playable = List.unmodifiable([
+    eloise,
+    bountyHunter,
+  ]);
 
   static final Map<PlayerCharacterId, PlayerCharacterDefinition> byId =
       _buildById(all);

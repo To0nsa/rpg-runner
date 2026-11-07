@@ -17,6 +17,9 @@ class CatalogGift {
         !PlayerCharacterId.values.any((id) => id.name == characterId)) {
       throw const FormatException('Unknown gift character.');
     }
+    if (characterId != null && !item.supportsCharacter(characterId!)) {
+      throw const FormatException('Gift does not belong to this character.');
+    }
   }
   final GameCatalogItem item;
   final String? characterId;

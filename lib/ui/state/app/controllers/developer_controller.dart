@@ -48,8 +48,7 @@ final class _AppStateDeveloperController extends _AppStateController {
           id: AbilityOwnershipState(
             learnedProjectileSpellIds: {
               for (final projectile in playerEquippableProjectileIds)
-                if (const ProjectileCatalog().tryGet(projectile)?.weaponType ==
-                    WeaponType.spell)
+                if (CharacterEquipmentPolicy.allowsProjectile(id, projectile))
                   projectile,
             },
             learnedAbilityIdsBySlot: {
@@ -70,6 +69,7 @@ final class _AppStateDeveloperController extends _AppStateController {
       equippedByCharacter: {
         for (final id in PlayerCharacterId.values)
           id: _validGear(
+            id,
             selection.loadoutFor(id),
             SelectionState.defaults.loadoutFor(id),
           ),
@@ -78,22 +78,33 @@ final class _AppStateDeveloperController extends _AppStateController {
   }
 
   EquippedGear _validGear(
+    PlayerCharacterId characterId,
     EquippedLoadoutDef loadout,
     EquippedLoadoutDef fallback,
   ) {
-    const weapons = WeaponCatalog();
     return EquippedGear(
       mainWeaponId:
-          weapons.tryGet(loadout.mainWeaponId)?.category ==
-              WeaponCategory.primary
+          CharacterEquipmentPolicy.allowsGear(
+            characterId,
+            GearSlot.mainWeapon,
+            loadout.mainWeaponId,
+          )
           ? loadout.mainWeaponId
           : fallback.mainWeaponId,
       offhandWeaponId:
-          weapons.tryGet(loadout.offhandWeaponId)?.category ==
-              WeaponCategory.offHand
+          CharacterEquipmentPolicy.allowsGear(
+            characterId,
+            GearSlot.offhandWeapon,
+            loadout.offhandWeaponId,
+          )
           ? loadout.offhandWeaponId
           : fallback.offhandWeaponId,
-      spellBookId: const SpellBookCatalog().tryGet(loadout.spellBookId) != null
+      spellBookId:
+          CharacterEquipmentPolicy.allowsGear(
+            characterId,
+            GearSlot.spellBook,
+            loadout.spellBookId,
+          )
           ? loadout.spellBookId
           : fallback.spellBookId,
       accessoryId: loadout.accessoryId,

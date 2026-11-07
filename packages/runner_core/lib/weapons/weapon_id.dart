@@ -22,4 +22,6 @@ enum WeaponId {
   nullPrism,
   warbannerGuard,
   oathwallRelic,
+  hunterBlade,
+  hunterBombKit,
 }

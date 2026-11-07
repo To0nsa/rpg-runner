@@ -4,8 +4,9 @@ import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/enums.dart';
 import 'player_tuning.dart';
 import 'player_catalog.dart';
+import '../projectiles/projectile_id.dart';
 
-enum PlayerCharacterId { eloise, eloiseWip }
+enum PlayerCharacterId { eloise, eloiseWip, bountyHunter }
 
 class PlayerCharacterDefinition {
   const PlayerCharacterDefinition({
@@ -14,6 +15,7 @@ class PlayerCharacterDefinition {
     required this.renderAnim,
     required this.catalog,
     this.tuning = const PlayerTuning(),
+    this.renderVariants = const {},
   });
 
   final PlayerCharacterId id;
@@ -25,6 +27,15 @@ class PlayerCharacterDefinition {
   /// windows can stay in sync, but the renderer remains the only layer that
   /// loads assets.
   final RenderAnimSetDefinition renderAnim;
+
+  /// Optional weapon art variants sharing geometry and deterministic timing.
+  final Map<ProjectileId, RenderAnimSetDefinition> renderVariants;
+
+  /// Captures the selected weapon's art for both simulation poses and rendering.
+  PlayerCharacterDefinition withProjectile(ProjectileId id) {
+    final variant = renderVariants[id];
+    return variant == null ? this : copyWith(renderAnim: variant);
+  }
 
   /// Structural player configuration (collider size/offset, physics flags, etc.).
   final PlayerCatalog catalog;
@@ -44,6 +55,7 @@ class PlayerCharacterDefinition {
       renderAnim: renderAnim ?? this.renderAnim,
       catalog: catalog ?? this.catalog,
       tuning: tuning ?? this.tuning,
+      renderVariants: renderVariants,
     );
   }
 

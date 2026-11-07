@@ -29,6 +29,8 @@ import '../stores/mobility_intent_store.dart';
 import '../stores/projectile_intent_store.dart';
 import '../stores/self_intent_store.dart';
 import '../world.dart';
+import '../world_support_view.dart';
+import 'target_mark_system.dart';
 
 /// Routes player input into ability intents based on the equipped loadout.
 ///
@@ -401,6 +403,10 @@ class AbilityActivationSystem {
     if (!ability.allowedSlots.contains(slot)) {
       return false;
     }
+    if (ability.requiresGrounded &&
+        !WorldSupportView(world).isGrounded(player)) {
+      return false;
+    }
 
     if (_isChargeCommitBlocked(
       world,
@@ -572,6 +578,17 @@ class AbilityActivationSystem {
       if (world.stamina.stamina[staminaIndex] <= 0) return false;
     }
 
+    final markDelivery = ability.hitDelivery;
+    final markTarget = markDelivery is MarkHitDelivery
+        ? findMarkTarget(
+            world,
+            player,
+            markDelivery,
+            pathClear: projectileAimPathClear,
+          )
+        : null;
+    if (markDelivery is MarkHitDelivery && markTarget == null) return false;
+
     _applyCommitSideEffects(
       world,
       player: player,
@@ -597,6 +614,7 @@ class AbilityActivationSystem {
         selfStatusProfileId: ability.selfStatusProfileId,
         selfStatusTuning: ability.selfStatusTuning,
         selfPurgeProfileId: ability.selfPurgeProfileId,
+        markTarget: markTarget,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,
@@ -1009,12 +1027,16 @@ class AbilityActivationSystem {
     }
 
     // Projectile delivery must pull payload from a projectile item or spell book.
-    if (ability.payloadSource != AbilityPayloadSource.projectile &&
+    if (ability.hitDelivery is! BombHitDelivery &&
+        ability.payloadSource != AbilityPayloadSource.projectile &&
         ability.payloadSource != AbilityPayloadSource.spellBook) {
       return false;
     }
     final mask = world.equippedLoadout.mask[loadoutIndex];
-    if ((mask & LoadoutSlotMask.projectile) == 0) return false;
+    final requiredMask = ability.hitDelivery is BombHitDelivery
+        ? LoadoutSlotMask.offHand
+        : LoadoutSlotMask.projectile;
+    if ((mask & requiredMask) == 0) return false;
 
     if (ability.category != AbilityCategory.ranged) {
       return false;
@@ -1096,9 +1118,28 @@ class AbilityActivationSystem {
         weaponDamageType = spellBook.damageType;
         weaponProcs = spellBook.procs;
         break;
+      case AbilityPayloadSource.secondaryWeapon:
+        if (hitDelivery is! BombHitDelivery ||
+            (mask & LoadoutSlotMask.offHand) == 0) {
+          return false;
+        }
+        final weapon = weapons.get(
+          world.equippedLoadout.offhandWeaponId[loadoutIndex],
+        );
+        if (!ability.requiredWeaponTypes.contains(weapon.weaponType)) {
+          return false;
+        }
+        projectileId = hitDelivery.projectileId;
+        final projectile = projectiles.get(projectileId);
+        ballistic = true;
+        gravityScale = projectile.gravityScale;
+        projectileBaseSpeedUnitsPerSecond = projectile.speedUnitsPerSecond;
+        projectileLifetimeSeconds = projectile.lifetimeSeconds;
+        weaponDamageType = weapon.damageType;
+        weaponProcs = weapon.procs;
+        break;
       case AbilityPayloadSource.none:
       case AbilityPayloadSource.primaryWeapon:
-      case AbilityPayloadSource.secondaryWeapon:
         return false;
     }
 

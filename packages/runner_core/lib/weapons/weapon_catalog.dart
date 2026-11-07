@@ -17,6 +17,18 @@ class WeaponCatalog {
 
   WeaponDef get(WeaponId id) {
     switch (id) {
+      case WeaponId.hunterBlade:
+        return const WeaponDef(
+          id: WeaponId.hunterBlade,
+          category: WeaponCategory.primary,
+          weaponType: WeaponType.hunterBlade,
+        );
+      case WeaponId.hunterBombKit:
+        return const WeaponDef(
+          id: WeaponId.hunterBombKit,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+        );
       case WeaponId.plainsteel:
         return const WeaponDef(
           id: WeaponId.plainsteel,
@@ -41,10 +53,7 @@ class WeaponCatalog {
               chanceBp: 2000,
             ),
           ],
-          stats: GearStatBonuses(
-            globalPowerBonusBp: 500,
-            healthBonusBp: -500,
-          ),
+          stats: GearStatBonuses(globalPowerBonusBp: 500, healthBonusBp: -500),
         );
       case WeaponId.cinderedge:
         return const WeaponDef(

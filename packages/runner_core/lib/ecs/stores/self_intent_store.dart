@@ -10,6 +10,7 @@ class SelfIntentDef {
     this.selfStatusProfileId = StatusProfileId.none,
     this.selfStatusTuning = const StatusProfileTuning(),
     this.selfPurgeProfileId = PurgeProfileId.none,
+    this.markTarget,
     required this.commitTick,
     required this.windupTicks,
     required this.activeTicks,
@@ -26,6 +27,7 @@ class SelfIntentDef {
   final StatusProfileId selfStatusProfileId;
   final StatusProfileTuning selfStatusTuning;
   final PurgeProfileId selfPurgeProfileId;
+  final EntityId? markTarget;
 
   /// Tick the ability was committed (costs/cooldown start).
   final int commitTick;
@@ -61,6 +63,7 @@ class SelfIntentStore extends SparseSet {
   final List<StatusProfileId> selfStatusProfileId = <StatusProfileId>[];
   final List<StatusProfileTuning> selfStatusTuning = [];
   final List<PurgeProfileId> selfPurgeProfileId = <PurgeProfileId>[];
+  final List<EntityId?> markTarget = [];
   final List<int> commitTick = <int>[];
   final List<int> windupTicks = <int>[];
   final List<int> activeTicks = <int>[];
@@ -90,6 +93,7 @@ class SelfIntentStore extends SparseSet {
     selfStatusProfileId[i] = def.selfStatusProfileId;
     selfStatusTuning[i] = def.selfStatusTuning;
     selfPurgeProfileId[i] = def.selfPurgeProfileId;
+    markTarget[i] = def.markTarget;
     commitTick[i] = def.commitTick;
     windupTicks[i] = def.windupTicks;
     activeTicks[i] = def.activeTicks;
@@ -108,6 +112,7 @@ class SelfIntentStore extends SparseSet {
     selfStatusProfileId.add(StatusProfileId.none);
     selfStatusTuning.add(const StatusProfileTuning());
     selfPurgeProfileId.add(PurgeProfileId.none);
+    markTarget.add(null);
     commitTick.add(-1);
     windupTicks.add(0);
     activeTicks.add(0);
@@ -126,6 +131,7 @@ class SelfIntentStore extends SparseSet {
     selfStatusProfileId[removeIndex] = selfStatusProfileId[lastIndex];
     selfStatusTuning[removeIndex] = selfStatusTuning[lastIndex];
     selfPurgeProfileId[removeIndex] = selfPurgeProfileId[lastIndex];
+    markTarget[removeIndex] = markTarget[lastIndex];
     commitTick[removeIndex] = commitTick[lastIndex];
     windupTicks[removeIndex] = windupTicks[lastIndex];
     activeTicks[removeIndex] = activeTicks[lastIndex];
@@ -141,6 +147,7 @@ class SelfIntentStore extends SparseSet {
     selfStatusProfileId.removeLast();
     selfStatusTuning.removeLast();
     selfPurgeProfileId.removeLast();
+    markTarget.removeLast();
     commitTick.removeLast();
     windupTicks.removeLast();
     activeTicks.removeLast();

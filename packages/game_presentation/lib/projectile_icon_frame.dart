@@ -63,7 +63,13 @@ class _ProjectileIconFrameState extends State<ProjectileIconFrame> {
   }
 
   void _resolveImage() {
-    if (widget.projectileId == ProjectileId.unknown) {
+    // The supplied hunter sheets are combat effects, not item illustrations.
+    // Reserve an empty illustration until dedicated item art is authored.
+    if (widget.projectileId == ProjectileId.unknown ||
+        widget.projectileId == ProjectileId.hunterPistol ||
+        widget.projectileId == ProjectileId.hunterCrossbow ||
+        widget.projectileId == ProjectileId.hunterShotgun ||
+        widget.projectileId == ProjectileId.hunterBomb) {
       _clearImage();
       return;
     }

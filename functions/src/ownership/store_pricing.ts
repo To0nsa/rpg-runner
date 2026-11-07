@@ -1,4 +1,5 @@
 import { playerEquippableProjectileIds } from "./projectile_spells.js";
+import { hunterAbilitiesBySlot } from "./character_catalog.js";
 
 export const defaultPriceGold = 150;
 
@@ -41,6 +42,14 @@ export interface StoreOfferDefinition {
 }
 
 export const storeOfferDefinitions: readonly StoreOfferDefinition[] = [
+  { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "hunterBlade" },
+  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "hunterBombKit" },
+  { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "hunterFieldKit" },
+  ...Object.entries(hunterAbilitiesBySlot).flatMap(([slot, names]) =>
+    names.map((name): StoreOfferDefinition => ({
+      bucket: slot === "spell" ? "spell" : "ability", domain: "ability",
+      slot: slot as StoreSlot, itemId: `bounty_hunter.${name}`,
+    }))),
   // Swords.
   { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "plainsteel" },
   { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "waspfang" },

@@ -24,6 +24,17 @@ class ProjectileWorldCollisionSystem {
       final ci = collisions.tryIndexOf(p);
       if (ci == null) continue;
 
+      if (world.bomb.has(p)) {
+        if (collisions.grounded[ci]) {
+          // Land without bouncing or detonation; the fuse continues independently.
+          final ti = world.transform.indexOf(p);
+          world.transform.velX[ti] = 0;
+          world.transform.velY[ti] = 0;
+          world.body.enabled[world.body.indexOf(p)] = false;
+        }
+        continue;
+      }
+
       if (collisions.grounded[ci] ||
           collisions.hitCeiling[ci] ||
           collisions.hitLeft[ci] ||

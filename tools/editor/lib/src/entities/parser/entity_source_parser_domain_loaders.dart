@@ -590,6 +590,7 @@ Map<String, EntityReferenceVisual> _parseProjectileReferenceVisuals(
   }
 
   final visualById = <String, EntityReferenceVisual>{};
+  final importedResolvers = <String, _ConstValueResolver?>{};
   for (final member in switchStmt.members) {
     if (member is! SwitchPatternCase && member is! SwitchCase) {
       continue;
@@ -602,7 +603,15 @@ Map<String, EntityReferenceVisual> _parseProjectileReferenceVisuals(
     if (returnedExpression == null) {
       continue;
     }
-    final visual = resolver.resolveRenderVisual(returnedExpression);
+    final visual =
+        resolver.resolveRenderVisual(returnedExpression) ??
+        _resolveImportedActorConstant(
+          workspace,
+          unit,
+          EntitySourceParser.projectileRenderCatalogPath,
+          returnedExpression,
+          importedResolvers,
+        )?.resolveRenderVisual(returnedExpression);
     if (visual != null) {
       visualById[projectileName] = visual;
     }

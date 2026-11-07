@@ -1,4 +1,4 @@
-# Bounty Hunter assets
+# Willow — Bounty Hunter assets
 
 Original art by [Clembod](https://clembod.itch.io/). See [license.txt](license.txt).
 
@@ -32,9 +32,15 @@ The run-shoot sheets contain three shooting phases, each with eight run poses.
 Some atlas cells are empty padding; grid capacity is not an animation's length.
 
 All 715 individual animation frames in the source pack occur in these sheets.
-The supplied Dash Attack has 10 frames; the base melee combo has 14 and the
-add-on three-hit combo has 13. Original frame sizes and layouts are retained;
-base/add-on pivots still need alignment when the character is integrated.
-This import does not register a playable character or define gameplay timing.
+The supplied Dash Attack exports 10 files, one entirely transparent; runtime
+uses its nine visible poses. The base melee combo has 14 frames and the add-on
+three-hit combo has 13. Native base cells are placed at (6,11) on an 89×65 canvas;
+add-on cells use (0,0), sharing the (34,46) character anchor.
+
+Willow is registered as a playable character with weapon-specific animations.
+See [her roster](../../../../../docs/gdd/combat/abilities/willow.md) and
+[technical contract](../../../../../docs/tdd/willow.md). Unused pack animations
+do not imply additional gameplay actions. Item and ability illustrations remain
+empty until dedicated art exists.
 
 Archive SHA-256: `21a64fa3fd9eec95d97a8207508d2f380df93b9da2772c1ee91e747f94de8651`.

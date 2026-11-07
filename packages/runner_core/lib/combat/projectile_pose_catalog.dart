@@ -30,6 +30,10 @@ abstract final class ProjectilePoseCatalog {
       (ProjectileId.shoggothOrb, AnimKey.idle) => _shoggothOrbIdle,
       (ProjectileId.voidClaw, AnimKey.spawn) => _voidClawSpawn,
       (ProjectileId.voidClaw, AnimKey.idle) => _voidClawIdle,
+      (ProjectileId.hunterPistol, AnimKey.idle) => _hunterPistolIdle,
+      (ProjectileId.hunterCrossbow, AnimKey.idle) => _hunterCrossbowIdle,
+      (ProjectileId.hunterShotgun, AnimKey.idle) => _hunterShotgunIdle,
+      (ProjectileId.hunterBomb, AnimKey.idle) => _hunterBombIdle,
       _ => const <List<CombatCapsule>>[],
     };
     return frames.isEmpty ? const [] : frames[frame % frames.length];
@@ -222,5 +226,26 @@ abstract final class ProjectilePoseCatalog {
     [CombatCapsule(-21, -3, 4.5, -3, 25.5)],
     [CombatCapsule(-20.25, -2.25, 5.25, -2.25, 24.75)],
     [CombatCapsule(-21, -3, 0, -3, 25.5)],
+  ];
+  static const _hunterPistolIdle = [
+    [CombatCapsule(-7, 0, 4, 0, 3)],
+    [CombatCapsule(-1.5, 0.5, 6.5, 0.5, 6.5)],
+    [CombatCapsule(-1, 0, 9, 0, 7)],
+  ];
+  static const _hunterCrossbowIdle = [
+    [CombatCapsule(-10.5, -0.5, 7.5, -0.5, 2.5)],
+    [CombatCapsule(-11.5, -0.5, 7.5, -0.5, 2.5)],
+    [CombatCapsule(-12.5, -0.5, 7.5, -0.5, 2.5)],
+    [CombatCapsule(-11.5, -0.5, 7.5, -0.5, 2.5)],
+  ];
+  static const _hunterShotgunIdle = [
+    [CombatCapsule(-3.5, 0.5, 2.5, 0.5, 1.5)],
+    [CombatCapsule(-5.5, 0.5, 2.5, 0.5, 1.5)],
+    [CombatCapsule(-6.5, 0.5, 2.5, 0.5, 1.5)],
+  ];
+  static const _hunterBombIdle = [
+    [CombatCapsule(-1, -1, -1, -1, 4)],
+    [CombatCapsule(-1.5, -2.5, -1.5, -1.5, 4.5)],
+    [CombatCapsule(-1, -4, -1, -1, 4)],
   ];
 }

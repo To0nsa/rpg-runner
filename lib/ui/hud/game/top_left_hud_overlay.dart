@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 
 import '../../../game/game_controller.dart';
 import '../../controls/control_resource_usage.dart';
@@ -52,6 +53,11 @@ class TopLeftHudOverlay extends StatelessWidget {
                     ResourceBar(
                       compact: compact,
                       resource: HudResource.mana,
+                      label:
+                          controller.playerCharacter.id ==
+                              PlayerCharacterId.bountyHunter
+                          ? 'Supplies'
+                          : 'Mana',
                       value: hud.mana,
                       maximum: hud.manaMax,
                       active: active,

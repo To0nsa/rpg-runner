@@ -23,6 +23,16 @@ Future<SpriteAnimSet> loadPlayerAnimations(
     AnimKey.dash,
     AnimKey.hit,
     AnimKey.death,
+    AnimKey.twinStrike,
+    AnimKey.tripleStrike,
+    AnimKey.lunge,
+    AnimKey.bombDrop,
+    AnimKey.slide,
+    AnimKey.doubleJump,
+    AnimKey.rangedAir,
+    AnimKey.rangedRun,
+    AnimKey.airHit,
+    AnimKey.airDeath,
   };
   return loadAnimSetFromDefinition(
     images,

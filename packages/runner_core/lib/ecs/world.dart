@@ -1,4 +1,6 @@
 import 'entity_id.dart';
+import 'stores/bomb_store.dart';
+import 'stores/target_mark_store.dart';
 import 'stores/enemies/boss_flight_intent_store.dart';
 import 'stores/combat_hurtbox_store.dart';
 import 'stores/actor_motion_bounds_store.dart';
@@ -333,6 +335,8 @@ class EcsWorld {
 
   /// Marks an entity as a projectile and defines its properties.
   late final ProjectileStore projectile = _register(ProjectileStore());
+  late final BombStore bomb = _register(BombStore());
+  late final TargetMarkStore targetMark = _register(TargetMarkStore());
 
   /// Defines an area that deals damage or effects on contact.
   late final HitboxStore hitbox = _register(HitboxStore());
@@ -534,6 +538,14 @@ class EcsWorld {
       fatalWorldLoss: fatalWorldLoss,
     );
     aiTarget.forget(entity);
+    targetMark.forget(entity);
+    for (var i = 0; i < selfIntent.denseEntities.length; i++) {
+      if (selfIntent.markTarget[i] == entity) selfIntent.markTarget[i] = null;
+    }
+    for (final attack in bomb.denseEntities) {
+      final pi = projectile.indexOf(attack);
+      if (projectile.owner[pi] == entity) projectile.owner[pi] = 0;
+    }
     npc.forgetTarget(entity);
     surfaceNav.forgetTarget(entity);
     for (final store in _stores) {

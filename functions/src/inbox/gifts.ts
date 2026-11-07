@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { knownCharacterIds } from "../ownership/defaults.js";
+import { characterContentAllowed } from "../ownership/character_catalog.js";
 import { storeOfferDefinitions, type StoreOfferDefinition } from "../ownership/store_pricing.js";
 import type { InboxCatalogReward, InboxReward } from "./contracts.js";
 import { boundedText, safeInteger } from "./validators.js";
@@ -39,6 +40,7 @@ export function parseInboxRewards(raw: unknown): InboxReward[] {
     if (reward.kind !== "gear") {
       reward.characterId = boundedText(row.characterId, "characterId", 100);
       if (!(knownCharacterIds as readonly string[]).includes(reward.characterId)) throw new HttpsError("invalid-argument", "Unknown gift character.");
+      if (!characterContentAllowed(reward.characterId, reward.kind, reward.slot, reward.itemId)) throw new HttpsError("invalid-argument", "Gift does not belong to this character.");
     }
     catalogDefinition(reward);
     return reward;

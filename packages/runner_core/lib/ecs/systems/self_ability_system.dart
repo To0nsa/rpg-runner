@@ -1,4 +1,6 @@
 import '../../combat/status/status.dart';
+import '../../abilities/ability_catalog.dart';
+import '../../abilities/ability_def.dart';
 import '../stores/self_intent_store.dart';
 import '../world.dart';
 
@@ -10,6 +12,9 @@ import '../world.dart';
 /// - Queues self purge profiles (cleanse effects).
 /// - Does **not** deduct resources or start cooldowns.
 class SelfAbilitySystem {
+  SelfAbilitySystem({this.abilities = AbilityCatalog.shared, this.tickHz = 60});
+  final AbilityResolver abilities;
+  final int tickHz;
   void step(
     EcsWorld world, {
     required int currentTick,
@@ -30,6 +35,22 @@ class SelfAbilitySystem {
         continue;
       }
 
+      // Mark identity is captured at commit; a dead/despawned quarry cannot be
+      // replaced by another actor while the action winds up.
+      final mark = abilities.resolve(intents.abilityId[ii])?.hitDelivery;
+      final quarry = intents.markTarget[ii];
+      if (mark is MarkHitDelivery &&
+          quarry != null &&
+          world.health.has(quarry) &&
+          world.health.hp[world.health.indexOf(quarry)] > 0 &&
+          !world.deathState.has(quarry)) {
+        world.targetMark.set(
+          target,
+          target: quarry,
+          expiresTick: currentTick + (mark.durationTicks * tickHz / 60).ceil(),
+          bonusBp: mark.bonusBp,
+        );
+      }
       if (queueStatus != null) {
         final profileId = intents.selfStatusProfileId[ii];
         if (profileId != StatusProfileId.none) {

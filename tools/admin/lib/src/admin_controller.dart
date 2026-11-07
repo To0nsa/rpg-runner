@@ -152,6 +152,7 @@ class AdminController extends ChangeNotifier {
   void toggleGift(GameCatalogItem item, String characterId) {
     if (!canEdit || !catalog.any((entry) => entry.key == item.key)) return;
     if (item.kind != 'gear' && !characters.contains(characterId)) return;
+    if (!item.supportsCharacter(characterId)) return;
     final gift = CatalogGift(
       item: item,
       characterId: item.kind == 'gear' ? null : characterId,

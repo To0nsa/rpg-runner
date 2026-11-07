@@ -119,7 +119,7 @@ online run modes are unavailable. See [technical contract](../tdd/developer_prac
 1. **Play Hub (Main Menu)**
 2. **Profile (Name + stats)**
 3. **Setup Level**
-4. **Setup Character Loadout**
+4. **Character Selection → Setup Character Loadout**
 5. **Loadout Lab (Ability Testing)**
 6. **Leaderboards (Browse + Ghost Select)**
 7. **Town (city map, Store and Library) / Options**
@@ -145,11 +145,12 @@ online run modes are unavailable. See [technical contract](../tdd/developer_prac
 - From Play Hub:
   - `Start Run` → In-Game (starts the **selected level** using the **selected run type**: Practice/Competitive)
   - `Edit Level` → Setup Level (route)
-  - `Edit Loadout` → Setup Character Loadout (route)
+  - `Edit Loadout` → Character Selection → Setup Character Loadout
   - `Weekly` quick button → starts Weekly Challenge directly **if compatible**; otherwise shows “Update required” (does not change `selectedLevelId` by default)
   - Icons: `Profile`, `Leaderboards`, `Options`, `Town` → open those screens
   - `Town` → Théodonis city map → `Town Store` or `Library`
 - From Setup Character Loadout:
+  - Character-name button → Character Selection (Éloïse / Willow), then the chosen character's remembered build
   - `Try on Dummy` → Loadout Lab
   - `Back` → Play Hub
   - `Level` → Setup Level (cross-link)
@@ -316,12 +317,15 @@ Choose level cleanly, while surfacing the **Weekly Challenge** as the competitiv
 
 ### Purpose
 
-Pick character and build the loadout (slot-based). The equipped section visually mirrors the in-game HUD cluster **on this page only**.
+Choose Éloïse or [Willow](combat/abilities/willow.md) on the preceding character
+selection screen, then edit that character's remembered loadout. The equipped
+section visually mirrors the in-game HUD cluster **on this page only**.
 
 ### Layout
 
 - Header: “Character & Loadout”
-- Character selector (carousel/list)
+- Character-name button returns to selection. Gear, Skills and Training Field
+  use the chosen character; Start and Restart use the remembered build directly.
 
 - **Gear slots (4 slots)**
   - primary (main weapon)

@@ -18,7 +18,12 @@ class ProjectileItemDef {
     this.damageType = DamageType.physical,
     this.procs = const <WeaponProc>[],
     this.stats = const GearStatBonuses(),
-  });
+    this.shotCount = 1,
+    this.spreadRadians = 0,
+    this.damageScaleBp = 10000,
+  }) : assert(shotCount > 0),
+       assert(spreadRadians >= 0),
+       assert(damageScaleBp >= 0);
 
   final ProjectileId id;
   final WeaponType weaponType;
@@ -33,4 +38,9 @@ class ProjectileItemDef {
   final DamageType damageType;
   final List<WeaponProc> procs;
   final GearStatBonuses stats;
+
+  /// Weapon-specific fan and total damage budget, before division into pellets.
+  final int shotCount;
+  final double spreadRadians;
+  final int damageScaleBp;
 }

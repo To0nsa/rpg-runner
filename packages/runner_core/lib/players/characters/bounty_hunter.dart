@@ -1,0 +1,200 @@
+import '../../abilities/ability_def.dart';
+import '../../contracts/render_anim_set_definition.dart';
+import '../../contracts/render_frame_part.dart';
+import '../../contracts/render_frame_rect.dart';
+import '../../ecs/stores/body_store.dart';
+import '../../ecs/stores/combat/creature_tag_store.dart';
+import '../../ecs/stores/combat/damage_resistance_store.dart';
+import '../../ecs/stores/combat/equipped_loadout_store.dart';
+import '../../ecs/stores/combat/status_immunity_store.dart';
+import '../../combat/creature_tag.dart';
+import '../../projectiles/projectile_id.dart';
+import '../../snapshots/enums.dart';
+import '../../spellBook/spell_book_id.dart';
+import '../../weapons/weapon_id.dart';
+import '../../util/vec2.dart';
+import '../player_catalog.dart';
+import '../player_character_definition.dart';
+import '../player_tuning.dart';
+
+/// Native cells are composed into one canvas without stretching. The base
+/// body's support line is aligned with the larger add-on's feet.
+RenderAnimSetDefinition bountyHunterRenderAnim(ProjectileId weapon) {
+  final variant = switch (weapon) {
+    ProjectileId.hunterCrossbow => 'crossbow',
+    ProjectileId.hunterShotgun => 'shotgun',
+    _ => 'gun',
+  };
+  final prefix = 'entities/player/bounty_hunter/$variant';
+  final sources = <AnimKey, String>{};
+  final counts = <AnimKey, int>{};
+  final times = <AnimKey, double>{};
+  final frames = <AnimKey, List<List<RenderFramePart>>>{};
+  void strip(
+    AnimKey key,
+    int row,
+    int count,
+    double seconds, {
+    bool addon = false,
+    String? sheet,
+    int start = 0,
+    int? columns,
+  }) {
+    final width = addon ? 89 : 73;
+    final height = addon ? 65 : 54;
+    final cols = columns ?? (addon ? 13 : 8);
+    sources[key] =
+        '$prefix/${sheet ?? (addon ? 'add_on_sheet.png' : 'sprite_sheet.png')}';
+    counts[key] = count;
+    times[key] = seconds;
+    frames[key] = List.generate(
+      count,
+      (i) => [
+        RenderFramePart(
+          source: RenderFrameRect(
+            ((start + i) % cols) * width,
+            (row + (start + i) ~/ cols) * height,
+            width,
+            height,
+          ),
+          position: addon ? const Vec2(0, 0) : const Vec2(6, 11),
+          size: Vec2(width.toDouble(), height.toDouble()),
+        ),
+      ],
+    );
+  }
+
+  strip(AnimKey.idle, 0, 8, .12);
+  strip(AnimKey.spawn, 0, 8, .06);
+  strip(AnimKey.walk, 2, 8, .12);
+  strip(AnimKey.run, 2, 8, .075);
+  strip(AnimKey.jump, 4, 4, .09);
+  strip(AnimKey.fall, 5, 3, .10);
+  strip(AnimKey.hit, 0, 3, .09, sheet: 'hurt_no_effect_sheet.png', columns: 3);
+  strip(AnimKey.stun, 0, 3, .15, sheet: 'hurt_no_effect_sheet.png', columns: 3);
+  strip(
+    AnimKey.airHit,
+    1,
+    3,
+    .09,
+    sheet: 'hurt_no_effect_sheet.png',
+    columns: 3,
+  );
+  strip(AnimKey.death, 9, 7, .10);
+  strip(AnimKey.airDeath, 8, 3, .10);
+  strip(AnimKey.ranged, 14, 3, .06);
+  strip(AnimKey.rangedAir, 15, 3, .06);
+  // Three firing phases, each containing eight running poses.
+  strip(AnimKey.rangedRun, 0, 24, .075, sheet: 'run_shoot_sheet.png');
+  strip(AnimKey.dash, 18, 7, .04);
+  strip(AnimKey.slide, 22, 4, .06);
+  strip(AnimKey.roll, 23, 7, .05);
+  strip(AnimKey.strike, 25, 7, .06);
+  strip(AnimKey.twinStrike, 25, 14, .06);
+  // The pack exports ten files, including one entirely transparent frame.
+  // Its sheet packs the nine visible poses contiguously through row 28 col 0.
+  strip(AnimKey.lunge, 27, 9, .05);
+  strip(AnimKey.tripleStrike, 2, 13, .06, addon: true);
+  strip(AnimKey.bombDrop, 3, 10, .05, addon: true);
+  strip(AnimKey.doubleJump, 8, 6, .06, addon: true);
+  // Fieldcraft has no dedicated cast art; a brief ready pose preserves its gun.
+  strip(AnimKey.cast, 0, 1, .1);
+  return RenderAnimSetDefinition(
+    frameWidth: 89,
+    frameHeight: 65,
+    anchorPoint: const Vec2(34, 46),
+    sourcesByKey: sources,
+    frameCountsByKey: counts,
+    stepTimeSecondsByKey: times,
+    compositeFramesByKey: frames,
+  );
+}
+
+const bountyHunterCatalog = PlayerCatalog(
+  bodyTemplate: BodyDef(
+    isKinematic: false,
+    useGravity: true,
+    ignoreCeilings: false,
+    topOnlyGround: true,
+    gravityScale: 1,
+    sideMask: BodyDef.sideLeft | BodyDef.sideRight,
+  ),
+  colliderWidth: 16,
+  colliderHeight: 32,
+  colliderOffsetX: 0,
+  colliderOffsetY: 1,
+  castOriginOffset: 22,
+  tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
+  resistance: DamageResistanceDef(),
+  statusImmunity: StatusImmunityDef(),
+  loadoutSlotMask: LoadoutSlotMask.all,
+  weaponId: WeaponId.hunterBlade,
+  offhandWeaponId: WeaponId.hunterBombKit,
+  spellBookId: SpellBookId.hunterFieldKit,
+  projectileSlotSpellId: ProjectileId.hunterPistol,
+  startingProjectileSpellIds: {
+    ProjectileId.hunterPistol,
+    ProjectileId.hunterCrossbow,
+    ProjectileId.hunterShotgun,
+  },
+  abilityPrimaryId: 'bounty_hunter.quick_cut',
+  abilitySecondaryId: 'bounty_hunter.blast_bomb',
+  abilityProjectileId: 'bounty_hunter.snap_shot',
+  abilitySpellId: 'bounty_hunter.hunters_focus',
+  startingSpellAbilityIds: <AbilityKey>{
+    'bounty_hunter.hunters_focus',
+    'bounty_hunter.prepare_charges',
+  },
+  abilityMobilityId: 'bounty_hunter.dash',
+  abilityJumpId: 'bounty_hunter.jump',
+  facing: Facing.right,
+);
+
+const bountyHunterTuning = PlayerTuning(
+  movement: MovementTuning(
+    maxSpeedX: 200,
+    accelerationX: 600,
+    decelerationX: 1200,
+    minMoveSpeed: 5,
+    runSpeedThresholdX: 120,
+    maxVelX: 1500,
+    maxVelY: 1500,
+    jumpSpeed: 500,
+    coyoteTimeSeconds: .1,
+    jumpBufferSeconds: .12,
+    dashDurationSeconds: .2,
+    dashCooldownSeconds: 2,
+  ),
+  resource: ResourceTuning(
+    playerHpMax: 90,
+    playerHpRegenPerSecond: .5,
+    playerManaMax: 100,
+    playerManaRegenPerSecond: 3,
+    playerStaminaMax: 100,
+    playerStaminaRegenPerSecond: 1.5,
+    jumpStaminaCost: 2,
+    dashStaminaCost: 2,
+  ),
+  anim: AnimTuning(
+    hitAnimSeconds: .27,
+    deathAnimSeconds: .7,
+    spawnAnimSeconds: .48,
+  ),
+  combat: CombatTuning(invulnerabilitySeconds: .25),
+);
+
+final bountyHunterCharacter = PlayerCharacterDefinition(
+  id: PlayerCharacterId.bountyHunter,
+  displayName: 'Willow',
+  renderAnim: bountyHunterRenderAnim(ProjectileId.hunterPistol),
+  catalog: bountyHunterCatalog,
+  tuning: bountyHunterTuning,
+  renderVariants: {
+    for (final id in [
+      ProjectileId.hunterPistol,
+      ProjectileId.hunterCrossbow,
+      ProjectileId.hunterShotgun,
+    ])
+      id: bountyHunterRenderAnim(id),
+  },
+);

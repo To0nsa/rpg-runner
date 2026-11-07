@@ -17,6 +17,7 @@ import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
 import 'package:run_protocol/replay_blob.dart';
@@ -50,6 +51,7 @@ class GameController extends ChangeNotifier {
   }
 
   final GameCore _core;
+  PlayerCharacterDefinition get playerCharacter => _core.playerCharacter;
 
   /// Local training control; normal run cores reject this operation.
   void selectTrainingEnemy(EnemyId? enemy) {

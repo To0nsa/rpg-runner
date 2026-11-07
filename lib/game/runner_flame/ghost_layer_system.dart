@@ -164,7 +164,18 @@ class GhostLayerSystem {
         replayBlob.playerCharacterId,
         fieldName: 'ghostReplayBlob.playerCharacterId',
       );
-      final character = PlayerCharacterRegistry.resolve(characterId);
+      final definition = PlayerCharacterRegistry.resolve(characterId);
+      final projectileName =
+          replayBlob.loadoutSnapshot['projectileSlotSpellId'];
+      final projectileId = projectileName == null
+          ? definition.catalog.projectileSlotSpellId
+          : _enumByName(
+              ProjectileId.values,
+              projectileName as String,
+              fieldName:
+                  'ghostReplayBlob.loadoutSnapshot.projectileSlotSpellId',
+            );
+      final character = definition.withProjectile(projectileId);
       final animationSet = await _playerAnimations.load(character.renderAnim);
       if (generation != _animationLoadGeneration) return;
       _ghostPlayerAnimSet = animationSet;

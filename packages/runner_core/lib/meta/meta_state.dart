@@ -3,6 +3,7 @@ import 'ability_ownership_state.dart';
 import 'equipped_gear.dart';
 import 'inventory_state.dart';
 import 'meta_defaults.dart';
+import '../players/character_equipment_policy.dart';
 
 /// Persisted meta-progression state for gear inventory and loadouts.
 class MetaState {
@@ -47,7 +48,7 @@ class MetaState {
 
   /// Reads equipped gear for [id], falling back to defaults when absent.
   EquippedGear equippedFor(PlayerCharacterId id) {
-    return equippedByCharacter[id] ?? MetaDefaults.equippedGear;
+    return equippedByCharacter[id] ?? CharacterEquipmentPolicy.defaults(id);
   }
 
   /// Returns a copy with [gear] assigned to character [id].
@@ -96,7 +97,8 @@ class MetaState {
     Map<PlayerCharacterId, AbilityOwnershipState>? abilityOwnershipByCharacter,
   }) {
     final equipped = <PlayerCharacterId, EquippedGear>{
-      for (final id in PlayerCharacterId.values) id: MetaDefaults.equippedGear,
+      for (final id in PlayerCharacterId.values)
+        id: CharacterEquipmentPolicy.defaults(id),
     };
     final ownershipByCharacter = <PlayerCharacterId, AbilityOwnershipState>{
       for (final id in PlayerCharacterId.values)

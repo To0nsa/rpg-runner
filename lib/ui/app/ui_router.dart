@@ -16,6 +16,7 @@ import '../pages/profile/profile_page.dart';
 import '../pages/options/options_page.dart';
 import '../pages/selectLevel/level_setup_page.dart';
 import '../pages/selectCharacter/loadout_setup_page.dart';
+import '../pages/selectCharacter/character_selection_page.dart';
 import '../bootstrap/profile_name_setup_page.dart';
 import '../runner_game_route.dart';
 import '../controls/movement_control_mode.dart';
@@ -53,6 +54,8 @@ class UiRouter {
         return _pageRoute(settings, const LevelSetupPage());
       case UiRoutes.setupLoadout:
         return _pageRoute(settings, const LoadoutSetupPage());
+      case UiRoutes.selectCharacter:
+        return _pageRoute(settings, const CharacterSelectionPage());
       case UiRoutes.setupProfileName:
         return _pageRoute(settings, const ProfileNameSetupPage());
       case UiRoutes.profile:

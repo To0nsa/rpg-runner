@@ -371,6 +371,7 @@ class _AdminPageState extends State<AdminPage> {
     final items = c.catalog
         .where(
           (item) =>
+              item.supportsCharacter(_character) &&
               (_category == 'All' ||
                   (_category == 'Items'
                       ? item.kind == 'gear'

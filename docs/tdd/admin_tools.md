@@ -58,8 +58,11 @@ The fixture has separate storage, an explicit offline banner and no cloud access
 The operator catalog is derived from the existing store definitions, including
 gear, abilities and projectile spells. Dart resolves every returned entry against
 Core definitions and shared presentation. Backend validation is authoritative.
-Existing skills are granted to an explicit `eloise` or `eloiseWip` recipient;
-selection changes before claim do not retarget them. Gear is account-wide.
+Existing skills are granted to an explicit `eloise`, `eloiseWip` or
+`bountyHunter` (Willow) recipient; selection changes before claim do not retarget
+them. Picker filtering and backend validation both enforce character families.
+Gear ownership is account-wide, while equip eligibility remains character-specific.
+Willow's new items and abilities have empty illustrations until dedicated art exists.
 There are no quantities, arbitrary items or client-supplied ownership patches.
 
 Gold-only messages remain schema 1. Catalog attachments use schema 2 with up to

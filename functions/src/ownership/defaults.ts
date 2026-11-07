@@ -7,8 +7,9 @@ import type {
 import { normalizeProgressionStore } from "./store_state.js";
 import { initialPlayerProgress } from "./player_progress.js";
 import { initialCodexProgress, initialEnemyDefeats } from "./run_discoveries.js";
+import { knownCharacterIds, hunterGear, hunterStarterLoadout, hunterStarterOwnership } from "./character_catalog.js";
 
-export const knownCharacterIds = ["eloise", "eloiseWip"] as const;
+export { knownCharacterIds } from "./character_catalog.js";
 export type KnownCharacterId = (typeof knownCharacterIds)[number];
 
 export const knownAbilitySlots = [
@@ -54,6 +55,7 @@ export function starterSelection(): JsonObject {
     loadoutsByCharacter: {
       eloise: starterLoadout,
       eloiseWip: starterLoadout,
+      bountyHunter: hunterStarterLoadout,
     },
   } satisfies JsonObject);
 }
@@ -62,11 +64,12 @@ export function starterMeta(): JsonObject {
   return structuredClone({
     schemaVersion: 3,
     inventory: {
-      weapons: ["plainsteel", "roadguard"],
-      spellBooks: ["apprenticePrimer"],
+      weapons: ["plainsteel", "roadguard", "hunterBlade", "hunterBombKit"],
+      spellBooks: ["apprenticePrimer", "hunterFieldKit"],
       accessories: ["strengthBelt"],
     },
     equippedByCharacter: {
+      bountyHunter: hunterGear,
       eloise: {
         mainWeaponId: "plainsteel",
         offhandWeaponId: "roadguard",
@@ -81,6 +84,7 @@ export function starterMeta(): JsonObject {
       },
     },
     abilityOwnershipByCharacter: {
+      bountyHunter: hunterStarterOwnership,
       eloise: {
         projectileSpells: ["acidBolt", "holyBolt"],
         abilitiesBySlot: {

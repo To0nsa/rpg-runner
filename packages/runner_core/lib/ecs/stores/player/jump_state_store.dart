@@ -15,6 +15,9 @@ class JumpStateStore extends SparseSet {
   /// Number of airborne jumps used since last grounded tick.
   final List<int> airJumpsUsed = <int>[];
 
+  /// Captured simulation tick for deterministic airborne flip animation.
+  final List<int> lastAirJumpTick = [];
+
   void add(EntityId entity) {
     addEntity(entity);
   }
@@ -24,6 +27,7 @@ class JumpStateStore extends SparseSet {
     coyoteTicksLeft.add(0);
     jumpBufferTicksLeft.add(0);
     airJumpsUsed.add(0);
+    lastAirJumpTick.add(-1);
   }
 
   @override
@@ -31,9 +35,11 @@ class JumpStateStore extends SparseSet {
     coyoteTicksLeft[removeIndex] = coyoteTicksLeft[lastIndex];
     jumpBufferTicksLeft[removeIndex] = jumpBufferTicksLeft[lastIndex];
     airJumpsUsed[removeIndex] = airJumpsUsed[lastIndex];
+    lastAirJumpTick[removeIndex] = lastAirJumpTick[lastIndex];
 
     coyoteTicksLeft.removeLast();
     jumpBufferTicksLeft.removeLast();
     airJumpsUsed.removeLast();
+    lastAirJumpTick.removeLast();
   }
 }

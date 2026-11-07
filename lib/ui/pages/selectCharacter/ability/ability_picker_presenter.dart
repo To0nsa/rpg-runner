@@ -160,7 +160,12 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
   )..sort((a, b) => a.index.compareTo(b.index));
   for (final spellId in orderedLearned) {
     final spellItem = _projectileCatalog.tryGet(spellId);
-    if (spellItem == null || spellItem.weaponType != WeaponType.spell) {
+    final ability = _abilityCatalog.resolve(loadout.abilityProjectileId);
+    if (spellItem == null ||
+        !playerEquippableProjectileIds.contains(spellId) ||
+        (ability != null &&
+            ability.requiredWeaponTypes.isNotEmpty &&
+            !ability.requiredWeaponTypes.contains(spellItem.weaponType))) {
       continue;
     }
     spellOptions.add(
@@ -171,7 +176,10 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
     );
   }
   return ProjectileSourcePanelModel(
-    abilityOwnershipDisplayName: 'Spell List',
+    abilityOwnershipDisplayName:
+        loadout.abilityProjectileId.startsWith('bounty_hunter.')
+        ? 'Weapons'
+        : 'Spell List',
     spellOptions: spellOptions,
   );
 }

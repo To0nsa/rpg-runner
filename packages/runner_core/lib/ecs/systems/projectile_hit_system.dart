@@ -52,6 +52,7 @@ class ProjectileHitSystem {
     final count = projectiles.denseEntities.length;
     for (var pi = 0; pi < count; pi += 1) {
       final p = projectiles.denseEntities[pi];
+      if (world.bomb.has(p)) continue;
       if (currentTick < projectiles.firstHitTick[pi]) continue;
 
       // Validation: Projectiles must have physical presence.

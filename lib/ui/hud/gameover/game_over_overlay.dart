@@ -669,6 +669,14 @@ String _enemyName(EnemyId id) {
 
 String _projectileName(ProjectileId id) {
   switch (id) {
+    case ProjectileId.hunterPistol:
+      return 'Bullet';
+    case ProjectileId.hunterCrossbow:
+      return 'Crossbow Bolt';
+    case ProjectileId.hunterShotgun:
+      return 'Shotgun Pellet';
+    case ProjectileId.hunterBomb:
+      return 'Bomb';
     case ProjectileId.goddessOrb:
       return 'Voidborn Orb';
     case ProjectileId.shoggothOrb:

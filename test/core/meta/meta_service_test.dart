@@ -9,6 +9,7 @@ import 'package:runner_core/meta/meta_defaults.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/meta/meta_state.dart';
 import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/players/character_equipment_policy.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
@@ -27,6 +28,23 @@ const Map<AbilitySlot, Set<String>> _eloiseStarterAbilitiesBySlot =
       AbilitySlot.spell: <String>{'eloise.arcane_haste', 'eloise.focus'},
       AbilitySlot.jump: <String>{'eloise.jump'},
     };
+
+const _hunterStarterProjectiles = {
+  ProjectileId.hunterPistol,
+  ProjectileId.hunterCrossbow,
+  ProjectileId.hunterShotgun,
+};
+const _hunterStarterAbilities = {
+  AbilitySlot.primary: {'bounty_hunter.quick_cut'},
+  AbilitySlot.secondary: {'bounty_hunter.blast_bomb'},
+  AbilitySlot.projectile: {'bounty_hunter.snap_shot'},
+  AbilitySlot.mobility: {'bounty_hunter.dash'},
+  AbilitySlot.spell: {
+    'bounty_hunter.hunters_focus',
+    'bounty_hunter.prepare_charges',
+  },
+  AbilitySlot.jump: {'bounty_hunter.jump'},
+};
 
 void main() {
   test(
@@ -59,10 +77,10 @@ void main() {
 
     for (final id in PlayerCharacterId.values) {
       final gear = meta.equippedFor(id);
-      expect(gear.mainWeaponId, MetaDefaults.mainWeaponId);
-      expect(gear.offhandWeaponId, MetaDefaults.offhandWeaponId);
-      expect(gear.spellBookId, MetaDefaults.spellBookId);
-      expect(gear.spellBookId, MetaDefaults.spellBookId);
+      final defaults = CharacterEquipmentPolicy.defaults(id);
+      expect(gear.mainWeaponId, defaults.mainWeaponId);
+      expect(gear.offhandWeaponId, defaults.offhandWeaponId);
+      expect(gear.spellBookId, defaults.spellBookId);
       expect(gear.accessoryId, MetaDefaults.accessoryId);
     }
   });
@@ -102,9 +120,12 @@ void main() {
     expect(inventory.unlockedWeaponIds, <WeaponId>{
       WeaponId.plainsteel,
       WeaponId.roadguard,
+      WeaponId.hunterBlade,
+      WeaponId.hunterBombKit,
     });
     expect(inventory.unlockedSpellBookIds, <SpellBookId>{
       SpellBookId.apprenticePrimer,
+      SpellBookId.hunterFieldKit,
     });
     expect(inventory.unlockedAccessoryIds, <AccessoryId>{
       AccessoryId.strengthBelt,
@@ -127,9 +148,12 @@ void main() {
     expect(inventory.unlockedWeaponIds, <WeaponId>{
       WeaponId.plainsteel,
       WeaponId.roadguard,
+      WeaponId.hunterBlade,
+      WeaponId.hunterBombKit,
     });
     expect(inventory.unlockedSpellBookIds, <SpellBookId>{
       SpellBookId.apprenticePrimer,
+      SpellBookId.hunterFieldKit,
     });
     expect(inventory.unlockedAccessoryIds, <AccessoryId>{
       AccessoryId.strengthBelt,
@@ -170,9 +194,12 @@ void main() {
     expect(normalized.inventory.unlockedWeaponIds, <WeaponId>{
       WeaponId.plainsteel,
       WeaponId.roadguard,
+      WeaponId.hunterBlade,
+      WeaponId.hunterBombKit,
     });
     expect(normalized.inventory.unlockedSpellBookIds, <SpellBookId>{
       SpellBookId.apprenticePrimer,
+      SpellBookId.hunterFieldKit,
     });
     expect(normalized.inventory.unlockedAccessoryIds, <AccessoryId>{
       AccessoryId.strengthBelt,
@@ -225,12 +252,16 @@ void main() {
       final abilityOwnership = meta.abilityOwnershipFor(id);
       expect(
         abilityOwnership.learnedProjectileSpellIds,
-        _eloiseStarterProjectileSpells,
+        id == PlayerCharacterId.bountyHunter
+            ? _hunterStarterProjectiles
+            : _eloiseStarterProjectileSpells,
       );
       for (final slot in AbilitySlot.values) {
         expect(
           abilityOwnership.learnedAbilityIdsForSlot(slot),
-          _eloiseStarterAbilitiesBySlot[slot],
+          (id == PlayerCharacterId.bountyHunter
+              ? _hunterStarterAbilities
+              : _eloiseStarterAbilitiesBySlot)[slot],
         );
       }
     }
@@ -266,12 +297,16 @@ void main() {
       final abilityOwnership = normalized.abilityOwnershipFor(id);
       expect(
         abilityOwnership.learnedProjectileSpellIds,
-        _eloiseStarterProjectileSpells,
+        id == PlayerCharacterId.bountyHunter
+            ? _hunterStarterProjectiles
+            : _eloiseStarterProjectileSpells,
       );
       for (final slot in AbilitySlot.values) {
         expect(
           abilityOwnership.learnedAbilityIdsForSlot(slot),
-          _eloiseStarterAbilitiesBySlot[slot],
+          (id == PlayerCharacterId.bountyHunter
+              ? _hunterStarterAbilities
+              : _eloiseStarterAbilitiesBySlot)[slot],
         );
       }
     }

@@ -23,9 +23,11 @@ class ResourceBar extends StatefulWidget {
     this.active = true,
     this.compact = false,
     this.warningSignal,
+    this.label,
   });
 
   final HudResource resource;
+  final String? label;
   final double value;
   final double maximum;
   final bool active;
@@ -195,7 +197,7 @@ class _ResourceBarState extends State<ResourceBar>
         : .4 + .2 * math.sin(_pulseAge * math.pi * 2 / 1.6);
     final border = Color.lerp(theme.border, color, math.max(low, warning))!;
     return Semantics(
-      label: label,
+      label: widget.label ?? label,
       value:
           '${widget.value.clamp(0, math.max(0, widget.maximum)).toStringAsFixed(0)} / ${math.max(0, widget.maximum).toStringAsFixed(0)}',
       child: ExcludeSemantics(

@@ -11,6 +11,47 @@ class ProjectileCatalog {
 
   ProjectileItemDef get(ProjectileId id) {
     switch (id) {
+      case ProjectileId.hunterPistol:
+        return const ProjectileItemDef(
+          id: ProjectileId.hunterPistol,
+          weaponType: WeaponType.firearm,
+          speedUnitsPerSecond: 720,
+          lifetimeSeconds: .9,
+          colliderSizeX: 8,
+          colliderSizeY: 3,
+        );
+      case ProjectileId.hunterCrossbow:
+        return const ProjectileItemDef(
+          id: ProjectileId.hunterCrossbow,
+          weaponType: WeaponType.crossbow,
+          speedUnitsPerSecond: 600,
+          lifetimeSeconds: 1.4,
+          colliderSizeX: 16,
+          colliderSizeY: 3,
+          damageScaleBp: 11500,
+        );
+      case ProjectileId.hunterShotgun:
+        return const ProjectileItemDef(
+          id: ProjectileId.hunterShotgun,
+          weaponType: WeaponType.firearm,
+          speedUnitsPerSecond: 620,
+          lifetimeSeconds: .42,
+          colliderSizeX: 6,
+          colliderSizeY: 3,
+          shotCount: 3,
+          spreadRadians: .18,
+          damageScaleBp: 13000,
+        );
+      case ProjectileId.hunterBomb:
+        return const ProjectileItemDef(
+          id: ProjectileId.hunterBomb,
+          weaponType: WeaponType.bombKit,
+          speedUnitsPerSecond: 0,
+          lifetimeSeconds: 3,
+          colliderSizeX: 6,
+          colliderSizeY: 6,
+          ballistic: true,
+        );
       case ProjectileId.unknown:
       case ProjectileId.poisonDart:
         throw ArgumentError.value(

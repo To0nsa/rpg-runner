@@ -10,4 +10,5 @@ enum SpellBookId {
   galeFolio,
   nullTestament,
   crownOfFocus,
+  hunterFieldKit,
 }

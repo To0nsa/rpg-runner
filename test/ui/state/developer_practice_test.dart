@@ -7,6 +7,7 @@ import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/players/character_equipment_policy.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:rpg_runner/ui/app/app_services.dart';
@@ -51,7 +52,12 @@ void main() {
         final ownership = state.meta.abilityOwnershipFor(id);
         expect(
           ownership.learnedProjectileSpellIds,
-          containsAll(playerEquippableProjectileIds),
+          unorderedEquals(
+            playerEquippableProjectileIds.where(
+              (projectile) =>
+                  CharacterEquipmentPolicy.allowsProjectile(id, projectile),
+            ),
+          ),
         );
         for (final slot in AbilitySlot.values) {
           final abilities = ownership.learnedAbilityIdsForSlot(slot);
@@ -81,7 +87,11 @@ void main() {
       final character = PlayerCharacterId.values.last;
       final candidate =
           const MetaService()
-                  .candidatesForSlot(state.meta, GearSlot.mainWeapon)
+                  .candidatesForSlot(
+                    state.meta,
+                    GearSlot.mainWeapon,
+                    characterId: character,
+                  )
                   .last
                   .id
               as WeaponId;

@@ -43,6 +43,14 @@ relative imports of per-enemy definitions. Collider and scalar bindings retain
 the definition file and offsets; imported boss visuals retain their separate
 render-catalog bindings. Missing or ambiguous archetypes block export. This uses
 the same guarded export path as local constants.
+Projectile visuals also resolve explicit constants from relative imports through
+that resolver, retaining the imported definition's anchor bindings. Willow's
+projectile render metadata uses this shape; function-built render definitions
+are outside the parser's supported source subset.
+Projectile visuals also resolve explicit constants from relative imports through
+that resolver, retaining the imported definition's anchor bindings. Willow's
+projectile render metadata uses this shape; function-built render definitions
+are outside the parser's supported source subset.
 NPC art faces right. The launch preview includes the catalog-owned vertical
 offset, shown read-only; editing the radial offset does not reset that height.
 The NPC filter uses the existing route selection, draft and Save machinery.

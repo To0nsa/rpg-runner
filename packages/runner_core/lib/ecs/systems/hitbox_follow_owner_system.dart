@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../../combat/actor_combat_pose.dart';
 import '../../combat/combat_pose_catalog.dart';
+import '../../contracts/render_anim_set_definition.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../npcs/npc_catalog.dart';
 import '../../players/characters/eloise.dart';
@@ -23,8 +24,12 @@ import '../world.dart';
 /// This system ensures that a sword swing or projectile hitbox moves *with* the
 /// character/projectile effectively. It runs every tick to prevent "hitbox drift".
 class HitboxFollowOwnerSystem {
-  HitboxFollowOwnerSystem({this.tickHz = 60});
+  HitboxFollowOwnerSystem({
+    this.tickHz = 60,
+    this.playerRenderAnim = eloiseRenderAnim,
+  });
   final int tickHz;
+  final RenderAnimSetDefinition playerRenderAnim;
   final List<EntityId> _toDespawn = <EntityId>[];
 
   /// Executes the synchronization logic.
@@ -88,6 +93,9 @@ class HitboxFollowOwnerSystem {
         }
         final anim = world.animState.anim[ai];
         if (anim != AnimKey.strike &&
+            anim != AnimKey.twinStrike &&
+            anim != AnimKey.tripleStrike &&
+            anim != AnimKey.lunge &&
             anim != AnimKey.strike2 &&
             anim != AnimKey.backStrike &&
             anim != AnimKey.ambush) {
@@ -105,7 +113,7 @@ class HitboxFollowOwnerSystem {
             ? const EnemyCatalog().get(world.enemy.enemyId[ei]).renderAnim
             : ni != null
             ? const NpcCatalog().get(world.npc.npcId[ni]).renderAnim
-            : eloiseRenderAnim;
+            : playerRenderAnim;
         final step = math.max(
           1,
           ((render.stepTimeSecondsByKey[anim] ?? .1) * tickHz).round(),

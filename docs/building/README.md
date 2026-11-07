@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed Willow](../archive/2026-11-07/building/bounty_hunter.md): the playable
+  bounty hunter with 25 abilities, three weapons, cooldown bombs and character
+  selection. [Local verification](../verification/willow-2026-11-07.md).
+
 - [Completed Training Field](../archive/2026-11-02/building/training_field.md):
   disposable build testing in character setup and an independent two-chunk
   layout editor. Core, UI, source and editor checks pass locally; not deployed.

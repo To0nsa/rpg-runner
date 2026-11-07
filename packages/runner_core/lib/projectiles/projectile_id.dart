@@ -39,6 +39,10 @@ enum ProjectileId {
   goddessOrb,
   shoggothOrb,
   voidClaw,
+  hunterPistol,
+  hunterCrossbow,
+  hunterShotgun,
+  hunterBomb,
 }
 
 /// Explicit player spell catalog. Rendering may support additional projectiles.
@@ -51,4 +55,7 @@ const playerEquippableProjectileIds = <ProjectileId>[
   ProjectileId.holyBolt,
   ProjectileId.waterBolt,
   ProjectileId.thunderBolt,
+  ProjectileId.hunterPistol,
+  ProjectileId.hunterCrossbow,
+  ProjectileId.hunterShotgun,
 ];

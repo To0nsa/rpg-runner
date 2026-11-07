@@ -5,6 +5,9 @@ import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/players/character_ability_namespace.dart';
+import 'package:runner_core/players/character_equipment_policy.dart';
 
 import 'ability_text.dart';
 import 'game_icon.dart';
@@ -16,6 +19,20 @@ class GameCatalogItem {
   const GameCatalogItem._(this.kind, this.slot, this.itemId);
   final String kind, slot, itemId;
   String get key => '$kind/$slot/$itemId';
+
+  /// Presentation filtering only; the backend validates gifts independently.
+  bool supportsCharacter(String character) {
+    if (kind == 'gear') return true; // Account-wide ownership.
+    final id = PlayerCharacterId.values
+        .where((id) => id.name == character)
+        .firstOrNull;
+    if (id == null) return false;
+    if (kind == 'projectileSpell') {
+      return CharacterEquipmentPolicy.allowsProjectile(id, projectileId!);
+    }
+    return itemId.startsWith('${characterAbilityNamespace(id)}.') ||
+        (itemId.startsWith('common.') && !itemId.startsWith('common.enemy_'));
+  }
 
   factory GameCatalogItem.fromJson(Map<String, dynamic> json) {
     final kind = json['kind'];

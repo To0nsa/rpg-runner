@@ -8,10 +8,13 @@ import 'package:runner_core/meta/equipped_gear.dart';
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/players/player_character_definition.dart';
+
 import '../../app/ui_routes.dart';
 import '../../components/app_button.dart';
 import '../../components/app_dialog.dart';
+
 import 'package:game_presentation/game_icon.dart';
+
 import '../../state/app/app_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'gear/gear_picker_candidates_panel.dart';
@@ -125,6 +128,7 @@ class _GearsTabState extends State<GearsTab> {
                             final allCandidates = _service.candidatesForSlot(
                               meta,
                               slot,
+                              characterId: widget.characterId,
                             );
                             final candidates = allCandidates
                                 .where((candidate) => candidate.isUnlocked)

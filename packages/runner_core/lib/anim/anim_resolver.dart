@@ -339,6 +339,14 @@ class AnimResolver {
       case AnimKey.teleportOut:
       case AnimKey.ambush:
       case AnimKey.strike2:
+      case AnimKey.twinStrike:
+      case AnimKey.tripleStrike:
+      case AnimKey.lunge:
+      case AnimKey.bombDrop:
+      case AnimKey.slide:
+      case AnimKey.doubleJump:
+      case AnimKey.rangedAir:
+      case AnimKey.rangedRun:
         // Explicitly allow authored one-off action strips.
         return key;
       default:

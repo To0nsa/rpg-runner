@@ -1,7 +1,147 @@
 {
   "enabled": true,
-  "catalogHash": "9310db4c01d6ff89956a506383aea0d9b6a2da8367e4033cda5252d7af771d36",
+  "catalogHash": "f61dd513f0232e7b0f54a442b060797f00bdc46d95ed16207a61f2d68755b402",
   "entries": [
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterBlade"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterBombKit"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterFieldKit"
+    },
+    {
+      "kind": "ability",
+      "slot": "primary",
+      "itemId": "bounty_hunter.quick_cut"
+    },
+    {
+      "kind": "ability",
+      "slot": "primary",
+      "itemId": "bounty_hunter.twin_cut"
+    },
+    {
+      "kind": "ability",
+      "slot": "primary",
+      "itemId": "bounty_hunter.threefold_cut"
+    },
+    {
+      "kind": "ability",
+      "slot": "primary",
+      "itemId": "bounty_hunter.lunge_slash"
+    },
+    {
+      "kind": "ability",
+      "slot": "secondary",
+      "itemId": "bounty_hunter.blast_bomb"
+    },
+    {
+      "kind": "ability",
+      "slot": "secondary",
+      "itemId": "bounty_hunter.shrapnel_bomb"
+    },
+    {
+      "kind": "ability",
+      "slot": "secondary",
+      "itemId": "bounty_hunter.fire_bomb"
+    },
+    {
+      "kind": "ability",
+      "slot": "secondary",
+      "itemId": "bounty_hunter.concussion_bomb"
+    },
+    {
+      "kind": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.snap_shot"
+    },
+    {
+      "kind": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.quick_shot"
+    },
+    {
+      "kind": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.piercing_shot"
+    },
+    {
+      "kind": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.scatter_shot"
+    },
+    {
+      "kind": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.charged_shot"
+    },
+    {
+      "kind": "ability",
+      "slot": "mobility",
+      "itemId": "bounty_hunter.dash"
+    },
+    {
+      "kind": "ability",
+      "slot": "mobility",
+      "itemId": "bounty_hunter.roll"
+    },
+    {
+      "kind": "ability",
+      "slot": "mobility",
+      "itemId": "bounty_hunter.slide"
+    },
+    {
+      "kind": "ability",
+      "slot": "jump",
+      "itemId": "bounty_hunter.jump"
+    },
+    {
+      "kind": "ability",
+      "slot": "jump",
+      "itemId": "bounty_hunter.double_jump"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.hunters_focus"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.mark_quarry"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.forced_march"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.field_dressing"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.antidote"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.second_wind"
+    },
+    {
+      "kind": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.prepare_charges"
+    },
     {
       "kind": "gear",
       "slot": "mainWeapon",
@@ -213,6 +353,21 @@
       "itemId": "thunderBolt"
     },
     {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterPistol"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterCrossbow"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterShotgun"
+    },
+    {
       "kind": "ability",
       "slot": "spell",
       "itemId": "eloise.arcane_haste"
@@ -320,6 +475,7 @@
   ],
   "characters": [
     "eloise",
-    "eloiseWip"
+    "eloiseWip",
+    "bountyHunter"
   ]
 }

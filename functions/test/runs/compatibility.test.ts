@@ -18,7 +18,7 @@ test("release pause rejects every new client, including a mistakenly allowed ver
 });
 
 test("newer candidates wait for cutover; obsolete or unknown clients require an update", () => {
-  for (const client of ["2026.10.22", "2026.10.21.1", "2026.11.1", "2027.1.1"]) {
+  for (const client of ["2026.11.8", "2026.11.7.1", "2026.12.1", "2027.1.1"]) {
     assert.throws(() => assertSupportedGameCompatVersion(client), (error: unknown) => {
       assert.ok(error instanceof HttpsError);
       assert.equal(error.code, "unavailable");
@@ -26,7 +26,7 @@ test("newer candidates wait for cutover; obsolete or unknown clients require an 
       return true;
     });
   }
-  for (const client of ["2026.10.20", "2026.9.30", "unknown"]) {
+  for (const client of ["2026.10.21", "2026.11.6", "2026.9.30", "unknown"]) {
     assert.throws(() => assertSupportedGameCompatVersion(client), (error: unknown) => {
       assert.ok(error instanceof HttpsError);
       assert.equal(error.code, "failed-precondition");
@@ -40,14 +40,14 @@ test("newer candidates wait for cutover; obsolete or unknown clients require an 
 });
 
 test("gameplay release client, board default and worker share one compatibility", () => {
-  assert.equal(currentGameCompatVersion, "2026.10.21");
+  assert.equal(currentGameCompatVersion, "2026.11.7");
   assert.throws(() => assertSupportedGameCompatVersion("2026.10.11.1", resolveSupportedGameCompatVersions({})));
 
   assert.deepEqual([...resolveSupportedGameCompatVersions({})], [currentGameCompatVersion]);
   const client = readFileSync("../lib/ui/state/app/app_state.dart", "utf8");
   const worker = readFileSync("../services/replay_validator/lib/src/validator_worker.dart", "utf8");
   assert.ok(client.includes(`_defaultGameCompatVersion = '${currentGameCompatVersion}'`));
-  assert.ok(worker.replace(/\s+/g, "").includes(`_supportedGameCompatVersions=<String>{'${currentGameCompatVersion}',}`));
+  assert.ok(worker.replace(/\s+/g, "").replaceAll(",}", "}").includes(`_supportedGameCompatVersions=<String>{'${currentGameCompatVersion}'}`));
   assert.throws(() => assertSupportedGameCompatVersion("2026.09.6", resolveSupportedGameCompatVersions({})));
   assert.throws(() => assertSupportedGameCompatVersion("2026.09.7", resolveSupportedGameCompatVersions({})));
   assert.throws(() => assertSupportedGameCompatVersion("2026.09.9", resolveSupportedGameCompatVersions({})));

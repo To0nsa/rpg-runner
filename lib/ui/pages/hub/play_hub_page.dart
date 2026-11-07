@@ -179,7 +179,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                           buildName: selection.buildName,
                           onChange: () =>
                               Navigator.of(context)
-                                  .pushNamed(UiRoutes.setupLoadout),
+                                  .pushNamed(UiRoutes.selectCharacter),
                         ),
                       ],
                     ),

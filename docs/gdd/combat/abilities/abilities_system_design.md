@@ -2,6 +2,8 @@
 
 Design contract for authored abilities and slot loadouts.
 
+Playable rosters: [Éloïse](eloise/eloise_abilities.md) and [Willow](willow.md).
+
 ## Core Contracts
 
 1. Loadouts are authored with no empty slots: each slot is expected to have an
@@ -25,7 +27,7 @@ An ability defines:
 - targeting model and input lifecycle
 - timing (`windup/active/recovery`)
 - costs + cooldown group
-- hit delivery (`melee`, `projectile`, or `self`)
+- hit delivery (`melee`, `projectile`, `bomb`, `self`, or a self-delivered quarry mark)
 - optional charge profile
 
 ## Slots
@@ -48,6 +50,11 @@ Current ability slots:
   Spell List (for example `arcane_haste`, `focus`, `arcane_ward`,
   `cleanse`, `vital_surge`, `mana_infusion`, `second_wind`).
 - `jump` is a fixed action slot but still authored as abilities (`eloise.jump`, `eloise.double_jump`).
+
+Willow uses the same six slots with a blade, bomb kit, gun and field kit.
+Her ranged source selector shows Weapons, her utility skills show Fieldcraft,
+and her regenerating mana resource is presented as Supplies. Equipment families
+and ability namespaces keep both characters' loadouts independent.
 
 ## Targeting and Input Lifecycle
 

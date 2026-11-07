@@ -206,6 +206,9 @@ class _SkillsBarState extends State<SkillsBar> {
     final options = projectileSourceOptions(loadout, abilityOwnership);
     return showProjectileSourceDialog(
       context,
+      title: widget.characterId == PlayerCharacterId.bountyHunter
+          ? 'Select Weapon'
+          : 'Select Projectile Source',
       options: options,
       initialSelection: loadout.projectileSlotSpellId,
       onSelect: (sourceSpellId) async {
