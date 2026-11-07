@@ -14,6 +14,20 @@ void main() {
       final document = await EntityDomainPlugin().loadFromRepo(
         EditorWorkspace(rootPath: resolveEntitiesWorkspacePath()),
       ) as EntityDocument;
+      expect(
+        document.loadIssues.where(
+          (issue) => issue.code == 'player_collider_non_numeric',
+        ),
+        isEmpty,
+      );
+      final willow = document.entries.singleWhere(
+        (e) => e.id == 'player.bountyHunter',
+      );
+      expect(willow.halfY, 21.6);
+      final eloise = document.entries.singleWhere(
+        (e) => e.id == 'player.eloise',
+      );
+      expect(eloise.referenceVisual!.renderScale, .75);
       for (final id in [
         ProjectileId.hunterPistol,
         ProjectileId.hunterCrossbow,

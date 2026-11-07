@@ -14,12 +14,17 @@ class PlayerCharacterDefinition {
     required this.displayName,
     required this.renderAnim,
     required this.catalog,
+    this.renderScale = 0.75,
     this.tuning = const PlayerTuning(),
     this.renderVariants = const {},
   });
 
   final PlayerCharacterId id;
   final String displayName;
+
+  /// Uniform source-pixel scale shared by live, ghost and menu presentation.
+  /// Authored collision and combat geometry are already in world units.
+  final double renderScale;
 
   /// Render-only animation metadata (strip paths, frame size, timing).
   ///
@@ -54,6 +59,7 @@ class PlayerCharacterDefinition {
       displayName: displayName ?? this.displayName,
       renderAnim: renderAnim ?? this.renderAnim,
       catalog: catalog ?? this.catalog,
+      renderScale: renderScale,
       tuning: tuning ?? this.tuning,
       renderVariants: renderVariants,
     );
@@ -92,6 +98,11 @@ class PlayerCharacterDefinition {
       }
 
       // Render anim invariants.
+      if (!renderScale.isFinite || renderScale <= 0) {
+        throw StateError(
+          'PlayerCharacterDefinition($id) has invalid renderScale',
+        );
+      }
       if (renderAnim.frameWidth <= 0 || renderAnim.frameHeight <= 0) {
         throw StateError(
           'PlayerCharacterDefinition($id) has invalid render frame size '

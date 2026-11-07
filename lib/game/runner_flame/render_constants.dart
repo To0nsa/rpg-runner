@@ -1,5 +1,3 @@
-import '../tuning/player_render_tuning.dart';
-
 const int priorityBackgroundParallax = -30;
 const int priorityStaticPrefabs = -5;
 
@@ -16,6 +14,5 @@ const int priorityActorHitboxes = 2;
 const int priorityProjectileAimRay = 5;
 const int priorityMeleeAimRay = 6;
 
-const PlayerRenderTuning runnerPlayerRenderTuning = PlayerRenderTuning();
 const int damageForMaxShake100 = 1500;
 const int visualCueIntensityScaleBp = 10000;

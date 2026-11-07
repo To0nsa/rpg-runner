@@ -27,7 +27,12 @@ The parser reads the current supported shapes from:
   `packages/runner_core/lib/players/characters/`;
 - `packages/runner_core/lib/projectiles/projectile_catalog.dart`;
 - the projectile render catalog and projectile render registry;
-- player render tuning and Core spatial-grid tuning.
+- `PlayerCharacterDefinition` defaults and Core spatial-grid tuning.
+
+Player render scale comes from the definition owning each player catalog, with
+the shared `PlayerCharacterDefinition.renderScale` default when omitted.
+Explicit numeric overrides and relative imported constants retain guarded
+source bindings, so previews and exports use the same scale as the game.
 
 Enemy uniform render scale lives beside `renderAnim` in each
 `EnemyArchetype`, so the parser captures both the value and writable scalar
@@ -43,10 +48,6 @@ relative imports of per-enemy definitions. Collider and scalar bindings retain
 the definition file and offsets; imported boss visuals retain their separate
 render-catalog bindings. Missing or ambiguous archetypes block export. This uses
 the same guarded export path as local constants.
-Projectile visuals also resolve explicit constants from relative imports through
-that resolver, retaining the imported definition's anchor bindings. Willow's
-projectile render metadata uses this shape; function-built render definitions
-are outside the parser's supported source subset.
 Projectile visuals also resolve explicit constants from relative imports through
 that resolver, retaining the imported definition's anchor bindings. Willow's
 projectile render metadata uses this shape; function-built render definitions

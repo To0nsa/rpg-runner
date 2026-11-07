@@ -6,7 +6,6 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/game/components/enemies/enemy_render_registry.dart';
 import 'package:rpg_runner/game/components/player/player_animations.dart';
-import 'package:rpg_runner/game/tuning/player_render_tuning.dart';
 import 'package:runner_core/combat/shoggoth_pose_catalog.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -101,7 +100,7 @@ void main() {
         player.animations[AnimKey.idle]!.frames.first.sprite.render(
           preview,
           position: Vector2(targetX, playerY),
-          size: player.frameSize * const PlayerRenderTuning().scale,
+          size: player.frameSize * eloiseCharacter.renderScale,
           anchor: player.anchorFor(AnimKey.idle),
         );
         for (final shape in profile.frames[frame]) {

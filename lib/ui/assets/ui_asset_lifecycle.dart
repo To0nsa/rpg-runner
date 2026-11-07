@@ -15,10 +15,17 @@ import 'lru_cache.dart';
 import 'enemy_portrait_loader.dart';
 
 class IdleAnimBundle {
-  const IdleAnimBundle({required this.animation, required this.anchor});
+  const IdleAnimBundle({
+    required this.animation,
+    required this.anchor,
+    required this.worldSize,
+    required this.feetOffset,
+  });
 
   final SpriteAnimation animation;
   final Anchor anchor;
+  final Size worldSize;
+  final double feetOffset;
 }
 
 /// Owns menu previews only. Runtime assets are loaded by run-owned registries.
@@ -162,7 +169,15 @@ class UiAssetLifecycle {
     if (idle == null) {
       throw StateError('Missing idle animation for $characterId');
     }
-    return IdleAnimBundle(animation: idle, anchor: animSet.anchor);
+    return IdleAnimBundle(
+      animation: idle,
+      anchor: animSet.anchor,
+      worldSize: Size(
+        animSet.frameSize.x * def.renderScale,
+        animSet.frameSize.y * def.renderScale,
+      ),
+      feetOffset: def.catalog.colliderOffsetY + def.catalog.colliderHalfY,
+    );
   }
 
   static String _cacheKeyForTheme(String? visualThemeId) {

@@ -79,7 +79,7 @@ class GhostLayerSystem {
   final Vector2 _snapScratch = Vector2.zero();
   final GhostOutlineCache _outlines = GhostOutlineCache();
   final Vector2 _playerRenderScale = Vector2.all(
-    runnerPlayerRenderTuning.scale,
+    PlayerCharacterRegistry.eloise.renderScale,
   );
   final Map<(SpriteAnimSet, double, double), double> _visualRadii = {};
   final List<CameraSpaceSnappedSpriteAnimation> _ghostImpacts = [];
@@ -178,6 +178,10 @@ class GhostLayerSystem {
       final character = definition.withProjectile(projectileId);
       final animationSet = await _playerAnimations.load(character.renderAnim);
       if (generation != _animationLoadGeneration) return;
+      _playerRenderScale.setValues(
+        character.renderScale,
+        character.renderScale,
+      );
       _ghostPlayerAnimSet = animationSet;
     } catch (error) {
       if (generation != _animationLoadGeneration) return;
@@ -406,7 +410,7 @@ class GhostLayerSystem {
       playerView =
           PlayerView(
               animationSet: playerAnimSet,
-              renderScale: Vector2.all(runnerPlayerRenderTuning.scale),
+              renderScale: _playerRenderScale.clone(),
               feedbackTuning: combatFeedbackTuning,
             )
             ..priority = priorityGhostEntities

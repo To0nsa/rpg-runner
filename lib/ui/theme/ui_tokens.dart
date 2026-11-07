@@ -35,6 +35,7 @@ class UiBrandPalette {
   static const mutedPlumGlow = Color(0x1A7E6675);
 
   static const scrim = Color(0xAA000000);
+  static const unselectedCardScrim = Color(0x99000000);
   static const shadow = Color(0x8A000000);
   static const buttonShadow = Color(0xB3000000);
   static const black = Color(0xFF000000);

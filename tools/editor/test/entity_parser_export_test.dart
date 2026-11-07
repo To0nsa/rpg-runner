@@ -13,6 +13,65 @@ import 'package:runner_editor/src/workspace/workspace_write_transaction.dart';
 import 'test_support/entity_test_support.dart';
 
 void main() {
+  test(
+    'character scale resolves and exports its imported source constant',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'runner_editor_player_scale_',
+      );
+      try {
+        writeEntityColliderFixture(root.path, includeReferenceBindings: true);
+        final character = File(
+          p.join(
+            root.path,
+            'packages/runner_core/lib/players/characters/eloise.dart',
+          ),
+        );
+        final metric = File(p.join(character.parent.path, 'scale.dart'))
+          ..writeAsStringSync('const characterScale = 1.35;\n');
+        character.writeAsStringSync(
+          "import 'scale.dart';\n${character.readAsStringSync()}\n"
+          '''
+const eloiseRenderAnim = RenderAnimSetDefinition(
+  frameWidth: 100,
+  frameHeight: 64,
+  anchorPoint: Vec2(50, 32),
+  sourcesByKey: {AnimKey.idle: 'entities/player/eloise/idle.png'},
+);
+final character = PlayerCharacterDefinition(
+  catalog: eloiseCatalog,
+  renderAnim: eloiseRenderAnim,
+  renderScale: characterScale,
+);
+''',
+        );
+        final workspace = EditorWorkspace(rootPath: root.path);
+        final plugin = EntityDomainPlugin();
+        final document = await plugin.loadFromRepo(workspace) as EntityDocument;
+        final player = document.entries.singleWhere(
+          (e) => e.id == 'player.eloise',
+        );
+        expect(player.referenceVisual!.renderScale, 1.35);
+        expect(
+          player.referenceVisual!.renderScaleBinding!.sourcePath,
+          endsWith('scale.dart'),
+        );
+        final edited = plugin.applyEdit(
+          document,
+          buildEntityUpdateCommand(player, renderScale: 1.5),
+        );
+        final exported = await plugin.exportToRepo(workspace, document: edited);
+        expect(exported.applied, isTrue);
+        expect(metric.readAsStringSync(), contains('1.5'));
+        expect(
+          character.readAsStringSync(),
+          contains('renderScale: characterScale'),
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    },
+  );
   test('direct write export updates source file content', () async {
     final fixtureRoot = Directory.systemTemp.createTempSync(
       'runner_editor_fixture_',

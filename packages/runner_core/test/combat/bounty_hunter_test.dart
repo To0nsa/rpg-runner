@@ -46,6 +46,7 @@ import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/loadout/loadout_validator.dart';
 import 'package:runner_core/players/characters/bounty_hunter.dart';
+import 'package:runner_core/players/characters/bounty_hunter_geometry.dart';
 import 'package:runner_core/players/player_tuning.dart';
 import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
@@ -203,7 +204,8 @@ void main() {
     ]) {
       test('$name damages each visible swing once at $hz Hz', () {
         final h = _Harness(tickHz: hz);
-        final target = h.enemy(27, 20);
+        // Keep the target in the shared sweep region of the scaled blade art.
+        final target = h.enemy(30 * bountyHunterWorldScale, 20);
         h.equip(bountyHunterAbilityDefs['bounty_hunter.$name']!);
         h.press(AbilitySlot.primary);
         h.world.meleeIntent.critChanceBp[0] = 0;
@@ -495,7 +497,12 @@ class _Harness {
       facing: Facing.right,
       grounded: true,
       body: const BodyDef(useGravity: false),
-      collider: const ColliderAabbDef(halfX: 8, halfY: 16),
+      collider: ColliderAabbDef(
+        halfX: bountyHunterCatalog.colliderHalfX,
+        halfY: bountyHunterCatalog.colliderHalfY,
+        offsetX: bountyHunterCatalog.colliderOffsetX,
+        offsetY: bountyHunterCatalog.colliderOffsetY,
+      ),
       health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
       mana: const ManaDef(mana: 10000, manaMax: 10000, regenPerSecond100: 0),
       stamina: const StaminaDef(

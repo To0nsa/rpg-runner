@@ -365,7 +365,12 @@ List<EntityEntry> _parsePlayers(
         );
         final referenceVisual = _withRenderScale(
           parsedReferenceVisual,
-          playerRenderScale,
+          _parseCharacterRenderScale(
+                workspace,
+                resolver,
+                variable.name.lexeme,
+              ) ??
+              playerRenderScale,
         );
         final colliderBindings = EntityColliderSourceBindings(
           halfX: _requiredColliderScalarBinding(
@@ -413,6 +418,56 @@ List<EntityEntry> _parsePlayers(
     }
   }
   return entries;
+}
+
+// Resolve the scale on the definition that owns this catalog. Keep imported
+// constants bound to their own guarded source range, as for actor metadata.
+_ResolvedScalarValue? _parseCharacterRenderScale(
+  EditorWorkspace workspace,
+  _ConstValueResolver resolver,
+  String catalogName,
+) {
+  for (final declaration
+      in resolver._unit.declarations.whereType<TopLevelVariableDeclaration>()) {
+    for (final variable in declaration.variables.variables) {
+      final initializer = variable.initializer;
+      final NodeList<Argument>? args;
+      if (initializer is InstanceCreationExpression &&
+          initializer.constructorName.type.toSource() ==
+              'PlayerCharacterDefinition') {
+        args = initializer.argumentList.arguments;
+      } else if (initializer is MethodInvocation &&
+          initializer.methodName.name == 'PlayerCharacterDefinition') {
+        args = initializer.argumentList.arguments;
+      } else {
+        continue;
+      }
+      if (_namedArgumentExpression(args, 'catalog')?.toSource() !=
+          catalogName) {
+        continue;
+      }
+      final expression = _namedArgumentExpression(args, 'renderScale');
+      if (expression == null) return null;
+      final local = resolver._resolveExpression(expression, <String>{});
+      final owner =
+          _resolveImportedActorConstant(
+            workspace,
+            resolver._unit,
+            resolver._sourcePath,
+            local,
+            {},
+          ) ??
+          resolver;
+      final value = owner._resolveDouble(local);
+      final binding = owner._resolveExpressionBinding(
+        local,
+        EntitySourceBindingKind.referenceRenderScaleScalar,
+      );
+      if (value == null || binding == null) return null;
+      return _ResolvedScalarValue(value: value, binding: binding);
+    }
+  }
+  return null;
 }
 
 List<EntityEntry> _parseProjectiles(
@@ -638,12 +693,12 @@ _RenderScaleConfig _parseRenderScaleConfig(EditorWorkspace workspace) {
 _ResolvedScalarValue? _parsePlayerRenderScale(EditorWorkspace workspace) {
   final source = _readOptionalSource(
     workspace,
-    EntitySourceParser.playerRenderTuningPath,
+    EntitySourceParser.playerDefinitionPath,
   );
   if (source == null) {
     return null;
   }
-  final match = RegExp(r'this\.scale\s*=\s*(-?[0-9]+(?:\.[0-9]+)?)')
+  final match = RegExp(r'this\.renderScale\s*=\s*(-?[0-9]+(?:\.[0-9]+)?)')
       .firstMatch(source);
   if (match == null) {
     return null;
@@ -664,7 +719,7 @@ _ResolvedScalarValue? _parsePlayerRenderScale(EditorWorkspace workspace) {
     value: value,
     binding: EntitySourceBinding(
       kind: EntitySourceBindingKind.referenceRenderScaleScalar,
-      sourcePath: EntitySourceParser.playerRenderTuningPath,
+      sourcePath: EntitySourceParser.playerDefinitionPath,
       startOffset: start,
       endOffset: end,
       sourceSnippet: source.substring(start, end),

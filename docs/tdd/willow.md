@@ -11,8 +11,12 @@ character, `bounty_hunter.*` for abilities and `hunter*` for equipment/projectil
 asset paths retain the source pack's `bounty_hunter` name. No aliases are needed.
 `PlayerCharacterRegistry.playable` exposes Éloïse and Willow, excluding Éloïse WIP.
 
-Hub Edit opens `/setup/character`. Selection awaits `AppState.setCharacter`
-before replacing the route with the builder. Failure stays on the chooser.
+Hub Edit opens `/setup/character`. Tapping a card persists selection through
+`AppState.setCharacter` while staying on the chooser. Each card's `Change build`
+button awaits that selection before replacing the route with the builder.
+The two cards fit the viewport without scrolling. Unselected cards share the
+level selector's dark scrim; names and animated previews identify the choices.
+Failed selection stays on the chooser with an error and enabled retry.
 Builder tabs use the selected character and independent saved loadouts. Start,
 Restart and Training Field consume that same selection. Developer Practice
 unlocks compatible catalog content through its existing local profile owner.
@@ -72,8 +76,16 @@ into damage interruption using the existing policy. No UI timers apply effects.
 
 `players/characters/bounty_hunter.dart` defines native frame composition for
 pistol, crossbow and shotgun. Base 73×54 cells occupy `(6,11)` on an 89×65
-canvas; add-on cells use `(0,0)`. The common anchor is `(34,46)`, with the support
-line aligned to the character's terrain capsule. Cells are not stretched.
+canvas; add-on cells use `(0,0)`. The common anchor is `(34,47)`, with the support
+line at canvas y=64 aligned to the character's terrain capsule. Cells are not stretched.
+`PlayerCharacterDefinition.renderScale` owns source-pixel scale for live play,
+ghosts and menu previews: Willow uses 1.35 and Éloïse retains 0.75. Their idle
+reference bodies have the same apparent height. Willow's 21.6×43.2 terrain
+capsule, y offset 1.35, cast origin and combat poses use the corresponding world
+units. Menu previews share a world-space viewport and foot baseline; they do
+not fit each full transparent frame or apply a character-selection-only zoom.
+The Entities editor reads the definition's scale, retaining guarded bindings to
+imported constants and the shared default. Collider literals remain editable.
 The source Dash Attack exports ten files, one entirely transparent; runtime
 uses the nine visible poses packed contiguously in its sheet.
 
@@ -88,8 +100,6 @@ sequence. Run shooting combines three firing phases with eight locomotion poses.
 GameCore resolves the equipped gun's render variant; GameController, Flame and
 ghosts consume the same metadata. Projectile silhouettes are generated from
 the imported art through `tools/combat/generate_projectile_profiles.py`.
-Projectile render definitions are explicit constants. The Entities editor reuses
-its guarded relative-import resolver to retain their source bindings and previews.
 Projectile render definitions are explicit constants. The Entities editor reuses
 its guarded relative-import resolver to retain their source bindings and previews.
 
@@ -110,4 +120,5 @@ Core tests exercise all 25 commits, real melee damage at 30/60/120 Hz, bomb
 terrain/lifecycle/status behavior, fan budgets, fieldcraft, marks and charged
 shot interruption. Worker tests replay recorded inputs for each weapon. Widget
 tests exercise character switching, remembered builds and actual Training Field
-rendering. See [verification evidence](../verification/willow-2026-11-07.md).
+rendering. See [initial verification](../verification/willow-2026-11-07.md) and
+[scale and selection checks](../verification/willow-scale-and-selection-2026-11-07.md).

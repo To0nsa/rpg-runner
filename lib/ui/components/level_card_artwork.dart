@@ -18,11 +18,11 @@ class LevelCardArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scrimOpacity = unselected
-        ? 0.60
+    final scrim = unselected
+        ? UiBrandPalette.unselectedCardScrim
         : levelId == LevelId.field
-        ? 0.45
-        : 0.0;
+        ? UiBrandPalette.black.withValues(alpha: 0.45)
+        : null;
 
     return Stack(
       fit: StackFit.expand,
@@ -31,10 +31,7 @@ class LevelCardArtwork extends StatelessWidget {
           visualThemeId: levelId.visualThemeId,
           alignment: Alignment.center,
         ),
-        if (scrimOpacity > 0)
-          ColoredBox(
-            color: UiBrandPalette.black.withValues(alpha: scrimOpacity),
-          ),
+        if (scrim != null) ColoredBox(color: scrim),
       ],
     );
   }

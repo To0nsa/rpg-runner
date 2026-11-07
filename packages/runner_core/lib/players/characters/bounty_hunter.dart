@@ -16,6 +16,7 @@ import '../../util/vec2.dart';
 import '../player_catalog.dart';
 import '../player_character_definition.dart';
 import '../player_tuning.dart';
+import 'bounty_hunter_geometry.dart';
 
 /// Native cells are composed into one canvas without stretching. The base
 /// body's support line is aligned with the larger add-on's feet.
@@ -102,7 +103,7 @@ RenderAnimSetDefinition bountyHunterRenderAnim(ProjectileId weapon) {
   return RenderAnimSetDefinition(
     frameWidth: 89,
     frameHeight: 65,
-    anchorPoint: const Vec2(34, 46),
+    anchorPoint: const Vec2(34, 47),
     sourcesByKey: sources,
     frameCountsByKey: counts,
     stepTimeSecondsByKey: times,
@@ -119,11 +120,12 @@ const bountyHunterCatalog = PlayerCatalog(
     gravityScale: 1,
     sideMask: BodyDef.sideLeft | BodyDef.sideRight,
   ),
-  colliderWidth: 16,
-  colliderHeight: 32,
+  // World-unit literals retain the Entities editor's guarded scalar bindings.
+  colliderWidth: 21.6,
+  colliderHeight: 43.2,
   colliderOffsetX: 0,
-  colliderOffsetY: 1,
-  castOriginOffset: 22,
+  colliderOffsetY: 1.35,
+  castOriginOffset: 29.7,
   tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
   resistance: DamageResistanceDef(),
   statusImmunity: StatusImmunityDef(),
@@ -186,6 +188,7 @@ const bountyHunterTuning = PlayerTuning(
 final bountyHunterCharacter = PlayerCharacterDefinition(
   id: PlayerCharacterId.bountyHunter,
   displayName: 'Willow',
+  renderScale: bountyHunterWorldScale,
   renderAnim: bountyHunterRenderAnim(ProjectileId.hunterPistol),
   catalog: bountyHunterCatalog,
   tuning: bountyHunterTuning,

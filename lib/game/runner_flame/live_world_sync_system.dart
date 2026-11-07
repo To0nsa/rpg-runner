@@ -93,7 +93,7 @@ class LiveWorldSyncSystem {
   Future<void> mountPlayer(SpriteAnimSet playerAnimations) async {
     _player = PlayerView(
       animationSet: playerAnimations,
-      renderScale: Vector2.all(runnerPlayerRenderTuning.scale),
+      renderScale: Vector2.all(playerCharacter.renderScale),
       feedbackTuning: _combatFeedbackTuning,
     )..priority = priorityPlayer;
     await world.add(_player);

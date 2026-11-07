@@ -70,15 +70,34 @@ class _PlayerIdlePreviewState extends State<PlayerIdlePreview> {
             return _buildPlaceholder();
           }
 
+          // A shared world-space viewport preserves character proportions and
+          // a common floor line regardless of transparent source-sheet padding.
+          final pixelsPerWorldUnit = widget.size / 75;
+          final width = data.worldSize.width * pixelsPerWorldUnit;
+          final height = data.worldSize.height * pixelsPerWorldUnit;
+          final feetY = widget.size * .82;
           return RepaintBoundary(
             child: Transform.scale(
               scaleX: -1,
               alignment: Alignment.center,
-              child: SpriteAnimationWidget(
-                animation: data.animation,
-                animationTicker: data.animation.createTicker(),
-                anchor: data.anchor,
-                paint: _paint,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: widget.size / 2 - data.anchor.x * width,
+                    top:
+                        feetY -
+                        data.feetOffset * pixelsPerWorldUnit -
+                        data.anchor.y * height,
+                    width: width,
+                    height: height,
+                    child: SpriteAnimationWidget(
+                      animation: data.animation,
+                      animationTicker: data.animation.createTicker(),
+                      paint: _paint,
+                    ),
+                  ),
+                ],
               ),
             ),
           );

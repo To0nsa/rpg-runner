@@ -1,16 +1,47 @@
+import '../players/characters/bounty_hunter_geometry.dart';
 import '../snapshots/enums.dart';
 import 'combat_combo.dart';
 import 'combat_geometry.dart';
 
-/// Blade geometry relative to the aligned (34, 46) sprite pivot. Separate
+/// Source poses converted to world units around the support-aligned pivot. Separate
 /// strike windows let each visible swing land once without widening the body.
 abstract final class BountyHunterPoseCatalog {
+  static const _scale = bountyHunterWorldScale;
+  static const _shiftY = bountyHunterPoseOriginShiftY;
   static const _high = [
-    CombatCapsule(8, -12, 31, -18, 4),
-    CombatCapsule(31, -18, 39, 0, 4),
+    CombatCapsule(
+      8 * _scale,
+      (-12 + _shiftY) * _scale,
+      31 * _scale,
+      (-18 + _shiftY) * _scale,
+      4 * _scale,
+    ),
+    CombatCapsule(
+      31 * _scale,
+      (-18 + _shiftY) * _scale,
+      39 * _scale,
+      (0 + _shiftY) * _scale,
+      4 * _scale,
+    ),
   ];
-  static const _low = [CombatCapsule(9, 4, 35, 10, 4)];
-  static const _thrust = [CombatCapsule(9, -2, 42, -2, 3)];
+  static const _low = [
+    CombatCapsule(
+      9 * _scale,
+      (4 + _shiftY) * _scale,
+      35 * _scale,
+      (10 + _shiftY) * _scale,
+      4 * _scale,
+    ),
+  ];
+  static const _thrust = [
+    CombatCapsule(
+      9 * _scale,
+      (-2 + _shiftY) * _scale,
+      42 * _scale,
+      (-2 + _shiftY) * _scale,
+      3 * _scale,
+    ),
+  ];
   static const quick = CombatStrikeProfile(
     timing: ActionFramePolicy(frameCount: 7, activeStart: 3, activeEnd: 5),
     frames: [[], [], [], _high, _low, [], []],
@@ -74,18 +105,40 @@ abstract final class BountyHunterPoseCatalog {
   /// Low poses affect vulnerability only; the terrain capsule stays immutable.
   static CombatCapsule? hurtbox(AnimKey key, int frame) => switch (key) {
     AnimKey.roll when frame > 0 && frame < 5 => const CombatCapsule(
-      -5,
-      9,
-      6,
-      9,
-      7,
+      -5 * _scale,
+      (9 + _shiftY) * _scale,
+      6 * _scale,
+      (9 + _shiftY) * _scale,
+      7 * _scale,
     ),
-    AnimKey.slide => const CombatCapsule(-6, 10, 7, 10, 6),
-    AnimKey.dash || AnimKey.lunge => const CombatCapsule(-3, -2, 5, 9, 7),
-    AnimKey.doubleJump => const CombatCapsule(-3, 0, 3, 6, 8),
-    AnimKey.jump ||
-    AnimKey.fall ||
-    AnimKey.rangedAir => const CombatCapsule(0, -8, 0, 6, 7),
+    AnimKey.slide => const CombatCapsule(
+      -6 * _scale,
+      (10 + _shiftY) * _scale,
+      7 * _scale,
+      (10 + _shiftY) * _scale,
+      6 * _scale,
+    ),
+    AnimKey.dash || AnimKey.lunge => const CombatCapsule(
+      -3 * _scale,
+      (-2 + _shiftY) * _scale,
+      5 * _scale,
+      (9 + _shiftY) * _scale,
+      7 * _scale,
+    ),
+    AnimKey.doubleJump => const CombatCapsule(
+      -3 * _scale,
+      (0 + _shiftY) * _scale,
+      3 * _scale,
+      (6 + _shiftY) * _scale,
+      8 * _scale,
+    ),
+    AnimKey.jump || AnimKey.fall || AnimKey.rangedAir => const CombatCapsule(
+      0 * _scale,
+      (-8 + _shiftY) * _scale,
+      0 * _scale,
+      (6 + _shiftY) * _scale,
+      7 * _scale,
+    ),
     _ => null,
   };
 }

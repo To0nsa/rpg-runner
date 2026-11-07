@@ -21,8 +21,13 @@ import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_skill_icon_theme.dart';
 
 void main() {
-  for (final size in [const Size(1200, 720), const Size(800, 450)]) {
-    testWidgets('selection routes to each remembered build at $size', (
+  for (final size in [
+    const Size(1200, 720),
+    const Size(800, 450),
+    const Size(800, 360),
+    const Size(568, 320),
+  ]) {
+    testWidgets('cards select in place and open remembered builds at $size', (
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({});
@@ -41,8 +46,7 @@ void main() {
       );
       final eloise =
           (state.selection.toJson()['loadoutsByCharacter'] as Map)['eloise'];
-      final eloiseButton =
-          'Build ${PlayerCharacterRegistry.eloise.displayName}';
+      final eloiseName = PlayerCharacterRegistry.eloise.displayName;
       await tester.runAsync(() async {
         for (final (family, path) in [
           ('CrimsonText', 'assets/fonts/Crimson_Text/CrimsonText-Regular.ttf'),
@@ -82,24 +86,85 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text('Build Willow'), findsOneWidget);
-      expect(find.text(eloiseButton), findsOneWidget);
+      final willowCard = find.byKey(
+        const ValueKey('character-card-bountyHunter'),
+      );
+      final eloiseCard = find.byKey(const ValueKey('character-card-eloise'));
+      final buildWillow = find.descendant(
+        of: willowCard,
+        matching: find.text('Change build'),
+      );
+      final buildEloise = find.descendant(
+        of: eloiseCard,
+        matching: find.text('Change build'),
+      );
+      expect(find.text('Change build'), findsNWidgets(2));
       expect(find.text('Eloise WIP'), findsNothing);
+      expect(find.text('CURRENT CHARACTER'), findsNothing);
+      expect(
+        find.text('Choose a fighting style, then shape your build.'),
+        findsNothing,
+      );
+      expect(find.textContaining('Sword · Shield'), findsNothing);
+      expect(find.textContaining('Pick a gun'), findsNothing);
+      expect(find.byType(Scrollable), findsNothing);
+      for (final card in [willowCard, eloiseCard]) {
+        final rect = tester.getRect(card);
+        expect(rect.left, greaterThanOrEqualTo(0));
+        expect(rect.top, greaterThanOrEqualTo(kToolbarHeight));
+        expect(rect.right, lessThanOrEqualTo(size.width));
+        expect(rect.bottom, lessThanOrEqualTo(size.height));
+      }
+      expect(buildWillow.hitTestable(), findsOneWidget);
+      expect(buildEloise.hitTestable(), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('character-unselected-bountyHunter')),
+        findsOneWidget,
+      );
       if (Platform.environment['BOUNTY_HUNTER_CAPTURE'] == 'true') {
+        await tester.runAsync(
+          () => precacheImage(
+            const AssetImage('assets/images/backgrounds/playHub_bgDark.png'),
+            tester.element(find.byType(CharacterSelectionPage)),
+          ),
+        );
+        await tester.pump();
         await tester.runAsync(() async {
           final image =
               await (boundary.currentContext!.findRenderObject()
                       as RenderRepaintBoundary)
                   .toImage();
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-          await File('.tmp/bounty_selection_${size.width.toInt()}.png')
-              .writeAsBytes(bytes!.buffer.asUint8List());
+          await File(
+            '.tmp/willow_selection_${size.width.toInt()}x${size.height.toInt()}.png',
+          ).writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
       }
-      final build = find.text('Build Willow');
-      await tester.ensureVisible(build);
-      await tester.tap(build);
+      await tester.tap(find.text('Willow'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(
+        state.selection.selectedCharacterId,
+        PlayerCharacterId.bountyHunter,
+      );
+      expect(find.byType(CharacterSelectionPage), findsOneWidget);
+      expect(find.byType(LoadoutSetupPage), findsNothing);
+      expect(
+        find.byKey(const ValueKey('character-unselected-bountyHunter')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('character-unselected-eloise')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text(eloiseName));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
+      expect(find.byType(CharacterSelectionPage), findsOneWidget);
+      // A build button also selects its own card before opening the builder.
+      await tester.tap(buildWillow);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
       expect(find.byType(LoadoutSetupPage), findsOneWidget);
@@ -121,8 +186,7 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, 'Willow'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
-      await tester.ensureVisible(find.text(eloiseButton));
-      await tester.tap(find.text(eloiseButton));
+      await tester.tap(buildEloise);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
       expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);

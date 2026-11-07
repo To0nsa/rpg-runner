@@ -78,8 +78,10 @@ void main() {
       expect(enemyUnoco.referenceVisual, isNotNull);
       expect(enemyUnoco.referenceVisual!.renderScale, closeTo(0.5, 0.0001));
       expect(
-        enemyUnoco.referenceVisual!.renderScaleBinding!.sourcePath,
-        'packages/runner_core/lib/enemies/enemy_catalog.dart',
+        p.normalize(enemyUnoco.referenceVisual!.renderScaleBinding!.sourcePath),
+        p.normalize(
+          'packages/runner_core/lib/enemies/catalog/unoco_enemy.dart',
+        ),
       );
       expect(enemyUnoco.artFacingDirection, EntityArtFacingDirection.left);
       expect(enemyUnoco.isCaster, isTrue);

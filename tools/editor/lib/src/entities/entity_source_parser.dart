@@ -56,8 +56,8 @@ class EntitySourceParser {
       'packages/runner_core/lib/projectiles/projectile_render_catalog.dart';
   static const String projectileRenderRegistryPath =
       'lib/game/components/projectiles/projectile_render_registry.dart';
-  static const String playerRenderTuningPath =
-      'lib/game/tuning/player_render_tuning.dart';
+  static const String playerDefinitionPath =
+      'packages/runner_core/lib/players/player_character_definition.dart';
   static const String spatialGridTuningPath =
       'packages/runner_core/lib/tuning/spatial_grid_tuning.dart';
 

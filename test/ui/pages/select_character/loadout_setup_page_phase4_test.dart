@@ -3,8 +3,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flame/game.dart';
 import 'package:rpg_runner/game/runner_flame_game.dart';
+import 'package:rpg_runner/game/components/player/player_view.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:rpg_runner/ui/state/ownership/enemy_defeats.dart';
@@ -41,6 +43,84 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/skills/skills_radial_pane.dart';
 
 void main() {
+  for (final character in [
+    PlayerCharacterId.eloise,
+    PlayerCharacterId.bountyHunter,
+  ]) {
+    testWidgets(
+      'Training Field uses the selected character scale: $character',
+      (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        await tester.binding.setSurfaceSize(const Size(1200, 540));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final state = AppState.developer(
+          store: SharedPrefsDeveloperProfileStore(),
+        );
+        addTearDown(state.dispose);
+        await state.bootstrap();
+        await state.setCharacter(character);
+        if (Platform.environment['WILLOW_SCALE_CAPTURE'] == 'true') {
+          await tester.runAsync(() async {
+            for (final (family, path) in [
+              (
+                'CrimsonText',
+                'assets/fonts/Crimson_Text/CrimsonText-Regular.ttf',
+              ),
+              ('Inter', 'assets/fonts/Inter/static/Inter_24pt-Regular.ttf'),
+              ('Cinzel', 'assets/fonts/Cinzel/static/Cinzel-Regular.ttf'),
+              ('MaterialIcons', 'fonts/MaterialIcons-Regular.otf'),
+            ]) {
+              await (FontLoader(family)..addFont(rootBundle.load(path))).load();
+            }
+          });
+        }
+        final boundary = GlobalKey();
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundary,
+            child: _TestApp(appState: state),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(Tab).at(2));
+        await tester.pump();
+        final game = tester
+            .widget<GameWidget<RunnerFlameGame>>(
+              find.byType(GameWidget<RunnerFlameGame>),
+            )
+            .game!;
+        await _trainingReady(tester, game);
+        game.controller.setPaused(false);
+        for (var i = 0; i < 60; i++) {
+          game.controller.advanceFrame(1 / 60);
+        }
+        await tester.pump(const Duration(milliseconds: 16));
+        final player = game.world.children.whereType<PlayerView>().single;
+        // Flame stores component scale in a Float32 vector.
+        expect(
+          player.scale.y,
+          closeTo(game.controller.playerCharacter.renderScale, 1e-6),
+        );
+        if (Platform.environment['WILLOW_SCALE_CAPTURE'] == 'true') {
+          await tester.runAsync(() async {
+            final image =
+                await (boundary.currentContext!.findRenderObject()
+                        as RenderRepaintBoundary)
+                    .toImage();
+            final png = (await image.toByteData(
+              format: ui.ImageByteFormat.png,
+            ))!;
+            await File('.tmp/willow_scale_training_${character.name}.png')
+                .writeAsBytes(png.buffer.asUint8List());
+            image.dispose();
+          });
+        }
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      },
+    );
+  }
   for (final (gun, folder) in [
     (ProjectileId.hunterPistol, 'gun'),
     (ProjectileId.hunterCrossbow, 'crossbow'),

@@ -2,8 +2,15 @@
 
 Willow is the playable bounty hunter. Choose Éloïse or Willow before opening
 the character builder; each keeps her own gear and six ability selections.
+Tap a card to select its character; `Change build` opens that character's builder.
+Both cards fit on one screen, with a dark overlay marking the unselected choice.
 The builder's character-name button returns to selection. Start and Restart
 use the remembered build without making the player choose again.
+
+Willow and Éloïse share the same apparent body size in menus and gameplay.
+Willow's grounded feet meet the floor across all three weapon variants; held
+weapons can extend above the head. Her collision and blade geometry follow her
+scaled body, including compact roll and slide poses.
 
 ## Resources and weapons
 
