@@ -100,7 +100,10 @@ void main() {
       state.selection.buildsFor(PlayerCharacterId.eloise).builds[2].name,
       'Third',
     );
-    await expectLater(state.setBuildName('1234567890123'), throwsArgumentError);
+    const maxName = '1234567890123456789012345678';
+    await state.setBuildName(maxName);
+    expect(state.selection.buildName, maxName);
+    await expectLater(state.setBuildName('${maxName}9'), throwsArgumentError);
     await expectLater(state.setBuildName(' '), throwsArgumentError);
   });
 

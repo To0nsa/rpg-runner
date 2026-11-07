@@ -84,3 +84,31 @@ Context7 was unavailable. Flutter input/dialog behavior was checked against
 [MediaQuery.removeViewInsets](https://api.flutter.dev/flutter/widgets/MediaQuery/MediaQuery.removeViewInsets.html).
 The schema replacement resets old local presets and discards obsolete
 unaddressed queues; remote profile resets and backend rollout were not performed.
+
+## Follow-up: lock labels and 28-character names
+
+Local changes following `6574689c` put the lock icon and `Level 5`/`Level 12`
+together inside each locked build button, replacing its build name. The shared
+button supports a leading icon with the existing theme and disabled styling.
+Build names now allow 28 grapheme clusters across the editor, client state and
+Functions validation; the schema and level thresholds are unchanged.
+
+- Root: `flutter test --no-pub` for `character_selection_page_test.dart`,
+  `selection_state_test.dart` and `app_state_hybrid_sync_test.dart`: **38 passed**.
+  Covers the 28-character input/persistence boundary, rejection at 29, grapheme
+  normalization and existing save/retry/selection behavior.
+- Root: final `flutter test --no-pub
+  test/ui/pages/select_character/character_selection_page_test.dart`: **4 passed**
+  after moving both the lock and level into the button and fixing narrow-button
+  clipping. A text-layout regression checks that the level labels are not
+  truncated. Captures at the existing four view sizes were regenerated with
+  `BOUNTY_HUNTER_CAPTURE=true`; the largest and smallest chooser renders were
+  visually checked.
+- Root: `corepack pnpm --dir functions build` and `build:test`: passed.
+- From `functions/`: `node --test
+  lib_test/test/ownership/character_builds.test.js`: **10 passed**. The bounded
+  callable parser and command application accept 28 plain-text or emoji
+  graphemes and preserve them in canonical state; 29-grapheme names are rejected.
+- Targeted `dart analyze` on the changed UI, client state and tests: clean;
+  final button/page analysis after the layout refinement: clean.
+- Local source and widget checks only; no phone installation or backend deployment.

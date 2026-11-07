@@ -4,7 +4,7 @@ import { playerLevelFromTotalXp } from "./player_progress.js";
 
 export const selectionSchemaVersion = 2;
 export const buildUnlockLevels = [1, 5, 12] as const;
-export const buildNameMaxLength = 12;
+export const buildNameMaxLength = 28;
 const nameSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 export function validBuildName(raw: unknown): string | null {

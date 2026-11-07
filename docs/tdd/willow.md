@@ -15,7 +15,7 @@ Hub Edit opens `/setup/character`. Card taps select in place; three build
 buttons on each card select an independent saved configuration before opening
 the builder. Build 2 requires level 5 and Build 3 requires level 12. Unselected
 cards share the level selector's dark scrim and both fit without scrolling.
-Builder actions show the current build name with a 12-character rename control.
+Builder actions show the current build name with a 28-character rename control.
 Start, Restart and Training Field resolve the selected build. Developer Practice
 unlocks compatible catalog content while retaining build-level locks. See the
 [build persistence and authorization contract](character_builds.md).

@@ -6,6 +6,8 @@ characters. Each newly reached level delivers a manually claimed 25-gold
 Confirmed account level unlocks Build 2 at level 5 and Build 3 at level 12 for
 both characters. Build 1 is always available. These are saved configurations;
 level itself grants no combat stat bonus. Developer Practice shows the same locks.
+Locked build buttons show a lock and required level together instead of their
+name. Each unlocked build can be named with up to 28 visible characters.
 
 Each accepted, replay-validated Practice, Competitive or Weekly run earns
 `floor(validatedScore / 200)` XP. A zero-score run earns zero XP but still counts

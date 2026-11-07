@@ -176,7 +176,7 @@ void main() {
       'names count visible characters and preserve a slot-specific default',
       () {
         final emoji = String.fromCharCodes([0x1f469, 0x1f3fd, 0x200d, 0x1f680]);
-        expect(SelectionState.normalizeBuildName(emoji * 13), emoji * 12);
+        expect(SelectionState.normalizeBuildName(emoji * 29), emoji * 28);
         expect(
           SelectionState.normalizeBuildName('  ', buildIndex: 2),
           'Build 3',

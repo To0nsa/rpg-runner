@@ -78,8 +78,19 @@ test("full loadout and selection keep active equipment meta in sync", () => {
 test("names count graphemes and missing or invalid indices fail closed", () => {
   const emoji = String.fromCodePoint(0x1f469, 0x1f3fd, 0x200d, 0x1f680);
   assert.equal(validBuildName("  Build 3  "), "Build 3");
-  assert.equal(validBuildName(emoji.repeat(12)), emoji.repeat(12));
-  for (const name of [" ", "a".repeat(13), emoji.repeat(13)]) {
+  for (const name of ["a".repeat(28), emoji.repeat(28)]) {
+    assert.equal(validBuildName(name), name);
+    const state = atLevel(12);
+    const selection = structuredClone(state.selection);
+    buildAt(selection, "eloise", 0)!.name = name;
+    const command = { type: "setSelection", payload: { selection }, userId: "builds",
+      sessionId: "session", expectedRevision: 0, commandId: "build-command" };
+    const parsed = parseExecuteCommandRequest({ command }).command;
+    const result = applyOwnershipCommand(state, parsed);
+    assert.equal(result.accepted, true);
+    if (result.accepted) assert.equal(buildAt(result.canonicalState.selection, "eloise", 0)!.name, name);
+  }
+  for (const name of [" ", "a".repeat(29), emoji.repeat(29)]) {
     const state = atLevel(12);
     const selection = structuredClone(state.selection);
     buildAt(selection, "eloise", 0)!.name = name;

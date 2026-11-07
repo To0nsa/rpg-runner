@@ -1,7 +1,7 @@
 # Current Implementation Plans
 
 - [Completed character builds](../archive/2026-11-07/building/character_builds.md):
-  three saved builds per character, level 5/12 locks and a 12-character rename
+  three saved builds per character, level 5/12 locks and a 28-character rename
   control. [Local verification](../verification/character-builds-2026-11-07.md).
 
 - [Completed Willow](../archive/2026-11-07/building/bounty_hunter.md): the playable

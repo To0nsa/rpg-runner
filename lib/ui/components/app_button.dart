@@ -12,11 +12,15 @@ class AppButton extends StatefulWidget {
     super.key,
     required this.label,
     required this.onPressed,
+    this.icon,
     this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.md,
   });
 
   final String label;
+
+  /// Optional leading icon, styled with the same foreground as the label.
+  final IconData? icon;
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
   final AppButtonSize size;
@@ -77,7 +81,8 @@ class _AppButtonState extends State<AppButton> {
       return _blendOver(
         base: base,
         overlay: UiBrandPalette.black,
-        alpha: buttons.pressedOverlayAlpha);
+        alpha: buttons.pressedOverlayAlpha,
+      );
     }
     return base;
   }
@@ -156,6 +161,15 @@ class _AppButtonState extends State<AppButton> {
       height: textStyle.height,
       forceStrutHeight: true,
     );
+    final label = Text(
+      widget.label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+      textWidthBasis: TextWidthBasis.parent,
+      style: textStyle,
+      strutStyle: textStrutStyle,
+    );
     // 3) Nudge on press for physical button feedback.
     final pressedOffsetY = enabled && _pressed ? 1.5 : 0.0;
     final pressedOffsetX = enabled && _pressed ? 0.5 : 0.0;
@@ -222,16 +236,23 @@ class _AppButtonState extends State<AppButton> {
                     child: SizedBox.expand(
                       child: Align(
                         alignment: Alignment.center,
-                        // 8) Centered label layer.
-                        child: Text(
-                          widget.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          textWidthBasis: TextWidthBasis.parent,
-                          style: textStyle,
-                          strutStyle: textStrutStyle,
-                        ),
+                        child: widget.icon == null
+                            ? label
+                            : FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      widget.icon,
+                                      size: textStyle.fontSize,
+                                      color: textColor,
+                                    ),
+                                    SizedBox(width: ui.space.xs),
+                                    label,
+                                  ],
+                                ),
+                              ),
                       ),
                     ),
                   ),

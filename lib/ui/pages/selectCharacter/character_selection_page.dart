@@ -252,7 +252,6 @@ class _BuildButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
     return Semantics(
       button: true,
       onTap: unlocked ? onPressed : null,
@@ -263,40 +262,17 @@ class _BuildButton extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: unlocked ? null : () {},
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  label: name,
-                  size: AppButtonSize.xs,
-                  variant: selected
-                      ? AppButtonVariant.primary
-                      : AppButtonVariant.secondary,
-                  onPressed: unlocked ? onPressed : null,
-                ),
-              ),
-              if (!unlocked)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.lock_outline,
-                        size: 12,
-                        color: ui.colors.textMuted,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        'Level $requiredLevel',
-                        style: ui.text.body.copyWith(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
+          child: SizedBox(
+            width: double.infinity,
+            child: AppButton(
+              label: unlocked ? name : 'Level $requiredLevel',
+              icon: unlocked ? null : Icons.lock_outline,
+              size: AppButtonSize.xs,
+              variant: selected
+                  ? AppButtonVariant.primary
+                  : AppButtonVariant.secondary,
+              onPressed: unlocked ? onPressed : null,
+            ),
           ),
         ),
       ),

@@ -246,7 +246,9 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
   Future<void> setBuildName(String buildName) async {
     if (buildName.trim().isEmpty ||
         SelectionState.normalizeBuildName(buildName) != buildName.trim()) {
-      throw ArgumentError('Use 1–12 characters for the build name.');
+      throw ArgumentError(
+        'Use 1–${SelectionState.buildNameMaxLength} characters for the build name.',
+      );
     }
     final characterId = _selection.selectedCharacterId;
     final index = _selection.selectedBuildIndexFor(characterId);

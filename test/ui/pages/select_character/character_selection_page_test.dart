@@ -102,9 +102,15 @@ void main() {
         matching: find.text('Build 1'),
       );
       expect(find.text('Build 1'), findsNWidgets(2));
+      expect(find.text('Build 2'), findsNothing);
+      expect(find.text('Build 3'), findsNothing);
       expect(find.text('Change build'), findsNothing);
       expect(find.text('Level 5'), findsNWidgets(2));
       expect(find.text('Level 12'), findsNWidgets(2));
+      for (final element in find.textContaining('Level ').evaluate()) {
+        final paragraph = element.renderObject! as RenderParagraph;
+        expect(paragraph.didExceedMaxLines, isFalse);
+      }
       expect(find.text('Eloise WIP'), findsNothing);
       expect(find.text('CURRENT CHARACTER'), findsNothing);
       expect(
@@ -211,10 +217,13 @@ void main() {
       tester.view.resetViewInsets();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
-      await tester.enterText(find.byType(TextField), '123456789012345');
+      await tester.enterText(
+        find.byType(TextField),
+        '123456789012345678901234567890',
+      );
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        '123456789012',
+        '1234567890123456789012345678',
       );
       await tester.enterText(find.byType(TextField), ' ');
       await tester.tap(find.text('Save'));
@@ -227,7 +236,10 @@ void main() {
       await tester.tap(find.byTooltip('Rename build'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
-      await tester.enterText(find.byType(TextField), 'My Willow');
+      await tester.enterText(
+        find.byType(TextField),
+        'Willow crossbow practice kit',
+      );
       store.failNextSave = true;
       await tester.tap(find.text('Save'));
       await tester.pump();
@@ -241,8 +253,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
       await tester.pump(const Duration(milliseconds: 350));
       expect(find.byType(Dialog), findsNothing);
-      expect(state.selection.buildName, 'My Willow');
-      expect(find.text('My Willow'), findsOneWidget);
+      expect(state.selection.buildName, 'Willow crossbow practice kit');
+      expect(find.text('Willow crossbow practice kit'), findsOneWidget);
       final navigator = tester.state<NavigatorState>(
         find.byType(Navigator).first,
       );
@@ -250,10 +262,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump();
-      expect(find.text('My Willow'), findsOneWidget);
-      await tester.tap(
-        find.descendant(of: eloiseCard, matching: find.text('Build 2')),
-      );
+      expect(find.text('Willow crossbow practice kit'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('build-eloise-1')));
       await tester.pump();
       expect(find.byType(CharacterSelectionPage), findsOneWidget);
       expect(

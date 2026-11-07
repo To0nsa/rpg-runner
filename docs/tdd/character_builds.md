@@ -5,7 +5,7 @@ zero-based `selectedBuildIndex`. `SelectionState` schema 2 stores these under
 `buildsByCharacter`; there is no global build name or second loadout map.
 `loadoutFor(character)` resolves its selected entry, so Hub, builder, Training
 Field and run preparation consume the same build. Names default to Build 1,
-Build 2 and Build 3; they are trimmed, non-empty and at most 12 Unicode grapheme
+Build 2 and Build 3; they are trimmed, non-empty and at most 28 Unicode grapheme
 clusters. Flutter's input limit and the Functions `Intl.Segmenter` validator
 count the same user-perceived characters.
 
@@ -43,11 +43,13 @@ nesting; all shared byte, node, key, string and array ceilings remain unchanged.
 ## Menus and schema boundary
 
 The chooser keeps two cards in one viewport. Art/name occupy the left column;
-three named buttons occupy the right. Card taps select in place, unlocked build
-buttons save and open the builder, and locked buttons consume taps while showing
-the required level. The selected character retains the level-selector scrim
-behavior. Builder actions show the current build name and edit icon. Rename has
-Save/Cancel, keyboard submission, validation, a busy state and retryable errors.
+three build buttons occupy the right. Unlocked buttons show the saved name;
+locked buttons show a centered lock icon and required level together inside the
+button instead of the name. Card taps select in place, unlocked build buttons
+save and open the builder, and locked buttons consume taps. The selected
+character retains the level-selector scrim behavior. Builder actions show the
+current build name and edit icon. Rename has Save/Cancel, keyboard submission,
+validation, a busy state and retryable errors.
 The builder does not shrink behind the modal keyboard. On short landscape
 viewports the input and actions share a row so the editable name remains visible.
 

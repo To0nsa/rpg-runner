@@ -63,7 +63,7 @@ class SelectionState {
 
   static const buildCount = 3;
   static const buildUnlockLevels = [1, 5, 12];
-  static const buildNameMaxLength = 12;
+  static const buildNameMaxLength = 28;
   static const schemaVersion = 2;
   static String defaultBuildName(int index) => 'Build ${index + 1}';
   static bool isBuildUnlocked(int index, int playerLevel) =>
