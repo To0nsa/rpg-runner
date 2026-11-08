@@ -26,7 +26,7 @@ The Library is free to browse; discoveries cannot be purchased.
 | Boss summons | Unlock their parent boss | Combat and field notes within that boss’s page |
 | Val Outpost | Reach 10,000 in one Competitive run on Val Outpost | Its road watch, patrols, training and shelter for travelers in the Long-Eared Owls’ Forest |
 | Léonards’ farm | Reach 10,000 in one Competitive run on Léonards’ farm | The largest agricultural estate around Théodonis, overseen by a powerful family |
-| Éloïse's opening journal | Available immediately | Her life and leadership before the black sky |
+| Opening journal | Available immediately | Théodonis, La Main and Neyla's traveling company in the tabletop era |
 
 Defeats accumulate in the account's shared per-enemy record across confirmed
 Practice, Competitive and Weekly runs, on either character. Library discovery
@@ -77,36 +77,18 @@ the hit can stun.
 
 ## Narrative continuity
 
-The PDF timeline supersedes the earlier 200-year proposal. The historical
-overview places this episode approximately six centuries before the tabletop
-campaign. The playable Éloïse is the PDF character, aged seventeen at the
-black-sky episode. Her opening journal recounts her birth in Elingen, her
-parents' disappearance, Aldebarant's training, her election and victories
-against the orcs, and her founding of La Main. It ends as the sky darkens,
-without revealing what happens in the forest or her later fate. The in-game
-journal contains no reference to the later campaign.
+The Library introduces the era of *Les Soleils d’or*, after Éloïse's
+disappearance and the attack on the Villa Twinsen. It identifies Neyla's
+traveling company without assigning the playable characters to the troupe.
+The existing playable Éloïse remains available; her place in this later setting
+has not yet been resolved. Enemy field notes describe encounters without
+asserting a connection to the earlier black-sky episode.
 
-Val Outpost already exists in the runner's earlier period and serves the same
-road-patrol and survival-training purpose it has in the later campaign. It is
-in the Forêt des Moyen-Ducs near Théodonis. The English entry calls this the
-Long-Eared Owls’ Forest, after the bird species. That forest has no black sky:
-the darkened ancient forest is at least 50 km farther north. The Val Outpost
-location entry describes the outpost in Éloïse's time, not the later campaign's
-captain, medic, injured soldier or caravan survivors.
+Val Outpost remains a road-patrol and survival-training post in the Forêt des
+Moyen-Ducs, called the Long-Eared Owls’ Forest in the English entry. Its entry
+does not introduce the scenario's named personnel.
 
-The user's premise is authoritative for the runner: the northern ancient
-forest's cultists and associated creatures help the power responsible for the
-black sky. The PDF also describes a demonic cult corrupting that forest while
-the orc war diverts attention. Enemy field notes connect present encounters to
-that crisis. Exact remote origins of bosses remain unknown where the references
-do not establish them. These descriptions do not invent a separate pantheon or
-transplant later-era named townspeople into this period.
-
-References: *Lothringen - Les Soleils d'or - Guide du maitre.pdf*, historical
-overview (physical page 3, printed pages 4–5), Éloïse (physical page 31,
-printed pages 60–61), and regional map (physical page 2); companion world
-brand and naming references in `C:/dev/Lothringen/Brand/`.
-
-The supplied city map replaces the earlier PDF regional-map extraction. The
-map does not change the PDF-based narrative chronology.
+References: *Les Soleils d’or* Game Master's guide, historical overview and
+Val Outpost; *A Layover in Gogne*, background and incipit; companion world brand
+and naming references in `C:/dev/Lothringen/Brand/`.
 See [implementation and persistence](../tdd/codex.md).

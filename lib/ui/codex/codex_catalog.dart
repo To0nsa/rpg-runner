@@ -41,66 +41,51 @@ abstract final class CodexCatalog {
       (progress.competitiveBestScores[id.name] ?? 0) >=
           levelScoreRequirements[id]!;
 
-  static const openingTitle = 'Before the dark sky';
+  static const openingTitle = 'The roads of Lothringen';
   static const opening =
-      'Éloïse was born in Elingen, in Haute-Lothringen, the only child of '
-      'Krenth, a respected lord, and Soturi, a warrior from the East. They '
-      'ruled the region through her first ten years. Then they departed on a '
-      'mysterious quest and never returned.\n\n'
-      'Even as a child, Éloïse showed uncommon strength and magical ability. '
-      'After her parents disappeared, Aldebarant, a close friend of Soturi, '
-      'guided her training. Later stories claimed it lasted several lifetimes '
-      'in other dimensions.\n\n'
-      'At thirteen, while orcs from the Ashen mountains pushed the war toward '
-      'Basse-Lothringen, her people chose her to lead them. At fifteen, she '
-      'commanded Lothringen’s forces and drove the invaders back. The war, '
-      'however, had concealed another threat: a demonic cult was corrupting '
-      'the primeval forest. Éloïse founded La Main to purge that corruption.\n\n'
-      'Now she is seventeen, and the sky over the forest has suddenly '
-      'darkened. The danger that grew unseen during the war lies ahead.';
+      'Théodonis stands behind old walls, surrounded by farmland and forests. '
+      'The city has survived wars, raids and disease, and its apparent stability '
+      'rests on institutions that have weathered many crises.\n\n'
+      'Long ago, Éloïse founded La Main to confront a hidden threat. After her '
+      'disappearance, the order continued its work in secret. More recently, '
+      'an incident at the Villa Twinsen left questions unanswered.\n\n'
+      'On the roads of Lothringen, Neyla leads a traveling company of '
+      'performers. They bring shows to the communities they visit and offer '
+      'help along the way. Their journey now leads toward Théodonis.';
 
   static String enemyLore(EnemyId id) => switch (id) {
     EnemyId.grojib =>
-      'Among the cult’s forces in the forest, Grojib closes the distance '
-          'without hesitation. Those who serve the power behind the black sky '
-          'need more than hidden rites: they need fighters who can hold the paths '
-          'and prevent anyone from reaching their work. Grojib is one of those obstacles.',
+      'Grojib closes the distance without hesitation. A traveler who holds '
+          'their ground after the first blow may find another strike already '
+          'on its way.',
     EnemyId.hashash =>
       'Hashash fights from the uncertainty of the forest, appearing where '
-          'attention has already moved on. The cult’s purpose is served as much '
-          'by an interrupted journey as by a defended gate. In these woods, '
+          'attention has already moved on. In these woods, '
           'an apparently empty path is no promise of safe passage.',
     EnemyId.derf =>
-      'Derf is a cultist whose outward form conceals what service to the '
-          'darkness has made of them. The transformation witnessed in the forest '
-          'turns a distant spellcaster into a pursuing, tentacled threat. '
-          'Their body bears the consequence of the corruption they help to spread.',
+      'Derf’s outward form conceals a transformation that turns a distant '
+          'spellcaster into a pursuing, tentacled threat.',
     EnemyId.unocoDemon =>
-      'The Unoco demons encountered over the forest fight alongside the cult’s '
-          'forces. Their presence makes the corruption impossible to dismiss as '
-          'rumour. They carry the threat above the paths, where walls and broken '
+      'The Unoco demons encountered over the forest carry the threat above '
+          'the paths, where walls and broken '
           'ground offer little protection from a spell cast out of the air.',
     EnemyId.bringerOfDeath =>
       'The Bringer of Death bars the way through a clearing claimed by the '
           'darkness. Its scythe and rising pillars leave little room for hesitation. '
-          'Defeating this guardian opens a way deeper into the forest; it does '
-          'not yet explain who darkened the sky.',
+          'Defeating this guardian opens a way deeper into the forest.',
     EnemyId.voidbornGoddess =>
       'The name Voidborn Goddess records the terror of the encounter, not '
-          'proof of divinity. Beyond the cult’s first defences, this presence '
-          'turns the clearing itself into a threat. Éloïse can learn how it '
-          'fights without yet knowing what brought it into the forest.',
+          'proof of divinity. This presence turns the clearing itself into a '
+          'threat. What brought it into the forest remains unknown.',
     EnemyId.shoggoth =>
       'Shoggoth is encountered among the deeper horrors guarding the route. '
           'Smaller creatures accompany its assaults, making the fight feel '
           'less like a duel than a struggle to keep a patch of ground. Its '
-          'arrival belongs to the spreading corruption; its distant origin '
-          'remains unrecorded.',
+          'distant origin remains unrecorded.',
     EnemyId.voidcaller =>
       'The Voidcaller’s presence is marked by beams, erupting claws and '
-          'summoned tentacles. It stands among the powers opposing Éloïse’s '
-          'advance through the corrupted forest. The title describes what '
-          'she witnesses, while the nature of what answers its call remains uncertain.',
+          'summoned tentacles. Its title describes what travelers have '
+          'witnessed, while the nature of what answers its call remains uncertain.',
     EnemyId.shoggothMinion =>
       'These smaller creatures enter the fight at Shoggoth’s summons. '
           'They are part of the same immediate threat, pressing an opponent '

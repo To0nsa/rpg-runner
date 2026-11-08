@@ -28,7 +28,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Off-screen actor indicators](tdd/offscreen_indicators.md): left/top bearings,
   distance labels, enemy grouping and viewport-aware HUD placement.
 - [Town and Codex](gdd/codex.md): Théodonis city map, Store, Library,
-  enemy/level discoveries and Éloïse's opening; [persistence contract](tdd/codex.md).
+  enemy/level discoveries and the Les Soleils d’or setting introduction;
+  [persistence contract](tdd/codex.md).
 - [Hall of Honour achievements](gdd/12_achievements.md): five milestones from
   verified runs, expandable completion dates and direct gold claims
   in the selected Town building; [technical contract](tdd/achievements.md).

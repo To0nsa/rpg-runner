@@ -574,8 +574,8 @@ Already confirmed funds remain usable while another run is being verified.
   compact portrait/name cards with progress
   counts inside a trailing bar.
 - Locations: 10,000 points in one Competitive run, separately for Val Outpost and Léonards’ farm.
-- Journal: Éloïse's backstory through the moment the sky darkens, following
-  the PDF timeline and leaving later events unrevealed.
+- Journal: an introduction to Théodonis, La Main and Neyla's traveling company
+  in the era of Les Soleils d’or.
 - Account-wide confirmed progress, locked-entry requirements and readable
   discovered entries. See [Codex rules](codex.md) and
   [persistence contract](../tdd/codex.md).
