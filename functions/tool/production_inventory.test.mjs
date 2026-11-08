@@ -5,6 +5,7 @@ import test from "node:test";
 
 import { buildManagedBoardId, resolveBoardProvisioningConfig } from "../lib/boards/provisioning.js";
 import { resolveWindowForMode } from "../lib/boards/windowing.js";
+import { starterCanonicalDocument } from "../lib/ownership/defaults.js";
 
 const nowMs = Date.parse("2026-10-27T12:00:00Z");
 const project = "inventory-regression-test";
@@ -15,21 +16,26 @@ const preload = `
       throw new Error('Unexpected request; test never permits live network access.');
     }
     let result;
-    if (url.endsWith(':listCollectionIds')) result = { collectionIds: ['leaderboard_boards'] };
+    if (url.endsWith(':listCollectionIds')) result = { collectionIds: Object.keys(fixture) };
     else if (url.endsWith(':runQuery')) {
       const query = JSON.parse(options.body).structuredQuery;
-      result = query.from[0].collectionId === 'leaderboard_boards' ? fixture : [];
+      result = fixture[query.from[0].collectionId] ?? [];
     } else throw new Error('Unexpected Firestore operation.');
     return { ok: true, json: async () => result };
   };
 `;
 
 function encodeFields(value) {
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
-    typeof item === "string" ? { stringValue: item }
-      : typeof item === "number" ? { integerValue: String(item) }
-        : { mapValue: { fields: encodeFields(item) } },
-  ]));
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, encodeValue(item)]));
+}
+
+function encodeValue(value) {
+  if (value === null) return { nullValue: null };
+  if (typeof value === "string") return { stringValue: value };
+  if (typeof value === "number") return { integerValue: String(value) };
+  if (typeof value === "boolean") return { booleanValue: value };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(encodeValue) } };
+  return { mapValue: { fields: encodeFields(value) } };
 }
 
 function boards(env = {}, next = false) {
@@ -53,7 +59,7 @@ function boards(env = {}, next = false) {
   });
 }
 
-function inventory(fixture, overrides = {}) {
+function inventory(fixture, overrides = {}, ownership = []) {
   const env = Object.fromEntries(Object.entries(process.env).filter(([name]) =>
     !/^RUN_(BOARD_|COMPETITIVE_LEVEL_IDS|WEEKLY_LEVEL_ID)/.test(name)));
   const output = execFileSync(process.execPath, [
@@ -62,15 +68,15 @@ function inventory(fixture, overrides = {}) {
     "--project", project, "--now-ms", String(nowMs),
   ], { encoding: "utf8", timeout: 30000,
     env: { ...env, ...overrides, GCLOUD_ACCESS_TOKEN: "test-only-no-live-access",
-      INVENTORY_TEST_FIXTURE: JSON.stringify(fixture) } });
+      INVENTORY_TEST_FIXTURE: JSON.stringify({ leaderboard_boards: fixture, ownership_profiles: ownership }) } });
   const result = JSON.parse(output);
   assert.equal(result.readOnly, true);
   assert.equal(result.projectId, project);
-  return result.boards;
+  return result;
 }
 
 test("current boards satisfy release readiness without future boards", () => {
-  const result = inventory(boards());
+  const result = inventory(boards()).boards;
   assert.equal(result.expectedCurrentCount, 3);
   assert.equal(result.missingExpectedCurrentCount, 0);
   assert.equal(result.activeNowCount, 3);
@@ -78,18 +84,31 @@ test("current boards satisfy release readiness without future boards", () => {
 });
 
 test("a missing current board remains a release blocker", () => {
-  assert.equal(inventory(boards().slice(1)).missingExpectedCurrentCount, 1);
+  assert.equal(inventory(boards().slice(1)).boards.missingExpectedCurrentCount, 1);
 });
 
 test("future boards cannot stand in for current boards", () => {
-  const result = inventory(boards({}, true));
+  const result = inventory(boards({}, true)).boards;
   assert.equal(result.upcomingCount, 3);
   assert.equal(result.missingExpectedCurrentCount, 3);
 });
 
 test("readiness follows the provisioner's configured levels", () => {
   const env = { RUN_COMPETITIVE_LEVEL_IDS: "forest", RUN_WEEKLY_LEVEL_ID: "forest" };
-  const result = inventory(boards(env), env);
+  const result = inventory(boards(env), env).boards;
   assert.equal(result.expectedCurrentCount, 2);
   assert.equal(result.missingExpectedCurrentCount, 0);
+});
+
+test("current saved builds use confirmed progression during ownership inspection", () => {
+  const profile = starterCanonicalDocument("owner", "owner");
+  const document = () => ({ document: {
+    name: `projects/${project}/databases/(default)/documents/ownership_profiles/owner`,
+    fields: encodeFields(profile),
+  } });
+  assert.equal(inventory(boards(), {}, [document()]).ownership.unauthorizedSelectionCount, 0);
+  profile.selection.buildsByCharacter.eloise.selectedBuildIndex = 1;
+  assert.equal(inventory(boards(), {}, [document()]).ownership.unauthorizedSelectionCount, 1);
+  profile.progression.playerProgress.totalXp = 100000;
+  assert.equal(inventory(boards(), {}, [document()]).ownership.unauthorizedSelectionCount, 0);
 });

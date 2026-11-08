@@ -374,6 +374,7 @@ async function inventoryOwnership(
       normalizeAuthorizedSelection({
         selection: ownership.data.selection,
         meta: ownership.data.meta,
+        progression: ownership.data.progression,
       }) === null
     ) {
       unauthorizedSelectionCount += 1;
