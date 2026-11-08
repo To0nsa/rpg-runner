@@ -519,7 +519,8 @@ void main() {
         input.pumpHeldInputs();
         controller.advanceFrame(dt);
 
-        for (var i = 0; i < 8; i += 1) {
+        // Both abilities must reach their middle tier before comparing the HUD.
+        for (var i = 0; i < 10; i += 1) {
           input.pumpHeldInputs();
           controller.advanceFrame(dt);
         }
@@ -666,15 +667,14 @@ void main() {
     input.pumpHeldInputs();
     controller.advanceFrame(dt);
 
-    expect(core.buildSnapshot().hud.chargeFullTicks, equals(10));
+    expect(core.buildSnapshot().hud.chargeFullTicks, equals(24));
 
     input.setAimDir(1, 0);
     input.startAbilitySlotHold(AbilitySlot.primary);
     input.pumpHeldInputs();
     controller.advanceFrame(dt);
 
-    // Charged bloodletter cleave full threshold is 16 ticks at 60 Hz.
-    expect(core.buildSnapshot().hud.chargeFullTicks, equals(16));
+    expect(core.buildSnapshot().hud.chargeFullTicks, equals(20));
   });
 
   test('same-tick slot hold replacement keeps latest hold winner', () {
@@ -705,8 +705,7 @@ void main() {
     input.pumpHeldInputs();
     controller.advanceFrame(dt);
 
-    // Charged bloodletter cleave full threshold is 16 ticks at 60 Hz.
-    expect(core.buildSnapshot().hud.chargeFullTicks, equals(16));
+    expect(core.buildSnapshot().hud.chargeFullTicks, equals(20));
   });
 
   test(

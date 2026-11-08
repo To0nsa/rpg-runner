@@ -426,6 +426,8 @@ void main() {
       'packages/runner_core/lib/playtest/level_playtest_scenario.dart',
       'packages/runner_core/lib/playtest/playtest_scenario_validation.dart',
       'packages/runner_core/lib/playtest/replay_benchmark_terrain.dart',
+      'packages/runner_core/lib/training/authored_training_terrain.dart',
+      'packages/runner_core/lib/training/training_field_definition.dart',
     ]);
     final liveGenerator = File('tool/generate_chunk_runtime_data.dart')
         .readAsStringSync();
