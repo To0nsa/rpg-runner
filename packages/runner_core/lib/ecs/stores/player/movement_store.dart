@@ -58,6 +58,9 @@ class MovementStore extends SparseSet {
 
   final List<Facing> facing = <Facing>[];
   final List<Facing> artFacing = <Facing>[];
+
+  /// Projectile-facing reservation, decremented before ordinary input turning.
+  /// Movement clears it as soon as the pending projectile intent is invalid.
   final List<int> facingLockTicksLeft = <int>[];
 
   void add(EntityId entity, {required Facing facing, Facing? artFacing}) {

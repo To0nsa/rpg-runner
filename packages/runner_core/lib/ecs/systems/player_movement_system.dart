@@ -96,7 +96,15 @@ class PlayerMovementSystem {
       }
 
       if (world.movement.facingLockTicksLeft[mi] > 0) {
-        world.movement.facingLockTicksLeft[mi] -= 1;
+        // A cancelled or consumed shot must not leave a facing reservation
+        // behind; pending releases still own it through their execution tick.
+        final projectileIndex = world.projectileIntent.tryIndexOf(e);
+        final pendingShot =
+            projectileIndex != null &&
+            world.projectileIntent.tick[projectileIndex] >= currentTick;
+        world.movement.facingLockTicksLeft[mi] = pendingShot
+            ? world.movement.facingLockTicksLeft[mi] - 1
+            : 0;
       }
 
       // -- Horizontal Movement --

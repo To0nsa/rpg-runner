@@ -151,7 +151,12 @@ running-body frames share AnimSystem's quantized clock. ProjectileLaunchSystem
 samples current support, velocity, facing and position at release, before
 spawning all pellets at one tip; aim changes velocity rather than rotating the
 muzzle offset. Auto aim forecasts that same attachment, including terrain
-sightlines, and retains the chosen muzzle's facing for close quarries. Missing
+sightlines, and retains the chosen muzzle's facing for close quarries. A shot
+reserves that facing through its release tick while horizontal movement continues,
+including manual vertical shots. Movement drops the reservation when the pending
+intent is cancelled or consumed, so mobility and damage interruptions cannot leave
+stale turning restrictions. The reservation includes movement's pre-turn timer
+decrement and the commit tick; it does not extend into shot recovery. Missing
 attachments preserve the existing caster-owned radial offset. Bomb drops and
 autonomous casters retain their existing launch contracts. Tick order and
 command encoding are unchanged; matching client/worker Core builds are required
@@ -175,12 +180,16 @@ assets. See [item-art verification](../verification/willow-item-art-2026-11-08.m
 
 ## Replay and validation
 
-Client, Functions and worker use local gameplay compatibility `2026.11.8.2`;
+Client, Functions and worker use local gameplay compatibility `2026.11.8.3`;
 replay/command format 1, rules-v2, score-v4 and ghost-v1 remain unchanged.
 The version check prevents different simulations from accepting the same run.
 It does not require a production data migration. Ranked seed preparation is
 refreshed with the existing offline helper; navigation geometry is unchanged.
 No deployment, board mutation or ticket cancellation is part of this work.
+
+The muzzle-facing correction changes replayed hits and requires matching
+client/issuer/worker artifacts. Command encoding and simulation phase order stay
+unchanged. See [aim verification](../verification/willow-aim-facing-2026-11-08.md).
 
 Core tests exercise all 26 commits, real melee damage at 30/60/120 Hz, bomb
 terrain/lifecycle/status behavior, fan budgets, fieldcraft, marks and charged
@@ -215,7 +224,7 @@ remain authoritative. Backtrail Rig uses the shared low-health reactive pipeline
 ReactiveProcSystem receives GameCore's tick rate and scales authored 60 Hz
 cooldowns, so 1800 authored ticks are 30 seconds at all supported rates.
 
-The client, Functions issuer and worker require compatibility `2026.11.8.2` for
+The client, Functions issuer and worker require compatibility `2026.11.8.3` for
 these changed outcomes. This is source preparation only, not a deployment.
 
 See [equipment verification](../verification/willow-equipment-2026-11-08.md) for

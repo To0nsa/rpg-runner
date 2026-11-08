@@ -30,6 +30,7 @@ import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/mana_store.dart';
 import 'package:runner_core/ecs/stores/stamina_store.dart';
 import 'package:runner_core/ecs/systems/ability_activation_system.dart';
+import 'package:runner_core/ecs/systems/player_movement_system.dart';
 import 'package:runner_core/ecs/systems/projectile_launch_system.dart';
 import 'package:runner_core/ecs/systems/projectile_hit_system.dart';
 import 'package:runner_core/ecs/systems/projectile_world_collision_system.dart';
@@ -186,6 +187,53 @@ void main() {
   for (final gun in hunterRangedWeaponIds) {
     for (final hz in [30, 60, 120]) {
       for (final facing in Facing.values) {
+        test('$gun moving auto aim keeps its muzzle, $facing at $hz Hz', () {
+          for (final targetX in [-160.0, -45.0, -5.0, 5.0, 45.0, 160.0]) {
+            final rays = <(double, double)>[];
+            final h = _Harness(
+              tickHz: hz,
+              weapon: gun,
+              aimPathClear: (x, y, _, _) {
+                rays.add((x, y));
+                return true;
+              },
+            );
+            final movement = PlayerMovementSystem();
+            h.world.playerInput.moveAxis[0] = facing == Facing.right ? 1 : -1;
+            // Reach steady speed so this isolates facing from acceleration lead.
+            for (var tick = -60; tick < 0; tick++) {
+              movement.step(h.world, h.movement, currentTick: tick);
+            }
+            h.enemy(targetX, 20);
+            h.press(AbilitySlot.projectile);
+            final aimedFacing = h.world.movement.facing[0];
+            final release = h.world.projectileIntent.tick.single;
+            for (var tick = 1; tick <= release; tick++) {
+              const ActiveAbilityPhaseSystem().step(h.world, currentTick: tick);
+              movement.step(h.world, h.movement, currentTick: tick);
+              expect(h.world.movement.facing[0], aimedFacing);
+              // Free motion matches this harness's gravity-free, terrain-free body.
+              h.world.transform.posX[0] += h.world.transform.velX[0] / hz;
+              h.launch.step(h.world, currentTick: tick);
+            }
+            final projectiles = h.world.projectile;
+            expect(projectiles.denseEntities, isNotEmpty);
+            expect(rays, hasLength(1));
+            for (final entity in projectiles.denseEntities) {
+              final ti = h.world.transform.indexOf(entity);
+              expect(h.world.transform.posX[ti], closeTo(rays.single.$1, 1e-9));
+              expect(h.world.transform.posY[ti], closeTo(rays.single.$2, 1e-9));
+            }
+            final middle = projectiles.denseEntities.length ~/ 2;
+            final dx = targetX - rays.single.$1, dy = 20 - rays.single.$2;
+            final length = math.sqrt(dx * dx + dy * dy);
+            expect(projectiles.dirX[middle], closeTo(dx / length, 1e-9));
+            expect(projectiles.dirY[middle], closeTo(dy / length, 1e-9));
+            // Release relinquishes facing without waiting for action recovery.
+            movement.step(h.world, h.movement, currentTick: release + 1);
+            expect(h.world.movement.facing[0], facing);
+          }
+        });
         test('$gun releases from its visible muzzle, $facing at $hz Hz', () {
           final character = bountyHunterCharacter.withProjectile(gun);
           final render = character.renderAnim;
@@ -322,6 +370,55 @@ void main() {
     }
   }
   for (final name in [
+    'quick_shot',
+    'piercing_shot',
+    'scatter_shot',
+    'charged_shot',
+  ]) {
+    test('$name retains manual and vertical facing through release', () {
+      for (final aimX in [-1.0, 0.0]) {
+        for (final actionSpeed in [5000, 15000]) {
+          final h = _Harness();
+          h.equip(bountyHunterAbilityDefs['bounty_hunter.$name']!);
+          h.world.statModifier.actionSpeedBp[0] = actionSpeed;
+          h.world.playerInput.moveAxis[0] = -1;
+          h.press(AbilitySlot.projectile, aimX: aimX, aimY: -1);
+          h.world.playerInput.moveAxis[0] = 1;
+          final movement = PlayerMovementSystem();
+          final release = h.world.projectileIntent.tick.single;
+          for (var tick = 1; tick <= release; tick++) {
+            movement.step(h.world, h.movement, currentTick: tick);
+            expect(h.world.movement.facing[0], Facing.left);
+            h.launch.step(h.world, currentTick: tick);
+          }
+          expect(h.world.projectile.denseEntities, isNotEmpty);
+          movement.step(h.world, h.movement, currentTick: release + 1);
+          expect(h.world.movement.facing[0], Facing.right);
+        }
+      }
+    });
+  }
+  test('mobility cancellation immediately releases pending shot facing', () {
+    final h = _Harness();
+    h.enemy(-160, 20);
+    h.press(AbilitySlot.projectile);
+    final release = h.world.projectileIntent.tick.single;
+    h.world.playerInput.moveAxis[0] = 1;
+    h.press(AbilitySlot.mobility, tick: 2);
+    PlayerMovementSystem().step(h.world, h.movement, currentTick: 2);
+    expect(h.world.movement.facing[0], Facing.right);
+    expect(h.world.movement.facingLockTicksLeft[0], 0);
+    h.launch.step(h.world, currentTick: release);
+    expect(h.world.projectile.denseEntities, isEmpty);
+  });
+  test('bomb windup does not reserve weapon-tip facing', () {
+    final h = _Harness();
+    h.press(AbilitySlot.secondary);
+    h.world.playerInput.moveAxis[0] = -1;
+    PlayerMovementSystem().step(h.world, h.movement, currentTick: 1);
+    expect(h.world.movement.facing[0], Facing.left);
+  });
+  for (final name in [
     'hunters_focus',
     'forced_march',
     'field_dressing',
@@ -440,6 +537,10 @@ void main() {
         invulnerabilityTicksOnHit: 0,
         rngSeed: 1,
       ).step(h.world, currentTick: 2);
+      h.world.playerInput.moveAxis[0] = -1;
+      PlayerMovementSystem().step(h.world, h.movement, currentTick: 2);
+      expect(h.world.movement.facing[0], Facing.left);
+      expect(h.world.movement.facingLockTicksLeft[0], 0);
       h.launch.step(h.world, currentTick: release);
       expect(h.world.activeAbility.hasActiveAbility(h.player), isFalse);
       expect(h.world.projectile.denseEntities, isEmpty);

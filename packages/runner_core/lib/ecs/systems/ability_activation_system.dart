@@ -1256,6 +1256,8 @@ class AbilityActivationSystem {
     );
     final fallbackDirX = directionalFallback.$1;
     final fallbackDirY = directionalFallback.$2;
+    final hasMuzzle =
+        playerCharacter?.projectileMuzzles.containsKey(projectileId) == true;
     final resolvedDir = _resolveCommitDirection(
       world,
       source: player,
@@ -1269,10 +1271,7 @@ class AbilityActivationSystem {
           projectileBaseSpeedUnitsPerSecond *
           (chargeTuning.speedScaleBp / 10000.0),
       homingProjectileLifetimeSeconds: projectileLifetimeSeconds,
-      homingProjectileOriginOffset:
-          playerCharacter?.projectileMuzzles.containsKey(projectileId) == true
-          ? 0
-          : originOffset,
+      homingProjectileOriginOffset: hasMuzzle ? 0 : originOffset,
       homingProjectileId: projectileId,
       homingExecuteTick: commitTick + windupTicks,
     );
@@ -1284,9 +1283,13 @@ class AbilityActivationSystem {
     final facingDir =
         resolvedDir.$3 ??
         _facingFromDirectionX(aimX, fallbackDirX: fallbackDirX);
-    if (aimX.abs() > 1e-6 || resolvedDir.$3 != null) {
+    if (hasMuzzle || aimX.abs() > 1e-6 || resolvedDir.$3 != null) {
       world.movement.facing[movementIndex] = facingDir;
-      world.movement.facingLockTicksLeft[movementIndex] = 1;
+      // Movement decrements before checking the lock. Keep the chosen muzzle
+      // through the commit tick and the release tick, including vertical aim.
+      world.movement.facingLockTicksLeft[movementIndex] = hasMuzzle
+          ? windupTicks + 2
+          : 1;
     }
     _applyCommitSideEffects(
       world,

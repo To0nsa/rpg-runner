@@ -17,6 +17,67 @@ import 'package:runner_core/tuning/track_tuning.dart';
 
 void main() {
   for (final gun in hunterRangedWeaponIds) {
+    test('$gun retains rear firing while moving through replay encoding', () {
+      final direct = _core(gun, shotAbility: 'bounty_hunter.quick_shot');
+      final replayed = _core(gun, shotAbility: 'bounty_hunter.quick_shot');
+      final frames = <ReplayCommandFrameV1>[];
+      var sawShot = false;
+      final initialX = direct.buildSnapshot().playerEntity!.pos.x;
+      for (var tick = 1; tick <= 60; tick++) {
+        frames.add(
+          ReplayCommandFrameV1.fromJson(
+            ReplayCommandFrameV1(
+              tick: tick,
+              moveAxis: 1,
+              aimDirX: -1,
+              aimDirY: 0,
+              pressedMask: tick == 30
+                  ? ReplayCommandFrameV1.pressedProjectileBit
+                  : 0,
+            ).toJson(),
+          ),
+        );
+        direct.applyCommands([
+          MoveAxisCommand(tick: tick, axis: 1),
+          AimDirCommand(tick: tick, x: -1, y: 0),
+          if (tick == 30) ProjectilePressedCommand(tick: tick),
+        ]);
+        direct.stepOneTick();
+        final snapshot = direct.buildSnapshot();
+        final shots = snapshot.entities.where((e) => e.projectileId == gun);
+        if (!sawShot && shots.isNotEmpty) {
+          final player = snapshot.playerEntity!;
+          expect(player.facing, Facing.left);
+          expect(player.vel!.x, greaterThan(0));
+          expect(player.anim, AnimKey.rangedRun);
+          final muzzle = direct.playerCharacter.projectileMuzzles[gun]!.offset(
+            renderAnim: direct.playerCharacter.renderAnim,
+            grounded: true,
+            velocityX: player.vel!.x,
+            minMoveSpeed: direct.playerCharacter.tuning.movement.minMoveSpeed,
+            currentTick: tick,
+            tickHz: 60,
+          );
+          for (final shot in shots) {
+            expect(shot.pos.x, closeTo(player.pos.x - muzzle.x, 1e-9));
+            expect(shot.pos.y, closeTo(player.pos.y + muzzle.y, 1e-9));
+            expect(shot.facing, Facing.left);
+          }
+          sawShot = true;
+        }
+        direct.drainEvents();
+      }
+      final result = runReplaySimulation(
+        core: replayed,
+        totalTicks: 60,
+        commandStream: frames,
+      );
+      expect(result.ticksExecuted, 60);
+      expect(sawShot, isTrue);
+      expect(direct.buildSnapshot().playerEntity!.pos.x, greaterThan(initialX));
+      expect(direct.buildSnapshot().playerEntity!.facing, Facing.right);
+      expect(_signature(replayed), _signature(direct));
+    });
     test(
       '$gun reproduces bombs, shots, melee and movement through replay encoding',
       () {
@@ -103,7 +164,10 @@ void main() {
   }
 }
 
-GameCore _core(ProjectileId gun) => GameCore(
+GameCore _core(
+  ProjectileId gun, {
+  String shotAbility = 'bounty_hunter.snap_shot',
+}) => GameCore(
   seed: 98,
   playerCharacter: PlayerCharacterRegistry.bountyHunter,
   equippedLoadoutOverride: EquippedLoadoutDef(
@@ -114,7 +178,7 @@ GameCore _core(ProjectileId gun) => GameCore(
     projectileSlotSpellId: gun,
     abilityPrimaryId: 'bounty_hunter.lunge_slash',
     abilitySecondaryId: 'bounty_hunter.blast_bomb',
-    abilityProjectileId: 'bounty_hunter.snap_shot',
+    abilityProjectileId: shotAbility,
     abilitySpellId: 'bounty_hunter.prepare_charges',
     abilityMobilityId: 'bounty_hunter.blink_dash',
     abilityJumpId: 'bounty_hunter.double_jump',
@@ -144,6 +208,7 @@ List<Object?> _signature(GameCore core) {
         e.pos.y,
         e.vel?.x,
         e.vel?.y,
+        e.facing,
         e.anim,
         e.animFrame,
         e.statusVisualMask,

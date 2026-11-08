@@ -20,6 +20,9 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Willow](gdd/combat/abilities/willow.md): playable bounty hunter with 26
   abilities, eight ranged weapons, unlimited cooldown bombs and character selection;
   [technical contract](tdd/willow.md) and [local verification](verification/willow-2026-11-07.md).
+- [Willow aim correction](verification/willow-aim-facing-2026-11-08.md): retains
+  the selected weapon-tip facing while moving through shot release; prepared
+  locally in compatibility `2026.11.8.3`.
 - [Training Field](gdd/training_field.md): local build testing from character
   setup and a separate two-chunk layout editor; [technical contract](tdd/training_field.md).
 - [System messages and level gifts](gdd/messages.md): manual 25-gold claims for

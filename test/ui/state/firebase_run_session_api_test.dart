@@ -27,7 +27,7 @@ void main() {
             sessionId: 'session_1',
             mode: RunMode.practice,
             levelId: LevelId.field,
-            gameCompatVersion: '2026.11.8.2',
+            gameCompatVersion: '2026.11.8.3',
           ),
           throwsA(
             isA<RunStartRemoteException>()

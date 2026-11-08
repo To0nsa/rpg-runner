@@ -39,6 +39,9 @@ gifts. The ranged ability determines aiming, charge and piercing.
 Bullets, bolts and pellets leave the visible weapon tip while standing,
 running or airborne, mirrored with Willow's facing. A fan starts at one shared
 muzzle and spreads along its shot directions.
+Willow keeps facing the shot through its windup and release while still moving
+normally, so running away from a target does not switch the firing muzzle.
+Turning follows movement again after release or cancellation.
 
 Scatter Shot uses five pellets with any weapon. Listed shot damage is a total
 budget divided across pellets, not damage per pellet. Weapon choice does not

@@ -1690,8 +1690,9 @@ class GameCore {
         case MoveAxisCommand(:final axis):
           final clamped = axis.clamp(-1.0, 1.0);
           _world.playerInput.moveAxis[inputIndex] = clamped;
-          // Update facing direction unless dashing (locked during dash).
-          if (_world.movement.dashTicksLeft[movementIndex] == 0) {
+          // Commands and movement must both preserve a pending shot's muzzle.
+          if (_world.movement.dashTicksLeft[movementIndex] == 0 &&
+              _world.movement.facingLockTicksLeft[movementIndex] == 0) {
             if (clamped < 0) {
               playerFacing = Facing.left;
             } else if (clamped > 0) {

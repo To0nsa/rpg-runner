@@ -32,7 +32,7 @@ costs, and the mobility phase revalidates/commits its teleport before the ordina
 terrain integration. Signed blink displacement and integrated travel contribute
 once to furthest-progress distance. Encounter bounds apply to teleport placement.
 See [Willow's blink contract](willow.md#blink-dash); compatible replay input remains
-format 1 with gameplay compatibility `2026.11.8.2`.
+format 1 with gameplay compatibility `2026.11.8.3`.
 
 ## Run configuration and command lifecycle
 
@@ -159,6 +159,14 @@ changing phase order. All pellets in that release share one mirrored muzzle;
 projectile direction does not rotate the attachment. Auto-aim forecasting and
 terrain sightlines use the corresponding predicted release attachment. Missing
 attachments preserve radial cast origins. See [Willow](willow.md#animation-and-collision).
+
+Weapon-tip projectile commits reserve facing through the release tick, independently
+of horizontal movement. Movement commands also honor the reservation before the
+simulation step. Activation includes the commit tick and movement's pre-turn
+timer decrement in that reservation. Movement clears it when the projectile intent
+is cancelled or consumed; recovery does not retain it. This keeps the predicted and
+actual muzzle on the same side even when the player runs away from the target.
+The correction is prepared in gameplay compatibility `2026.11.8.3`.
 
 ## Player horizontal movement tuning
 
