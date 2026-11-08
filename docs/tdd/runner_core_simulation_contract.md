@@ -32,7 +32,9 @@ costs, and the mobility phase revalidates/commits its teleport before the ordina
 terrain integration. Signed blink displacement and integrated travel contribute
 once to furthest-progress distance. Encounter bounds apply to teleport placement.
 See [Willow's blink contract](willow.md#blink-dash); compatible replay input remains
-format 1 with gameplay compatibility `2026.11.8.4`.
+format 1 with gameplay compatibility `2026.11.8.5`. Willow's Double Dash uses the
+existing recast pipeline and replaces her Roll/Slide catalog entries without
+changing command encoding or simulation order; see [Double Dash](willow.md#double-dash).
 
 ## Run configuration and command lifecycle
 

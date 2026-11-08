@@ -74,11 +74,15 @@ String? bountyHunterAbilityDescription(AbilityDef def, ProjectileId? weapon) {
         'Untouchable only while vanished; damage interrupts preparation and recovery.';
   }
   if (def.allowedSlots.contains(AbilitySlot.mobility)) {
-    return '${switch (def.id) {
-      'bounty_hunter.roll' => 'Roll forward with a low profile. Ground only.',
-      'bounty_hunter.slide' => 'Slide forward with a low profile. Ground only.',
-      _ => 'Dash forward on the ground or in the air.',
-    }} Does not grant invulnerability.';
+    final recast = def.mobilityRecast;
+    if (recast != null) {
+      final window = (recast.windowTicks / 60).toStringAsFixed(1);
+      return 'Dash on the ground or in the air, then tap again within $window seconds '
+          'after the first burst ends for a second dash. You can change direction '
+          'between bursts. Each burst pays the listed cost; cooldown starts with '
+          'the first. Does not grant invulnerability.';
+    }
+    return 'Dash forward on the ground or in the air. Does not grant invulnerability.';
   }
   return null;
 }

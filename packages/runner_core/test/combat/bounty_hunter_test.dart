@@ -661,7 +661,7 @@ void main() {
     },
   );
   test('complete roster and valid starter loadout', () {
-    expect(bountyHunterAbilityDefs.length, 25);
+    expect(bountyHunterAbilityDefs.length, 24);
     expect(
       AbilityCatalog.shared.resolve('bounty_hunter.threefold_cut'),
       isNull,
@@ -820,19 +820,23 @@ void main() {
       },
     );
   }
-  test(
-    'grounded-only roll and slide reject airborne commits without payment',
-    () {
-      for (final name in ['roll', 'slide']) {
-        final h = _Harness();
-        h.world.collision.grounded[0] = false;
-        h.equip(bountyHunterAbilityDefs['bounty_hunter.$name']!);
-        h.press(AbilitySlot.mobility);
-        expect(h.world.activeAbility.abilityId[0], isNull);
-        expect(h.world.stamina.stamina[0], 10000);
-      }
-    },
-  );
+  test('removed roll and slide are rejected by loadout validation', () {
+    for (final name in ['roll', 'slide']) {
+      final id = 'bounty_hunter.$name';
+      expect(AbilityCatalog.shared.resolve(id), isNull);
+      final validation = const LoadoutValidator(
+        abilityCatalog: AbilityCatalog.shared,
+        weaponCatalog: WeaponCatalog(),
+        projectileCatalog: ProjectileCatalog(),
+        spellBookCatalog: SpellBookCatalog(),
+      ).validate(EquippedLoadoutDef(abilityMobilityId: id));
+      expect(validation.isValid, isFalse);
+      expect(
+        validation.issues.any((issue) => issue.slot == AbilitySlot.mobility),
+        isTrue,
+      );
+    }
+  });
   test(
     'quarry bonus belongs to attacker and expires without recycling leaks',
     () {

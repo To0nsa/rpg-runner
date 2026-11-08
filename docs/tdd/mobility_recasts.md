@@ -4,7 +4,8 @@ Core owns ability execution and follow-up eligibility. `MobilityRecastDef`
 authors one additional burst using the same speed, duration and cost as the
 first. It is restricted to instant, tap-driven mobility-slot abilities, with no
 recovery and a shared cooldown longer than the burst plus follow-up window.
-The ordinary Dash has no recast; Double Dash opts into a 30-authoring-tick window.
+The ordinary Dash has no recast; Éloïse and Willow's Double Dash abilities opt
+into a 30-authoring-tick window with the same speed, duration and per-burst cost.
 See [mobility design](../gdd/combat/abilities/eloise/mobility.md) for balance values.
 
 ## State and tick boundaries
@@ -53,7 +54,9 @@ No widget timer or renderer state decides whether a recast exists.
 The ability is registered in the Core catalog and backend store pool; the usual
 ownership and loadout authorization paths control purchase and equip. Starter
 profiles retain ordinary Dash. The picker and tooltips use the catalog and
-ownership state; Double Dash reuses the existing dash art.
+ownership state; Double Dash reuses each character's dash animation and has a
+dedicated skill icon. Willow's Double Dash replaces her Roll and Slide options;
+see [Willow's contract](willow.md#double-dash).
 
 ## Replay and release
 

@@ -1,0 +1,14 @@
+{
+  "abilityId": "bounty_hunter.double_dash",
+  "mode": "built-in imagegen",
+  "prompt": "Use case: game-asset. Create a new Double Dash variant of the first reference icon for Willow in Lothringen: The Long Run. Reference 1 is the edit target: Willow's existing single Dash. Reference 2 is a concept/style reference for TWO separate bursts, not an edit target. Preserve Willow's brown leather outfit, dark tied-back hair, charcoal outline, ivory/slate opaque speed marks and compact pixel-art rendering. Show two clear rightward dashing silhouettes in sequence, a smaller muted slate/brown afterimage at rear left and the primary brown-clothed figure at front right, separated by a visible gap so it reads as two triggered bursts. No invulnerability shield or magic. Strict 64x64 logical pixel grid, deliberate square pixel clusters, 3-4 flat shades, upper-left lighting. Transparent PNG; keep generated alpha. Centered square composition with at least 10% transparent margin on every side. Readable at 32px. Muted charcoal #151A1F, slate #415362, fog #AEB7B1, ivory #D6D2C6, worn brass #B99A52, brown leather. No text, digits, border, tile, frame, background, bloom, blur, soft shadow, gradient or watermark.",
+  "references": [
+    "assets/images/icons/skills-icons/willow/dash.png",
+    "assets/images/icons/skills-icons/eloise/double_dash.png"
+  ],
+  "source": "C:/Users/Toonsa/.codex/generated_images/01a1bcd1-a790-71e1-9eca-29624d25a71a/exec-03eb200a-a39a-4464-986c-3578abf620a9.png",
+  "asset": "assets/images/icons/skills-icons/willow/double_dash.png",
+  "export": "64x64 RGBA; nearest-neighbor sampling, generated alpha preserved",
+  "sha256": "dd2d0433f11d2f3f8b335d347bc85e0bb4eb1dd29f01611f61b75ace2e9530ef",
+  "sourceSha256": "d563f54d281f59859519bf5f3ad3aff7d5933ddee786b9f7d5a9c8f087d15c19"
+}

@@ -20,20 +20,44 @@ const AbilityOwnershipState _defaultAbilityOwnership = AbilityOwnershipState(
 
 void main() {
   test('Double Dash is a legal mobility option gated by ownership', () {
-    for (final owned in [false, true]) {
-      final option = abilityCandidatesForSlot(
-        characterId: PlayerCharacterId.eloise,
-        slot: AbilitySlot.mobility,
-        loadout: const EquippedLoadoutDef(),
-        abilityOwnership: AbilityOwnershipState(
-          learnedProjectileSpellIds: const {},
-          learnedAbilityIdsBySlot: {
-            AbilitySlot.mobility: {if (owned) 'eloise.double_dash'},
-          },
-        ),
-      ).singleWhere((candidate) => candidate.id == 'eloise.double_dash');
-      expect(option.isOwned, owned);
-      expect(option.isEnabled, isTrue); // Legality is separate from ownership.
+    for (final character in [
+      PlayerCharacterId.eloise,
+      PlayerCharacterId.bountyHunter,
+    ]) {
+      final prefix = character == PlayerCharacterId.bountyHunter
+          ? 'bounty_hunter'
+          : 'eloise';
+      for (final owned in [false, true]) {
+        final options = abilityCandidatesForSlot(
+          characterId: character,
+          slot: AbilitySlot.mobility,
+          loadout: const EquippedLoadoutDef(),
+          abilityOwnership: AbilityOwnershipState(
+            learnedProjectileSpellIds: const {},
+            learnedAbilityIdsBySlot: {
+              AbilitySlot.mobility: {if (owned) '$prefix.double_dash'},
+            },
+          ),
+        );
+        final option = options.singleWhere(
+          (candidate) => candidate.id == '$prefix.double_dash',
+        );
+        if (character == PlayerCharacterId.bountyHunter) {
+          expect(
+            options.map((candidate) => candidate.id),
+            unorderedEquals([
+              'bounty_hunter.dash',
+              'bounty_hunter.double_dash',
+              'bounty_hunter.blink_dash',
+            ]),
+          );
+        }
+        expect(option.isOwned, owned);
+        expect(
+          option.isEnabled,
+          isTrue,
+        ); // Legality is separate from ownership.
+      }
     }
   });
   group('ability picker presenter', () {

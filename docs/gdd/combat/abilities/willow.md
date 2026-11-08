@@ -16,7 +16,7 @@ characters. Start, Restart and Training Field use the remembered build.
 Willow and Éloïse share the same apparent body size in menus and gameplay.
 Willow's grounded feet meet the floor across all three weapon art families; held
 weapons can extend above the head. Her collision and blade geometry follow her
-scaled body, including compact roll and slide poses.
+scaled body and action poses.
 
 ## Resources and weapons
 
@@ -50,7 +50,7 @@ change the base Supplies cost. The [complete equipment roster](../gears/willow_e
 weapons and 8 shared accessories. Ordinary gear,
 status, critical-hit and resistance rules still apply.
 
-## Complete roster: 25 abilities
+## Complete roster: 24 abilities
 
 Numbers below are authored base values before gear and status modifiers.
 The starter blade, bomb kit and field kit now contribute passive bonuses;
@@ -73,9 +73,8 @@ rate. Equip one ability per slot.
 | Ranged | Scatter Shot | Five-pellet fan, 22 damage budget | 11 Supplies | 0.70s |
 | Ranged | Charged Shot | 23 base damage budget, 70–150% by charge | 13 Supplies | 0.75s |
 | Mobility | Dash | Ground/air, 550 units/s for 0.20s | 2 stamina | 2s |
+| Mobility | Double Dash | Ground/air, up to two 68.75-unit bursts; second tap within 0.5s after burst one | 2 stamina per burst | 2s from first burst |
 | Mobility | Blink Dash | Cross a nearby obstacle up to 138 units wide; clear exit required | 4 Stamina | 3s |
-| Mobility | Roll | Ground, low body pose, 320 units/s for 0.30s | 3 stamina | 2s |
-| Mobility | Slide | Ground, low body pose, 360 units/s for 0.40s | 4 stamina | 2s |
 | Jump | Jump | One ground jump | 2 stamina | None |
 | Jump | Double Jump | Ground jump plus one air jump | 2 + 3 stamina | None |
 | Fieldcraft | Hunter's Focus | +25% power and +15% critical chance for 5s | 12 Supplies | 7s |
@@ -86,12 +85,18 @@ rate. Equip one ability per slot.
 | Fieldcraft | Second Wind | Restore 35% maximum stamina over 5s | 15 Supplies | 7s |
 | Fieldcraft | Prepare Charges | Restore 35% maximum Supplies over 5s | 15 stamina | 7s |
 
+Double Dash lets you change direction between bursts. Early taps do not queue
+the second burst; its `+1` indicator appears when the follow-up becomes usable.
+Skipping the follow-up spends no additional stamina. Both bursts share the
+cooldown started by the first tap.
+
 Quick Cut and Twin Cut have independent per-swing hits. Twin Cut uses the low
 sweep and overhead slash from the add-on combo, ending before the weapon draw.
 It retains two 9-damage hits, 7 stamina and its 0.65-second base cooldown.
-Threefold Cut is no longer selectable or purchasable. Mobility does not
-grant invulnerability. Roll and Slide cannot commit in the air. Charged Shot
-reaches the middle tier after 20 authored ticks and full charge after 45;
+Threefold Cut, Roll and Slide are no longer selectable or purchasable.
+Dash and Double Dash grant no invulnerability; Blink Dash protects only while
+vanished. Charged Shot reaches the middle tier after 20 authored ticks and full
+charge after 45;
 those tiers add 5%/10% critical chance. Full charge pierces two targets. Taking
 damage interrupts Charged Shot. Mark Quarry selects the nearest living enemy
 within 320 units with a clear terrain ray, breaking distance ties by entity ID.
@@ -134,13 +139,13 @@ guns. The 28 additional equipment items each use the existing 150-gold store
 price and normal offer rotation.
 Starter abilities are Quick Cut, Blast Bomb, Snap Shot, Dash, Jump, Hunter's
 Focus and Prepare Charges. Other abilities use the existing store price of
-150 gold and normal store offer rotation. Developer Practice unlocks all 25.
+150 gold and normal store offer rotation. Developer Practice unlocks all 24.
 Gear and skills remain character-specific; accessories are shared.
 
 The imported base/add-on sprites provide gameplay animations, gun variants and
 bomb effects. All 34 Willow-specific equipment items now have dedicated
 illustrations; the eight shared accessories retain their existing art.
-All 25 abilities have distinct transparent pixel-art icons. Blade arcs distinguish
+All 24 abilities have distinct transparent pixel-art icons. Blade arcs distinguish
 single and double attacks; bomb effects distinguish blast, fragments,
 fire and concussion. Projectile icons describe guidance, piercing, spread or
 charge independently of the equipped ranged weapon. Fieldcraft uses preparation,

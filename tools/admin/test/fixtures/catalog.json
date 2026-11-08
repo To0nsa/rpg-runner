@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "catalogHash": "45e4b4ed3508deebf1e35b671dc5fe0614d026e6ef239748cdfca6697d9355b1",
+  "catalogHash": "d1a75007ce95044c4bf6609871d8f1b2c8a988f888d6d4e01708a08802d8d1bd",
   "entries": [
     {
       "kind": "gear",
@@ -200,17 +200,12 @@
     {
       "kind": "ability",
       "slot": "mobility",
+      "itemId": "bounty_hunter.double_dash"
+    },
+    {
+      "kind": "ability",
+      "slot": "mobility",
       "itemId": "bounty_hunter.blink_dash"
-    },
-    {
-      "kind": "ability",
-      "slot": "mobility",
-      "itemId": "bounty_hunter.roll"
-    },
-    {
-      "kind": "ability",
-      "slot": "mobility",
-      "itemId": "bounty_hunter.slide"
     },
     {
       "kind": "ability",

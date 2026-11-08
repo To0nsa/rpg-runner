@@ -64,6 +64,15 @@ final Map<AbilityKey, AbilityDef> bountyHunterAbilityDefs = {
     _shot('scatter_shot', 2200, 1100, 42, scatter: true),
     _shot('charged_shot', 2300, 1300, 45, charged: true),
     _move('dash', AnimKey.dash, 12, 550, 200),
+    // Match Éloïse: 68.75 units per burst at 60 Hz, with a 0.5s follow-up window.
+    _move(
+      'double_dash',
+      AnimKey.dash,
+      8,
+      515.625,
+      200,
+      recast: const MobilityRecastDef(windowTicks: 30),
+    ),
     AbilityDef(
       id: 'bounty_hunter.blink_dash',
       category: AbilityCategory.mobility,
@@ -87,8 +96,6 @@ final Map<AbilityKey, AbilityDef> bountyHunterAbilityDefs = {
       },
       animKey: AnimKey.teleportOut,
     ),
-    _move('roll', AnimKey.roll, 18, 320, 300, grounded: true),
-    _move('slide', AnimKey.slide, 24, 360, 400, grounded: true),
     _jump('jump'),
     _jump('double_jump', doubleJump: true),
     _field(
@@ -270,7 +277,7 @@ AbilityDef _move(
   int ticks,
   double speed,
   int cost, {
-  bool grounded = false,
+  MobilityRecastDef? recast,
 }) => AbilityDef(
   id: 'bounty_hunter.$name',
   category: AbilityCategory.mobility,
@@ -281,7 +288,7 @@ AbilityDef _move(
   recoveryTicks: 0,
   cooldownTicks: 120,
   mobilitySpeedX: speed,
-  requiresGrounded: grounded,
+  mobilityRecast: recast,
   defaultCost: AbilityResourceCost(staminaCost100: cost),
   animKey: anim,
 );

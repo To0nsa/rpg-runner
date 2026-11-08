@@ -11,67 +11,91 @@ import 'package:runner_core/tuning/track_tuning.dart';
 import '../support/test_level.dart';
 
 void main() {
-  for (final airborne in [false, true]) {
-    test(
-      'dash range and two half bursts through terrain, airborne=$airborne',
-      () {
-        final dash = _core('eloise.dash', airborne: airborne);
-        final start = dash.playerPosX;
-        for (var i = 0; i < 12; i++) {
-          _step(dash, press: i == 0);
+  for (final prefix in ['eloise', 'bounty_hunter']) {
+    group(prefix, () {
+      for (final airborne in [false, true]) {
+        test(
+          'dash range and two half bursts through terrain, airborne=$airborne',
+          () {
+            final dash = _core('$prefix.dash', airborne: airborne);
+            final start = dash.playerPosX;
+            for (var i = 0; i < 12; i++) {
+              _step(dash, press: i == 0);
+            }
+            // Both starter offhands apply -5% movement speed. Terrain quantizes
+            // position to 1/1024 units per tick; keep that tolerance unchanged.
+            const starterSpeedMultiplier = .95;
+            expect(
+              dash.playerPosX - start,
+              closeTo(110 * starterSpeedMultiplier, 12 / 1024),
+            );
+            final doubleDash = _core('$prefix.double_dash', airborne: airborne);
+            final doubleStart = doubleDash.playerPosX;
+            for (var i = 0; i < 8; i++) {
+              _step(doubleDash, press: i == 0);
+            }
+            final firstEnd = doubleDash.playerPosX;
+            expect(
+              firstEnd - doubleStart,
+              closeTo(68.75 * starterSpeedMultiplier, 8 / 1024),
+            );
+            expect(doubleDash.buildSnapshot().hud.mobilityRecastTicksLeft, 30);
+            for (var i = 0; i < 8; i++) {
+              _step(doubleDash, press: i == 0);
+            }
+            expect(
+              doubleDash.playerPosX - firstEnd,
+              closeTo(68.75 * starterSpeedMultiplier, 8 / 1024),
+            );
+            expect(
+              doubleDash.playerPosX - doubleStart,
+              closeTo(137.5 * starterSpeedMultiplier, 16 / 1024),
+            );
+            expect(doubleDash.buildSnapshot().hud.mobilityRecastTicksLeft, 0);
+          },
+        );
+      }
+
+      test('gear speed applies on the first and all subsequent dash ticks', () {
+        final core = _core(
+          '$prefix.double_dash',
+          accessory: AccessoryId.speedBoots,
+        );
+        _step(core, press: true);
+        final speed = core.playerVelX;
+        expect(speed, greaterThan(515.625));
+        for (var i = 1; i < 8; i++) {
+          _step(core);
+          expect(core.playerVelX, closeTo(speed, 1e-9));
         }
-        // Terrain integration quantizes position to 1/1024 units per tick.
-        expect(dash.playerPosX - start, closeTo(110, 12 / 1024));
-        final doubleDash = _core('eloise.double_dash', airborne: airborne);
-        final doubleStart = doubleDash.playerPosX;
-        for (var i = 0; i < 8; i++) {
-          _step(doubleDash, press: i == 0);
-        }
-        final firstEnd = doubleDash.playerPosX;
-        expect(firstEnd - doubleStart, closeTo(68.75, 8 / 1024));
-        expect(doubleDash.buildSnapshot().hud.mobilityRecastTicksLeft, 30);
-        for (var i = 0; i < 8; i++) {
-          _step(doubleDash, press: i == 0);
-        }
-        expect(doubleDash.playerPosX - firstEnd, closeTo(68.75, 8 / 1024));
-        expect(doubleDash.playerPosX - doubleStart, closeTo(137.5, 16 / 1024));
-        expect(doubleDash.buildSnapshot().hud.mobilityRecastTicksLeft, 0);
-      },
-    );
+      });
+
+      test(
+        'HUD exposes exactly the usable window and clears it at run end',
+        () {
+          final core = _core('$prefix.double_dash');
+          for (var i = 0; i < 7; i++) {
+            _step(core, press: i == 0);
+            expect(core.buildSnapshot().hud.mobilityRecastTicksLeft, 0);
+          }
+          _step(core);
+          expect(core.buildSnapshot().hud.mobilityRecastTicksLeft, 30);
+          while (core.tick < 37) {
+            _step(core);
+          }
+          expect(core.buildSnapshot().hud.mobilityRecastTicksLeft, 1);
+          _step(core);
+          expect(core.buildSnapshot().hud.mobilityRecastTicksLeft, 0);
+          final ended = _core('$prefix.double_dash');
+          for (var i = 0; i < 8; i++) {
+            _step(ended, press: i == 0);
+          }
+          ended.giveUp();
+          expect(ended.buildSnapshot().hud.mobilityRecastTicksLeft, 0);
+        },
+      );
+    });
   }
-
-  test('gear speed applies on the first and all subsequent dash ticks', () {
-    final core = _core('eloise.double_dash', accessory: AccessoryId.speedBoots);
-    _step(core, press: true);
-    final speed = core.playerVelX;
-    expect(speed, greaterThan(515.625));
-    for (var i = 1; i < 8; i++) {
-      _step(core);
-      expect(core.playerVelX, closeTo(speed, 1e-9));
-    }
-  });
-
-  test('HUD exposes exactly the usable window and clears it at run end', () {
-    final core = _core('eloise.double_dash');
-    for (var i = 0; i < 7; i++) {
-      _step(core, press: i == 0);
-      expect(core.buildSnapshot().hud.mobilityRecastTicksLeft, 0);
-    }
-    _step(core);
-    expect(core.buildSnapshot().hud.mobilityRecastTicksLeft, 30);
-    while (core.tick < 37) {
-      _step(core);
-    }
-    expect(core.buildSnapshot().hud.mobilityRecastTicksLeft, 1);
-    _step(core);
-    expect(core.buildSnapshot().hud.mobilityRecastTicksLeft, 0);
-    final ended = _core('eloise.double_dash');
-    for (var i = 0; i < 8; i++) {
-      _step(ended, press: i == 0);
-    }
-    ended.giveUp();
-    expect(ended.buildSnapshot().hud.mobilityRecastTicksLeft, 0);
-  });
 }
 
 GameCore _core(
@@ -79,10 +103,24 @@ GameCore _core(
   bool airborne = false,
   AccessoryId accessory = AccessoryId.strengthBelt,
 }) {
+  final character = ability.startsWith('bounty_hunter.')
+      ? PlayerCharacterRegistry.bountyHunter
+      : PlayerCharacterRegistry.eloise;
+  final catalog = character.catalog;
   final core = GameCore(
     seed: 1,
-    playerCharacter: PlayerCharacterRegistry.eloise,
+    playerCharacter: character,
     equippedLoadoutOverride: EquippedLoadoutDef(
+      mask: catalog.loadoutSlotMask,
+      mainWeaponId: catalog.weaponId,
+      offhandWeaponId: catalog.offhandWeaponId,
+      spellBookId: catalog.spellBookId,
+      projectileSlotSpellId: catalog.projectileSlotSpellId,
+      abilityPrimaryId: catalog.abilityPrimaryId,
+      abilitySecondaryId: catalog.abilitySecondaryId,
+      abilityProjectileId: catalog.abilityProjectileId,
+      abilitySpellId: catalog.abilitySpellId,
+      abilityJumpId: catalog.abilityJumpId,
       abilityMobilityId: ability,
       accessoryId: accessory,
     ),

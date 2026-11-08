@@ -95,6 +95,53 @@ void main() {
     },
   );
 
+  for (final retired in ['roll', 'slide']) {
+    test('saved Willow $retired falls back to Dash in every build', () async {
+      final json = SelectionState.defaults
+          .copyWith(selectedCharacterId: PlayerCharacterId.bountyHunter)
+          .toJson();
+      final branches = json['buildsByCharacter'] as Map;
+      for (final build in (branches['bountyHunter'] as Map)['builds'] as List) {
+        (build['loadout'] as Map)['abilityMobilityId'] =
+            'bounty_hunter.$retired';
+      }
+      final store = SharedPrefsDeveloperProfileStore();
+      await store.saveSelection(SelectionState.fromJson(json));
+      final state = AppState.developer(store: store);
+      addTearDown(state.dispose);
+      await state.bootstrap();
+      for (final build
+          in state.selection.buildsFor(PlayerCharacterId.bountyHunter).builds) {
+        expect(build.loadout.abilityMobilityId, 'bounty_hunter.dash');
+      }
+      final owned = state.meta
+          .abilityOwnershipFor(PlayerCharacterId.bountyHunter)
+          .learnedAbilityIdsForSlot(AbilitySlot.mobility);
+      expect(
+        owned,
+        unorderedEquals([
+          'bounty_hunter.dash',
+          'bounty_hunter.double_dash',
+          'bounty_hunter.blink_dash',
+        ]),
+      );
+      await state.setAbilitySlot(
+        characterId: PlayerCharacterId.bountyHunter,
+        slot: AbilitySlot.mobility,
+        abilityId: 'bounty_hunter.double_dash',
+      );
+      final restored = AppState.developer(store: store);
+      addTearDown(restored.dispose);
+      await restored.bootstrap();
+      expect(
+        (await restored.prepareRunStartDescriptor())
+            .equippedLoadout
+            .abilityMobilityId,
+        'bounty_hunter.double_dash',
+      );
+    });
+  }
+
   Future<AppState> developer() async {
     final state = AppState.developer(store: SharedPrefsDeveloperProfileStore());
     addTearDown(state.dispose);

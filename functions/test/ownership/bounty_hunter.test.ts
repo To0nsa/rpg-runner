@@ -20,9 +20,9 @@ test("fresh profiles include Willow and selection requires her complete branch",
   assert.equal(normalizeAuthorizedSelection(state), null);
 });
 
-test("hunter has 25 purchasable abilities in the correct slots at existing prices", () => {
+test("hunter has 24 purchasable abilities in the correct slots at existing prices", () => {
   const entries = storeOfferDefinitions.filter(d => d.itemId.startsWith("bounty_hunter."));
-  assert.equal(entries.length, 25);
+  assert.equal(entries.length, 24);
   for (const [slot, names] of Object.entries(hunterAbilitiesBySlot)) {
     for (const name of names) {
       const entry = entries.find(d => d.slot === slot && d.itemId === `bounty_hunter.${name}`);
@@ -68,6 +68,29 @@ test("removed Threefold Cut is unavailable even with retained ownership", () => 
     { kind: "ability", slot: "primary", itemId: id, characterId: "bountyHunter" },
   ]));
 });
+
+for (const name of ["roll", "slide"]) {
+  test(`removed Willow ${name} cannot be equipped or issued with retained ownership`, () => {
+    const id = `bounty_hunter.${name}`;
+    const state = starterCanonicalState("default", "test");
+    const ownership = (state.meta.abilityOwnershipByCharacter as JsonObject).bountyHunter as JsonObject;
+    (ownership.abilitiesBySlot as JsonObject).mobility = ["bounty_hunter.dash", id];
+    assert.equal(storeOfferDefinitions.some(d => d.itemId === id), false);
+    assert.equal(normalizeAuthorizedLoadout({
+      loadout: { ...hunterStarterLoadout, abilityMobilityId: id },
+      meta: state.meta, characterId: "bountyHunter",
+    }), null);
+    assert.equal(applyOwnershipCommand(state, {
+      type: "setAbilitySlot", userId: "test", sessionId: "s", expectedRevision: 0,
+      commandId: `removed-${name}`, payload: {
+        characterId: "bountyHunter", buildIndex: 0, slot: "mobility", abilityId: id,
+      },
+    }).accepted, false);
+    assert.throws(() => parseInboxRewards([
+      { kind: "ability", slot: "mobility", itemId: id, characterId: "bountyHunter" },
+    ]));
+  });
+}
 
 test("hunter store purchase unlocks only that character and preserves its price", () => {
   const state = starterCanonicalState("default", "test");

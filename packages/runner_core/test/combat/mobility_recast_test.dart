@@ -18,109 +18,125 @@ import 'package:runner_core/spellBook/spell_book_catalog.dart';
 import 'package:runner_core/weapons/weapon_catalog.dart';
 
 void main() {
-  test('two separate costs and directions, one cooldown, no third burst', () {
-    final h = _Harness();
-    h.step(press: true);
-    expect(h.stamina, 800);
-    final firstCooldown = h.cooldown;
-    expect(firstCooldown, greaterThan(0));
-    h.advanceTo(8, press: true); // Repeated presses cannot overlap burst one.
-    expect(h.stamina, 800);
-    h.step(press: true, axis: -1);
-    expect(h.stamina, 600);
-    expect(h.cooldown, firstCooldown - 8);
-    expect(h.world.transform.velX[h.ti], -515.625);
-    expect(h.world.movement.recastAbilityId[h.mi], isNull);
-    h.advanceTo(18, press: true);
-    expect(h.stamina, 600);
-    h.advanceTo(firstCooldown);
-    h.step(press: true);
-    expect(h.stamina, 400);
-    expect(h.cooldown, firstCooldown);
-  });
-
-  for (final tickHz in [60, 120]) {
-    test('follow-up window is half-open and scales at $tickHz Hz', () {
-      final factor = tickHz ~/ 60;
-      final last = 1 + (8 + 30) * factor - 1;
-      final accepted = _Harness(tickHz: tickHz)..step(press: true);
-      accepted.advanceTo(last - 1);
-      accepted.step(press: true);
-      expect(accepted.stamina, 600);
-      final expired = _Harness(tickHz: tickHz)..step(press: true);
-      expired.advanceTo(last);
-      expired.step(press: true);
-      expect(expired.stamina, 800);
-      expect(expired.world.movement.recastAbilityId[expired.mi], isNull);
-    });
-  }
-
-  test(
-    'failed resource check retains follow-up without spending or refreshing',
-    () {
-      final h = _Harness()..step(press: true);
-      final firstCooldown = h.cooldown;
-      h.advanceTo(8);
-      h.world.stamina.stamina[h.si] = 100;
-      h.step(press: true);
-      expect(h.stamina, 100);
-      expect(h.cooldown, firstCooldown - 8);
-      h.world.stamina.stamina[h.si] = 200;
-      h.step(press: true);
-      expect(h.stamina, 0);
-      expect(h.cooldown, firstCooldown - 9);
-    },
-  );
-
-  for (final cause in ['stun', 'water', 'loadout']) {
-    test('$cause cancels the earned follow-up', () {
-      final h = _Harness()..step(press: true);
-      h.advanceTo(8);
-      switch (cause) {
-        case 'stun':
-          h.world.controlLock.addLock(h.player, LockFlag.stun, 1, 9);
-        case 'water':
-          h.world.swimState.add(h.player);
-          h.world.swimState.setImmersion(0, 1000);
-        case 'loadout':
-          h.world.equippedLoadout.abilityMobilityId[0] = 'eloise.dash';
-      }
-      h.step(press: true);
-      expect(h.stamina, 800);
-      expect(h.world.movement.recastAbilityId[h.mi], isNull);
-      if (cause == 'water') h.world.swimState.setImmersion(0, 0);
-      h.world.equippedLoadout.abilityMobilityId[0] = 'eloise.double_dash';
-      h.step(press: true);
-      expect(h.stamina, 800);
-    });
-  }
-
-  test(
-    'movement swap removal and recycled entities cannot inherit follow-ups',
-    () {
-      final h = _Harness()..step(press: true);
-      final other = h.world.createEntity();
-      h.world.movement.add(other, facing: Facing.left);
-      h.world.movement.armRecast(other, 'other', 5, 10);
-      h.world.destroyEntity(h.player);
-      expect(h.world.movement.canRecast(other, 'other', 6), isTrue);
-      final recycled = h.world.createEntity();
-      h.world.movement.add(recycled, facing: Facing.right);
-      expect(
-        h.world.movement.canRecast(recycled, 'eloise.double_dash', 9),
-        isFalse,
+  for (final prefix in ['eloise', 'bounty_hunter']) {
+    group(prefix, () {
+      test(
+        'two separate costs and directions, one cooldown, no third burst',
+        () {
+          final h = _Harness(ability: '$prefix.double_dash');
+          h.step(press: true);
+          expect(h.stamina, 800);
+          final firstCooldown = h.cooldown;
+          expect(firstCooldown, greaterThan(0));
+          h.advanceTo(
+            8,
+            press: true,
+          ); // Repeated presses cannot overlap burst one.
+          expect(h.stamina, 800);
+          h.step(press: true, axis: -1);
+          expect(h.stamina, 600);
+          expect(h.cooldown, firstCooldown - 8);
+          expect(h.world.transform.velX[h.ti], -515.625);
+          expect(h.world.movement.recastAbilityId[h.mi], isNull);
+          h.advanceTo(18, press: true);
+          expect(h.stamina, 600);
+          h.advanceTo(firstCooldown);
+          h.step(press: true);
+          expect(h.stamina, 400);
+          expect(h.cooldown, firstCooldown);
+        },
       );
-    },
-  );
 
-  test('ordinary Dash and Roll do not earn follow-ups', () {
-    for (final id in ['eloise.dash', 'eloise.roll']) {
-      final h = _Harness(ability: id)..step(press: true);
-      h.advanceTo(20, press: true);
-      expect(h.stamina, 800);
-      expect(h.world.movement.recastAbilityId[h.mi], isNull);
-    }
-  });
+      for (final tickHz in [60, 120]) {
+        test('follow-up window is half-open and scales at $tickHz Hz', () {
+          final factor = tickHz ~/ 60;
+          final last = 1 + (8 + 30) * factor - 1;
+          final accepted = _Harness(
+            tickHz: tickHz,
+            ability: '$prefix.double_dash',
+          )..step(press: true);
+          accepted.advanceTo(last - 1);
+          accepted.step(press: true);
+          expect(accepted.stamina, 600);
+          final expired = _Harness(
+            tickHz: tickHz,
+            ability: '$prefix.double_dash',
+          )..step(press: true);
+          expired.advanceTo(last);
+          expired.step(press: true);
+          expect(expired.stamina, 800);
+          expect(expired.world.movement.recastAbilityId[expired.mi], isNull);
+        });
+      }
+
+      test('failed resource check retains follow-up without spending or refreshing', () {
+        final h = _Harness(ability: '$prefix.double_dash')..step(press: true);
+        final firstCooldown = h.cooldown;
+        h.advanceTo(8);
+        h.world.stamina.stamina[h.si] = 100;
+        h.step(press: true);
+        expect(h.stamina, 100);
+        expect(h.cooldown, firstCooldown - 8);
+        h.world.stamina.stamina[h.si] = 200;
+        h.step(press: true);
+        expect(h.stamina, 0);
+        expect(h.cooldown, firstCooldown - 9);
+      });
+
+      for (final cause in ['stun', 'water', 'loadout']) {
+        test('$cause cancels the earned follow-up', () {
+          final h = _Harness(ability: '$prefix.double_dash')..step(press: true);
+          h.advanceTo(8);
+          switch (cause) {
+            case 'stun':
+              h.world.controlLock.addLock(h.player, LockFlag.stun, 1, 9);
+            case 'water':
+              h.world.swimState.add(h.player);
+              h.world.swimState.setImmersion(0, 1000);
+            case 'loadout':
+              h.world.equippedLoadout.abilityMobilityId[0] = '$prefix.dash';
+          }
+          h.step(press: true);
+          expect(h.stamina, 800);
+          expect(h.world.movement.recastAbilityId[h.mi], isNull);
+          if (cause == 'water') h.world.swimState.setImmersion(0, 0);
+          h.world.equippedLoadout.abilityMobilityId[0] = '$prefix.double_dash';
+          h.step(press: true);
+          expect(h.stamina, 800);
+        });
+      }
+
+      test(
+        'movement swap removal and recycled entities cannot inherit follow-ups',
+        () {
+          final h = _Harness(ability: '$prefix.double_dash')..step(press: true);
+          final other = h.world.createEntity();
+          h.world.movement.add(other, facing: Facing.left);
+          h.world.movement.armRecast(other, 'other', 5, 10);
+          h.world.destroyEntity(h.player);
+          expect(h.world.movement.canRecast(other, 'other', 6), isTrue);
+          final recycled = h.world.createEntity();
+          h.world.movement.add(recycled, facing: Facing.right);
+          expect(
+            h.world.movement.canRecast(recycled, '$prefix.double_dash', 9),
+            isFalse,
+          );
+        },
+      );
+
+      test('ordinary mobility does not earn follow-ups', () {
+        for (final id in [
+          '$prefix.dash',
+          if (prefix == 'eloise') 'eloise.roll',
+        ]) {
+          final h = _Harness(ability: id)..step(press: true);
+          h.advanceTo(20, press: true);
+          expect(h.stamina, 800);
+          expect(h.world.movement.recastAbilityId[h.mi], isNull);
+        }
+      });
+    });
+  }
 }
 
 class _Harness {

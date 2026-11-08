@@ -65,11 +65,31 @@ label for Willow. No new command encoding or resource authority is introduced.
   destroyed owners while retaining their damage credit.
 - `CombatLungeSystem` applies authored forward velocity only during the active
   phase, before knockback, gravity and terrain. Ground-only movement checks
-  support before commit. Neither low poses nor mobility add protection flags.
+  support before commit. Ordinary Dash and Double Dash add no protection flags.
 
 The existing status pipeline handles bleed, burn, stun, buffs, restoration and
 cleanse. Antidote explicitly allows committing while stunned. Charged Shot opts
 into damage interruption using the existing policy. No UI timers apply effects.
+
+## Double Dash
+
+`bounty_hunter.double_dash` replaces the selectable Roll and Slide abilities.
+It uses the existing [mobility recast contract](mobility_recasts.md), matching
+Éloïse: speed 515.625 for eight authored ticks per burst, 2 stamina per accepted
+tap, one 120-tick cooldown starting on the first burst, and a 30-tick follow-up
+window after that burst ends. Each burst covers 68.75 nominal world units at
+60 Hz before modifiers or collision. Both ground and air activation are allowed;
+the second tap can change direction. Early/third taps, expiry, insufficient
+stamina and interruption follow the shared system. There is no added invulnerability.
+
+Willow's existing dash animation and shared `+1` HUD indicator serve both bursts.
+Ordinary Dash remains the starter grant; Double Dash uses the normal 150-gold
+ownership/store/gift path. Roll and Slide are absent from Core and the backend
+catalog, even if obsolete ownership IDs remain. Developer Practice restores
+ordinary Dash in every saved build that references either removed ability.
+As with Threefold Cut, online loadouts must select a current owned skill; no
+remote ownership migration is performed. Replay encoding and system order stay
+unchanged, with client/issuer/worker prepared together in compatibility `2026.11.8.5`.
 
 ## Blink Dash
 
@@ -117,7 +137,7 @@ The Entities editor reads the definition's scale, retaining guarded bindings to
 imported constants and the shared default. Collider literals remain editable.
 The source Dash Attack exports ten files, one entirely transparent; Blink Dash restores the transparent fifth frame as an empty composite between
 the nine visible sheet poses (row 27 onward). Lunge Slash uses the final five-frame
-strip (row 29), with strike frames 2�3 and recovery frames 4�5.
+strip (row 29), with strike frames 2–3 and recovery frames 4–5.
 
 The seven-frame mobility Dash uses `dashHoldFrame: 3` (zero-based) in all
 weapon variants. `AnimSystem` plays frames 1–3 at the quantized authored step,
@@ -178,7 +198,7 @@ Shared presentation maps all 34 Willow-specific equipment identities to dedicate
 bundle with nearest-neighbor filtering, so game menus, inbox attachments and
 repository-backed Admin share the same artwork. Ranged inventory illustrations
 are independent of projectile flight effects. The eight shared accessories keep
-their existing icons. All 25 Willow ability IDs map to dedicated 64×64 transparent
+their existing icons. All 24 Willow ability IDs map to dedicated 64×64 transparent
 PNGs under `assets/images/icons/skills-icons/willow/` in
 `ability_skill_icon.dart`. `AbilitySkillIcon` uses the consumer asset bundle and
 nearest-neighbor filtering; unknown IDs remain empty fixed-size boxes. See
@@ -188,7 +208,7 @@ assets. See [item-art verification](../verification/willow-item-art-2026-11-08.m
 
 ## Replay and validation
 
-Client, Functions and worker use local gameplay compatibility `2026.11.8.4`;
+Client, Functions and worker use local gameplay compatibility `2026.11.8.5`;
 replay/command format 1, rules-v2, score-v4 and ghost-v1 remain unchanged.
 The version check prevents different simulations from accepting the same run.
 It does not require a production data migration. Ranked seed preparation is
@@ -205,7 +225,7 @@ ownership migration is included. Retained loadouts referencing the removed ID
 are invalid. Developer Practice restores Quick Cut in saved builds through its
 existing normalization; online loadouts must select a currently available skill.
 
-Core tests exercise all 25 commits, real melee damage at 30/60/120 Hz, bomb
+Core tests exercise all 24 commits, real melee damage at 30/60/120 Hz, bomb
 terrain/lifecycle/status behavior, fan budgets, fieldcraft, marks and charged
 shot interruption. Worker tests replay recorded inputs for each weapon. Widget
 tests exercise character switching, remembered builds and actual Training Field
