@@ -10,7 +10,7 @@ import '../../theme/ui_hud_theme.dart';
 import '../../theme/ui_resource_colors.dart';
 
 /// Chooses the resource identity; only health receives loss trails and low warnings.
-enum HudResource { health, mana, stamina }
+enum HudResource { health, mana, stamina, supplies }
 
 /// Read-only vitals presentation. Values are resource units, not fixed-point.
 /// Spending is immediate; only restoration and the health loss trail interpolate.
@@ -118,7 +118,8 @@ class _ResourceBarState extends State<ResourceBar>
     final warning = widget.warningSignal?.value;
     final applies = switch (widget.resource) {
       HudResource.health => warning?.health ?? false,
-      HudResource.mana => warning?.mana ?? false,
+      // Supplies share Core's mana pool and affordability signal.
+      HudResource.mana || HudResource.supplies => warning?.mana ?? false,
       HudResource.stamina => warning?.stamina ?? false,
     };
     if (!applies || !widget.active) return;
@@ -178,6 +179,11 @@ class _ResourceBarState extends State<ResourceBar>
         UiResourceColors.health,
       ),
       HudResource.mana => ('Mana', LucideIcons.droplet, UiResourceColors.mana),
+      HudResource.supplies => (
+        'Supplies',
+        LucideIcons.backpack,
+        UiResourceColors.supplies,
+      ),
       HudResource.stamina => (
         'Stamina',
         LucideIcons.zap,

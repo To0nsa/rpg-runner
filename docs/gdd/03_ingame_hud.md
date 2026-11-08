@@ -62,11 +62,13 @@ a dedicated frame feed. The HUD places labels without scanning Core internals.
 
 **Display**
 
-* **Health**, **Mana**, **Stamina**, in that fixed order, identified by heart,
-  droplet and lightning icons as well as muted red, blue and green fills.
+* **Health**, **Mana / Supplies**, **Stamina**, in that fixed order. Health uses
+  a heart and muted red fill; stamina uses lightning and muted green. Éloïse's
+  mana uses a blue droplet. Willow's Supplies use a backpack icon and golden-yellow
+  fill (`gold-400`, `#B99A52`), including the icon and resource-warning outline.
   Mana must remain recognizably blue and stamina recognizably green; muting
   the palette must not turn either resource grey.
-* Health is 12 logical pixels tall; mana and stamina are 8. Tracks are 160
+* Health is 12 logical pixels tall; mana, Supplies and stamina are 8. Tracks are 160
   pixels wide, reduced to 120 below a 600-pixel landscape viewport so the
   vitals, timer and score remain separate.
 * Vitals, timer, score, boss panel, pause and exit share matte dark-iron backing,
@@ -89,7 +91,8 @@ a dedicated frame feed. The HUD places labels without scanning Core internals.
 
 **Core mapping**
 
-* From `snapshot.hud.hp/hpMax, stamina/staminaMax, mana/manaMax`. 
+* From `snapshot.hud.hp/hpMax, stamina/staminaMax, mana/manaMax`. Supplies use
+  `mana/manaMax` and the mana affordability warning; their identity is presentation-only.
 
 **Design rule**
 

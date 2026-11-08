@@ -53,12 +53,11 @@ class TopLeftHudOverlay extends StatelessWidget {
                     SizedBox(height: ui.space.xxs / 2),
                     ResourceBar(
                       compact: compact,
-                      resource: HudResource.mana,
-                      label:
+                      resource:
                           controller.playerCharacter.id ==
                               PlayerCharacterId.bountyHunter
-                          ? 'Supplies'
-                          : 'Mana',
+                          ? HudResource.supplies
+                          : HudResource.mana,
                       value: hud.mana,
                       maximum: hud.manaMax,
                       active: active,

@@ -13,4 +13,5 @@ abstract final class UiResourceColors {
   // Preserve familiar blue/green resource cues even in the muted world palette.
   static const mana = Color(0xFF527FAB);
   static const stamina = Color(0xFF6C9364);
+  static const supplies = UiWorldPalette.gold400;
 }
