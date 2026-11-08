@@ -65,6 +65,9 @@
   promote its frozen candidate to prod. One gameplay version per environment and
   required updates. Environment routing/isolation is being validated; bootstrap,
   provisioning, Android signing and Play acceptance remain pending.
+  [November 9 dev release](../verification/dev-release-2026-11-09.md): all current
+  code deployed to dev backend/web, matching APK 6 verified, saved-build reset
+  completed with progression preserved; signed-in device acceptance is open.
 
 - [Completed system inbox and reusable attention marker](../archive/2026-10-21/building/system_inbox.md):
   manually claimed 25-gold gifts for newly reached levels, game messages and a

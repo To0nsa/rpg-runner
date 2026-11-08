@@ -77,12 +77,13 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   acceptance, required updates and Play testing; execution underway with
   environment routing and isolation checks. One shared deployment workflow and
   no player-data migration.
-- [Latest dev app release](verification/reward-pipeline-dev-2026-10-31.md): source
-  `25978623` deployed with the reward pipeline rework; APK 5 is installed and
-  [measured on the phone](verification/reward-pipeline-phone-2026-10-31.md).
-  All client/worker navigation graphs were reused. The immediate-display UI
-  follow-up is not deployed; live achievement completion-date and claim smoke
-  remains open.
+- [Latest dev app release](verification/dev-release-2026-11-09.md): all current
+  code frozen at `3540bfed` deployed to backend, worker and web under
+  `2026.11.8.6`; matching APK 6 is built and inspected. Saved builds were reset
+  while gold, XP, unlocks and completed runs were preserved. Navigation reuse,
+  strict image benchmark and final live readiness passed. Signed-in phone
+  acceptance remains open; the [APK 5 phone measurements](verification/reward-pipeline-phone-2026-10-31.md)
+  describe the previous release.
 - [Android showcase QA](verification/android-showcase-readiness-2026-10-06.md):
   lifecycle/input fixes, event-retention cleanup, full local checks and 18
   mixed-input replay cases pass. Finalized authoring is deployed in `2026.10.7`;
