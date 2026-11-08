@@ -536,7 +536,7 @@ void main() {
       await tester.tap(find.byType(Tab).at(1));
       await tester.pumpAndSettle();
 
-      expect(find.text('Bloodletter Slash'), findsOneWidget);
+      expect(find.text('Sword Slash'), findsOneWidget);
       final radial = find.byType(SkillsRadialPane);
       expect(
         find.descendant(of: radial, matching: find.byType(Text)),
@@ -583,7 +583,7 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(find.text('Bloodletter Slash'));
+      await tester.tap(find.text('Sword Slash'));
       await tester.pumpAndSettle();
 
       expect(

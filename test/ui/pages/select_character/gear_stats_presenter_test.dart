@@ -6,6 +6,40 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/gear/gear_stats_presenter.dart';
 
 void main() {
+  test('Willow uses Supplies in stats, comparison and rich sustain text', () {
+    final field = gearStatsFor(
+      GearSlot.spellBook,
+      SpellBookId.hunterFieldKit,
+      resourceLabel: 'Supplies',
+    );
+    expect(field.any((line) => line.label.contains('Supplies')), isTrue);
+    final comparison = gearCompareStats(
+      GearSlot.spellBook,
+      equipped: SpellBookId.hunterFieldKit,
+      candidate: SpellBookId.hunterLongtrailPack,
+      resourceLabel: 'Supplies',
+    );
+    expect(comparison.any((line) => line.label.contains('Supplies')), isTrue);
+    final lines = gearStatsFor(
+      GearSlot.accessory,
+      AccessoryId.diamondRing,
+      resourceLabel: 'Supplies',
+    );
+    final text = [
+      for (final line in lines)
+        '${line.label} ${line.value} ${line.semanticValue?.segments.map((s) => s.text).join()}',
+    ].join();
+    expect(text, contains('Supplies'));
+    expect(text.toLowerCase(), isNot(contains('mana')));
+    expect(
+      gearStatsFor(
+        GearSlot.accessory,
+        AccessoryId.diamondRing,
+      ).any((line) => line.label.contains('Mana')),
+      isTrue,
+    );
+  });
+
   group('gear stats presenter', () {
     test('main weapon shows proc hook and hides type line', () {
       final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.cinderedge);

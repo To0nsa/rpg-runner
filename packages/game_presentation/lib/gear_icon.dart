@@ -40,7 +40,12 @@ class GearIcon extends StatelessWidget {
         final imagePath = spec.imageAssetPath;
         final coords = spec.coords;
         if (imagePath != null) {
-          child = Image.asset(imagePath, width: size, height: size);
+          child = Image.asset(
+            imagePath,
+            width: size,
+            height: size,
+            filterQuality: FilterQuality.none,
+          );
         } else if (coords != null) {
           child = UiIconTile(
             coords: coords,
@@ -54,8 +59,16 @@ class GearIcon extends StatelessWidget {
         break;
       case GearSlot.spellBook:
         final bookId = id as SpellBookId;
+        final imagePath = uiImageAssetPathForSpellBook(bookId);
         final coords = uiIconCoordsForSpellBook(bookId);
-        child = coords == null
+        child = imagePath != null
+            ? Image.asset(
+                imagePath,
+                width: size,
+                height: size,
+                filterQuality: FilterQuality.none,
+              )
+            : coords == null
             ? const SizedBox.shrink()
             : UiIconTile(
                 coords: coords,

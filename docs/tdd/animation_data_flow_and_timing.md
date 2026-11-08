@@ -34,10 +34,12 @@ On a normal fixed tick, `GameCore.stepOneTick`
 
 1. `ActiveAbilityPhaseSystem.step` updates active ability elapsed/phase.
 2. Gameplay systems run (movement, combat, death, etc.).
-3. `AnimSystem.step` runs near end of tick and writes `world.animState.anim` + `world.animState.animFrame`.
+3. `AnimSystem.step` resolves combat poses before combat and refreshes final
+   animation after damage. It writes `world.animState.anim` + `animFrame`;
+   only the normal pass advances distance-driven locomotion.
 4. After the Core step, `GameController.advanceFrame` calls
    `GameCore.buildSnapshot`; `SnapshotBuilder.build` copies the animation fields
-   into `EntityRenderSnapshot`.
+   into `EntityRenderSnapshot`, applying any snapshot-only dash continuation.
 5. Render consumes that snapshot and applies deterministic frame selection.
 
 Player death is a deliberate exception to the normal path. The gameplay tick
@@ -74,6 +76,23 @@ An ability-driven dash is an active action and therefore uses the active
 action's relative elapsed-tick origin; only the locomotion dash uses global
 tick origin.
 
+Active actions map elapsed time through `ActionFramePolicy` and the committed
+windup/active/recovery durations. Core encodes the chosen pose as
+`poseIndex * ticksPerFrame`, so the renderer displays that exact pose. A fallback
+policy distributes the strip over the active window; explicit combat policies
+assign poses to each phase.
+
+Player render metadata can opt into `dashHoldFrame`, a zero-based presentation
+pose. `AnimStateStore` retains activation and recovery ticks plus the visual
+frame: entry poses play once, the hold pose covers dash and excess grounded
+momentum, and the remaining poses recover at the authored step. Ordinary
+input-driven speed (or stopping with released input) starts recovery. Airborne
+exit, jump, another action, reversal, swimming or a damage/control reaction
+cancels this continuation. Repeated animation passes in one tick do not advance
+it. Full snapshots and actor/ghost frames share the override; combat continues
+to consume the ordinary action pose and original ability clock. Willow opts
+into frame 4; characters without this metadata retain ordinary action timing.
+
 For actors with support-following locomotion, `AnimSystem` replaces the
 resolver's global-tick `walk`/`run` frame with a phase derived from accepted
 travel along the current support. This keeps footfalls aligned with actual
@@ -107,7 +126,10 @@ rawIndex = animFrame ~/ ticksPerFrame
 ticksPerFrame = max(1, round(stepTimeSecondsByKey[key] * tickHz))
 ```
 
-So visual playback speed is controlled by `stepTimeSecondsByKey`, not by ability cooldown/damage values.
+For ordinary elapsed-tick animation, `stepTimeSecondsByKey` controls playback
+speed. Active actions instead encode the phase-mapped pose described above;
+their visible pacing follows the committed action durations. Cooldown and
+damage values do not themselves control playback.
 Core lifecycle windows that cover a full hit, death, or spawn strip use the
 same quantized duration:
 
@@ -136,17 +158,12 @@ retain their native-size 12-frame 16x16 rows and 0.08-second frame steps.
 
 ## 5) Why same animation can look wrong across abilities
 
-If two abilities share one `AnimKey` (for example `AnimKey.cast`) but have
-different committed gameplay durations, they still use the same strip step
-time and frame count.
-
-That can cause:
-
-- early cutoff (ability ends before strip reaches later frames), or
-- hold/freeze on last frame (one-shot clamp), or
-- repeated loop segments (looping keys).
-
-This is expected unless you align gameplay duration and visual duration by design.
+Two abilities sharing one `AnimKey` can have different visible pacing because
+their committed durations map the same poses onto different windows. Inspect
+their `ActionFramePolicy` as well as the strip metadata. Ending the action also
+hands animation back to the resolver even if movement still carries momentum.
+Willow's dash continuation explicitly covers that latter transition without
+extending the gameplay action.
 
 ## 6) Practical tuning rules
 
@@ -161,7 +178,8 @@ This is expected unless you align gameplay duration and visual duration by desig
     against strip length, because release or stamina depletion can enter
     recovery early.
 - If you want fixed visual speed across abilities:
-  - keep strip step times constant and balance with cooldown, damage, costs, and phase split.
+  - account for action phase mapping as well as strip step times; a fixed step
+    alone does not fix the visible duration of a phase-mapped action.
 - If abilities need different visual rhythms:
   - give them separate `AnimKey`s and strips (or separate render keys mapped from authored actions).
 

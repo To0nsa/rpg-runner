@@ -114,3 +114,31 @@ test("stale revision and gold overflow cannot partially grant catalog rewards", 
   assert.deepEqual((await loadOrCreateCanonicalState({ db, uid })).meta, state.meta);
   assert.equal((await listInbox(db, uid)).messages[0].claimedAtMs, null);
 });
+
+
+test("Willow equipment gifts claim once and keep ranged ownership character-specific", async () => {
+  await enable();
+  const rewards: InboxCatalogReward[] = [
+    { kind: "gear", slot: "mainWeapon", itemId: "hunterNotchknife" },
+    { kind: "gear", slot: "offhandWeapon", itemId: "hunterBacktrailRig" },
+    { kind: "gear", slot: "spellBook", itemId: "hunterLongtrailPack" },
+    { kind: "projectileSpell", slot: "projectile", itemId: "hunterBrushgun", characterId: "bountyHunter" },
+  ];
+  const id = await sendOperatorMessage(projectId, { ...input, goldAmount: 0, attachments: rewards });
+  const before = await loadOrCreateCanonicalState({ db, uid });
+  const claim = { db, uid, messageId: id, expectedRevision: before.revision, commandId: "willow-items" };
+  const result = await claimInboxReward(claim);
+  assert.equal(result.result.rejectedReason, null);
+  const state = result.result.canonicalState;
+  assert.equal(state.revision, before.revision + 1);
+  const inventory = state.meta.inventory as { weapons: string[]; spellBooks: string[] };
+  for (const itemId of ["hunterNotchknife", "hunterBacktrailRig"]) {
+    assert.equal(inventory.weapons.filter(v => v === itemId).length, 1);
+  }
+  assert.equal(inventory.spellBooks.filter(v => v === "hunterLongtrailPack").length, 1);
+  const ownership = state.meta.abilityOwnershipByCharacter as Record<string, { projectileSpells: string[] }>;
+  assert.ok(ownership.bountyHunter!.projectileSpells.includes("hunterBrushgun"));
+  assert.ok(!ownership.eloise!.projectileSpells.includes("hunterBrushgun"));
+  assert.deepEqual(state.selection, before.selection);
+  assert.deepEqual((await claimInboxReward(claim)).result.canonicalState, state);
+});

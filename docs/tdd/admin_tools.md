@@ -62,7 +62,8 @@ Existing skills are granted to an explicit `eloise`, `eloiseWip` or
 `bountyHunter` (Willow) recipient; selection changes before claim do not retarget
 them. Picker filtering and backend validation both enforce character families.
 Gear ownership is account-wide, while equip eligibility remains character-specific.
-Willow's new items and abilities have empty illustrations until dedicated art exists.
+Willow's 34 character-specific items use the canonical dedicated equipment icons;
+the eight shared accessories retain their existing art.
 There are no quantities, arbitrary items or client-supplied ownership patches.
 
 Gold-only messages remain schema 1. Catalog attachments use schema 2 with up to

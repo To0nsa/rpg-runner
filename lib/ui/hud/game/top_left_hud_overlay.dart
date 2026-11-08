@@ -8,6 +8,7 @@ import '../../components/hud_frame.dart';
 import '../../theme/ui_tokens.dart';
 import 'level_blessings_hud.dart';
 import 'resource_bar.dart';
+import 'riposte_hud.dart';
 
 class TopLeftHudOverlay extends StatelessWidget {
   const TopLeftHudOverlay({
@@ -75,6 +76,14 @@ class TopLeftHudOverlay extends StatelessWidget {
                   ],
                 ),
               ),
+              if (active && hud.riposteTicksLeft > 0) ...[
+                SizedBox(height: ui.space.xxs),
+                RiposteHud(
+                  ticksLeft: hud.riposteTicksLeft,
+                  guarding: hud.riposteGuarding,
+                  tickHz: controller.tickHz,
+                ),
+              ],
               if (hud.blessings.isNotEmpty) ...[
                 SizedBox(height: ui.space.xxs),
                 LevelBlessingsHud(

@@ -427,6 +427,10 @@ class SnapshotBuilder {
       bossVictoryBlessing: bossVictoryBlessing,
       camera: camera,
       hud: PlayerHudSnapshot(
+        riposteTicksLeft: gameOver
+            ? 0
+            : world.riposte.ticksLeft(player, tick + 1),
+        riposteGuarding: !gameOver && _riposteGuarding(world, player),
         hp: fromFixed100(world.health.hp[hi]),
         hpMax: fromFixed100(world.health.hpMax[hi]),
         mana: fromFixed100(mana),
@@ -530,8 +534,9 @@ class SnapshotBuilder {
     final int playerAnimFrame;
     if (animState.has(player)) {
       final ai = animState.indexOf(player);
-      anim = animState.anim[ai];
-      playerAnimFrame = animState.animFrame[ai];
+      final dashVisual = animState.dashVisualFrame[ai];
+      anim = dashVisual >= 0 ? AnimKey.dash : animState.anim[ai];
+      playerAnimFrame = dashVisual >= 0 ? dashVisual : animState.animFrame[ai];
     } else {
       anim = AnimKey.idle;
       playerAnimFrame = tick;
@@ -1141,4 +1146,13 @@ class _HudChargePreview {
   final bool active;
   final int ticks;
   final int tier;
+}
+
+bool _riposteGuarding(EcsWorld world, EntityId player) {
+  final ri = world.riposte.tryIndexOf(player);
+  final ai = world.activeAbility.tryIndexOf(player);
+  return ri != null &&
+      ai != null &&
+      world.riposte.guardStartTick[ri] == world.activeAbility.startTick[ai] &&
+      world.activeAbility.phase[ai] == AbilityPhase.active;
 }

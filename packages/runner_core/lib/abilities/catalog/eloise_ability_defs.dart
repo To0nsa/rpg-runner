@@ -64,20 +64,19 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
           critBonusBp: 500,
         ),
         AbilityChargeTierDef(
-          minHoldTicks60: 16,
+          minHoldTicks60: 20,
           damageScaleBp: 13000,
           critBonusBp: 1000,
+          procs: const <WeaponProc>[
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.meleeBleed,
+            ),
+          ],
         ),
       ],
     ),
     chargeMaxHoldTicks60: 150,
-    procs: <WeaponProc>[
-      WeaponProc(
-        hook: ProcHook.onHit,
-        statusProfileId: StatusProfileId.meleeBleed,
-        chanceBp: 10000,
-      ),
-    ],
     baseDamage: 1600,
   ),
   'eloise.seeker_slash': AbilityDef(
@@ -178,9 +177,9 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
       projectileId: ProjectileId.fireBolt,
       hitPolicy: HitPolicy.oncePerTarget,
     ),
-    windupTicks: 10,
+    windupTicks: 6,
     activeTicks: 2,
-    recoveryTicks: 12,
+    recoveryTicks: 6,
     defaultCost: AbilityResourceCost(manaCost100: 600),
     cooldownTicks: 14,
     animKey: AnimKey.ranged,
@@ -245,13 +244,13 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
           speedScaleBp: 9000,
         ),
         AbilityChargeTierDef(
-          minHoldTicks60: 5,
+          minHoldTicks60: 10,
           damageScaleBp: 10000,
           critBonusBp: 500,
           speedScaleBp: 10500,
         ),
         AbilityChargeTierDef(
-          minHoldTicks60: 10,
+          minHoldTicks60: 24,
           damageScaleBp: 12250,
           critBonusBp: 1000,
           speedScaleBp: 12000,
@@ -277,11 +276,14 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     windupTicks: 0,
     activeTicks: 0,
     recoveryTicks: 10,
-    defaultCost: AbilityResourceCost(manaCost100: 1000),
-    cooldownTicks: 300, // 5s @ 60Hz
+    defaultCost: AbilityResourceCost(manaCost100: 1200),
+    cooldownTicks: 480,
     animKey: AnimKey.cast,
     requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
+    selfStatusTuning: const StatusProfileTuning(
+      haste: StatusApplicationTuning(magnitude: 4000, durationSeconds: 3),
+    ),
     selfStatusProfileId: StatusProfileId.speedBoost,
   ),
   'eloise.focus': AbilityDef(
@@ -294,10 +296,13 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     activeTicks: 0,
     recoveryTicks: 10,
     defaultCost: AbilityResourceCost(manaCost100: 1200),
-    cooldownTicks: 420, // 7s @ 60Hz
+    cooldownTicks: 480,
     animKey: AnimKey.cast,
     requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
+    selfStatusTuning: const StatusProfileTuning(
+      offenseBuff: StatusApplicationTuning(durationSeconds: 4),
+    ),
     selfStatusProfileId: StatusProfileId.focus,
   ),
   'eloise.arcane_ward': AbilityDef(
@@ -309,11 +314,14 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     windupTicks: 0,
     activeTicks: 0,
     recoveryTicks: 10,
-    defaultCost: AbilityResourceCost(manaCost100: 1200),
-    cooldownTicks: 420, // 7s @ 60Hz
+    defaultCost: AbilityResourceCost(manaCost100: 1400),
+    cooldownTicks: 540,
     animKey: AnimKey.cast,
     requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
+    selfStatusTuning: const StatusProfileTuning(
+      damageReduction: StatusApplicationTuning(durationSeconds: 3),
+    ),
     selfStatusProfileId: StatusProfileId.arcaneWard,
   ),
   'eloise.cleanse': AbilityDef(
@@ -325,7 +333,7 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     windupTicks: 0,
     activeTicks: 0,
     recoveryTicks: 10,
-    defaultCost: AbilityResourceCost(manaCost100: 1400),
+    defaultCost: AbilityResourceCost(manaCost100: 1200),
     cooldownTicks: 480, // 8s @ 60Hz
     animKey: AnimKey.cast,
     requiredWeaponTypes: {WeaponType.spell},
@@ -342,11 +350,14 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     windupTicks: 0,
     activeTicks: 0,
     recoveryTicks: 10,
-    defaultCost: AbilityResourceCost(manaCost100: 1500),
-    cooldownTicks: 420, // 7s @ 60Hz
+    defaultCost: AbilityResourceCost(manaCost100: 2000),
+    cooldownTicks: 720,
     animKey: AnimKey.cast,
     requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
+    selfStatusTuning: const StatusProfileTuning(
+      resourceOverTime: StatusApplicationTuning(magnitude: 2500),
+    ),
     selfStatusProfileId: StatusProfileId.restoreHealth,
   ),
   'eloise.mana_infusion': AbilityDef(
@@ -374,11 +385,14 @@ final Map<AbilityKey, AbilityDef> eloiseAbilityDefs = <AbilityKey, AbilityDef>{
     windupTicks: 0,
     activeTicks: 0,
     recoveryTicks: 10,
-    defaultCost: AbilityResourceCost(manaCost100: 1500),
-    cooldownTicks: 420, // 7s @ 60Hz
+    defaultCost: AbilityResourceCost(manaCost100: 1800),
+    cooldownTicks: 600,
     animKey: AnimKey.cast,
     requiredWeaponTypes: {WeaponType.spell},
     payloadSource: AbilityPayloadSource.spellBook,
+    selfStatusTuning: const StatusProfileTuning(
+      resourceOverTime: StatusApplicationTuning(magnitude: 2500),
+    ),
     selfStatusProfileId: StatusProfileId.restoreStamina,
   ),
 

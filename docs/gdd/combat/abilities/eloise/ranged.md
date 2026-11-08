@@ -16,7 +16,7 @@ All abilities here:
 | Ability ID | Lifecycle | Targeting | W/A/R | Cost | Cooldown | Base Damage |
 |---|---|---|---|---|---:|---:|
 | `eloise.snap_shot` | `tap` | `homing` | `10/2/12` | mana `800` | `40` | `1300` |
-| `eloise.quick_shot` | `holdRelease` | `aimed` | `10/2/12` | mana `600` | `14` | `900` |
+| `eloise.quick_shot` | `holdRelease` | `aimed` | `6/2/6` | mana `600` | `14` | `900` |
 | `eloise.skewer_shot` | `holdRelease` | `aimedLine` | `10/2/12` | mana `1000` | `32` | `1800` |
 | `eloise.overcharge_shot` | `holdRelease` | `aimedCharge` | `10/2/12` | mana `1300` | `40` | `2300` |
 
@@ -29,7 +29,8 @@ All abilities here:
 
 ### `eloise.quick_shot`
 
-- fastest cadence in lane (`cooldown 14`)
+- fastest execution in lane (`6/2/6` ticks; `cooldown 14`)
+- total base action is 0.233s; gear can extend cooldown (starter Strength Belt makes it 15 ticks)
 - aimed single-target projectile
 
 ### `eloise.skewer_shot`
@@ -42,8 +43,8 @@ All abilities here:
 - forced interrupt causes: `stun`, `death`, `damageTaken`
 - charge tiers (`minHoldTicks60`):
   - `0`: damage `0.82x`, speed `0.90x`
-  - `5`: damage `1.00x`, speed `1.05x`, crit `+5%`
-  - `10`: damage `1.225x`, speed `1.20x`, crit `+10%`, `pierce: true`, `maxPierceHits: 2`
+  - `10`: damage `1.00x`, speed `1.05x`, crit `+5%`
+  - `24`: damage `1.225x`, speed `1.20x`, crit `+10%`, `pierce: true`, `maxPierceHits: 2`
 - max hold: `150` ticks
 
 ## Payload Resolution
@@ -59,3 +60,7 @@ The projectile-slot source is resolved at commit:
 
 This keeps one projectile ability structure reusable across learned spell projectiles.
 `spellBook` does not gate projectile spell availability.
+
+Overcharge takes 0.4s to reach full charge, creating a deliberate commitment
+before the normal 10/2/12-tick execution. Charge UI derives its threshold from
+the authored profile. Skewer retains up to three targets, versus two for full Overcharge.

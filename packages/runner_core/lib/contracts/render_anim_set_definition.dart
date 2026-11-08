@@ -19,6 +19,7 @@ class RenderAnimSetDefinition {
     this.sourceFramesByKey = const <AnimKey, List<RenderFrameRect>>{},
     this.anchorPointByKey = const <AnimKey, Vec2>{},
     this.compositeFramesByKey = const <AnimKey, List<List<RenderFramePart>>>{},
+    this.dashHoldFrame,
     required this.frameCountsByKey,
     required this.stepTimeSecondsByKey,
   });
@@ -71,4 +72,9 @@ class RenderAnimSetDefinition {
 
   final Map<AnimKey, int> frameCountsByKey;
   final Map<AnimKey, double> stepTimeSecondsByKey;
+
+  /// Optional zero-based player dash pose held through grounded momentum.
+  /// Earlier poses play once; later poses recover at the authored frame step.
+  /// This affects snapshot presentation only, never ability or combat timing.
+  final int? dashHoldFrame;
 }

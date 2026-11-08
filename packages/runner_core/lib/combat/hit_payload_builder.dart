@@ -20,6 +20,8 @@ class HitPayloadBuilder {
     int globalPowerBonusBp = 0,
     int globalCritChanceBonusBp = 0,
     DamageType? weaponDamageType,
+    // Resolved charge tier may replace innate procs without removing item procs.
+    List<WeaponProc>? abilityProcs,
     List<WeaponProc> weaponProcs = const [],
     List<WeaponProc> buffProcs = const [],
     List<WeaponProc> passiveProcs = const [],
@@ -54,9 +56,7 @@ class HitPayloadBuilder {
       }
     }
 
-    if (ability.procs.isNotEmpty) {
-      addProcs(ability.procs);
-    }
+    addProcs(abilityProcs ?? ability.procs);
     if (weaponProcs.isNotEmpty) {
       addProcs(weaponProcs);
     }

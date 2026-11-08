@@ -43,6 +43,11 @@ enum ProjectileId {
   hunterCrossbow,
   hunterShotgun,
   hunterBomb,
+  hunterRoadsidePistol,
+  hunterLongbarrelPistol,
+  hunterLongwatchCrossbow,
+  hunterHeavyLimbCrossbow,
+  hunterBrushgun,
 }
 
 /// Explicit player spell catalog. Rendering may support additional projectiles.
@@ -58,4 +63,21 @@ const playerEquippableProjectileIds = <ProjectileId>[
   ProjectileId.hunterPistol,
   ProjectileId.hunterCrossbow,
   ProjectileId.hunterShotgun,
+  ProjectileId.hunterRoadsidePistol,
+  ProjectileId.hunterLongbarrelPistol,
+  ProjectileId.hunterLongwatchCrossbow,
+  ProjectileId.hunterHeavyLimbCrossbow,
+  ProjectileId.hunterBrushgun,
+];
+
+/// Willow ranged items, excluding the bomb delivery projectile.
+const hunterRangedWeaponIds = <ProjectileId>[
+  ProjectileId.hunterPistol,
+  ProjectileId.hunterCrossbow,
+  ProjectileId.hunterShotgun,
+  ProjectileId.hunterRoadsidePistol,
+  ProjectileId.hunterLongbarrelPistol,
+  ProjectileId.hunterLongwatchCrossbow,
+  ProjectileId.hunterHeavyLimbCrossbow,
+  ProjectileId.hunterBrushgun,
 ];

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:game_presentation/gear_text.dart';
+
 import '../../../text/semantic_text.dart';
 import '../../../theme/ui_tokens.dart';
 import 'gear_stats_presenter.dart';
@@ -16,8 +17,10 @@ class GearPickerStatsPanel extends StatelessWidget {
     required this.slot,
     required this.id,
     this.equippedForCompare,
+    this.resourceLabel = 'Mana',
   });
 
+  final String resourceLabel;
   final GearSlot slot;
   final Object? id;
   final Object? equippedForCompare;
@@ -25,10 +28,17 @@ class GearPickerStatsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final lines = id == null ? const <GearStatLine>[] : gearStatsFor(slot, id!);
+    final lines = id == null
+        ? const <GearStatLine>[]
+        : gearStatsFor(slot, id!, resourceLabel: resourceLabel);
     final compareLines = (id == null || equippedForCompare == null)
         ? const <GearStatLine>[]
-        : gearCompareStats(slot, equipped: equippedForCompare!, candidate: id!);
+        : gearCompareStats(
+            slot,
+            equipped: equippedForCompare!,
+            candidate: id!,
+            resourceLabel: resourceLabel,
+          );
     final compareEmptyText = gearCompareEmptyText(
       selectedId: id,
       equippedForCompare: equippedForCompare,
@@ -74,7 +84,7 @@ class GearPickerStatsPanel extends StatelessWidget {
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        '"${gearDescriptionForSlot(slot, id!)}"',
+                        '"${gearDescriptionForSlot(slot, id!, resourceLabel: resourceLabel)}"',
                         style: ui.text.body.copyWith(
                           color: ui.colors.textMuted,
                         ),

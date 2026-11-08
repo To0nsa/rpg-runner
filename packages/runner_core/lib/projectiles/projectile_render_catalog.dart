@@ -450,10 +450,15 @@ class ProjectileRenderCatalog {
   RenderAnimSetDefinition get(ProjectileId id) {
     switch (id) {
       case ProjectileId.hunterPistol:
+      case ProjectileId.hunterRoadsidePistol:
+      case ProjectileId.hunterLongbarrelPistol:
         return BountyHunterProjectileRender.pistol;
       case ProjectileId.hunterCrossbow:
+      case ProjectileId.hunterLongwatchCrossbow:
+      case ProjectileId.hunterHeavyLimbCrossbow:
         return BountyHunterProjectileRender.crossbow;
       case ProjectileId.hunterShotgun:
+      case ProjectileId.hunterBrushgun:
         return BountyHunterProjectileRender.shotgun;
       case ProjectileId.hunterBomb:
         return BountyHunterProjectileRender.bomb;

@@ -1,5 +1,17 @@
 # Current Implementation Plans
 
+- [Completed Éloïse ability balance](../archive/2026-11-08/building/eloise_ability_balance.md): utility costs/uptime, charged attacks, Riposte lifecycle and HUD;
+  [local verification](../verification/eloise-ability-balance-2026-11-08.md). Playtesting and deployment remain separate acceptance work.
+
+- [Completed Willow item illustrations](../archive/2026-11-08/building/willow_item_art.md):
+  34 transparent icons matching existing equipment art, integrated in game/Admin;
+  [review sheet and verification](../verification/willow-item-art-2026-11-08.md).
+
+- [Completed Willow equipment parity](../archive/2026-11-08/building/willow_equipment.md):
+  28 new items, starter tuning, catalog integration and documentation.
+  [Local verification](../verification/willow-equipment-2026-11-08.md);
+  balance sessions and deployment remain separate acceptance work.
+
 - [Completed character builds](../archive/2026-11-07/building/character_builds.md):
   three saved builds per character, level 5/12 locks and a 28-character rename
   control. [Local verification](../verification/character-builds-2026-11-07.md).

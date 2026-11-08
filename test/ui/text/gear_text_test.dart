@@ -82,14 +82,18 @@ void main() {
       );
       expect(
         gearDescriptionForSlot(GearSlot.spellBook, SpellBookId.emberGrimoire),
-        equals('Aggressive spellbook with burn pressure and lower defense.'),
+        equals(
+          'Mana, critical chance and faster cooldowns, with slower stamina recovery.',
+        ),
       );
       expect(
         gearDescriptionForSlot(
           GearSlot.spellBook,
           SpellBookId.apprenticePrimer,
         ),
-        equals('Baseline spellbook with small power and mana gains.'),
+        equals(
+          'Balanced mana reserves, regeneration and critical chance, with less stamina.',
+        ),
       );
       expect(
         gearDescriptionForSlot(GearSlot.accessory, AccessoryId.speedBoots),

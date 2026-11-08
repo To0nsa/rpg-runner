@@ -159,6 +159,11 @@ class _GearsTabState extends State<GearsTab> {
                                 Expanded(
                                   flex: 3,
                                   child: _GearDetailsPane(
+                                    resourceLabel:
+                                        widget.characterId ==
+                                            PlayerCharacterId.bountyHunter
+                                        ? 'Supplies'
+                                        : 'Mana',
                                     slot: slot,
                                     selectedId: selectedId,
                                     equippedForCompare: equippedId,
@@ -404,7 +409,9 @@ class _GearSlotSelectionDivider extends StatelessWidget {
 }
 
 class _GearDetailsPane extends StatelessWidget {
+  final String resourceLabel;
   const _GearDetailsPane({
+    required this.resourceLabel,
     required this.slot,
     required this.selectedId,
     required this.equippedForCompare,
@@ -417,6 +424,7 @@ class _GearDetailsPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GearPickerStatsPanel(
+      resourceLabel: resourceLabel,
       slot: slot,
       id: selectedId,
       equippedForCompare: equippedForCompare,

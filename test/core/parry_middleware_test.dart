@@ -97,6 +97,8 @@ void main() {
       expect(world.riposte.has(player), isTrue);
       final ri = world.riposte.indexOf(player);
       expect(world.riposte.bonusBp[ri], equals(1234));
+      expect(world.riposte.guardStartTick[ri], 10);
+      expect(world.riposte.releaseWindowTicks[ri], 7);
       expect(world.riposte.expiresTick[ri], equals(12 + 7));
     },
   );

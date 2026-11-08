@@ -25,7 +25,7 @@ const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
   'grojib.strike2': 'Second Strike',
 
   // Primary: sword arts.
-  'eloise.bloodletter_slash': 'Bloodletter Slash',
+  'eloise.bloodletter_slash': 'Sword Slash',
   'eloise.bloodletter_cleave': 'Bloodletter Cleave',
   'eloise.seeker_slash': 'Seeker Slash',
 

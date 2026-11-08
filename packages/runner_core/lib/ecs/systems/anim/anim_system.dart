@@ -1,5 +1,6 @@
 import '../../stores/enemies/derf_phase_store.dart';
 import '../../../combat/combat_geometry.dart';
+import '../../../collision/terrain/terrain_numeric.dart';
 import '../../../combat/combat_pose_catalog.dart';
 import '../../../players/characters/eloise.dart';
 import '../../../contracts/render_anim_set_definition.dart';
@@ -18,6 +19,7 @@ import '../../../enemies/enemy_id.dart';
 import '../../../enemies/enemy_terrain_profile.dart';
 import '../../../npcs/npc_catalog.dart';
 import '../../../players/player_tuning.dart';
+import '../../../players/player_projectile_muzzle.dart';
 import '../../../tuning/utils/anim_tuning.dart' as anim_utils;
 import '../../../util/tick_math.dart';
 import '../../entity_id.dart';
@@ -241,6 +243,117 @@ class AnimSystem {
       animStateIndex: ai,
       resolved: result,
     );
+    _updatePlayerDashVisual(world, player, ai, currentTick, result);
+  }
+
+  void _updatePlayerDashVisual(
+    EcsWorld world,
+    EntityId player,
+    int ai,
+    int tick,
+    AnimResult resolved,
+  ) {
+    final state = world.animState;
+    final hold = playerRenderAnim.dashHoldFrame;
+    final count = playerRenderAnim.frameCountsByKey[AnimKey.dash] ?? 0;
+    if (hold == null || hold < 0 || hold >= count - 1) {
+      state.clearDashVisual(ai);
+      return;
+    }
+    final activeIndex = world.activeAbility.tryIndexOf(player);
+    final activeId = activeIndex == null
+        ? null
+        : world.activeAbility.abilityId[activeIndex];
+    final ability = activeId == null ? null : abilities.resolve(activeId);
+    final activeDash = ability?.animKey == AnimKey.dash;
+    if (activeDash) {
+      final start = world.activeAbility.startTick[activeIndex!];
+      if (start != state.dashVisualStartTick[ai]) {
+        state.dashVisualStartTick[ai] = start;
+        state.dashVisualRecoveryStartTick[ai] = -1;
+        state.dashVisualFrame[ai] = 0;
+      }
+    }
+    if (state.dashVisualFrame[ai] < 0) return;
+    final locomotion =
+        resolved.anim == AnimKey.run ||
+        resolved.anim == AnimKey.walk ||
+        resolved.anim == AnimKey.idle;
+    // Interruptions win immediately. Airborne exits return to jump/fall rather
+    // than playing planted-foot recovery poses in the air.
+    if (world.swimState.isSwimming(player) ||
+        (activeDash ? resolved.anim != AnimKey.dash : !locomotion) ||
+        (!activeDash &&
+            (activeId != null ||
+                !WorldSupportView(world).isGrounded(player)))) {
+      state.clearDashVisual(ai);
+      return;
+    }
+    final step = math.max(
+      1,
+      ((playerRenderAnim.stepTimeSecondsByKey[AnimKey.dash] ?? .1) * _tickHz)
+          .round(),
+    );
+    if (activeDash) {
+      state.dashVisualFrame[ai] =
+          math.min(hold, (tick - state.dashVisualStartTick[ai]) ~/ step) * step;
+      return;
+    }
+    final mi = world.movement.indexOf(player);
+    final ti = world.transform.indexOf(player);
+    final direction = world.movement.dashDirX[mi].sign;
+    final facing = world.movement.facing[mi] == Facing.right ? 1 : -1;
+    if (direction != facing || world.transform.velX[ti] * direction < 0) {
+      state.clearDashVisual(ai);
+      return;
+    }
+    var recovery = state.dashVisualRecoveryStartTick[ai];
+    if (recovery < 0) {
+      final motion = world.resolvedMotion.tryIndexOf(player);
+      var reference = motion == null
+          ? 0.0
+          : world
+                    .resolvedMotion
+                    .locomotionReferenceSpeedTicksPerSecond[motion] /
+                terrainPhysicsTicksPerWorldUnit;
+      final contact = world.terrainContact.tryIndexOf(player);
+      final traversal = world.terrainTraversalProfile.tryIndexOf(player);
+      if (contact != null &&
+          traversal != null &&
+          world.terrainContact.supportEdgeId[contact] != null) {
+        // The locomotion reference is flat-ground speed. Match the traversal
+        // profile's target so downhill running can finish the visual coast.
+        final uphill =
+            direction *
+                world.terrainContact.supportTangentXTicks[contact] *
+                world.terrainContact.supportTangentYTicks[contact] <
+            0;
+        reference *=
+            world.terrainTraversalProfile.profile[traversal].slopeMultiplierBp(
+              absoluteAngleUnits:
+                  world.terrainContact.supportSlopeAngleUnits[contact],
+              uphill: uphill,
+            ) /
+            10000;
+      }
+      // With released input the target speed is zero: keep the glide pose
+      // until stopping. Held input recovers once ordinary running speed returns.
+      // Reference speed and velocity are quantized separately.
+      if (world.transform.velX[ti].abs() >
+          math.max(reference, _playerProfile.minMoveSpeed) +
+              1 / terrainPhysicsTicksPerWorldUnit) {
+        state.dashVisualFrame[ai] = hold * step;
+        return;
+      }
+      recovery = tick;
+      state.dashVisualRecoveryStartTick[ai] = recovery;
+    }
+    final frame = hold + 1 + (tick - recovery) ~/ step;
+    if (frame >= count) {
+      state.clearDashVisual(ai);
+    } else {
+      state.dashVisualFrame[ai] = frame * step;
+    }
   }
 
   void _stepEnemies(EcsWorld world, {required int currentTick}) {
@@ -544,7 +657,13 @@ class AnimSystem {
     );
     // Each firing phase has eight authored running poses on the same sheet.
     final frame = actionAnim == AnimKey.rangedRun
-        ? (pose * 8 + (currentTick ~/ step) % 8) * step
+        ? (pose * 8 +
+                  playerRangedRunFrame(
+                    renderAnim: render,
+                    currentTick: currentTick,
+                    tickHz: _tickHz,
+                  )) *
+              step
         : pose * step;
     return (anim: actionAnim, frame: frame);
   }
@@ -559,16 +678,13 @@ class AnimSystem {
     // Back-strike is a directional variant of melee strike.
     final isPlayer = !world.enemy.has(entity) && !world.npc.has(entity);
     if (isPlayer && ability.animKey == AnimKey.ranged) {
-      if (!WorldSupportView(world).isGrounded(entity) &&
-          playerRenderAnim.sourcesByKey.containsKey(AnimKey.rangedAir)) {
-        return AnimKey.rangedAir;
-      }
       final ti = world.transform.tryIndexOf(entity);
-      if (ti != null &&
-          world.transform.velX[ti].abs() > _playerProfile.minMoveSpeed &&
-          playerRenderAnim.sourcesByKey.containsKey(AnimKey.rangedRun)) {
-        return AnimKey.rangedRun;
-      }
+      return playerRangedAnimKey(
+        renderAnim: playerRenderAnim,
+        grounded: WorldSupportView(world).isGrounded(entity),
+        velocityX: ti == null ? 0 : world.transform.velX[ti],
+        minMoveSpeed: _playerProfile.minMoveSpeed,
+      );
     }
     if (isPlayer &&
         !playerRenderAnim.sourcesByKey.containsKey(AnimKey.backStrike)) {

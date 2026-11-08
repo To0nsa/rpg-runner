@@ -155,13 +155,23 @@ String gearDisplayNameForSlot(GearSlot slot, Object id) {
 }
 
 /// Returns a short description for a gear item shown in UI.
-String gearDescriptionForSlot(GearSlot slot, Object id) {
-  return switch (slot) {
+String gearDescriptionForSlot(
+  GearSlot slot,
+  Object id, {
+  String resourceLabel = 'Mana',
+}) {
+  final description = switch (slot) {
     GearSlot.mainWeapon ||
     GearSlot.offhandWeapon => weaponDescription(id as WeaponId),
     GearSlot.spellBook => spellBookDescription(id as SpellBookId),
     GearSlot.accessory => accessoryDescription(id as AccessoryId),
   };
+  return resourceLabel == 'Mana'
+      ? description
+      : description.replaceAll(
+          RegExp(r'\bmana\b', caseSensitive: false),
+          resourceLabel,
+        );
 }
 
 String _titleCaseEnum(String source) {
@@ -181,8 +191,25 @@ String _titleCaseEnum(String source) {
 const String _defaultDescription = 'No description available yet.';
 
 const Map<WeaponId, String> _weaponDisplayNameOverrides = <WeaponId, String>{
-  WeaponId.hunterBlade: 'Hunter Blade',
-  WeaponId.hunterBombKit: 'Bomb Kit',
+  WeaponId.hunterBlade: "Hunter Blade",
+  WeaponId.hunterNotchknife: "Notchknife",
+  WeaponId.hunterHookblade: "Hookblade",
+  WeaponId.hunterCausticEdge: "Caustic Edge",
+  WeaponId.hunterCinderpoint: "Cinderpoint",
+  WeaponId.hunterSappingBlade: "Sapping Blade",
+  WeaponId.hunterPursuitBlade: "Pursuit Blade",
+  WeaponId.hunterLastWord: "Last Word",
+  WeaponId.hunterBombKit: "Bomb Kit",
+  WeaponId.hunterSplinterRig: "Splinter Rig",
+  WeaponId.hunterPitchRig: "Pitch Rig",
+  WeaponId.hunterSnareRig: "Snare Rig",
+  WeaponId.hunterEtchingRig: "Etching Rig",
+  WeaponId.hunterSapperHarness: "Sapper Harness",
+  WeaponId.hunterKilnwrapRig: "Kilnwrap Rig",
+  WeaponId.hunterSealedRig: "Sealed Rig",
+  WeaponId.hunterStormwrapRig: "Stormwrap Rig",
+  WeaponId.hunterBacktrailRig: "Backtrail Rig",
+
   WeaponId.plainsteel: 'Plainsteel',
   WeaponId.waspfang: 'Waspfang',
   WeaponId.cinderedge: 'Cinderedge',
@@ -204,9 +231,39 @@ const Map<WeaponId, String> _weaponDisplayNameOverrides = <WeaponId, String>{
 };
 
 const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
-  WeaponId.hunterBlade: 'A close-range blade for cuts, combos and lunges.',
+  WeaponId.hunterBlade: "Reliable mixed combat with a small defense tradeoff.",
+  WeaponId.hunterNotchknife:
+      "Bleeding cuts reward disengaging, at the cost of maximum health.",
+  WeaponId.hunterHookblade:
+      "Slowing cuts create room for a shot or bomb, with lower defense.",
+  WeaponId.hunterCausticEdge:
+      "Melee openings expose a target to follow-up damage, with lower health.",
+  WeaponId.hunterCinderpoint:
+      "Critical cuts ignite enemies, at the cost of Supplies regeneration.",
+  WeaponId.hunterSappingBlade:
+      "Cuts can weaken enemy attacks, but maximum health is lower.",
+  WeaponId.hunterPursuitBlade:
+      "Melee kills can grant a short burst of speed, with lower defense.",
+  WeaponId.hunterLastWord:
+      "Strong direct offense and stamina, with less health for mistakes.",
   WeaponId.hunterBombKit:
-      'Unlimited bombs with a fuse and cooldown. Costs no Supplies.',
+      "A protective bomb rig that trades movement speed for steadiness.",
+  WeaponId.hunterSplinterRig:
+      "Critical blasts cause bleeding, at the cost of global power.",
+  WeaponId.hunterPitchRig:
+      "Critical blasts ignite survivors, with lower critical chance.",
+  WeaponId.hunterSnareRig:
+      "Blasts can slow pursuers, at the cost of global power.",
+  WeaponId.hunterEtchingRig: "Blasts can expose survivors to follow-up damage, with lower critical chance.",
+  WeaponId.hunterSapperHarness: "Physical protection and stamina recovery, with substantially slower movement.",
+  WeaponId.hunterKilnwrapRig:
+      "Preparation for fire-heavy encounters, with lower critical chance.",
+  WeaponId.hunterSealedRig:
+      "Acid and water protection with stamina reserves, at the cost of power.",
+  WeaponId.hunterStormwrapRig:
+      "Thunder protection and stamina recovery, with lower critical chance.",
+  WeaponId.hunterBacktrailRig: "Low-health haste creates an escape opportunity, at a permanent power cost.",
+
   WeaponId.plainsteel: 'Baseline one-handed sword with consistent output.',
   WeaponId.waspfang: 'Bleed pressure sword with lower upfront power.',
   WeaponId.cinderedge: 'Crit-focused blade that ignites on critical strikes.',
@@ -239,9 +296,15 @@ const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
 
 const Map<ProjectileId, String> _projectileDisplayNameOverrides =
     <ProjectileId, String>{
-      ProjectileId.hunterPistol: 'Pistol',
-      ProjectileId.hunterCrossbow: 'Crossbow',
-      ProjectileId.hunterShotgun: 'Shotgun',
+      ProjectileId.hunterPistol: "Pistol",
+      ProjectileId.hunterCrossbow: "Crossbow",
+      ProjectileId.hunterShotgun: "Shotgun",
+      ProjectileId.hunterRoadsidePistol: "Roadside Pistol",
+      ProjectileId.hunterLongbarrelPistol: "Longbarrel Pistol",
+      ProjectileId.hunterLongwatchCrossbow: "Longwatch Crossbow",
+      ProjectileId.hunterHeavyLimbCrossbow: "Heavy-Limb Crossbow",
+      ProjectileId.hunterBrushgun: "Brushgun",
+
       ProjectileId.hunterBomb: 'Bomb',
       ProjectileId.iceBolt: 'Ice Bolt',
       ProjectileId.fireBolt: 'Fire Bolt',
@@ -253,30 +316,47 @@ const Map<ProjectileId, String> _projectileDisplayNameOverrides =
       ProjectileId.thunderBolt: 'Thunder Bolt',
     };
 
-const Map<ProjectileId, String> _projectileDescriptionOverrides =
-    <ProjectileId, String>{
-      ProjectileId.hunterPistol:
-          'Fast bullets with balanced range. Uses regenerating Supplies.',
-      ProjectileId.hunterCrossbow: 'Long-range bolts with 15% more total damage. Uses regenerating Supplies.',
-      ProjectileId.hunterShotgun: 'Short-range shells split into at least three pellets with 30% more total damage. Uses regenerating Supplies.',
-      ProjectileId.hunterBomb: 'A timed blast blocked by solid terrain.',
-      ProjectileId.iceBolt: 'Spell projectile that chills on hit.',
-      ProjectileId.fireBolt: 'Spell projectile that burns on hit.',
-      ProjectileId.acidBolt:
-          'Spell projectile that corrodes and increases damage taken.',
-      ProjectileId.darkBolt:
-          'Spell projectile that weakens enemy outgoing damage on hit.',
-      ProjectileId.earthBolt: 'Spell projectile that stuns enemies on hit.',
-      ProjectileId.holyBolt:
-          'Spell projectile that silences enemy casts for 3 seconds.',
-      ProjectileId.waterBolt:
-          'Spell projectile that drenches and slows attack/cast speed.',
-      ProjectileId.thunderBolt: 'Spell projectile with thunder damage.',
-    };
+const Map<ProjectileId, String>
+_projectileDescriptionOverrides = <ProjectileId, String>{
+  ProjectileId.hunterPistol:
+      "Fast bullets with balanced range. Uses regenerating Supplies.",
+  ProjectileId.hunterCrossbow: "Long-range bolts with 15% more total damage. Uses regenerating Supplies.",
+  ProjectileId.hunterShotgun: "Short-range shells split into at least three pellets with 30% more total damage. Uses regenerating Supplies.",
+  ProjectileId.hunterRoadsidePistol:
+      "Fast close-range bullets with 10% more damage, but shorter reach.",
+  ProjectileId.hunterLongbarrelPistol:
+      "Fast, long-reaching bullets with 10% less damage.",
+  ProjectileId.hunterLongwatchCrossbow: "Long-reaching, faster bolts with less damage than the standard crossbow.",
+  ProjectileId.hunterHeavyLimbCrossbow:
+      "Heavy bolts with 25% more damage, but slower flight and shorter reach.",
+  ProjectileId.hunterBrushgun: "Five-pellet coverage with 10% more total damage; a wide spread rewards close placement.",
+
+  ProjectileId.hunterBomb: 'A timed blast blocked by solid terrain.',
+  ProjectileId.iceBolt: 'Spell projectile that chills on hit.',
+  ProjectileId.fireBolt: 'Spell projectile that burns on hit.',
+  ProjectileId.acidBolt:
+      'Spell projectile that corrodes and increases damage taken.',
+  ProjectileId.darkBolt:
+      'Spell projectile that weakens enemy outgoing damage on hit.',
+  ProjectileId.earthBolt: 'Spell projectile that stuns enemies on hit.',
+  ProjectileId.holyBolt:
+      'Spell projectile that silences enemy casts for 3 seconds.',
+  ProjectileId.waterBolt:
+      'Spell projectile that drenches and slows attack/cast speed.',
+  ProjectileId.thunderBolt: 'Spell projectile with thunder damage.',
+};
 
 const Map<SpellBookId, String> _spellBookDisplayNameOverrides =
     <SpellBookId, String>{
-      SpellBookId.hunterFieldKit: 'Field Kit',
+      SpellBookId.hunterFieldKit: "Field Kit",
+      SpellBookId.hunterLongtrailPack: "Longtrail Pack",
+      SpellBookId.hunterMarksmanRoll: "Marksman's Roll",
+      SpellBookId.hunterQuickAccessSatchel: "Quick-Access Satchel",
+      SpellBookId.hunterReserveBandolier: "Reserve Bandolier",
+      SpellBookId.hunterTrackerPouch: "Tracker's Pouch",
+      SpellBookId.hunterSurveyorCase: "Surveyor's Case",
+      SpellBookId.hunterQuarryKit: "Quarry Kit",
+
       SpellBookId.apprenticePrimer: 'Apprentice Primer',
       SpellBookId.bastionCodex: 'Bastion Codex',
       SpellBookId.emberGrimoire: 'Ember Grimoire',
@@ -290,22 +370,24 @@ const Map<SpellBookId, String> _spellBookDisplayNameOverrides =
 const Map<SpellBookId, String>
 _spellBookDescriptionOverrides = <SpellBookId, String>{
   SpellBookId.hunterFieldKit:
-      'Equipment for fieldcraft, recovery and preparing Supplies.',
-  SpellBookId.apprenticePrimer:
-      'Baseline spellbook with small power and mana gains.',
-  SpellBookId.bastionCodex:
-      'Defensive spellbook with ward on kill and slower cooldowns.',
-  SpellBookId.emberGrimoire:
-      'Aggressive spellbook with burn pressure and lower defense.',
-  SpellBookId.tideAlmanac:
-      'Control spellbook with higher mana/cooldown efficiency and lower power.',
+      "Balanced Supplies and critical chance, with a smaller stamina reserve.",
+  SpellBookId.hunterLongtrailPack: "Sustained Supplies and faster recovery between actions, with slower health regeneration.",
+  SpellBookId.hunterMarksmanRoll: "Critical-shot preparation and faster cooldowns, with slower stamina recovery.",
+  SpellBookId.hunterQuickAccessSatchel: "Frequent short exchanges, with less stamina and no extra Supplies capacity.",
+  SpellBookId.hunterReserveBandolier: "A large opening reserve and critical chance, with substantially less stamina.",
+  SpellBookId.hunterTrackerPouch: "Offensive pursuit that preserves stamina, at the cost of health recovery.",
+  SpellBookId.hunterSurveyorCase: "A large Supplies reserve and ready utility, with slower stamina recovery.",
+  SpellBookId.hunterQuarryKit: "Critical offensive windows and faster cooldowns, with little stamina headroom.",
+
+  SpellBookId.apprenticePrimer: 'Balanced mana reserves, regeneration and critical chance, with less stamina.',
+  SpellBookId.bastionCodex: 'Large mana reserves, regeneration and faster cooldowns, with slower health recovery.',
+  SpellBookId.emberGrimoire: 'Mana, critical chance and faster cooldowns, with slower stamina recovery.',
+  SpellBookId.tideAlmanac: 'Large mana reserves, regeneration and faster cooldowns, with substantially less stamina.',
   SpellBookId.hexboundLexicon:
-      'Crit-leaning spellbook that weakens on crit at reduced base power.',
-  SpellBookId.galeFolio:
-      'Kiting spellbook with speed/ stamina and slow-on-hit utility.',
-  SpellBookId.nullTestament:
-      'Anti-caster spellbook with dark/holy resistance and crit-gated silence.',
-  SpellBookId.crownOfFocus: 'High-risk snowball spellbook with strong global offense and low defense.',
+      'Mana, regeneration and critical chance, with slower health recovery.',
+  SpellBookId.galeFolio: 'Large mana reserves, critical chance and faster cooldowns, with less stamina.',
+  SpellBookId.nullTestament: 'Mana reserves, regeneration and critical chance, with slower stamina recovery.',
+  SpellBookId.crownOfFocus: 'Large mana reserves, critical chance and faster cooldowns, with substantially less stamina.',
 };
 
 const Map<AccessoryId, String> _accessoryDisplayNameOverrides =

@@ -3,6 +3,9 @@ import 'dart:math';
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
 import '../../projectiles/projectile_catalog.dart';
+import '../../players/player_character_definition.dart';
+import '../../snapshots/enums.dart';
+import '../world_support_view.dart';
 import '../../projectiles/spawn_projectile_item.dart';
 import '../stores/projectile_intent_store.dart';
 import '../world.dart';
@@ -18,11 +21,16 @@ class ProjectileLaunchSystem {
     required this.projectiles,
     required this.tickHz,
     this.abilities = AbilityCatalog.shared,
+    this.playerCharacter,
   });
   final AbilityResolver abilities;
 
   final ProjectileCatalog projectiles;
   final int tickHz;
+
+  /// Supplies player-only weapon-tip attachments; autonomous actors retain
+  /// their committed source offsets. Must match the run's selected character.
+  final PlayerCharacterDefinition? playerCharacter;
 
   void step(EcsWorld world, {required int currentTick}) {
     final intents = world.projectileIntent;
@@ -56,6 +64,29 @@ class ProjectileLaunchSystem {
       final shots = max(projectile.shotCount, fan?.shotCount ?? 1);
       final spread = max(projectile.spreadRadians, fan?.spreadRadians ?? 0);
       final damage = intents.damage100[ii] * projectile.damageScaleBp ~/ 10000;
+      final character = playerCharacter;
+      final muzzle = bomb == null && world.playerInput.has(caster)
+          ? character?.projectileMuzzles[projectileId]
+          : null;
+      final offset = muzzle?.offset(
+        renderAnim: character!.renderAnim,
+        grounded: WorldSupportView(world).isGrounded(caster),
+        velocityX: transforms.velX[ti],
+        minMoveSpeed: character.tuning.movement.minMoveSpeed,
+        currentTick: currentTick,
+        tickHz: tickHz,
+      );
+      final mi = world.movement.tryIndexOf(caster);
+      final facingSign = mi != null && world.movement.facing[mi] == Facing.left
+          ? -1
+          : 1;
+      final sourceX =
+          transforms.posX[ti] +
+          (offset == null ? intents.sourceOffsetX[ii] : offset.x * facingSign);
+      final sourceY =
+          transforms.posY[ti] +
+          (offset?.y ?? intents.sourceOffsetY[ii]) +
+          (bomb == null ? 0 : 8);
       final angle = atan2(intents.dirY[ii], intents.dirX[ii]);
       for (var shot = 0; shot < shots; shot++) {
         final shotAngle =
@@ -69,12 +100,11 @@ class ProjectileLaunchSystem {
           projectile: projectile,
           faction: factions.faction[fi],
           owner: caster,
-          casterX: transforms.posX[ti] + intents.sourceOffsetX[ii],
-          casterY:
-              transforms.posY[ti] +
-              intents.sourceOffsetY[ii] +
-              (bomb == null ? 0 : 8),
-          originOffset: bomb == null ? intents.originOffset[ii] : 0,
+          casterX: sourceX,
+          casterY: sourceY,
+          originOffset: bomb == null && offset == null
+              ? intents.originOffset[ii]
+              : 0,
           dirX: bomb != null
               ? 1
               : shots == 1

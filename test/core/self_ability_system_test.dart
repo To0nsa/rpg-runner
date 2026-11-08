@@ -41,7 +41,7 @@ void main() {
         body: const BodyDef(isKinematic: true, useGravity: false),
         collider: const ColliderAabbDef(halfX: 8, halfY: 8),
         health: const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
-        mana: const ManaDef(mana: 1000, manaMax: 1000, regenPerSecond100: 0),
+        mana: const ManaDef(mana: 1200, manaMax: 1200, regenPerSecond100: 0),
         stamina: const StaminaDef(
           stamina: 1000,
           staminaMax: 1000,
@@ -252,8 +252,8 @@ void main() {
     expect(world.damageReduction.has(player), isTrue);
     final wardIndex = world.damageReduction.indexOf(player);
     expect(world.damageReduction.magnitude[wardIndex], equals(4000));
-    expect(world.damageReduction.ticksLeft[wardIndex], equals(300));
-    expect(world.mana.mana[world.mana.indexOf(player)], equals(800));
+    expect(world.damageReduction.ticksLeft[wardIndex], equals(180));
+    expect(world.mana.mana[world.mana.indexOf(player)], equals(600));
   });
 
   test(
@@ -455,7 +455,7 @@ void main() {
     expect(world.dot.has(player), isFalse);
     expect(world.slow.has(player), isFalse);
     expect(world.controlLock.isLocked(player, LockFlag.stun, 5), isFalse);
-    expect(world.mana.mana[world.mana.indexOf(player)], equals(600));
+    expect(world.mana.mana[world.mana.indexOf(player)], equals(800));
   });
 
   test('spell-slot self spell commit is not blocked by spellbook grants', () {

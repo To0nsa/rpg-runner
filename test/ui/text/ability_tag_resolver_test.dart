@@ -87,21 +87,33 @@ void main() {
   });
 
   group('ability tooltip builder', () {
-    test('shows optional immediate restoration separately from its duration', () {
-      final def = AbilityDef(
-        id: 'test.restore', category: AbilityCategory.utility,
-        allowedSlots: {AbilitySlot.spell}, windupTicks: 0, activeTicks: 0,
-        recoveryTicks: 0, cooldownTicks: 0, animKey: AnimKey.cast,
-        selfStatusProfileId: StatusProfileId.restoreHealth,
-        selfStatusTuning: const StatusProfileTuning(
-          resourceOverTime: StatusApplicationTuning(
-            magnitude: 1000, durationSeconds: 2, applyOnApply: true,
+    test(
+      'shows optional immediate restoration separately from its duration',
+      () {
+        final def = AbilityDef(
+          id: 'test.restore',
+          category: AbilityCategory.utility,
+          allowedSlots: {AbilitySlot.spell},
+          windupTicks: 0,
+          activeTicks: 0,
+          recoveryTicks: 0,
+          cooldownTicks: 0,
+          animKey: AnimKey.cast,
+          selfStatusProfileId: StatusProfileId.restoreHealth,
+          selfStatusTuning: const StatusProfileTuning(
+            resourceOverTime: StatusApplicationTuning(
+              magnitude: 1000,
+              durationSeconds: 2,
+              applyOnApply: true,
+            ),
           ),
-        ),
-      );
-      expect(tooltipBuilder.build(def).description,
-        'Restore 10% of max Health immediately and another 10% over 2.0 seconds.');
-    });
+        );
+        expect(
+          tooltipBuilder.build(def).description,
+          'Restore 10% of max Health immediately and another 10% over 2.0 seconds.',
+        );
+      },
+    );
 
     test('shows self effect tuning without changing default descriptions', () {
       final def = AbilityDef(
@@ -128,7 +140,7 @@ void main() {
       );
       expect(
         tooltipBuilder.build(ability('eloise.focus')).description,
-        'Increase power by 25% and critical chance by 15% for 5.0 seconds.',
+        'Increase power by 25% and critical chance by 15% for 4.0 seconds.',
       );
     });
 
@@ -160,12 +172,14 @@ void main() {
 
       expect(
         tooltip.description,
-        contains('reduce incoming damage by $expectedReduction% while held.'),
+        contains(
+          'reduce direct-hit damage by $expectedReduction% from any direction while held.',
+        ),
       );
       expect(
         tooltip.description,
         contains(
-          'Guarded hits grant Riposte, empowering your next melee hit by +$expectedRiposteBonus% damage.',
+          'The first guarded hit grants Riposte, empowering your next landed melee hit by +$expectedRiposteBonus% damage.',
         ),
       );
       expect(tooltip.dynamicDescriptionValues, contains(expectedReduction));
@@ -175,12 +189,11 @@ void main() {
 
     test('builds self-status descriptions with exact effect details', () {
       final expectedDescriptionByAbility = <String, String>{
-        'eloise.arcane_haste': 'Increase move speed by 50% for 5.0 seconds.',
-        'eloise.arcane_ward':
-            'Reduce direct-hit damage by 40% and cancel damage-over-time effects for 5.0 seconds.',
-        'eloise.vital_surge': 'Restore 35% of max Health over 5.0 seconds.',
+        'eloise.arcane_haste': 'Increase move speed by 40% for 3.0 seconds.',
+        'eloise.arcane_ward': 'Reduce direct-hit damage by 40% and cancel damage-over-time effects for 3.0 seconds.',
+        'eloise.vital_surge': 'Restore 25% of max Health over 5.0 seconds.',
         'eloise.mana_infusion': 'Restore 35% of max Mana over 5.0 seconds.',
-        'eloise.second_wind': 'Restore 35% of max Stamina over 5.0 seconds.',
+        'eloise.second_wind': 'Restore 25% of max Stamina over 5.0 seconds.',
       };
 
       for (final entry in expectedDescriptionByAbility.entries) {
@@ -243,7 +256,10 @@ void main() {
     test('builds dash description without speed or duration details', () {
       final tooltip = tooltipBuilder.build(ability('eloise.dash'));
 
-      expect(tooltip.description, equals('Dash forward quickly.'));
+      expect(
+        tooltip.description,
+        equals('Dash forward quickly. Does not grant invulnerability.'),
+      );
       expect(tooltip.dynamicDescriptionValues, isEmpty);
     });
 
@@ -253,7 +269,9 @@ void main() {
 
       expect(
         tooltip.description,
-        equals('Perform a concussive roll. Enemies hit are affected by Stun.'),
+        equals(
+          'Perform a concussive roll. Enemies hit are affected by Stun. Does not grant invulnerability.',
+        ),
       );
       expect(tooltip.dynamicDescriptionValues, contains('Stun'));
     });
@@ -274,60 +292,23 @@ void main() {
       expect(highlightedValues, isNot(contains('Bleed')));
     });
 
-    test('builds bloodletter cleave values from authored data', () {
-      final def = ability('eloise.bloodletter_cleave');
-      final bleedProfileId = def.procs.first.statusProfileId;
-      final profile = const StatusProfileCatalog().get(bleedProfileId);
-      final dot = profile.applications.firstWhere(
-        (application) => application.type == StatusEffectType.dot,
+    test('Cleave explains tap damage and full-charge-only bleed', () {
+      final tooltip = tooltipBuilder.build(
+        ability('eloise.bloodletter_cleave'),
       );
-      final tiers = def.chargeProfile!.tiers;
-      var maxDamageScaleBp = tiers.first.damageScaleBp;
-      var maxCritBonusBp = tiers.first.critBonusBp;
-      for (final tier in tiers.skip(1)) {
-        if (tier.damageScaleBp > maxDamageScaleBp) {
-          maxDamageScaleBp = tier.damageScaleBp;
-        }
-        if (tier.critBonusBp > maxCritBonusBp) {
-          maxCritBonusBp = tier.critBonusBp;
-        }
-      }
-      final damageBonusBp = maxDamageScaleBp > 10000
-          ? maxDamageScaleBp - 10000
-          : 0;
-      final tooltip = tooltipBuilder.build(def);
-
+      expect(tooltip.description, contains('release for 14.4 damage'));
+      expect(tooltip.description, contains('20.8 damage'));
       expect(
         tooltip.description,
-        contains(
-          'deals ${formatFixed100(def.baseDamage)} damage to enemies in aiming direction and in the attack reach.',
-        ),
+        contains('Only full charge grants this bleed'),
       );
       expect(
         tooltip.description,
-        contains(
-          'Bleed, dealing ${formatFixed100(dot.magnitude)} damage per second for ${formatDecimal(dot.durationSeconds)} seconds.',
-        ),
+        contains('3 damage per second for 5 seconds'),
       );
       expect(
-        tooltip.description,
-        contains('up to +${formatDecimal(damageBonusBp / 100.0)}%'),
-      );
-      expect(
-        tooltip.description,
-        contains(
-          'critical chance (up to +${formatDecimal(maxCritBonusBp / 100.0)}%)',
-        ),
-      );
-      final highlightedValues = tooltip.dynamicDescriptionValues;
-      expect(highlightedValues, contains(formatFixed100(def.baseDamage)));
-      expect(highlightedValues, contains('Bleed'));
-      expect(highlightedValues, contains(formatFixed100(dot.magnitude)));
-      expect(highlightedValues, contains(formatDecimal(dot.durationSeconds)));
-      expect(highlightedValues, contains(formatDecimal(damageBonusBp / 100.0)));
-      expect(
-        highlightedValues,
-        contains(formatDecimal(maxCritBonusBp / 100.0)),
+        tooltip.dynamicDescriptionValues,
+        containsAll(['14.4', '20.8', 'Bleed']),
       );
     });
 
@@ -408,35 +389,33 @@ void main() {
       expect(tooltip.dynamicDescriptionValues, contains('9'));
     });
 
-    test(
-      'builds overcharge shot description with charge bonuses and interruptible',
-      () {
-        final def = ability('eloise.overcharge_shot');
-        final tooltip = tooltipBuilder.build(
-          def,
-          ctx: const AbilityTooltipContext(
-            activeProjectileId: ProjectileId.fireBolt,
-            payloadWeaponType: WeaponType.spell,
-          ),
-        );
-        final expectedDamage = formatFixed100(def.baseDamage);
+    test('builds overcharge shot description with charge bonuses and interruptible', () {
+      final def = ability('eloise.overcharge_shot');
+      final tooltip = tooltipBuilder.build(
+        def,
+        ctx: const AbilityTooltipContext(
+          activeProjectileId: ProjectileId.fireBolt,
+          payloadWeaponType: WeaponType.spell,
+        ),
+      );
+      final expectedDamage = formatFixed100(def.baseDamage);
 
-        expect(
-          tooltip.description,
-          equals(
-            'Charge and release the selected spell projectile (Fire Bolt). '
-            'It deals $expectedDamage damage to a single target. '
-            'Charging increases damage (up to +22.5%) '
-            'and critical chance (up to +10%). '
-            'This attack can be interrupted by taking damage.',
-          ),
-        );
-        expect(tooltip.dynamicDescriptionValues, contains(' (Fire Bolt)'));
-        expect(tooltip.dynamicDescriptionValues, contains(expectedDamage));
-        expect(tooltip.dynamicDescriptionValues, contains('22.5'));
-        expect(tooltip.dynamicDescriptionValues, contains('10'));
-      },
-    );
+      expect(
+        tooltip.description,
+        equals(
+          'Charge and release the selected spell projectile (Fire Bolt). '
+          'It deals $expectedDamage damage to a single target. '
+          'Charging increases damage (up to +22.5%) '
+          'and critical chance (up to +10%). '
+          'Full charge takes 0.4 seconds. '
+          'This attack can be interrupted by taking damage.',
+        ),
+      );
+      expect(tooltip.dynamicDescriptionValues, contains(' (Fire Bolt)'));
+      expect(tooltip.dynamicDescriptionValues, contains(expectedDamage));
+      expect(tooltip.dynamicDescriptionValues, contains('22.5'));
+      expect(tooltip.dynamicDescriptionValues, contains('10'));
+    });
 
     test('builds skewer shot description with pierce count', () {
       final def = ability('eloise.skewer_shot');
@@ -464,7 +443,7 @@ void main() {
     test('maps authored cooldown ticks to seconds', () {
       final tooltip = tooltipBuilder.build(ability('eloise.vital_surge'));
 
-      expect(tooltip.cooldownSeconds, 7);
+      expect(tooltip.cooldownSeconds, 12);
     });
 
     test('keeps cooldown null when authored cooldown is zero', () {
@@ -494,7 +473,7 @@ void main() {
 
       expect(tooltip.costLines, hasLength(1));
       expect(tooltip.costLines.single.label, equals('Cost: '));
-      expect(tooltip.costLines.single.value, equals('15 Mana'));
+      expect(tooltip.costLines.single.value, equals('20 Mana'));
     });
 
     test('resolves cost line from payload weapon context', () {

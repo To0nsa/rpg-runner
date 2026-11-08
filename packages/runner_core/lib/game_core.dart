@@ -682,6 +682,7 @@ class GameCore {
               _goddessCombat.tryBeginDodge(world, boss, player, tick),
         ),
         ParryMiddleware(
+          riposteLifetimeTicks: tickHz,
           abilityIds: const <AbilityKey>{
             'eloise.aegis_riposte',
             'eloise.shield_block',
@@ -699,6 +700,7 @@ class GameCore {
       forcedInterruptPolicy: forcedInterruptPolicy,
     );
     _reactiveProcSystem = ReactiveProcSystem(
+      tickHz: tickHz,
       weapons: _weapons,
       accessories: _accessories,
       rngSeed: seed,
@@ -763,6 +765,7 @@ class GameCore {
       spellBooks: _spellBooks,
       accessories: _accessories,
       playerCastOriginOffset: _playerCharacter.catalog.castOriginOffset,
+      playerCharacter: _playerCharacter,
       projectileAimPathClear: projectileAimVisibility.isClear,
       physics: _physicsTuning,
       aimTerrainProvider: () {
@@ -783,6 +786,7 @@ class GameCore {
 
     // Projectile execution.
     _projectileLaunchSystem = ProjectileLaunchSystem(
+      playerCharacter: _playerCharacter,
       abilities: abilityCatalog,
       projectiles: _projectiles,
       tickHz: tickHz,

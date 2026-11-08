@@ -34,6 +34,15 @@ abstract final class ProjectilePoseCatalog {
       (ProjectileId.hunterCrossbow, AnimKey.idle) => _hunterCrossbowIdle,
       (ProjectileId.hunterShotgun, AnimKey.idle) => _hunterShotgunIdle,
       (ProjectileId.hunterBomb, AnimKey.idle) => _hunterBombIdle,
+      (ProjectileId.hunterRoadsidePistol, AnimKey.idle) =>
+        _hunterRoadsidePistolIdle,
+      (ProjectileId.hunterLongbarrelPistol, AnimKey.idle) =>
+        _hunterLongbarrelPistolIdle,
+      (ProjectileId.hunterLongwatchCrossbow, AnimKey.idle) =>
+        _hunterLongwatchCrossbowIdle,
+      (ProjectileId.hunterHeavyLimbCrossbow, AnimKey.idle) =>
+        _hunterHeavyLimbCrossbowIdle,
+      (ProjectileId.hunterBrushgun, AnimKey.idle) => _hunterBrushgunIdle,
       _ => const <List<CombatCapsule>>[],
     };
     return frames.isEmpty ? const [] : frames[frame % frames.length];
@@ -247,5 +256,32 @@ abstract final class ProjectilePoseCatalog {
     [CombatCapsule(-1, -1, -1, -1, 4)],
     [CombatCapsule(-1.5, -2.5, -1.5, -1.5, 4.5)],
     [CombatCapsule(-1, -4, -1, -1, 4)],
+  ];
+  static const _hunterRoadsidePistolIdle = [
+    [CombatCapsule(-7, 0, 4, 0, 3)],
+    [CombatCapsule(-1.5, 0.5, 6.5, 0.5, 6.5)],
+    [CombatCapsule(-1, 0, 9, 0, 7)],
+  ];
+  static const _hunterLongbarrelPistolIdle = [
+    [CombatCapsule(-7, 0, 4, 0, 3)],
+    [CombatCapsule(-1.5, 0.5, 6.5, 0.5, 6.5)],
+    [CombatCapsule(-1, 0, 9, 0, 7)],
+  ];
+  static const _hunterLongwatchCrossbowIdle = [
+    [CombatCapsule(-10.5, -0.5, 7.5, -0.5, 2.5)],
+    [CombatCapsule(-11.5, -0.5, 7.5, -0.5, 2.5)],
+    [CombatCapsule(-12.5, -0.5, 7.5, -0.5, 2.5)],
+    [CombatCapsule(-11.5, -0.5, 7.5, -0.5, 2.5)],
+  ];
+  static const _hunterHeavyLimbCrossbowIdle = [
+    [CombatCapsule(-10.5, -0.5, 7.5, -0.5, 2.5)],
+    [CombatCapsule(-11.5, -0.5, 7.5, -0.5, 2.5)],
+    [CombatCapsule(-12.5, -0.5, 7.5, -0.5, 2.5)],
+    [CombatCapsule(-11.5, -0.5, 7.5, -0.5, 2.5)],
+  ];
+  static const _hunterBrushgunIdle = [
+    [CombatCapsule(-3.5, 0.5, 2.5, 0.5, 1.5)],
+    [CombatCapsule(-5.5, 0.5, 2.5, 0.5, 1.5)],
+    [CombatCapsule(-6.5, 0.5, 2.5, 0.5, 1.5)],
   ];
 }

@@ -179,6 +179,10 @@ flutter:
     - assets/images/icons/gear-icons/shields/
     - assets/images/icons/gear-icons/spellbook/
     - assets/images/icons/gear-icons/sword/
+    - assets/images/icons/gear-icons/willow/blades/
+    - assets/images/icons/gear-icons/willow/bomb_kits/
+    - assets/images/icons/gear-icons/willow/field_kits/
+    - assets/images/icons/gear-icons/willow/ranged/
     - assets/images/icons/skills-icons/
     - assets/images/level/atlases/ancient_forest/
     - assets/images/level/atlases/autumn_trees/

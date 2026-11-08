@@ -100,4 +100,7 @@ All accessories map to the shared UI sprite sheet:
 - Keep accessory identity data-driven in `AccessoryCatalog` via
   `GearStatBonuses`; avoid branching behavior.
 - Runtime/catalog coverage includes all 8 accessories.
-- Startup/meta normalization keeps all accessories unlocked by default.
+- Fresh profiles own Strength Belt only; the remaining accessories use store or
+  authorized gift unlocks. Developer Practice exposes all eight.
+- Both characters share accessory ownership. Mana-related bonuses and sustain
+  apply to Supplies for Willow; character-aware item details use that label.

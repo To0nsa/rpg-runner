@@ -43,25 +43,27 @@ Primary knobs:
 
 ## Spellbook Roster
 
-| # | Spellbook | Positive Stats (bp) | Dump (bp) | Proc |
-|---|---|---|---|---|---|---|
-| 1 | `Apprentice Primer` | `mana +1500`, `manaRegen +1000` | `stamina -500` | none |
-| 2 | `Bastion Codex` | `mana +1500`, `cooldownReduction +1000` | `staminaRegen -500` | none |
-| 3 | `Ember Grimoire` | `mana +1500`, `globalCrit +1000` | `healthRegen -500` | none |
-| 4 | `Tide Almanac` | `cooldownReduction +1500`, `globalCrit +1000` | `staminaRegen -500` | none |
-| 5 | `Hexbound Lexicon` | `manaRegen +1500`, `cooldownReduction +1000` | `healthRegen -500` | none |
-| 6 | `Gale Folio` | `globalCrit +1500`, `manaRegen +1000` | `stamina -500` | none |
-| 7 | `Null Testament` | `cooldownReduction +1500`, `mana +1000` | `staminaRegen -500` | none |
-| 8 | `Crown of Focus` | `mana +1000`, `globalCrit +500`, `cooldownReduction +500` | `stamina -500`, `staminaRegen -500` | none |
+| # | Spellbook | Positive stats (bp) | Tradeoff (bp) | Proc |
+| --- | --- | --- | --- | --- |
+| 1 | Apprentice Primer | `mana +1500, manaRegen +500, globalCrit +500` | `stamina -500` | none |
+| 2 | Bastion Codex | `mana +2000, manaRegen +1000, cooldownReduction +500` | `healthRegen -500` | none |
+| 3 | Ember Grimoire | `mana +1000, globalCrit +1000, cooldownReduction +500` | `staminaRegen -500` | none |
+| 4 | Tide Almanac | `mana +2000, manaRegen +500, cooldownReduction +500` | `stamina -1000` | none |
+| 5 | Hexbound Lexicon | `mana +1000, manaRegen +1000, globalCrit +1000` | `healthRegen -500` | none |
+| 6 | Gale Folio | `mana +2000, globalCrit +500, cooldownReduction +500` | `stamina -500` | none |
+| 7 | Null Testament | `mana +1500, manaRegen +1000, globalCrit +500` | `staminaRegen -500` | none |
+| 8 | Crown of Focus | `mana +2000, globalCrit +1000, cooldownReduction +500` | `stamina -1000` | none |
 
 ## Identity Coverage Check
 
-The roster intentionally covers key spellbook identities:
+- Baseline balance: Apprentice Primer.
+- Reserves and regeneration: Bastion Codex and Tide Almanac, with different taxes.
+- Critical cadence: Ember Grimoire and Crown of Focus.
+- Regeneration and critical chance: Hexbound Lexicon and Null Testament.
+- Reserve/cadence compromise: Gale Folio.
 
-- Baseline consistency: `Apprentice Primer`
-- Mana wall / economy anchors: `Bastion Codex`, `Tide Almanac`, `Gale Folio`
-- Crit-forward picks: `Ember Grimoire`, `Hexbound Lexicon`, `Crown of Focus`
-- Regen-oriented consistency: `Null Testament`
+These are global gear stats, not spellbook-owned triggered effects.
+Willow has a separate [eight-field-kit roster](willow_equipment_roster.md#field-kits).
 
 ## Implementation Notes
 

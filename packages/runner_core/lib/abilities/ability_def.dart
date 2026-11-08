@@ -271,6 +271,7 @@ class AbilityChargeTierDef {
     this.speedScaleBp = 10000,
     this.pierce,
     this.maxPierceHits,
+    this.procs,
   }) : assert(minHoldTicks60 >= 0, 'minHoldTicks60 cannot be negative'),
        assert(damageScaleBp >= 0, 'damageScaleBp cannot be negative'),
        assert(speedScaleBp > 0, 'speedScaleBp must be > 0'),
@@ -296,6 +297,10 @@ class AbilityChargeTierDef {
 
   /// Optional projectile max pierce hit override.
   final int? maxPierceHits;
+
+  /// Replaces innate ability procs for this tier; null inherits the base list.
+  /// Item/buff procs still merge normally, including on uncharged commits.
+  final List<WeaponProc>? procs;
 }
 
 /// Data-authored charge profile shared by melee/projectile commit paths.

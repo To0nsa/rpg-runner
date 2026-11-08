@@ -9,7 +9,7 @@ Abilities requiring `WeaponType.shield` and equippable in `AbilitySlot.secondary
 | `eloise.aegis_riposte` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` | `secondaryWeapon` |
 | `eloise.shield_block` | `holdMaintain` | `none` | `2/180/2` | hold drain `700/s` | `30` | `secondaryWeapon` |
 
-Both abilities protect from every direction and hold the raised shield pose during protection. A front shield overlap is not required.
+Both abilities protect from every direction and hold the raised shield pose during protection. A front shield overlap is not required. Existing DoT ticks and world-space spell impacts bypass these guards.
 
 ## Defensive Shield Abilities
 
@@ -19,7 +19,10 @@ Both abilities protect from every direction and hold the raised shield pose duri
 - max active window: `180` ticks
 - hold drain: `700` stamina/sec
 - hit mitigation: `5000 bp` (`50%`)
-- grants one riposte bonus on first guarded hit per activation
+- grants +100% next-landed-melee damage on the first guarded hit per activation
+- remains ready during that same guard; expires one second after release, timeout or depletion
+- misses do not consume the bonus; a new guard cannot renew an old reward
+- HUD shows readiness while holding, then the remaining counterattack time
 
 ### `eloise.shield_block`
 

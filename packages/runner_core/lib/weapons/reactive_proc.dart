@@ -63,6 +63,7 @@ class ReactiveProc {
   /// Ignored for other hooks.
   final int lowHealthThresholdBp;
 
-  /// Per-entity cooldown in ticks for this proc (`0 == no cooldown`).
+  /// Per-entity cooldown in authored 60 Hz ticks (`0 == no cooldown`).
+  /// ReactiveProcSystem scales this duration to the runtime tick rate.
   final int internalCooldownTicks;
 }

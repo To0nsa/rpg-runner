@@ -107,7 +107,8 @@ Every level supports two run types:
 
 ## Content scope (ready for playtesting)
 A playable slice that proves the loop:
-- **1 character** with abilities and gears
+- **2 characters**, Éloïse and Willow, each with 42 compatible item choices
+  across four gear slots and the separate ranged source selection
 - **6 enemies** with different behaviors (melee, ranged, jumper, tank, etc.)
 - **2 levels/biomes** (different obstacle + encounter patterns)
 - **Run types**

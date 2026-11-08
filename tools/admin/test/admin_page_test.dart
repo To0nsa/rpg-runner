@@ -86,6 +86,11 @@ void main() {
       );
       await tester.enterText(find.byKey(const Key('gold')), '1000');
       final item = c.catalog.firstWhere((e) => e.itemId == 'waspfang');
+      await tester.enterText(
+        find.byKey(const Key('catalog-search')),
+        item.itemId,
+      );
+      await tester.pump();
       await tester.tap(find.text(item.displayName));
       await tester.pump();
       await tester.enterText(
@@ -104,11 +109,18 @@ void main() {
       expect(c.error, isNull);
       expect(find.byKey(const Key('send')), findsOneWidget);
       await tester.enterText(find.byKey(const Key('catalog-search')), '');
-      for (var i = 0; i < 20; i++) {
+      await tester.pump();
+      // Wait for repository image decoding, rather than assuming disk timing.
+      for (var i = 0; i < 250; i++) {
         await tester.runAsync(() async {
           await Future<void>.delayed(const Duration(milliseconds: 20));
         });
         await tester.pump();
+        if (tester
+            .renderObjectList<RenderImage>(find.byType(RawImage))
+            .every((image) => image.image != null)) {
+          break;
+        }
       }
       expect(
         tester

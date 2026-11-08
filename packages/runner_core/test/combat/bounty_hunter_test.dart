@@ -1,3 +1,8 @@
+import 'package:runner_core/ecs/systems/reactive_proc_system.dart';
+import 'package:runner_core/weapons/weapon_proc.dart';
+
+import 'dart:math' as math;
+
 import 'package:test/test.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/tuning/physics_tuning.dart';
@@ -71,6 +76,251 @@ const _loadout = EquippedLoadoutDef(
 );
 
 void main() {
+  for (final tickHz in [30, 60, 120]) {
+    for (final kit in [WeaponId.hunterSplinterRig, WeaponId.hunterPitchRig]) {
+      test(
+        '$kit critical blast applies authored damage-over-time at $tickHz Hz',
+        () {
+          final h = _Harness(tickHz: tickHz);
+          final target = h.enemy(10, 28);
+          h.world.equippedLoadout.offhandWeaponId[0] = kit;
+          h.press(AbilitySlot.secondary);
+          h.world.projectileIntent.critChanceBp[0] = 10000;
+          h.launch.step(h.world, currentTick: h.world.projectileIntent.tick[0]);
+          final fuse = h.world.bomb.explodeTick.single;
+          final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64))
+            ..rebuild(h.world);
+          BombSystem(
+            tickHz: tickHz,
+            pathClear: (_, _, _, _) => true,
+          ).step(h.world, grid, currentTick: fuse);
+          final status = StatusSystem(tickHz: tickHz);
+          DamageSystem(
+            invulnerabilityTicksOnHit: 0,
+            rngSeed: 1,
+            tickHz: tickHz,
+          ).step(h.world, currentTick: fuse, queueStatus: status.queue);
+          status.applyQueued(h.world, currentTick: fuse);
+          final i = h.world.dot.indexOf(target);
+          expect(h.world.dot.dps100[i], [200]);
+          expect(h.world.dot.ticksLeft[i], [3 * tickHz]);
+          expect(
+            h.world.health.hp[h.world.health.indexOf(target)],
+            lessThan(10000),
+          );
+        },
+      );
+    }
+    test(
+      'Backtrail Rig requires a health crossing and waits 30s at $tickHz Hz',
+      () {
+        final h = _Harness(tickHz: tickHz);
+        h.world.equippedLoadout.offhandWeaponId[0] =
+            WeaponId.hunterBacktrailRig;
+        final damage = DamageSystem(
+          invulnerabilityTicksOnHit: 0,
+          rngSeed: 1,
+          tickHz: tickHz,
+        );
+        final reactive = ReactiveProcSystem(
+          weapons: const WeaponCatalog(),
+          rngSeed: 1,
+          tickHz: tickHz,
+        );
+        final queued = <StatusRequest>[];
+        void hit(int tick, {bool heal = true}) {
+          if (heal) h.world.health.hp[0] = 3500;
+          h.world.damageQueue.add(
+            DamageRequest(target: h.player, amount100: 1200),
+          );
+          damage.step(h.world, currentTick: tick);
+          reactive.step(h.world, currentTick: tick, queueStatus: queued.add);
+        }
+
+        hit(1);
+        expect(queued, hasLength(1));
+        final statuses = StatusSystem(tickHz: tickHz)..queue(queued.single);
+        statuses.applyQueued(h.world, currentTick: 1);
+        expect(h.world.haste.magnitude.single, 1500);
+        expect(h.world.haste.ticksLeft.single, 3 * tickHz);
+        hit(2, heal: false);
+        hit(30 * tickHz);
+        expect(queued, hasLength(1));
+        hit(30 * tickHz + 1);
+        expect(queued, hasLength(2));
+      },
+    );
+  }
+  test('blade effects stay out of gun and bomb payloads', () {
+    for (final slot in [
+      AbilitySlot.primary,
+      AbilitySlot.projectile,
+      AbilitySlot.secondary,
+    ]) {
+      final h = _Harness();
+      h.world.equippedLoadout.mainWeaponId[0] = WeaponId.hunterNotchknife;
+      h.world.equippedLoadout.offhandWeaponId[0] = WeaponId.hunterSnareRig;
+      h.press(slot);
+      final procs = slot == AbilitySlot.primary
+          ? h.world.meleeIntent.procs.single
+          : h.world.projectileIntent.procs.single;
+      expect(procs.map((p) => p.statusProfileId), switch (slot) {
+        AbilitySlot.primary => [StatusProfileId.meleeBleed],
+        AbilitySlot.secondary => [StatusProfileId.slowOnHit],
+        _ => isEmpty,
+      });
+    }
+  });
+  test('bomb kit and ability effects retain distinct hook tuning', () {
+    final h = _Harness();
+    h.world.equippedLoadout.offhandWeaponId[0] = WeaponId.hunterPitchRig;
+    h.equip(bountyHunterAbilityDefs['bounty_hunter.fire_bomb']!);
+    h.press(AbilitySlot.secondary);
+    final procs = h.world.projectileIntent.procs.single;
+    expect(procs.where((p) => p.hook == ProcHook.onHit), hasLength(1));
+    expect(procs.where((p) => p.hook == ProcHook.onCrit), hasLength(1));
+    final critical = procs.singleWhere((p) => p.hook == ProcHook.onCrit);
+    expect(critical.statusTuning.dot!.magnitude, 200);
+  });
+
+  for (final gun in hunterRangedWeaponIds) {
+    for (final hz in [30, 60, 120]) {
+      for (final facing in Facing.values) {
+        test('$gun releases from its visible muzzle, $facing at $hz Hz', () {
+          final character = bountyHunterCharacter.withProjectile(gun);
+          final render = character.renderAnim;
+          final step = math.max(
+            1,
+            (render.stepTimeSecondsByKey[AnimKey.rangedRun]! * hz).round(),
+          );
+          for (final posture in ['standing', 'air', 'run']) {
+            for (
+              var runFrame = 0;
+              runFrame < (posture == 'run' ? 8 : 1);
+              runFrame++
+            ) {
+              final h = _Harness(tickHz: hz, weapon: gun);
+              h.equip(bountyHunterAbilityDefs['bounty_hunter.scatter_shot']!);
+              h.world.movement.facing[0] = facing;
+              final sign = facing == Facing.right ? 1.0 : -1.0;
+              h.press(
+                AbilitySlot.projectile,
+                aimX: sign * .6,
+                aimY: -.8,
+                tick: 1 + runFrame * step,
+              );
+              final release = h.world.projectileIntent.tick.single;
+              // Move and change posture during windup: attachments use release
+              // state, never the body position/posture captured at commit.
+              final tick = release;
+              h.world.collision.grounded[0] = posture != 'air';
+              h.world.transform.setPosXY(h.player, 80, 70);
+              h.world.transform.velX[0] = posture == 'run' ? 160 : 0;
+              const ActiveAbilityPhaseSystem().step(h.world, currentTick: tick);
+              h.launch.step(h.world, currentTick: tick);
+              AnimSystem(
+                tickHz: hz,
+                playerRenderAnim: render,
+                enemyCatalog: const EnemyCatalog(),
+                playerMovement: h.movement,
+                playerAnimTuning: AnimTuningDerived.from(
+                  bountyHunterTuning.anim,
+                  tickHz: hz,
+                  renderAnim: render,
+                ),
+              ).step(
+                h.world,
+                player: h.player,
+                currentTick: tick,
+                playerSpawnStartTick: -1000,
+              );
+              final anim = h.world.animState.anim.single;
+              final visible =
+                  h.world.animState.animFrame.single ~/
+                  math.max(
+                    1,
+                    (render.stepTimeSecondsByKey[anim]! * hz).round(),
+                  );
+              expect(
+                anim,
+                posture == 'standing'
+                    ? AnimKey.ranged
+                    : posture == 'air'
+                    ? AnimKey.rangedAir
+                    : AnimKey.rangedRun,
+              );
+              expect(posture == 'run' ? visible ~/ 8 : visible, 1);
+              final profile = character.projectileMuzzles[gun]!;
+              final offset = posture == 'standing'
+                  ? profile.standing
+                  : posture == 'air'
+                  ? profile.airborne
+                  : profile.running[visible % 8];
+              final entities = h.world.projectile.denseEntities;
+              expect(entities, hasLength(5));
+              for (final entity in entities) {
+                final ti = h.world.transform.indexOf(entity);
+                expect(
+                  h.world.transform.posX[ti],
+                  closeTo(80 + offset.x * sign, 1e-9),
+                );
+                expect(
+                  h.world.transform.posY[ti],
+                  closeTo(70 + offset.y, 1e-9),
+                );
+              }
+              expect(
+                h.world.projectile.dirY.first,
+                isNot(closeTo(h.world.projectile.dirY.last, 1e-6)),
+              );
+              // A consumed release cannot emit a second fan.
+              h.launch.step(h.world, currentTick: tick);
+              expect(h.world.projectile.denseEntities, hasLength(5));
+            }
+          }
+        });
+      }
+    }
+    for (final targetX in [-160.0, -5.0, 5.0, 160.0]) {
+      test(
+        '$gun auto aim starts its trajectory and sightline at the muzzle, x=$targetX',
+        () {
+          final rays = <(double, double)>[];
+          final h = _Harness(
+            weapon: gun,
+            aimPathClear: (x, y, _, _) {
+              rays.add((x, y));
+              return true;
+            },
+          );
+          h.enemy(targetX, 20);
+          h.press(AbilitySlot.projectile);
+          h.launch.step(
+            h.world,
+            currentTick: h.world.projectileIntent.tick.single,
+          );
+          final projectiles = h.world.projectile;
+          // The middle pellet retains the exact aimed direction for fan weapons.
+          final middle = projectiles.denseEntities.length ~/ 2;
+          final ti = h.world.transform.indexOf(
+            projectiles.denseEntities[middle],
+          );
+          final x = h.world.transform.posX[ti], y = h.world.transform.posY[ti];
+          expect(rays, hasLength(1));
+          expect(rays.single.$1, closeTo(x, 1e-9));
+          expect(rays.single.$2, closeTo(y, 1e-9));
+          final dx = targetX - x, dy = 20 - y;
+          final length = math.sqrt(dx * dx + dy * dy);
+          expect(projectiles.dirX[middle], closeTo(dx / length, 1e-9));
+          expect(projectiles.dirY[middle], closeTo(dy / length, 1e-9));
+          expect(
+            h.world.movement.facing.single,
+            targetX < 0 ? Facing.left : Facing.right,
+          );
+        },
+      );
+    }
+  }
   for (final name in [
     'hunters_focus',
     'forced_march',
@@ -320,11 +570,7 @@ void main() {
       }
     });
   }
-  for (final weapon in [
-    ProjectileId.hunterPistol,
-    ProjectileId.hunterCrossbow,
-    ProjectileId.hunterShotgun,
-  ]) {
+  for (final weapon in hunterRangedWeaponIds) {
     for (final name in [
       'snap_shot',
       'quick_shot',
@@ -351,9 +597,7 @@ void main() {
           p.denseEntities.length,
           name == 'scatter_shot'
               ? 5
-              : weapon == ProjectileId.hunterShotgun
-              ? 3
-              : 1,
+              : const ProjectileCatalog().get(weapon).shotCount,
         );
         expect(p.dirY.first, closeTo(-p.dirY.last, 1e-10));
         if (name == 'piercing_shot') expect(p.pierce, everyElement(isTrue));
@@ -488,7 +732,11 @@ TerrainPolygonInput _polygon(String id, List<(double, double)> vertices) =>
     );
 
 class _Harness {
-  _Harness({this.tickHz = 60}) {
+  _Harness({
+    this.tickHz = 60,
+    ProjectileId weapon = ProjectileId.hunterPistol,
+    bool Function(double, double, double, double)? aimPathClear,
+  }) {
     player = EntityFactory(world).createPlayer(
       posX: 0,
       posY: 20,
@@ -513,7 +761,12 @@ class _Harness {
       equippedLoadout: _loadout,
     );
     _capsule(player);
+    world.equippedLoadout.projectileSlotSpellId[0] = weapon;
+    final character = bountyHunterCharacter.withProjectile(weapon);
     activation = AbilityActivationSystem(
+      playerCharacter: character,
+      playerCastOriginOffset: character.catalog.castOriginOffset,
+      projectileAimPathClear: aimPathClear,
       tickHz: tickHz,
       inputBufferTicks: 8,
       abilities: AbilityCatalog.shared,
@@ -523,6 +776,7 @@ class _Harness {
       accessories: const AccessoryCatalog(),
     );
     launch = ProjectileLaunchSystem(
+      playerCharacter: character,
       projectiles: const ProjectileCatalog(),
       tickHz: tickHz,
     );
@@ -555,11 +809,17 @@ class _Harness {
     }
   }
 
-  void press(AbilitySlot slot) {
+  void press(
+    AbilitySlot slot, {
+    double aimX = 1,
+    double aimY = 0,
+    int tick = 1,
+  }) {
     final input = world.playerInput;
     input.hasAbilitySlotPressed[0] = true;
     input.lastAbilitySlotPressed[0] = slot;
-    input.aimDirX[0] = 1;
+    input.aimDirX[0] = aimX;
+    input.aimDirY[0] = aimY;
     switch (slot) {
       case AbilitySlot.primary:
         input.strikePressed[0] = true;
@@ -574,7 +834,7 @@ class _Harness {
       case AbilitySlot.jump:
         input.jumpPressed[0] = true;
     }
-    activation.step(world, player: player, currentTick: 1);
+    activation.step(world, player: player, currentTick: tick);
   }
 
   int enemy(double x, double y, {Faction faction = Faction.enemy}) {

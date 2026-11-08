@@ -103,6 +103,8 @@ class ParryMiddleware implements DamageMiddleware {
       target,
       expiresAtTick: currentTick + riposteLifetimeTicks,
       bonusBp: riposteBonusBp,
+      guardStartTick: startTick,
+      releaseWindowTicks: riposteLifetimeTicks,
     );
   }
 

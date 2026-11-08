@@ -22,12 +22,331 @@ class WeaponCatalog {
           id: WeaponId.hunterBlade,
           category: WeaponCategory.primary,
           weaponType: WeaponType.hunterBlade,
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 1000,
+            staminaBonusBp: 1500,
+            staminaRegenBonusBp: 500,
+            defenseBonusBp: -500,
+          ),
+        );
+      case WeaponId.hunterNotchknife:
+        return const WeaponDef(
+          id: WeaponId.hunterNotchknife,
+          category: WeaponCategory.primary,
+          weaponType: WeaponType.hunterBlade,
+          stats: GearStatBonuses(globalPowerBonusBp: 500, healthBonusBp: -500),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.meleeBleed,
+              chanceBp: 2000,
+              statusTuning: StatusProfileTuning(
+                dot: StatusApplicationTuning(
+                  magnitude: 200,
+                  durationSeconds: 3,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterHookblade:
+        return const WeaponDef(
+          id: WeaponId.hunterHookblade,
+          category: WeaponCategory.primary,
+          weaponType: WeaponType.hunterBlade,
+          stats: GearStatBonuses(
+            staminaRegenBonusBp: 1000,
+            defenseBonusBp: -500,
+          ),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.slowOnHit,
+              chanceBp: 2000,
+              statusTuning: StatusProfileTuning(
+                slow: StatusApplicationTuning(
+                  magnitude: 2000,
+                  durationSeconds: 2,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterCausticEdge:
+        return const WeaponDef(
+          id: WeaponId.hunterCausticEdge,
+          category: WeaponCategory.primary,
+          weaponType: WeaponType.hunterBlade,
+          stats: GearStatBonuses(staminaBonusBp: 1000, healthBonusBp: -500),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.acidOnHit,
+              chanceBp: 2000,
+              statusTuning: StatusProfileTuning(
+                vulnerable: StatusApplicationTuning(
+                  magnitude: 1500,
+                  durationSeconds: 3,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterCinderpoint:
+        return const WeaponDef(
+          id: WeaponId.hunterCinderpoint,
+          category: WeaponCategory.primary,
+          weaponType: WeaponType.hunterBlade,
+          stats: GearStatBonuses(
+            globalCritChanceBonusBp: 1000,
+            manaRegenBonusBp: -500,
+          ),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onCrit,
+              statusProfileId: StatusProfileId.burnOnHit,
+              chanceBp: 10000,
+              statusTuning: StatusProfileTuning(
+                dot: StatusApplicationTuning(
+                  magnitude: 200,
+                  durationSeconds: 3,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterSappingBlade:
+        return const WeaponDef(
+          id: WeaponId.hunterSappingBlade,
+          category: WeaponCategory.primary,
+          weaponType: WeaponType.hunterBlade,
+          stats: GearStatBonuses(
+            staminaRegenBonusBp: 1000,
+            healthBonusBp: -500,
+          ),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.weakenOnHit,
+              chanceBp: 2000,
+              statusTuning: StatusProfileTuning(
+                weaken: StatusApplicationTuning(
+                  magnitude: 1500,
+                  durationSeconds: 3,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterPursuitBlade:
+        return const WeaponDef(
+          id: WeaponId.hunterPursuitBlade,
+          category: WeaponCategory.primary,
+          weaponType: WeaponType.hunterBlade,
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 500,
+            staminaRegenBonusBp: 1000,
+            defenseBonusBp: -500,
+          ),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onKill,
+              statusProfileId: StatusProfileId.speedBoost,
+              chanceBp: 3500,
+              statusTuning: StatusProfileTuning(
+                haste: StatusApplicationTuning(
+                  magnitude: 1500,
+                  durationSeconds: 3,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterLastWord:
+        return const WeaponDef(
+          id: WeaponId.hunterLastWord,
+          category: WeaponCategory.primary,
+          weaponType: WeaponType.hunterBlade,
+          stats: GearStatBonuses(
+            globalPowerBonusBp: 1500,
+            globalCritChanceBonusBp: 1000,
+            staminaBonusBp: 1000,
+            healthBonusBp: -1000,
+          ),
         );
       case WeaponId.hunterBombKit:
         return const WeaponDef(
           id: WeaponId.hunterBombKit,
           category: WeaponCategory.offHand,
           weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(
+            defenseBonusBp: 1000,
+            staminaBonusBp: 1500,
+            physicalResistanceBp: 1000,
+            moveSpeedBonusBp: -500,
+          ),
+        );
+      case WeaponId.hunterSplinterRig:
+        return const WeaponDef(
+          id: WeaponId.hunterSplinterRig,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(defenseBonusBp: 500, globalPowerBonusBp: -500),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onCrit,
+              statusProfileId: StatusProfileId.meleeBleed,
+              chanceBp: 10000,
+              statusTuning: StatusProfileTuning(
+                dot: StatusApplicationTuning(
+                  magnitude: 200,
+                  durationSeconds: 3,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterPitchRig:
+        return const WeaponDef(
+          id: WeaponId.hunterPitchRig,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(
+            defenseBonusBp: 500,
+            globalCritChanceBonusBp: -500,
+          ),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onCrit,
+              statusProfileId: StatusProfileId.burnOnHit,
+              chanceBp: 10000,
+              statusTuning: StatusProfileTuning(
+                dot: StatusApplicationTuning(
+                  magnitude: 200,
+                  durationSeconds: 3,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterSnareRig:
+        return const WeaponDef(
+          id: WeaponId.hunterSnareRig,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(
+            staminaBonusBp: 1000,
+            globalPowerBonusBp: -500,
+          ),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.slowOnHit,
+              chanceBp: 2500,
+              statusTuning: StatusProfileTuning(
+                slow: StatusApplicationTuning(
+                  magnitude: 2500,
+                  durationSeconds: 2,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterEtchingRig:
+        return const WeaponDef(
+          id: WeaponId.hunterEtchingRig,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(
+            staminaRegenBonusBp: 1000,
+            globalCritChanceBonusBp: -500,
+          ),
+          procs: [
+            WeaponProc(
+              hook: ProcHook.onHit,
+              statusProfileId: StatusProfileId.acidOnHit,
+              chanceBp: 2000,
+              statusTuning: StatusProfileTuning(
+                vulnerable: StatusApplicationTuning(
+                  magnitude: 1500,
+                  durationSeconds: 3,
+                ),
+              ),
+            ),
+          ],
+        );
+      case WeaponId.hunterSapperHarness:
+        return const WeaponDef(
+          id: WeaponId.hunterSapperHarness,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(
+            defenseBonusBp: 1000,
+            physicalResistanceBp: 1500,
+            staminaRegenBonusBp: 500,
+            moveSpeedBonusBp: -1000,
+          ),
+        );
+      case WeaponId.hunterKilnwrapRig:
+        return const WeaponDef(
+          id: WeaponId.hunterKilnwrapRig,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(
+            fireResistanceBp: 2500,
+            defenseBonusBp: 1000,
+            staminaBonusBp: 500,
+            globalCritChanceBonusBp: -500,
+          ),
+        );
+      case WeaponId.hunterSealedRig:
+        return const WeaponDef(
+          id: WeaponId.hunterSealedRig,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(
+            acidResistanceBp: 2000,
+            waterResistanceBp: 1500,
+            staminaBonusBp: 1000,
+            globalPowerBonusBp: -500,
+          ),
+        );
+      case WeaponId.hunterStormwrapRig:
+        return const WeaponDef(
+          id: WeaponId.hunterStormwrapRig,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(
+            thunderResistanceBp: 2500,
+            defenseBonusBp: 500,
+            staminaRegenBonusBp: 1000,
+            globalCritChanceBonusBp: -500,
+          ),
+        );
+      case WeaponId.hunterBacktrailRig:
+        return const WeaponDef(
+          id: WeaponId.hunterBacktrailRig,
+          category: WeaponCategory.offHand,
+          weaponType: WeaponType.bombKit,
+          stats: GearStatBonuses(
+            defenseBonusBp: 1000,
+            globalPowerBonusBp: -1000,
+          ),
+          reactiveProcs: [
+            ReactiveProc(
+              hook: ReactiveProcHook.onLowHealth,
+              statusProfileId: StatusProfileId.speedBoost,
+              chanceBp: 10000,
+              lowHealthThresholdBp: 3000,
+              internalCooldownTicks: _thirtySecondsAt60Hz,
+              statusTuning: StatusProfileTuning(
+                haste: StatusApplicationTuning(
+                  magnitude: 1500,
+                  durationSeconds: 3,
+                ),
+              ),
+            ),
+          ],
         );
       case WeaponId.plainsteel:
         return const WeaponDef(

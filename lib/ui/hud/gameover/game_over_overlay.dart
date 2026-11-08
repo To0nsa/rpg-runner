@@ -670,10 +670,15 @@ String _enemyName(EnemyId id) {
 String _projectileName(ProjectileId id) {
   switch (id) {
     case ProjectileId.hunterPistol:
+    case ProjectileId.hunterRoadsidePistol:
+    case ProjectileId.hunterLongbarrelPistol:
       return 'Bullet';
     case ProjectileId.hunterCrossbow:
+    case ProjectileId.hunterLongwatchCrossbow:
+    case ProjectileId.hunterHeavyLimbCrossbow:
       return 'Crossbow Bolt';
     case ProjectileId.hunterShotgun:
+    case ProjectileId.hunterBrushgun:
       return 'Shotgun Pellet';
     case ProjectileId.hunterBomb:
       return 'Bomb';

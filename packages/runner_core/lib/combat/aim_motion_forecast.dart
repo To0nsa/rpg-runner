@@ -10,6 +10,7 @@ import '../collision/terrain/terrain_traversal_profile.dart';
 import '../ecs/actor_facing.dart';
 import '../ecs/entity_id.dart';
 import '../ecs/world.dart';
+import '../ecs/world_support_view.dart';
 import '../terrain/swimming_tuning.dart';
 import '../tuning/physics_tuning.dart';
 import '../util/fixed_math.dart';
@@ -61,6 +62,10 @@ final class AimMotionForecast {
   double velocityX = 0;
   double velocityY = 0;
 
+  /// Predicted terrain support, retaining current support when no terrain
+  /// controller is available (the isolated free-motion forecast).
+  bool get grounded => _grounded;
+
   /// Whether the remaining trajectory admits the exact constant-velocity solve.
   bool get isLinear => _controller == null && _gravity == 0;
 
@@ -78,7 +83,7 @@ final class AimMotionForecast {
     _suppressedTicks = 0;
     _maxRiseSpeed = double.infinity;
     _maxFallSpeed = double.infinity;
-    _grounded = false;
+    _grounded = WorldSupportView(world).isGrounded(entity);
     _support = null;
     _supportVersion = -1;
     final bi = world.body.tryIndexOf(entity);

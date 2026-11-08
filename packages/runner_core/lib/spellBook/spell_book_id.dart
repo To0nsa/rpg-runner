@@ -11,4 +11,11 @@ enum SpellBookId {
   nullTestament,
   crownOfFocus,
   hunterFieldKit,
+  hunterLongtrailPack,
+  hunterMarksmanRoll,
+  hunterQuickAccessSatchel,
+  hunterReserveBandolier,
+  hunterTrackerPouch,
+  hunterSurveyorCase,
+  hunterQuarryKit,
 }

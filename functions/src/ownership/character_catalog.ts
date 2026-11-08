@@ -2,7 +2,11 @@ import type { JsonObject } from "./contracts.js";
 
 /** Stable character/content identities shared by starter grants and authorization. */
 export const knownCharacterIds = ["eloise", "eloiseWip", "bountyHunter"] as const;
-export const hunterProjectiles = ["hunterPistol", "hunterCrossbow", "hunterShotgun"] as const;
+export const hunterStarterProjectiles = ["hunterPistol", "hunterCrossbow", "hunterShotgun"] as const;
+export const hunterProjectiles = ["hunterPistol", "hunterCrossbow", "hunterShotgun", "hunterRoadsidePistol", "hunterLongbarrelPistol", "hunterLongwatchCrossbow", "hunterHeavyLimbCrossbow", "hunterBrushgun"] as const;
+export const hunterBlades = ["hunterBlade", "hunterNotchknife", "hunterHookblade", "hunterCausticEdge", "hunterCinderpoint", "hunterSappingBlade", "hunterPursuitBlade", "hunterLastWord"] as const;
+export const hunterBombKits = ["hunterBombKit", "hunterSplinterRig", "hunterPitchRig", "hunterSnareRig", "hunterEtchingRig", "hunterSapperHarness", "hunterKilnwrapRig", "hunterSealedRig", "hunterStormwrapRig", "hunterBacktrailRig"] as const;
+export const hunterFieldKits = ["hunterFieldKit", "hunterLongtrailPack", "hunterMarksmanRoll", "hunterQuickAccessSatchel", "hunterReserveBandolier", "hunterTrackerPouch", "hunterSurveyorCase", "hunterQuarryKit"] as const;
 export const hunterAbilitiesBySlot = {
   primary: ["quick_cut", "twin_cut", "threefold_cut", "lunge_slash"],
   secondary: ["blast_bomb", "shrapnel_bomb", "fire_bomb", "concussion_bomb"],
@@ -22,7 +26,7 @@ export const hunterStarterLoadout: JsonObject = {
   abilityMobilityId: "bounty_hunter.dash", abilityJumpId: "bounty_hunter.jump",
 };
 export const hunterStarterOwnership: JsonObject = {
-  projectileSpells: [...hunterProjectiles],
+  projectileSpells: [...hunterStarterProjectiles],
   abilitiesBySlot: {
     primary: ["bounty_hunter.quick_cut"], secondary: ["bounty_hunter.blast_bomb"],
     projectile: ["bounty_hunter.snap_shot"], mobility: ["bounty_hunter.dash"],
@@ -41,8 +45,9 @@ export function characterContentAllowed(characterId: string, domain: string, slo
   }
   if (domain === "projectileSpell") return hunter === (hunterProjectiles as readonly string[]).includes(itemId);
   if (domain !== "gear" || slot === "accessory") return domain === "gear";
-  const expected = slot === "mainWeapon" ? "hunterBlade" :
-    slot === "offhandWeapon" ? "hunterBombKit" : slot === "spellBook" ? "hunterFieldKit" : null;
-  if (expected === null) return false;
-  return hunter ? itemId === expected : !["hunterBlade", "hunterBombKit", "hunterFieldKit"].includes(itemId);
+  const family: readonly string[] | null = slot === "mainWeapon" ? hunterBlades :
+    slot === "offhandWeapon" ? hunterBombKits : slot === "spellBook" ? hunterFieldKits : null;
+  if (family === null) return false;
+  return hunter ? family.includes(itemId) :
+    !([...hunterBlades, ...hunterBombKits, ...hunterFieldKits] as readonly string[]).includes(itemId);
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+
 import 'dart:math' as math;
 
 import 'support/combat_test_support.dart';
@@ -251,8 +252,8 @@ void main() {
       final baseMaxPierce = !hitDelivery.pierce
           ? 1
           : (hitDelivery.chainCount > 0 ? hitDelivery.chainCount : 2);
-      final halfTierTicks = math.max(1, ability.windupTicks ~/ 2);
-      final fullTierTicks = math.max(halfTierTicks + 1, ability.windupTicks);
+      final halfTierTicks = ability.chargeProfile!.tiers[1].minHoldTicks60;
+      final fullTierTicks = ability.chargeProfile!.tiers.last.minHoldTicks60;
       final half = resolveIntent(halfTierTicks);
       final full = resolveIntent(fullTierTicks);
       final resolvedStats = const CharacterStatsResolver().resolveLoadout(
@@ -285,76 +286,74 @@ void main() {
     },
   );
 
-  test(
-    'projectile slot spell merges projectile procs with equipped spellbook procs',
-    () {
-      final world = EcsWorld();
-      final system = AbilityActivationSystem(
-        tickHz: 60,
-        inputBufferTicks: 10,
-        abilities: const AbilityCatalog(),
-        weapons: const WeaponCatalog(),
-        projectiles: const ProjectileCatalog(),
-        spellBooks: const _SpellProcBookCatalog(),
-        accessories: const AccessoryCatalog(),
-      );
+  test('projectile slot spell merges projectile procs with equipped spellbook procs', () {
+    final world = EcsWorld();
+    final system = AbilityActivationSystem(
+      tickHz: 60,
+      inputBufferTicks: 10,
+      abilities: const AbilityCatalog(),
+      weapons: const WeaponCatalog(),
+      projectiles: const ProjectileCatalog(),
+      spellBooks: const _SpellProcBookCatalog(),
+      accessories: const AccessoryCatalog(),
+    );
 
-      final player = world.createEntity();
-      world.transform.add(player, posX: 100, posY: 100, velX: 0, velY: 0);
-      world.faction.add(player, const FactionDef(faction: Faction.player));
-      world.health.add(
-        player,
-        const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
-      );
-      world.playerInput.add(player);
-      world.movement.add(player, facing: Facing.right);
-      world.abilityInputBuffer.add(player);
-      world.activeAbility.add(player);
-      world.cooldown.add(player);
-      world.mana.add(
-        player,
-        const ManaDef(mana: 5000, manaMax: 5000, regenPerSecond100: 0),
-      );
-      world.stamina.add(
-        player,
-        const StaminaDef(stamina: 5000, staminaMax: 5000, regenPerSecond100: 0),
-      );
-      world.projectileIntent.add(player);
-      world.equippedLoadout.add(
-        player,
-        const EquippedLoadoutDef(
-          abilityProjectileId: 'eloise.quick_shot',
-          projectileSlotSpellId: ProjectileId.fireBolt,
-          spellBookId: SpellBookId.apprenticePrimer,
-        ),
-      );
+    final player = world.createEntity();
+    world.transform.add(player, posX: 100, posY: 100, velX: 0, velY: 0);
+    world.faction.add(player, const FactionDef(faction: Faction.player));
+    world.health.add(
+      player,
+      const HealthDef(hp: 1000, hpMax: 1000, regenPerSecond100: 0),
+    );
+    world.playerInput.add(player);
+    world.movement.add(player, facing: Facing.right);
+    world.abilityInputBuffer.add(player);
+    world.activeAbility.add(player);
+    world.cooldown.add(player);
+    world.mana.add(
+      player,
+      const ManaDef(mana: 5000, manaMax: 5000, regenPerSecond100: 0),
+    );
+    world.stamina.add(
+      player,
+      const StaminaDef(stamina: 5000, staminaMax: 5000, regenPerSecond100: 0),
+    );
+    world.projectileIntent.add(player);
+    world.equippedLoadout.add(
+      player,
+      const EquippedLoadoutDef(
+        abilityProjectileId: 'eloise.quick_shot',
+        projectileSlotSpellId: ProjectileId.fireBolt,
+        spellBookId: SpellBookId.apprenticePrimer,
+      ),
+    );
 
-      final inputIndex = world.playerInput.indexOf(player);
-      world.playerInput.projectilePressed[inputIndex] = true;
+    final inputIndex = world.playerInput.indexOf(player);
+    world.playerInput.projectilePressed[inputIndex] = true;
 
-      system.step(world, player: player, currentTick: 1);
+    system.step(world, player: player, currentTick: 1);
 
-      final intentIndex = world.projectileIntent.indexOf(player);
-      expect(
-        world.projectileIntent.projectileId[intentIndex],
-        equals(ProjectileId.fireBolt),
-      );
+    final intentIndex = world.projectileIntent.indexOf(player);
+    expect(
+      world.projectileIntent.projectileId[intentIndex],
+      equals(ProjectileId.fireBolt),
+    );
 
-      final procs = world.projectileIntent.procs[intentIndex];
-      expect(procs, hasLength(3));
-      expect(procs[0].hook, equals(ProcHook.onHit));
-      expect(procs[0].statusProfileId, equals(StatusProfileId.burnOnHit));
-      expect(procs[1].hook, equals(ProcHook.onKill));
-      expect(procs[1].statusProfileId, equals(StatusProfileId.restoreMana));
-      expect(procs[2].hook, equals(ProcHook.onCrit));
-      expect(procs[2].statusProfileId, equals(StatusProfileId.focus));
-      final focus = const StatusProfileCatalog().resolve(
-        procs[2].statusProfileId, tuning: procs[2].statusTuning,
-      ).applications.single;
-      expect(focus.critBonusBp, 0);
-      expect(focus.durationSeconds, 1.5);
-    },
-  );
+    final procs = world.projectileIntent.procs[intentIndex];
+    expect(procs, hasLength(3));
+    expect(procs[0].hook, equals(ProcHook.onHit));
+    expect(procs[0].statusProfileId, equals(StatusProfileId.burnOnHit));
+    expect(procs[1].hook, equals(ProcHook.onKill));
+    expect(procs[1].statusProfileId, equals(StatusProfileId.restoreMana));
+    expect(procs[2].hook, equals(ProcHook.onCrit));
+    expect(procs[2].statusProfileId, equals(StatusProfileId.focus));
+    final focus = const StatusProfileCatalog()
+        .resolve(procs[2].statusProfileId, tuning: procs[2].statusTuning)
+        .applications
+        .single;
+    expect(focus.critBonusBp, 0);
+    expect(focus.durationSeconds, 1.5);
+  });
 
   test('piercing projectile damages multiple targets in one pass', () {
     final world = EcsWorld();
@@ -519,7 +518,10 @@ class _SpellProcBookCatalog extends SpellBookCatalog {
       hook: ProcHook.onCrit,
       statusProfileId: StatusProfileId.focus,
       statusTuning: StatusProfileTuning(
-        offenseBuff: StatusApplicationTuning(critBonusBp: 0, durationSeconds: 1.5),
+        offenseBuff: StatusApplicationTuning(
+          critBonusBp: 0,
+          durationSeconds: 1.5,
+        ),
       ),
     ),
   ];

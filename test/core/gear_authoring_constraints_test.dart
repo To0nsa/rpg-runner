@@ -1,3 +1,4 @@
+import 'package:runner_core/abilities/ability_def.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/accessories/accessory_catalog.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
@@ -22,14 +23,6 @@ void main() {
       for (final id in WeaponId.values) {
         final def = catalog.get(id);
         final stats = _statMap(def.stats);
-        if (id == WeaponId.hunterBlade || id == WeaponId.hunterBombKit) {
-          // Hunter starter kits select a delivery family; ability/weapon tuning
-          // owns their output rather than additional passive gear modifiers.
-          expect(stats.values, everyElement(0));
-          expect(def.procs, isEmpty);
-          expect(def.reactiveProcs, isEmpty);
-          continue;
-        }
         final outgoingCount = def.procs.length;
         final reactiveCount = def.reactiveProcs.length;
         final positiveCount = _positiveStatCount(stats);
@@ -79,7 +72,8 @@ void main() {
             );
             expect(_isOutgoingProcAllowed(proc), isTrue, reason: '$id $proc');
             final procIdentity = _outgoingProcIdentityKey(
-              slot: _slotKeyForWeaponCategory(def.category),
+              slot:
+                  '${def.weaponType.name}:${_slotKeyForWeaponCategory(def.category)}',
               proc: proc,
             );
             expect(
@@ -98,7 +92,7 @@ void main() {
           );
           expect(
             primaryIdentity.add(
-              _identitySignature(stats, def.procs, def.reactiveProcs),
+              '${def.weaponType.name}:${_identitySignature(stats, def.procs, def.reactiveProcs)}',
             ),
             isTrue,
             reason: '$id duplicate primary identity',
@@ -121,7 +115,29 @@ void main() {
             }
           }
 
-          expect(def.procs, isEmpty, reason: '$id');
+          if (def.weaponType == WeaponType.bombKit) {
+            for (final proc in def.procs) {
+              expect(_isOutgoingProcAllowed(proc), isTrue, reason: '$id');
+              expect(
+                usedProcIdentities.add(
+                  _outgoingProcIdentityKey(
+                    slot: def.weaponType.name,
+                    proc: proc,
+                  ),
+                ),
+                isTrue,
+                reason: '$id',
+              );
+            }
+          } else {
+            expect(def.procs, isEmpty, reason: '$id');
+          }
+          // Shields remain reactive-only; bomb kits carry blast payload procs.
+          expect(
+            def.weaponType == WeaponType.bombKit || def.procs.isEmpty,
+            isTrue,
+            reason: '$id',
+          );
           for (final proc in def.reactiveProcs) {
             expect(
               proc.statusProfileId != StatusProfileId.none,
@@ -134,7 +150,8 @@ void main() {
               reason: '$id $proc',
             );
             final procIdentity = _reactiveProcIdentityKey(
-              slot: _slotKeyForWeaponCategory(def.category),
+              slot:
+                  '${def.weaponType.name}:${_slotKeyForWeaponCategory(def.category)}',
               proc: proc,
             );
             expect(
@@ -146,13 +163,13 @@ void main() {
 
           _expectStatTemplate(
             id: id,
-            hasProc: reactiveCount == 1,
+            hasProc: outgoingCount + reactiveCount > 0,
             positiveCount: positiveCount,
             negativeCount: negativeCount,
           );
           expect(
             offhandIdentity.add(
-              _identitySignature(stats, def.procs, def.reactiveProcs),
+              '${def.weaponType.name}:${_identitySignature(stats, def.procs, def.reactiveProcs)}',
             ),
             isTrue,
             reason: '$id duplicate offhand identity',
@@ -167,11 +184,6 @@ void main() {
 
       for (final id in SpellBookId.values) {
         final def = catalog.get(id);
-        if (id == SpellBookId.hunterFieldKit) {
-          expect(_statMap(def.stats).values, everyElement(0));
-          expect(def.procs, isEmpty);
-          continue;
-        }
         expect(def.procs, isEmpty, reason: '$id');
         final stats = _statMap(def.stats);
 
@@ -207,7 +219,9 @@ void main() {
           negativeCount: _negativeStatCount(stats),
         );
         expect(
-          identity.add(_identitySignature(stats, const [], const [])),
+          identity.add(
+            '${def.weaponType.name}:${_identitySignature(stats, const [], const [])}',
+          ),
           isTrue,
           reason: '$id duplicate identity',
         );
@@ -571,7 +585,7 @@ String _outgoingProcIdentityKey({
   required String slot,
   required WeaponProc proc,
 }) {
-  return '$slot:${proc.hook.name}:${_statusFamily(proc.statusProfileId).name}:${_outgoingTargetPolicy(proc.hook)}';
+  return '$slot:${proc.hook.name}:${proc.statusProfileId.name}:${_outgoingTargetPolicy(proc.hook)}';
 }
 
 String _reactiveProcIdentityKey({

@@ -49,6 +49,12 @@ class HoldAbilitySystem {
           activeTicks > 0 &&
           activeElapsed == activeTicks;
 
+      // Refresh before release/timeout/depletion changes the phase. Mobility or
+      // damage interruption later in this tick retains the same release window.
+      if (phase == AbilityPhase.active || isTimeoutTick) {
+        world.riposte.sustainGuard(entity, active.startTick[i], currentTick);
+      }
+
       if ((phase == AbilityPhase.windup || phase == AbilityPhase.active) &&
           !slotHeld) {
         _forceRecovery(world, entity: entity, index: i, elapsedTicks: elapsed);

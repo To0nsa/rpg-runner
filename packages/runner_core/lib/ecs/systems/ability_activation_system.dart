@@ -12,6 +12,7 @@ import '../../combat/aim_motion_forecast.dart';
 import '../../tuning/physics_tuning.dart';
 import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_id.dart';
+import '../../players/player_character_definition.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../spellBook/spell_book_catalog.dart';
 import '../../weapons/weapon_catalog.dart';
@@ -55,6 +56,7 @@ class AbilityActivationSystem {
     required this.spellBooks,
     required this.accessories,
     this.playerCastOriginOffset,
+    this.playerCharacter,
     this.projectileAimPathClear,
     AimTerrain Function()? aimTerrainProvider,
     PhysicsTuning physics = const PhysicsTuning(),
@@ -87,6 +89,10 @@ class AbilityActivationSystem {
   final SpellBookCatalog spellBooks;
   final AccessoryCatalog accessories;
   final double? playerCastOriginOffset;
+
+  /// Uses the run character's weapon-tip geometry for projectile auto aim.
+  /// Missing attachments retain the caster-owned radial origin.
+  final PlayerCharacterDefinition? playerCharacter;
 
   /// Optional Core sightline check in world units for projectile auto aim.
   /// Production supplies the current published terrain; isolated tests may
@@ -927,6 +933,7 @@ class AbilityActivationSystem {
       globalPowerBonusBp: resolvedStats.globalPowerBonusBp + offenseBuff.$1,
       weaponDamageType: weapon.damageType,
       weaponProcs: weapon.procs,
+      abilityProcs: chargeTuning.procs,
       globalCritChanceBonusBp:
           resolvedStats.globalCritChanceBonusBp + offenseBuff.$2,
     );
@@ -1172,6 +1179,7 @@ class AbilityActivationSystem {
       globalPowerBonusBp: resolvedStats.globalPowerBonusBp + offenseBuff.$1,
       weaponDamageType: weaponDamageType,
       weaponProcs: weaponProcs,
+      abilityProcs: chargeTuning.procs,
       globalCritChanceBonusBp:
           resolvedStats.globalCritChanceBonusBp + offenseBuff.$2,
     );
@@ -1238,19 +1246,25 @@ class AbilityActivationSystem {
           projectileBaseSpeedUnitsPerSecond *
           (chargeTuning.speedScaleBp / 10000.0),
       homingProjectileLifetimeSeconds: projectileLifetimeSeconds,
-      homingProjectileOriginOffset: originOffset,
+      homingProjectileOriginOffset:
+          playerCharacter?.projectileMuzzles.containsKey(projectileId) == true
+          ? 0
+          : originOffset,
+      homingProjectileId: projectileId,
+      homingExecuteTick: commitTick + windupTicks,
     );
     final aimX = resolvedDir.$1;
     final aimY = resolvedDir.$2;
 
-    if (aimX.abs() > 1e-6) {
-      world.movement.facing[movementIndex] = aimX >= 0
-          ? Facing.right
-          : Facing.left;
+    // A quarry between the body and muzzle may need a backwards trajectory;
+    // retain the facing used by the muzzle solve instead of switching barrels.
+    final facingDir =
+        resolvedDir.$3 ??
+        _facingFromDirectionX(aimX, fallbackDirX: fallbackDirX);
+    if (aimX.abs() > 1e-6 || resolvedDir.$3 != null) {
+      world.movement.facing[movementIndex] = facingDir;
       world.movement.facingLockTicksLeft[movementIndex] = 1;
     }
-
-    final facingDir = _facingFromDirectionX(aimX, fallbackDirX: fallbackDirX);
     _applyCommitSideEffects(
       world,
       player: player,
@@ -1340,6 +1354,7 @@ class AbilityActivationSystem {
         speedScaleBp: tier.speedScaleBp,
         pierce: tier.pierce ?? defaults.pierce,
         maxPierceHits: tier.maxPierceHits ?? defaults.maxPierceHits,
+        procs: tier.procs,
       );
     }
     return resolved;
@@ -1366,7 +1381,7 @@ class AbilityActivationSystem {
     return 2;
   }
 
-  (double, double) _resolveCommitDirection(
+  (double, double, Facing?) _resolveCommitDirection(
     EcsWorld world, {
     required EntityId source,
     required AbilityDef ability,
@@ -1378,6 +1393,8 @@ class AbilityActivationSystem {
     required double? homingProjectileSpeedUnitsPerSecond,
     required double? homingProjectileLifetimeSeconds,
     required double homingProjectileOriginOffset,
+    ProjectileId? homingProjectileId,
+    int homingExecuteTick = 0,
   }) {
     final targetSpecific = _resolveTargetSpecificDirection(
       world,
@@ -1391,6 +1408,8 @@ class AbilityActivationSystem {
       homingProjectileSpeedUnitsPerSecond: homingProjectileSpeedUnitsPerSecond,
       homingProjectileLifetimeSeconds: homingProjectileLifetimeSeconds,
       homingProjectileOriginOffset: homingProjectileOriginOffset,
+      homingProjectileId: homingProjectileId,
+      homingExecuteTick: homingExecuteTick,
     );
     if (targetSpecific != null) return targetSpecific;
 
@@ -1408,10 +1427,10 @@ class AbilityActivationSystem {
       directionalFallbackY,
     );
     if (directionalFallback != null) return directionalFallback;
-    return (1.0, 0.0);
+    return (1.0, 0.0, null);
   }
 
-  (double, double)? _resolveTargetSpecificDirection(
+  (double, double, Facing?)? _resolveTargetSpecificDirection(
     EcsWorld world, {
     required EntityId source,
     required AbilityDef ability,
@@ -1423,6 +1442,8 @@ class AbilityActivationSystem {
     required double? homingProjectileSpeedUnitsPerSecond,
     required double? homingProjectileLifetimeSeconds,
     required double homingProjectileOriginOffset,
+    ProjectileId? homingProjectileId,
+    int homingExecuteTick = 0,
   }) {
     switch (ability.targetingModel) {
       case TargetingModel.none:
@@ -1435,6 +1456,8 @@ class AbilityActivationSystem {
           projectileSpeedUnitsPerSecond: homingProjectileSpeedUnitsPerSecond,
           projectileLifetimeSeconds: homingProjectileLifetimeSeconds,
           projectileOriginOffset: homingProjectileOriginOffset,
+          projectileId: homingProjectileId,
+          executeTick: homingExecuteTick,
         );
       case TargetingModel.directional:
         return _normalizeDirectionOrNull(rawAimX, rawAimY) ??
@@ -1450,11 +1473,11 @@ class AbilityActivationSystem {
     }
   }
 
-  (double, double)? _normalizeDirectionOrNull(double x, double y) {
+  (double, double, Facing?)? _normalizeDirectionOrNull(double x, double y) {
     final len2 = x * x + y * y;
     if (len2 <= 1e-12) return null;
     final invLen = 1.0 / sqrt(len2);
-    return (x * invLen, y * invLen);
+    return (x * invLen, y * invLen, null);
   }
 
   (double, double) _directionalFallbackDirection(
@@ -1477,13 +1500,15 @@ class AbilityActivationSystem {
     return primaryX >= 0 ? Facing.right : Facing.left;
   }
 
-  (double, double)? _bestHostileAim(
+  (double, double, Facing?)? _bestHostileAim(
     EcsWorld world, {
     required EntityId source,
     required int windupTicks,
     required double? projectileSpeedUnitsPerSecond,
     required double? projectileLifetimeSeconds,
     required double projectileOriginOffset,
+    ProjectileId? projectileId,
+    int executeTick = 0,
   }) {
     final sourceTi = world.transform.tryIndexOf(source);
     if (sourceTi == null) return null;
@@ -1496,8 +1521,17 @@ class AbilityActivationSystem {
     final motionTicksToExecute = max(0, windupTicks) + 1;
     _sourceAimMotion.reset(world, source);
     _sourceAimMotion.advance(motionTicksToExecute);
-    final sourceExecuteX = _sourceAimMotion.x;
-    final sourceExecuteY = _sourceAimMotion.y;
+    final character = playerCharacter;
+    final muzzle = character?.projectileMuzzles[projectileId];
+    final muzzleOffset = muzzle?.offset(
+      renderAnim: character!.renderAnim,
+      grounded: _sourceAimMotion.grounded,
+      velocityX: _sourceAimMotion.velocityX,
+      minMoveSpeed: character.tuning.movement.minMoveSpeed,
+      currentTick: executeTick,
+      tickHz: tickHz,
+    );
+    final sourceExecuteY = _sourceAimMotion.y + (muzzleOffset?.y ?? 0);
 
     final hasProjectileLead =
         projectileSpeedUnitsPerSecond != null &&
@@ -1515,6 +1549,7 @@ class AbilityActivationSystem {
     var bestHasClearSight = false;
     var bestAimX = 0.0;
     var bestAimY = 0.0;
+    Facing? bestFacing;
     var bestEntity = -1;
 
     final targets = world.health.denseEntities;
@@ -1537,6 +1572,12 @@ class AbilityActivationSystem {
       _targetAimMotion.advance(motionTicksToExecute);
       final targetExecuteX = _targetAimMotion.x;
       final targetExecuteY = _targetAimMotion.y;
+      // Each candidate is aimed from the muzzle on its facing side, before
+      // solving travel time or testing the terrain sightline.
+      final sourceExecuteX =
+          _sourceAimMotion.x +
+          (muzzleOffset?.x ?? 0) *
+              (targetExecuteX < _sourceAimMotion.x ? -1 : 1);
       final relX = targetExecuteX - sourceExecuteX;
       final relY = targetExecuteY - sourceExecuteY;
       final relDist2 = relX * relX + relY * relY;
@@ -1627,6 +1668,11 @@ class AbilityActivationSystem {
       bestHasClearSight = candidateHasClearSight;
       bestAimX = candidateAimX;
       bestAimY = candidateAimY;
+      bestFacing = muzzleOffset == null
+          ? null
+          : targetExecuteX < _sourceAimMotion.x
+          ? Facing.left
+          : Facing.right;
     }
 
     if (bestEntity == -1) return null;
@@ -1634,7 +1680,7 @@ class AbilityActivationSystem {
     final bestAimLen2 = bestAimX * bestAimX + bestAimY * bestAimY;
     if (bestAimLen2 <= 1e-12) return null;
     final invLen = 1.0 / sqrt(bestAimLen2);
-    return (bestAimX * invLen, bestAimY * invLen);
+    return (bestAimX * invLen, bestAimY * invLen, bestFacing);
   }
 
   ({double x, double y, double seconds})? _forecastProjectileIntercept({
@@ -1938,6 +1984,7 @@ class _ChargeTuning {
     required this.critBonusBp,
     this.pierce,
     this.maxPierceHits,
+    this.procs,
   });
 
   final int damageScaleBp;
@@ -1945,4 +1992,5 @@ class _ChargeTuning {
   final int critBonusBp;
   final bool? pierce;
   final int? maxPierceHits;
+  final List<WeaponProc>? procs;
 }

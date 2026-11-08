@@ -13,6 +13,7 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:runner_core/weapons/weapon_catalog.dart';
 import 'package:runner_core/weapons/weapon_proc.dart';
 import 'package:runner_core/weapons/reactive_proc.dart';
+
 import '../../../text/semantic_text.dart';
 
 typedef GearStatLineTone = UiSemanticTone;
@@ -40,7 +41,13 @@ class GearStatLine {
 /// Builds base stat lines for a selected gear item.
 ///
 /// This is pure computation (no widget or state dependencies).
-List<GearStatLine> gearStatsFor(GearSlot slot, Object id) {
+List<GearStatLine> gearStatsFor(
+  GearSlot slot,
+  Object id, {
+  String resourceLabel = 'Mana',
+}) => _resourceLines(_gearStatsFor(slot, id), resourceLabel);
+
+List<GearStatLine> _gearStatsFor(GearSlot slot, Object id) {
   switch (slot) {
     case GearSlot.mainWeapon:
     case GearSlot.offhandWeapon:
@@ -59,6 +66,16 @@ List<GearStatLine> gearStatsFor(GearSlot slot, Object id) {
 ///
 /// Returns an empty list when both ids are the same item.
 List<GearStatLine> gearCompareStats(
+  GearSlot slot, {
+  required Object equipped,
+  required Object candidate,
+  String resourceLabel = 'Mana',
+}) => _resourceLines(
+  _gearCompareStats(slot, equipped: equipped, candidate: candidate),
+  resourceLabel,
+);
+
+List<GearStatLine> _gearCompareStats(
   GearSlot slot, {
   required Object equipped,
   required Object candidate,
@@ -251,74 +268,66 @@ const Map<StatusEffectType, String> _procStatusLabels =
       StatusEffectType.offenseBuff: 'Offense Buff',
     };
 
-const Map<StatusEffectType, _ProcEffectTemplate>
-_procEffectTemplates = <StatusEffectType, _ProcEffectTemplate>{
-  StatusEffectType.dot: _ProcEffectTemplate(
-    tone: GearStatLineTone.negative,
-    sentenceTemplate:
-        'Applies {status}, dealing {dps} damage per second for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'dps', 'duration'],
-  ),
-  StatusEffectType.slow: _ProcEffectTemplate(
-    tone: GearStatLineTone.negative,
-    sentenceTemplate:
-        'Applies {status}, reducing move speed by {amount} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'amount', 'duration'],
-  ),
-  StatusEffectType.stun: _ProcEffectTemplate(
-    tone: GearStatLineTone.negative,
-    sentenceTemplate: 'Applies {status} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'duration'],
-  ),
-  StatusEffectType.silence: _ProcEffectTemplate(
-    tone: GearStatLineTone.negative,
-    sentenceTemplate: 'Applies {status} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'duration'],
-  ),
-  StatusEffectType.vulnerable: _ProcEffectTemplate(
-    tone: GearStatLineTone.negative,
-    sentenceTemplate:
-        'Applies {status}, increasing damage taken by {amount} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'amount', 'duration'],
-  ),
-  StatusEffectType.weaken: _ProcEffectTemplate(
-    tone: GearStatLineTone.negative,
-    sentenceTemplate:
-        'Applies {status}, reducing outgoing damage by {amount} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'amount', 'duration'],
-  ),
-  StatusEffectType.drench: _ProcEffectTemplate(
-    tone: GearStatLineTone.negative,
-    sentenceTemplate:
-        'Applies {status}, reducing attack and cast speed by {amount} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'amount', 'duration'],
-  ),
-  StatusEffectType.haste: _ProcEffectTemplate(
-    tone: GearStatLineTone.positive,
-    sentenceTemplate:
-        'Applies {status}, increasing move speed by {amount} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'amount', 'duration'],
-  ),
-  StatusEffectType.damageReduction: _ProcEffectTemplate(
-    tone: GearStatLineTone.positive,
-    sentenceTemplate:
-        'Applies {status}, reducing incoming direct-hit damage by {amount} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'amount', 'duration'],
-  ),
-  StatusEffectType.resourceOverTime: _ProcEffectTemplate(
-    tone: GearStatLineTone.positive,
-    sentenceTemplate:
-        'Restores {resource} by {amount} over {duration}{chanceSuffix}',
-    highlightKeys: <String>['resource', 'amount', 'duration'],
-  ),
-  StatusEffectType.offenseBuff: _ProcEffectTemplate(
-    tone: GearStatLineTone.positive,
-    sentenceTemplate:
-        'Applies an {status}, increasing power by {power}{critClause} for {duration}{chanceSuffix}',
-    highlightKeys: <String>['status', 'power', 'duration'],
-    optionalHighlightKeys: <String>['critAmount'],
-  ),
-};
+const Map<StatusEffectType, _ProcEffectTemplate> _procEffectTemplates =
+    <StatusEffectType, _ProcEffectTemplate>{
+      StatusEffectType.dot: _ProcEffectTemplate(
+        tone: GearStatLineTone.negative,
+        sentenceTemplate: 'Applies {status}, dealing {dps} damage per second for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'dps', 'duration'],
+      ),
+      StatusEffectType.slow: _ProcEffectTemplate(
+        tone: GearStatLineTone.negative,
+        sentenceTemplate: 'Applies {status}, reducing move speed by {amount} for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'amount', 'duration'],
+      ),
+      StatusEffectType.stun: _ProcEffectTemplate(
+        tone: GearStatLineTone.negative,
+        sentenceTemplate: 'Applies {status} for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'duration'],
+      ),
+      StatusEffectType.silence: _ProcEffectTemplate(
+        tone: GearStatLineTone.negative,
+        sentenceTemplate: 'Applies {status} for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'duration'],
+      ),
+      StatusEffectType.vulnerable: _ProcEffectTemplate(
+        tone: GearStatLineTone.negative,
+        sentenceTemplate: 'Applies {status}, increasing damage taken by {amount} for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'amount', 'duration'],
+      ),
+      StatusEffectType.weaken: _ProcEffectTemplate(
+        tone: GearStatLineTone.negative,
+        sentenceTemplate: 'Applies {status}, reducing outgoing damage by {amount} for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'amount', 'duration'],
+      ),
+      StatusEffectType.drench: _ProcEffectTemplate(
+        tone: GearStatLineTone.negative,
+        sentenceTemplate: 'Applies {status}, reducing attack and cast speed by {amount} for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'amount', 'duration'],
+      ),
+      StatusEffectType.haste: _ProcEffectTemplate(
+        tone: GearStatLineTone.positive,
+        sentenceTemplate: 'Applies {status}, increasing move speed by {amount} for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'amount', 'duration'],
+      ),
+      StatusEffectType.damageReduction: _ProcEffectTemplate(
+        tone: GearStatLineTone.positive,
+        sentenceTemplate: 'Applies {status}, reducing incoming direct-hit damage by {amount} for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'amount', 'duration'],
+      ),
+      StatusEffectType.resourceOverTime: _ProcEffectTemplate(
+        tone: GearStatLineTone.positive,
+        sentenceTemplate:
+            'Restores {resource} by {amount} over {duration}{chanceSuffix}',
+        highlightKeys: <String>['resource', 'amount', 'duration'],
+      ),
+      StatusEffectType.offenseBuff: _ProcEffectTemplate(
+        tone: GearStatLineTone.positive,
+        sentenceTemplate: 'Applies an {status}, increasing power by {power}{critClause} for {duration}{chanceSuffix}',
+        highlightKeys: <String>['status', 'power', 'duration'],
+        optionalHighlightKeys: <String>['critAmount'],
+      ),
+    };
 
 _ProcEffectSummary? _procEffectSummary(StatusApplication app, WeaponProc proc) {
   return _procEffectSummaryFromProfile(
@@ -344,14 +353,18 @@ _ProcEffectSummary? _procEffectSummaryFromProfile(
   required StatusProfileId statusProfileId,
   required int chanceBp,
 }) {
-  final template = app.type == StatusEffectType.resourceOverTime && app.applyOnApply
+  final template =
+      app.type == StatusEffectType.resourceOverTime && app.applyOnApply
       ? _ProcEffectTemplate(
           tone: GearStatLineTone.positive,
           sentenceTemplate: app.durationSeconds > 0
               ? 'Restores {resource} by {amount} immediately and another {amount} over {duration}{chanceSuffix}'
               : 'Restores {resource} by {amount} immediately{chanceSuffix}',
-          highlightKeys: <String>['resource', 'amount',
-            if (app.durationSeconds > 0) 'duration'],
+          highlightKeys: <String>[
+            'resource',
+            'amount',
+            if (app.durationSeconds > 0) 'duration',
+          ],
         )
       : _procEffectTemplates[app.type];
   if (template == null) return null;
@@ -669,9 +682,9 @@ Map<ProcHook, List<_ProcEffectSummary>> _procSummariesByHook(
   for (final proc in procs) {
     if (proc.statusProfileId == StatusProfileId.none) continue;
     final profile = profiles.resolve(
-        proc.statusProfileId,
-        tuning: proc.statusTuning,
-      );
+      proc.statusProfileId,
+      tuning: proc.statusTuning,
+    );
     for (final app in profile.applications) {
       final summary = _procEffectSummary(app, proc);
       if (summary == null) continue;
@@ -692,9 +705,9 @@ Map<ReactiveProcHook, List<_ProcEffectSummary>> _reactiveProcSummariesByHook(
   for (final proc in procs) {
     if (proc.statusProfileId == StatusProfileId.none) continue;
     final profile = profiles.resolve(
-        proc.statusProfileId,
-        tuning: proc.statusTuning,
-      );
+      proc.statusProfileId,
+      tuning: proc.statusTuning,
+    );
     for (final app in profile.applications) {
       final summary = _reactiveProcEffectSummary(app, proc);
       if (summary == null) continue;
@@ -1088,4 +1101,44 @@ class _ProcEffectTemplate {
   final String sentenceTemplate;
   final List<String> highlightKeys;
   final List<String> optionalHighlightKeys;
+}
+
+// Preserve rich-text tones and highlights when the same resource is presented
+// as Willow's Supplies rather than the shared runtime's mana store.
+List<GearStatLine> _resourceLines(
+  List<GearStatLine> lines,
+  String resourceLabel,
+) {
+  if (resourceLabel == 'Mana') return lines;
+  String label(String value) => value.replaceAll(
+    RegExp(r'\bmana\b', caseSensitive: false),
+    resourceLabel,
+  );
+  List<GearStatHighlight> highlights(List<GearStatHighlight> values) => [
+    for (final value in values)
+      GearStatHighlight(label(value.token), tone: value.tone),
+  ];
+  return [
+    for (final line in lines)
+      GearStatLine(
+        label(line.label),
+        label(line.value),
+        tone: line.tone,
+        highlights: highlights(line.highlights),
+        forcePositiveHighlightTones: line.forcePositiveHighlightTones,
+        semanticValue: line.semanticValue == null
+            ? null
+            : UiSemanticText(
+                segmentSeparator: line.semanticValue!.segmentSeparator,
+                segments: [
+                  for (final segment in line.semanticValue!.segments)
+                    UiSemanticTextSegment(
+                      label(segment.text),
+                      tone: segment.tone,
+                      highlights: highlights(segment.highlights),
+                    ),
+                ],
+              ),
+      ),
+  ];
 }

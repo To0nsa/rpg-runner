@@ -300,7 +300,13 @@ class _TownOfferDetails extends StatelessWidget {
         border: Border.all(color: ui.colors.outline.withValues(alpha: 0.3)),
       ),
       child: switch (offer.domain) {
-        StoreDomain.gear => _GearOfferDetails(offer: offer),
+        StoreDomain.gear => _GearOfferDetails(
+          offer: offer,
+          resourceLabel:
+              hunterRangedWeaponIds.contains(selectedProjectileSourceSpellId)
+              ? 'Supplies'
+              : 'Mana',
+        ),
         StoreDomain.projectileSpell => _ProjectileOfferDetails(offer: offer),
         StoreDomain.ability => _AbilityOfferDetails(
           offer: offer,
@@ -312,7 +318,9 @@ class _TownOfferDetails extends StatelessWidget {
 }
 
 class _GearOfferDetails extends StatelessWidget {
-  const _GearOfferDetails({required this.offer});
+  const _GearOfferDetails({required this.offer, required this.resourceLabel});
+
+  final String resourceLabel;
 
   final StoreOfferState offer;
 
@@ -327,13 +335,21 @@ class _GearOfferDetails extends StatelessWidget {
         style: ui.text.body.copyWith(color: ui.colors.textMuted),
       );
     }
-    final statLines = gearStatsFor(gearSlot, typedId);
+    final statLines = gearStatsFor(
+      gearSlot,
+      typedId,
+      resourceLabel: resourceLabel,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          gearDescriptionForSlot(gearSlot, typedId),
+          gearDescriptionForSlot(
+            gearSlot,
+            typedId,
+            resourceLabel: resourceLabel,
+          ),
           style: ui.text.body.copyWith(color: ui.colors.textMuted),
         ),
         SizedBox(height: ui.space.xs),

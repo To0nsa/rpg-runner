@@ -90,7 +90,11 @@ class AbilityTagResolver {
     if (def.mobilityImpact.statusProfileId != StatusProfileId.none) {
       profileIds.add(def.mobilityImpact.statusProfileId);
     }
-    for (final proc in def.procs) {
+    for (final proc in [
+      ...def.procs,
+      for (final tier in def.chargeProfile?.tiers ?? <AbilityChargeTierDef>[])
+        ...?tier.procs,
+    ]) {
       if (proc.statusProfileId != StatusProfileId.none) {
         profileIds.add(proc.statusProfileId);
       }

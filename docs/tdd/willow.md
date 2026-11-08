@@ -88,6 +88,17 @@ imported constants and the shared default. Collider literals remain editable.
 The source Dash Attack exports ten files, one entirely transparent; runtime
 uses the nine visible poses packed contiguously in its sheet.
 
+The seven-frame mobility Dash uses `dashHoldFrame: 3` (zero-based) in all
+weapon variants. `AnimSystem` plays frames 1–3 at the quantized authored step,
+holds frame 4 through the active dash and excess grounded momentum, then plays
+frames 5–7 once normal input-driven speed is reached (or she stops with no
+input). `AnimStateStore` tracks this presentation by activation/recovery ticks;
+both full and actor snapshots project it through the existing animation fields.
+Jump, another action, reversal, swimming, hit, stun or death cancels it. An
+airborne dash exit returns to jump/fall rather than grounded recovery poses.
+The ordinary action animation remains the combat pose clock: this visual tail
+changes no movement, collision, ability duration, cost or cooldown.
+
 `BountyHunterPoseCatalog` owns Willow's vulnerable poses and four melee strike
 profiles. `HitboxFollowOwnerSystem` receives the selected render metadata and
 recognizes Twin Cut, Threefold Cut and Lunge Slash. Each visible swing uses
@@ -102,13 +113,34 @@ the imported art through `tools/combat/generate_projectile_profiles.py`.
 Projectile render definitions are explicit constants. The Entities editor reuses
 its guarded relative-import resolver to retain their source bindings and previews.
 
-Shared presentation returns empty illustrations for new gear, guns and abilities.
+`PlayerCharacterDefinition.projectileMuzzles` owns each gun's firing-tip
+geometry in world units. Native barrel endpoints are translated through the
+composed canvas pivot and Willow's 1.35 scale. Posture selection and the eight
+running-body frames share AnimSystem's quantized clock. ProjectileLaunchSystem
+samples current support, velocity, facing and position at release, before
+spawning all pellets at one tip; aim changes velocity rather than rotating the
+muzzle offset. Auto aim forecasts that same attachment, including terrain
+sightlines, and retains the chosen muzzle's facing for close quarries. Missing
+attachments preserve the existing caster-owned radial offset. Bomb drops and
+autonomous casters retain their existing launch contracts. Tick order and
+command encoding are unchanged; matching client/worker Core builds are required
+because projectile origins affect hits. See the
+[muzzle verification](../verification/willow-projectile-muzzles-2026-11-08.md).
+
+Shared presentation maps all 34 Willow-specific equipment identities to dedicated
+64×64 transparent PNGs in `assets/images/icons/gear-icons/willow/`.
+`ui_icon_coords.dart` owns weapon, field-kit and ranged-item asset keys.
+`GearIcon` and `ProjectileIconFrame` resolve them through the consumer's asset
+bundle with nearest-neighbor filtering, so game menus, inbox attachments and
+repository-backed Admin share the same artwork. Ranged inventory illustrations
+are independent of projectile flight effects. The eight shared accessories keep
+their existing icons.
 Gameplay effects, the character portrait and animated previews still use supplied
-assets. Menus do not borrow Éloïse's item artwork.
+assets. See [item-art verification](../verification/willow-item-art-2026-11-08.md).
 
 ## Replay and validation
 
-Client, Functions and worker use local gameplay compatibility `2026.11.7`;
+Client, Functions and worker use local gameplay compatibility `2026.11.8.1`;
 replay/command format 1, rules-v2, score-v4 and ghost-v1 remain unchanged.
 The version check prevents different simulations from accepting the same run.
 It does not require a production data migration. Ranked seed preparation is
@@ -121,3 +153,36 @@ shot interruption. Worker tests replay recorded inputs for each weapon. Widget
 tests exercise character switching, remembered builds and actual Training Field
 rendering. See [initial verification](../verification/willow-2026-11-07.md) and
 [scale and selection checks](../verification/willow-scale-and-selection-2026-11-07.md).
+
+## Equipment parity
+
+[The equipment roster](../gdd/combat/gears/willow_equipment_roster.md) contains
+8 blades, 10 bomb kits, 8 field kits and 8 ranged items, plus 8 shared accessories.
+New enum values are appended; retained identifiers and indices do not move.
+Starter grants remain the original three kits and three guns. All 28 additions
+use the existing 150-gold store/gift paths. No schema or data reset is required.
+
+Core family validation remains based on WeaponType. Functions' explicit family
+lists cover every item; the full ranged list is separate from starter grants.
+Both store offers and inbox catalog entries derive from those definitions.
+The generated Admin fixture and its catalog hash must be refreshed together;
+activating that hash in an environment remains a separately authorized release.
+
+Each ranged item retains its actual ID in loadouts, projectiles, snapshots and
+replays while resolving the pistol/crossbow/shotgun animation family. Projectile
+capsules are regenerated from the canonical art, not handwritten. Damage remains
+one total budget divided across the larger ability/item pellet count.
+
+Blade outgoing procs flow only through melee payloads; bomb-kit outgoing procs
+flow through the committed offhand blast payload. Field kits remain stat-only.
+Ability-first hook/profile deduplication and normal same-channel status merging
+remain authoritative. Backtrail Rig uses the shared low-health reactive pipeline.
+ReactiveProcSystem receives GameCore's tick rate and scales authored 60 Hz
+cooldowns, so 1800 authored ticks are 30 seconds at all supported rates.
+
+The client, Functions issuer and worker require compatibility `2026.11.8.1` for
+these changed outcomes. This is source preparation only, not a deployment.
+
+See [equipment verification](../verification/willow-equipment-2026-11-08.md) for
+local checks and the remaining release/balance boundaries. Item illustrations are
+covered by the [art verification](../verification/willow-item-art-2026-11-08.md).

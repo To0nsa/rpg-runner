@@ -42,6 +42,66 @@ class ProjectileCatalog {
           spreadRadians: .18,
           damageScaleBp: 13000,
         );
+      case ProjectileId.hunterRoadsidePistol:
+        return const ProjectileItemDef(
+          id: ProjectileId.hunterRoadsidePistol,
+          weaponType: WeaponType.firearm,
+          speedUnitsPerSecond: 850,
+          lifetimeSeconds: 0.55,
+          colliderSizeX: 8,
+          colliderSizeY: 3,
+          damageScaleBp: 11000,
+          shotCount: 1,
+          spreadRadians: 0,
+        );
+      case ProjectileId.hunterLongbarrelPistol:
+        return const ProjectileItemDef(
+          id: ProjectileId.hunterLongbarrelPistol,
+          weaponType: WeaponType.firearm,
+          speedUnitsPerSecond: 800,
+          lifetimeSeconds: 1.0,
+          colliderSizeX: 8,
+          colliderSizeY: 3,
+          damageScaleBp: 9000,
+          shotCount: 1,
+          spreadRadians: 0,
+        );
+      case ProjectileId.hunterLongwatchCrossbow:
+        return const ProjectileItemDef(
+          id: ProjectileId.hunterLongwatchCrossbow,
+          weaponType: WeaponType.crossbow,
+          speedUnitsPerSecond: 720,
+          lifetimeSeconds: 1.35,
+          colliderSizeX: 16,
+          colliderSizeY: 3,
+          damageScaleBp: 10000,
+          shotCount: 1,
+          spreadRadians: 0,
+        );
+      case ProjectileId.hunterHeavyLimbCrossbow:
+        return const ProjectileItemDef(
+          id: ProjectileId.hunterHeavyLimbCrossbow,
+          weaponType: WeaponType.crossbow,
+          speedUnitsPerSecond: 500,
+          lifetimeSeconds: 1.0,
+          colliderSizeX: 16,
+          colliderSizeY: 3,
+          damageScaleBp: 12500,
+          shotCount: 1,
+          spreadRadians: 0,
+        );
+      case ProjectileId.hunterBrushgun:
+        return const ProjectileItemDef(
+          id: ProjectileId.hunterBrushgun,
+          weaponType: WeaponType.firearm,
+          speedUnitsPerSecond: 620,
+          lifetimeSeconds: 0.55,
+          colliderSizeX: 6,
+          colliderSizeY: 3,
+          damageScaleBp: 11000,
+          shotCount: 5,
+          spreadRadians: 0.28,
+        );
       case ProjectileId.hunterBomb:
         return const ProjectileItemDef(
           id: ProjectileId.hunterBomb,

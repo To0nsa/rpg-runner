@@ -7,7 +7,9 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/projectiles/projectile_render_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
 
-/// Displays the first frame of a projectile's idle animation as an icon.
+import 'ui_icon_coords.dart';
+
+/// Displays dedicated ranged-item art or a projectile's first idle frame.
 ///
 /// Extracts the source rect from [ProjectileRenderCatalog] metadata (handles
 /// strips, multi-row sheets, and grid layouts). Falls back to a transparent
@@ -63,12 +65,9 @@ class _ProjectileIconFrameState extends State<ProjectileIconFrame> {
   }
 
   void _resolveImage() {
-    // The supplied hunter sheets are combat effects, not item illustrations.
-    // Reserve an empty illustration until dedicated item art is authored.
+    // Inventory illustrations are independent of combat effect sheets.
     if (widget.projectileId == ProjectileId.unknown ||
-        widget.projectileId == ProjectileId.hunterPistol ||
-        widget.projectileId == ProjectileId.hunterCrossbow ||
-        widget.projectileId == ProjectileId.hunterShotgun ||
+        uiImageAssetPathForProjectile(widget.projectileId) != null ||
         widget.projectileId == ProjectileId.hunterBomb) {
       _clearImage();
       return;
@@ -115,6 +114,15 @@ class _ProjectileIconFrameState extends State<ProjectileIconFrame> {
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
+    final illustration = uiImageAssetPathForProjectile(widget.projectileId);
+    if (illustration != null) {
+      return Image.asset(
+        illustration,
+        width: size,
+        height: size,
+        filterQuality: FilterQuality.none,
+      );
+    }
     if (_imageInfo == null) return SizedBox.square(dimension: size);
     return CustomPaint(
       size: Size.square(size),

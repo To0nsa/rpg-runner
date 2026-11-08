@@ -11,12 +11,12 @@ Separation rule:
 
 ## Scope
 
-- Current Core runtime behavior for Eloise gear/loadout flow
+- Current Core runtime behavior for Éloïse and Willow gear/loadout flow
 - Authoring constraints for slot identity and dump control
 
 ## Runtime Model
 
-### Gear Slots (Eloise)
+### Gear Slots
 
 | Slot | Runtime meaning |
 |---|---|
@@ -25,7 +25,12 @@ Separation rule:
 | `spellBook` (`spellBookId`) | Spell-tag stats and payload context |
 | `accessory` (`accessoryId`) | Passive stats + optional reactive low-health sustain proc |
 
-Eloise currently exposes 4 gear slots.
+Both characters expose four gear slots. Willow uses hunter blades, bomb kits,
+and field kits in the first three; accessories are shared. Her separate ranged
+item selection contains eight guns/crossbows, while Éloïse has eight spells.
+See [Willow equipment](willow_equipment_roster.md) for exact values and ownership.
+Supplies uses the mana fields; field kits contribute through the projectile mask.
+
 
 Runtime still tracks projectile payload context outside this slot list:
 
@@ -87,9 +92,9 @@ effect families by hook in weapon/shield/accessory catalogs.
 
 | Hook | Runtime receiver | Runtime allowed status profiles | Currently authored effects |
 |---|---|---|---|
-| `OnHit` | damaged target | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT), `acidOnHit` (Vulnerable), `slowOnHit` (Slow), `silenceOnHit` (Silence) |
-| `OnCrit` | damaged target | any non-`none` `StatusProfileId` | `burnOnHit` (Burn DoT) |
-| `OnKill` | source entity | any non-`none` `StatusProfileId` | `focus` (Offense Buff) |
+| `OnHit` | damaged target | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT), `acidOnHit` (Vulnerable), `slowOnHit` (Slow), `silenceOnHit` (Silence), `weakenOnHit` (Weaken) |
+| `OnCrit` | damaged target | any non-`none` `StatusProfileId` | `burnOnHit` (Burn DoT), `meleeBleed` (Bleed DoT) |
+| `OnKill` | source entity | any non-`none` `StatusProfileId` | `focus` (Offense Buff), `speedBoost` (Haste) |
 | `onDamaged` (`ReactiveProcHook.onDamaged`) | `self` or `attacker` (reactive target policy) | any non-`none` `StatusProfileId` | `meleeBleed` (Bleed DoT, attacker-targeted) |
 | `onLowHealth` (`ReactiveProcHook.onLowHealth`) | `self` or `attacker` (reactive target policy) | any non-`none` `StatusProfileId` | `speedBoost` (Haste, offhand), `restoreHealth`/`restoreMana`/`restoreStamina` (Sustain, accessory) |
 
@@ -129,9 +134,10 @@ Modifier order remains:
 
 | Slot | Role | Allowed stats | Allowed procs | Allowed dump families |
 |---|---|---|---|---|
-| `mainWeapon` (Sword) | Primary offense + stamina combat loop | `globalPowerBonusBp`, `globalCritChanceBonusBp`, `staminaBonusBp`, `staminaRegenBonusBp` | Outgoing `OnHit`, `OnCrit`, `OnKill` | `healthBonusBp`, `staminaBonusBp`, `defenseBonusBp`, `manaRegenBonusBp` |
+| `mainWeapon` (Sword / Hunter Blade) | Primary offense + stamina combat loop | `globalPowerBonusBp`, `globalCritChanceBonusBp`, `staminaBonusBp`, `staminaRegenBonusBp` | Outgoing `OnHit`, `OnCrit`, `OnKill` | `healthBonusBp`, `staminaBonusBp`, `defenseBonusBp`, `manaRegenBonusBp` |
 | `offhandWeapon` (Shield) | Defense and counterplay | `defenseBonusBp`, typed resistance fields, `staminaBonusBp`, `staminaRegenBonusBp` | Reactive `onDamaged`, `onLowHealth` | `moveSpeedBonusBp`, `globalPowerBonusBp`, `globalCritChanceBonusBp` |
-| `spellBook` | Casting economy + spell cadence | `manaBonusBp`, `manaRegenBonusBp`, `cooldownReductionBp`, `globalCritChanceBonusBp` | None (default target) | `staminaBonusBp`, `staminaRegenBonusBp`, `healthRegenBonusBp` |
+| `spellBook` (Spellbook / Field Kit) | Casting economy + spell cadence | `manaBonusBp`, `manaRegenBonusBp`, `cooldownReductionBp`, `globalCritChanceBonusBp` | None (default target) | `staminaBonusBp`, `staminaRegenBonusBp`, `healthRegenBonusBp` |
+| `offhandWeapon` (Bomb Kit) | Blast payload and pursuit protection | Defense, typed resistance, stamina and stamina regeneration | Outgoing `OnHit`/`OnCrit`; reactive self haste on low health | Movement speed, global power, global critical chance |
 | `accessory` | Flexible build accent | Any non-proc stat family | Reactive `onLowHealth` sustain only | Any non-proc stat family |
 
 #### Hard Ceilings for Positive Stats (Per Item)
@@ -183,9 +189,9 @@ A stat line cannot exceed these values, even if budget/dump rules would allow mo
 1. One proc cluster per item. A cluster is all proc entries on the item across `procs` and `reactiveProcs`.
 2. Proc cluster budget is strict: each proc entry costs `1` point, and the cluster cap is `2` points (`0-2` total proc entries per item).
 3. If an item uses a 2-entry proc cluster, both entries must be thematically related (same effect-theme family), and must not duplicate the same hook within that item.
-4. An item can either have `1-2` positive stats, a proc cluster (`1-2` entries), and 1 dump or 3 positive stats, no procs, and one dump.
+4. An item can either have `1-2` positive stats, a proc cluster (`1-2` entries), and 1 dump, or 2-3 positive stats, no procs, and one dump.
 5. Items should be unique in their stat combinations and proc effects. If two items have the same identity, one of them should be reworked to have a different stat/proc combination or removed.
-6. Shared hooks are allowed, but proc identities must be unique per slot by `(hook + status profile + target policy + slot)`. Two items can share a hook only when at least one of the other dimensions differs.
+6. Shared hooks are allowed, but proc identities must be unique within each character equipment family by `(hook + status profile + target policy + family)`. Two items can share a hook only when at least one of the other dimensions differs.
 7. Minimal value for a non-zero positive or negative stat is `500bp` to ensure meaningful contribution and clear tradeoffs.
 8. Non-zero positive and negative stats should always be a multiple of '500bp'. 
 
@@ -228,9 +234,9 @@ If a stat family is not listed as positive in "Slot Identity Matrix" and not lis
 
 | Slot | Allowed dump families |
 |---|---|
-| `mainWeapon` (Sword) | `healthBonusBp`, `staminaBonusBp`, `defenseBonusBp`, `manaRegenBonusBp` |
-| `offhandWeapon` (Shield) | `moveSpeedBonusBp`, `globalPowerBonusBp`, `globalCritChanceBonusBp` |
-| `spellBook` | `staminaBonusBp`, `staminaRegenBonusBp`, `healthRegenBonusBp` |
+| `mainWeapon` (Sword / Hunter Blade) | `healthBonusBp`, `staminaBonusBp`, `defenseBonusBp`, `manaRegenBonusBp` |
+| `offhandWeapon` (Shield / Bomb Kit) | `moveSpeedBonusBp`, `globalPowerBonusBp`, `globalCritChanceBonusBp` |
+| `spellBook` (Spellbook / Field Kit) | `staminaBonusBp`, `staminaRegenBonusBp`, `healthRegenBonusBp` |
 | `accessory` | Any non-proc stat family |
 
 #### Hard Floors for Negative Stats (Per Item)
@@ -253,3 +259,10 @@ An item cannot go below these values even if dump cap still allows more.
 | `cooldownReductionBp` | `-1000` |
 | typed resistance (`*ResistanceBp`, each type) | `-1000` |
 
+
+### Reactive cooldown clock
+
+Reactive item cooldowns are authored at 60 Hz and scaled to runtime ticks with
+ceiling division. A value of 1800 means 30 seconds at every supported tick rate.
+Low-health hooks require crossing from above the threshold to at/below it;
+remaining below the threshold alone does not retrigger the effect.

@@ -4,6 +4,7 @@ import '../contracts/render_anim_set_definition.dart';
 import '../snapshots/enums.dart';
 import 'player_tuning.dart';
 import 'player_catalog.dart';
+import 'player_projectile_muzzle.dart';
 import '../projectiles/projectile_id.dart';
 
 enum PlayerCharacterId { eloise, eloiseWip, bountyHunter }
@@ -17,6 +18,7 @@ class PlayerCharacterDefinition {
     this.renderScale = 0.75,
     this.tuning = const PlayerTuning(),
     this.renderVariants = const {},
+    this.projectileMuzzles = const {},
   });
 
   final PlayerCharacterId id;
@@ -35,6 +37,10 @@ class PlayerCharacterDefinition {
 
   /// Optional weapon art variants sharing geometry and deterministic timing.
   final Map<ProjectileId, RenderAnimSetDefinition> renderVariants;
+
+  /// Optional weapon-specific release attachments. Missing entries retain the
+  /// caster's radial origin; authored entries follow the firing posture.
+  final Map<ProjectileId, PlayerProjectileMuzzle> projectileMuzzles;
 
   /// Captures the selected weapon's art for both simulation poses and rendering.
   PlayerCharacterDefinition withProjectile(ProjectileId id) {
@@ -62,6 +68,7 @@ class PlayerCharacterDefinition {
       renderScale: renderScale,
       tuning: tuning ?? this.tuning,
       renderVariants: renderVariants,
+      projectileMuzzles: projectileMuzzles,
     );
   }
 

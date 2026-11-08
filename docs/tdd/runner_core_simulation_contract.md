@@ -145,6 +145,14 @@ center until release. Both bosses preserve cast timing and released trajectories
 Shared projectile intents default body-relative X/Y offsets to zero, preserving
 other casters. See [Shoggoth tactics](ancient_god_bosses.md#shoggoth-tactics).
 
+Player weapons may supply posture-specific muzzle attachments through
+`PlayerCharacterDefinition.projectileMuzzles`. Launch samples final actor
+positions and the same quantized running-pose clock as animation without
+changing phase order. All pellets in that release share one mirrored muzzle;
+projectile direction does not rotate the attachment. Auto-aim forecasting and
+terrain sightlines use the corresponding predicted release attachment. Missing
+attachments preserve radial cast origins. See [Willow](willow.md#animation-and-collision).
+
 ## Player horizontal movement tuning
 
 `eloiseTuning.movement` in `players/characters/eloise.dart` supplies both
@@ -864,3 +872,32 @@ locks run before AI and visibility is checked again after camera movement.
 Normal Derf retains explosions; transformation cancels pending casts; twisted
 Derf uses grounded pursuit and tentacle melee. This requires compatibility
 `2026.10.7` with matching client, Functions and worker artifacts.
+
+## Éloïse balance and counterattack window (2026.11.8.1)
+
+Charged melee/projectile commits resolve optional tier-owned innate procs before
+`HitPayloadBuilder` merges ability, item, buff and passive sources. A null tier
+list inherits base procs; an empty list suppresses only innate procs. First
+hook/profile still wins. Charge thresholds scale from authored 60 Hz ticks.
+Only full-charge Cleave grants its innate bleed; other characters are unchanged.
+
+Riposte records its granting guard activation tick and a runtime release-window
+budget. `HoldAbilitySystem` refreshes expiry while that activation is active,
+including the release/timeout/depletion transition. It runs after phase update
+and before ability activation; mobility cancellation later in the tick retains
+the release window. Forced interruption before hold maintenance retains the
+last refreshed expiry. Subsequent hits and unrelated guards cannot extend it.
+`GameCore` supplies one second in runtime ticks to the middleware. Store swap
+removal/entity reuse clears origin and window fields. Landed melee consumes once;
+expiry is inclusive. No new system or ordering change is introduced.
+
+`PlayerHudSnapshot.riposteTicksLeft` describes remaining usable ticks at the
+next simulation step; `riposteGuarding` identifies the originating active guard.
+Terminal snapshots expose no reward. HUD readiness/countdown is snapshot-driven
+and never advances on wall-clock time. No replay wire/command schema changes.
+
+Éloïse utility effects use local status tuning; shared defaults and Willow keep
+their own values. Client, Functions and worker prepare compatibility `2026.11.8.1`.
+Offline ranked-route seeds are regenerated from their unchanged window IDs and
+production seed helper. Matching deployment is required before online use.
+See [balance verification](../verification/eloise-ability-balance-2026-11-08.md).

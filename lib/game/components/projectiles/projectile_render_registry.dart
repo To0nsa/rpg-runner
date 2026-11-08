@@ -115,12 +115,7 @@ class ProjectileRenderRegistry {
 
   final Map<ProjectileId, ProjectileRenderEntry> _entries =
       <ProjectileId, ProjectileRenderEntry>{
-        for (final id in [
-          ProjectileId.hunterPistol,
-          ProjectileId.hunterCrossbow,
-          ProjectileId.hunterShotgun,
-          ProjectileId.hunterBomb,
-        ])
+        for (final id in [...hunterRangedWeaponIds, ProjectileId.hunterBomb])
           id: ProjectileRenderEntry(id: id, renderScale: Vector2.all(1)),
         ProjectileId.goddessOrb: ProjectileRenderEntry(
           id: ProjectileId.goddessOrb,

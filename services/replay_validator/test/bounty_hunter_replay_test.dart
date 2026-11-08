@@ -8,6 +8,7 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:runner_core/tuning/camera_tuning.dart';
@@ -15,11 +16,7 @@ import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
 
 void main() {
-  for (final gun in [
-    ProjectileId.hunterPistol,
-    ProjectileId.hunterCrossbow,
-    ProjectileId.hunterShotgun,
-  ]) {
+  for (final gun in hunterRangedWeaponIds) {
     test(
       '$gun reproduces bombs, shots, melee and movement through replay encoding',
       () {
@@ -60,7 +57,19 @@ void main() {
           sawBomb |= snapshot.entities.any(
             (e) => e.projectileId == ProjectileId.hunterBomb,
           );
-          sawShot |= snapshot.entities.any((e) => e.projectileId == gun);
+          final shots = snapshot.entities.where((e) => e.projectileId == gun);
+          if (!sawShot && shots.isNotEmpty) {
+            final player = snapshot.playerEntity!;
+            expect(player.anim, AnimKey.ranged);
+            final muzzle =
+                direct.playerCharacter.projectileMuzzles[gun]!.standing;
+            final sign = player.facing == Facing.left ? -1 : 1;
+            for (final shot in shots) {
+              expect(shot.pos.x, closeTo(player.pos.x + muzzle.x * sign, 1e-9));
+              expect(shot.pos.y, closeTo(player.pos.y + muzzle.y, 1e-9));
+            }
+          }
+          sawShot |= shots.isNotEmpty;
           direct.drainEvents();
         }
         final result = runReplaySimulation(
@@ -77,8 +86,11 @@ void main() {
         expect(
           replayed.playerCharacter.renderAnim.sourcesByKey.values.join(),
           contains(switch (gun) {
-            ProjectileId.hunterCrossbow => '/crossbow/',
-            ProjectileId.hunterShotgun => '/shotgun/',
+            ProjectileId.hunterCrossbow ||
+            ProjectileId.hunterLongwatchCrossbow ||
+            ProjectileId.hunterHeavyLimbCrossbow => '/crossbow/',
+            ProjectileId.hunterShotgun ||
+            ProjectileId.hunterBrushgun => '/shotgun/',
             _ => '/gun/',
           }),
         );
@@ -92,9 +104,9 @@ GameCore _core(ProjectileId gun) => GameCore(
   playerCharacter: PlayerCharacterRegistry.bountyHunter,
   equippedLoadoutOverride: EquippedLoadoutDef(
     mask: LoadoutSlotMask.all,
-    mainWeaponId: WeaponId.hunterBlade,
-    offhandWeaponId: WeaponId.hunterBombKit,
-    spellBookId: SpellBookId.hunterFieldKit,
+    mainWeaponId: WeaponId.hunterNotchknife,
+    offhandWeaponId: WeaponId.hunterSnareRig,
+    spellBookId: SpellBookId.hunterLongtrailPack,
     projectileSlotSpellId: gun,
     abilityPrimaryId: 'bounty_hunter.threefold_cut',
     abilitySecondaryId: 'bounty_hunter.blast_bomb',

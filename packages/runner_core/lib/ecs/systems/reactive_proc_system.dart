@@ -23,10 +23,13 @@ class ReactiveProcSystem {
     required WeaponCatalog weapons,
     AccessoryCatalog accessories = const AccessoryCatalog(),
     required int rngSeed,
+    this.tickHz = 60,
   }) : _weapons = weapons,
        _accessories = accessories,
        _rngState = seedFrom(rngSeed, 0x5f17c8d9);
 
+  /// Runtime clock; catalog cooldowns are authored at 60 Hz.
+  final int tickHz;
   final WeaponCatalog _weapons;
   final AccessoryCatalog _accessories;
   int _rngState;
@@ -199,7 +202,7 @@ class ReactiveProcSystem {
         entity: owner,
         key: key,
         currentTick: currentTick,
-        durationTicks: proc.internalCooldownTicks,
+        durationTicks: (proc.internalCooldownTicks * tickHz + 59) ~/ 60,
       );
     }
   }

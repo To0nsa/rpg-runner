@@ -16,10 +16,24 @@ class AnimStateStore extends SparseSet {
   /// outside walk/run and survives transitions between those two loops.
   final List<int> groundedLocomotionPhaseBp = <int>[];
 
+  /// Snapshot-only dash continuation. Combat keeps using [anim]/[animFrame].
+  /// Start ticks identify activations; a negative frame disables presentation.
+  final List<int> dashVisualStartTick = <int>[];
+  final List<int> dashVisualRecoveryStartTick = <int>[];
+  final List<int> dashVisualFrame = <int>[];
+
+  void clearDashVisual(int index) {
+    // Retain the activation identity so an interrupted dash cannot re-arm.
+    dashVisualFrame[index] = -1;
+    dashVisualRecoveryStartTick[index] = -1;
+  }
+
   void add(EntityId entity) {
     final i = addEntity(entity);
     anim[i] = AnimKey.idle;
     animFrame[i] = 0;
+    dashVisualStartTick[i] = -1;
+    clearDashVisual(i);
   }
 
   @override
@@ -27,6 +41,9 @@ class AnimStateStore extends SparseSet {
     anim.add(AnimKey.idle);
     animFrame.add(0);
     groundedLocomotionPhaseBp.add(0);
+    dashVisualStartTick.add(-1);
+    dashVisualRecoveryStartTick.add(-1);
+    dashVisualFrame.add(-1);
   }
 
   @override
@@ -35,9 +52,16 @@ class AnimStateStore extends SparseSet {
     animFrame[removeIndex] = animFrame[lastIndex];
     groundedLocomotionPhaseBp[removeIndex] =
         groundedLocomotionPhaseBp[lastIndex];
+    dashVisualStartTick[removeIndex] = dashVisualStartTick[lastIndex];
+    dashVisualRecoveryStartTick[removeIndex] =
+        dashVisualRecoveryStartTick[lastIndex];
+    dashVisualFrame[removeIndex] = dashVisualFrame[lastIndex];
 
     anim.removeLast();
     animFrame.removeLast();
     groundedLocomotionPhaseBp.removeLast();
+    dashVisualStartTick.removeLast();
+    dashVisualRecoveryStartTick.removeLast();
+    dashVisualFrame.removeLast();
   }
 }

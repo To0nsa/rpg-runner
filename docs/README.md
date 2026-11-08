@@ -6,8 +6,14 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Character builds](tdd/character_builds.md): three saved configurations per
   character, level 5/12 locks and a 28-character rename control;
   [local verification](verification/character-builds-2026-11-07.md).
+- [Willow equipment](gdd/combat/gears/willow_equipment_roster.md): 42 compatible
+  items per character, 28 additions, starter tuning and Supplies-aware details;
+  [34 dedicated item illustrations](verification/willow-item-art-2026-11-08.md).
+- [Éloïse ability balance](verification/eloise-ability-balance-2026-11-08.md):
+  utility downtime, charged bleed, responsive Quick Shot and persistent guard rewards;
+  locally prepared in compatibility `2026.11.8.1`.
 - [Willow](gdd/combat/abilities/willow.md): playable bounty hunter with 25
-  abilities, three weapons, unlimited cooldown bombs and character selection;
+  abilities, eight ranged weapons, unlimited cooldown bombs and character selection;
   [technical contract](tdd/willow.md) and [local verification](verification/willow-2026-11-07.md).
 - [Training Field](gdd/training_field.md): local build testing from character
   setup and a separate two-chunk layout editor; [technical contract](tdd/training_field.md).

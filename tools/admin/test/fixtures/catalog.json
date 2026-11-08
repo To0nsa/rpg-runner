@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "catalogHash": "f61dd513f0232e7b0f54a442b060797f00bdc46d95ed16207a61f2d68755b402",
+  "catalogHash": "078e4f631316dcd095f390e4dcec738963b1f7176448723632fb46d5a3c6fbd2",
   "entries": [
     {
       "kind": "gear",
@@ -9,13 +9,128 @@
     },
     {
       "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterNotchknife"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterHookblade"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterCausticEdge"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterCinderpoint"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterSappingBlade"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterPursuitBlade"
+    },
+    {
+      "kind": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterLastWord"
+    },
+    {
+      "kind": "gear",
       "slot": "offhandWeapon",
       "itemId": "hunterBombKit"
     },
     {
       "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterSplinterRig"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterPitchRig"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterSnareRig"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterEtchingRig"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterSapperHarness"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterKilnwrapRig"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterSealedRig"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterStormwrapRig"
+    },
+    {
+      "kind": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterBacktrailRig"
+    },
+    {
+      "kind": "gear",
       "slot": "spellBook",
       "itemId": "hunterFieldKit"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterLongtrailPack"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterMarksmanRoll"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterQuickAccessSatchel"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterReserveBandolier"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterTrackerPouch"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterSurveyorCase"
+    },
+    {
+      "kind": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterQuarryKit"
     },
     {
       "kind": "ability",
@@ -366,6 +481,31 @@
       "kind": "projectileSpell",
       "slot": "projectile",
       "itemId": "hunterShotgun"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterRoadsidePistol"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterLongbarrelPistol"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterLongwatchCrossbow"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterHeavyLimbCrossbow"
+    },
+    {
+      "kind": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterBrushgun"
     },
     {
       "kind": "ability",

@@ -54,6 +54,8 @@ class PlayerHudSnapshot {
     required this.abilityCostsBySlot,
     this.blessings = const [],
     this.mobilityRecastTicksLeft = 0,
+    this.riposteTicksLeft = 0,
+    this.riposteGuarding = false,
   });
 
   /// Persistent effects granted during this level attempt.
@@ -111,6 +113,12 @@ class PlayerHudSnapshot {
   /// Zero while the first burst moves, after expiry/cancellation, or at run end.
   /// Resources are still checked separately; cooldown arrays retain real values.
   final int mobilityRecastTicksLeft;
+
+  /// Remaining counterattack ticks; zero after consumption, expiry or run end.
+  final int riposteTicksLeft;
+
+  /// True while the originating guard keeps the earned counterattack ready.
+  final bool riposteGuarding;
 
   /// Whether stamina is sufficient for melee.
   final bool canAffordMelee;

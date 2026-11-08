@@ -75,9 +75,9 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   static const String _templateInterruptible =
       ' This attack can be interrupted by taking damage.';
   static const String _templateGuard =
-      'Keep your guard up and reduce incoming damage by {reduction}% while held.';
+      'Keep your guard up and reduce direct-hit damage by {reduction}% from any direction while held. Existing damage-over-time and ground spell impacts bypass the shield.';
   static const String _templateRiposteGrant =
-      ' Guarded hits grant {riposte}, empowering your next melee hit by +{riposteBonus}% damage.';
+      ' The first guarded hit grants {riposte}, empowering your next landed melee hit by +{riposteBonus}% damage. It stays ready while this guard is held and expires 1 second after guard ends. Misses do not consume it.';
   static const String _templateSnapShot =
       'Fire {projectileSource}{projectileName}, it deals {damage} damage to the closest enemy.';
   static const String _templateQuickShot =
@@ -197,7 +197,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
           template:
               'Dash a short distance. Tap again within {window} seconds '
               'after the first burst to dash again in your chosen direction. '
-              'Each burst pays the listed cost; cooldown starts with the first.',
+              'Each burst pays the listed cost; cooldown starts with the first. Does not grant invulnerability.',
           values: {
             'window':
                 (def.mobilityRecast!.windowTicks / _authoredTicksPerSecond)
@@ -344,20 +344,39 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _bloodletterCleaveDescription(AbilityDef def) {
-    final damage = formatFixed100(def.baseDamage);
+    final tier = def.chargeProfile!.tiers.last;
+    final tap = def.chargeProfile!.tiers.first;
     final dot = _firstDotEffect(def);
-    final charge = _maxChargeBonuses(def);
-    final damageBonus = _formatDecimal(charge.damageBonusBp / 100.0);
-    final critBonus = _formatDecimal(charge.critBonusBp / 100.0);
-
-    return _buildMeleeDotDescription(
-      action: 'Unleash a powerful cleaving attack',
-      damage: damage,
-      targets: _targetAimingDirectionAndReach,
-      dot: dot,
-      damageBonus: damageBonus,
-      critBonus: critBonus,
-      includeInterruptibleLine: true,
+    return _descriptionFromTemplate(
+      template:
+          'Aim and release for {tapDamage} damage. Hold for {chargeTime} '
+          'seconds to deal {fullDamage} damage, gain +{crit}% critical chance '
+          'and inflict {status} ({dotDamage} damage per second for {duration} seconds). '
+          'Only full charge grants this bleed.$_templateInterruptible',
+      values: {
+        'tapDamage': formatFixed100(
+          def.baseDamage * tap.damageScaleBp ~/ 10000,
+        ),
+        'fullDamage': formatFixed100(
+          def.baseDamage * tier.damageScaleBp ~/ 10000,
+        ),
+        'chargeTime': _formatDecimal(
+          tier.minHoldTicks60 / _authoredTicksPerSecond,
+        ),
+        'crit': _formatDecimal(tier.critBonusBp / 100.0),
+        'status': dot.name,
+        'dotDamage': formatFixed100(dot.damage100),
+        'duration': _formatDecimal(dot.durationSeconds),
+      },
+      dynamicKeys: [
+        'tapDamage',
+        'fullDamage',
+        'chargeTime',
+        'crit',
+        'status',
+        'dotDamage',
+        'duration',
+      ],
     );
   }
 
@@ -401,19 +420,23 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
 
     return _descriptionFromTemplate(
       template:
-          _templateOverchargeShot +
-          _templateChargedBonus +
-          _templateInterruptible,
+          '$_templateOverchargeShot$_templateChargedBonus'
+          ' Full charge takes {chargeTime} seconds.$_templateInterruptible',
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
         'damage': formatFixed100(def.baseDamage),
+        'chargeTime': _formatDecimal(
+          def.chargeProfile!.tiers.last.minHoldTicks60 /
+              _authoredTicksPerSecond,
+        ),
         'damageBonus': damageBonus,
         'critBonus': critBonus,
       },
       dynamicKeys: <String>[
         'projectileName',
         'damage',
+        'chargeTime',
         'damageBonus',
         'critBonus',
       ],
@@ -442,7 +465,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
 
   _DescriptionWithHighlights _dashDescription(AbilityDef def) {
     return const _DescriptionWithHighlights(
-      description: 'Dash forward quickly.',
+      description: 'Dash forward quickly. Does not grant invulnerability.',
     );
   }
 
@@ -450,7 +473,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     final control = _mobilityControlEffect(def);
     return _descriptionFromTemplate(
       template:
-          'Perform a concussive roll. Enemies hit are affected by {status}.',
+          'Perform a concussive roll. Enemies hit are affected by {status}. Does not grant invulnerability.',
       values: <String, String>{'status': control.name},
       dynamicKeys: <String>['status'],
     );
@@ -687,7 +710,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _StatusDotSummary _firstDotEffect(AbilityDef def) {
-    for (final proc in def.procs) {
+    for (final proc in def.chargeProfile?.tiers.last.procs ?? def.procs) {
       if (proc.statusProfileId == StatusProfileId.none) continue;
       final profile = _statusProfiles.resolve(
         proc.statusProfileId,
