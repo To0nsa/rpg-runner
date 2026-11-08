@@ -6,6 +6,7 @@ import 'package:flame/components.dart';
 
 import 'package:runner_core/contracts/render_anim_set_definition.dart';
 import 'package:runner_core/events/game_event.dart';
+import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/projectiles/projectile_render_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
@@ -115,8 +116,14 @@ class ProjectileRenderRegistry {
 
   final Map<ProjectileId, ProjectileRenderEntry> _entries =
       <ProjectileId, ProjectileRenderEntry>{
-        for (final id in [...hunterRangedWeaponIds, ProjectileId.hunterBomb])
+        for (final id in hunterRangedWeaponIds)
           id: ProjectileRenderEntry(id: id, renderScale: Vector2.all(1)),
+        ProjectileId.hunterBomb: ProjectileRenderEntry(
+          id: ProjectileId.hunterBomb,
+          renderScale: Vector2.all(
+            PlayerCharacterRegistry.bountyHunter.renderScale,
+          ),
+        ),
         ProjectileId.goddessOrb: ProjectileRenderEntry(
           id: ProjectileId.goddessOrb,
           renderScale: Vector2.all(1.5),

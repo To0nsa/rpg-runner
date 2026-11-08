@@ -135,6 +135,10 @@ units. Menu previews share a world-space viewport and foot baseline; they do
 not fit each full transparent frame or apply a character-selection-only zoom.
 The Entities editor reads the definition's scale, retaining guarded bindings to
 imported constants and the shared default. Collider literals remain editable.
+The projectile render registry uses Willow's character scale for `hunterBomb`
+through its falling, fuse and explosion animations, in live play and ghosts.
+This source-pixel scale is visual only; bomb collision and blast radii retain
+their authored world units.
 The source Dash Attack exports ten files, one entirely transparent; Blink Dash restores the transparent fifth frame as an empty composite between
 the nine visible sheet poses (row 27 onward). Lunge Slash uses the final five-frame
 strip (row 29), with strike frames 2–3 and recovery frames 4–5.

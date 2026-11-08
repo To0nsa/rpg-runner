@@ -128,6 +128,7 @@ after release. Contact causes no damage; a single blast hits each eligible
 enemy once. Solid terrain blocks the blast, one-way platforms do not. Allies
 and Willow are unaffected. A released bomb persists through later actions and
 owner removal. An interrupted, unreleased drop cannot leave a delayed bomb.
+The bomb and its explosion use the same sprite scale as Willow.
 
 Bombs remain usable with empty Supplies and stamina. Their cooldown is the
 only repeating limit, so an endless run never exhausts a stock of bombs.
