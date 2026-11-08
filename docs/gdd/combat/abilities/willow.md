@@ -123,6 +123,11 @@ Gear and skills remain character-specific; accessories are shared.
 The imported base/add-on sprites provide gameplay animations, gun variants and
 bomb effects. All 34 Willow-specific equipment items now have dedicated
 illustrations; the eight shared accessories retain their existing art.
+All 25 abilities have distinct transparent pixel-art icons. Blade arcs distinguish
+single, double and triple attacks; bomb effects distinguish blast, fragments,
+fire and concussion. Projectile icons describe guidance, piercing, spread or
+charge independently of the equipped ranged weapon. Fieldcraft uses preparation,
+recovery and tracking symbols. See [ability-art verification](../../../verification/ability-icon-art-2026-11-08.md).
 Fieldcraft uses the ready pose because the
 pack has no dedicated fieldcraft casting animation. Unused ladder, ledge and
 wall-slide art does not add new traversal mechanics.

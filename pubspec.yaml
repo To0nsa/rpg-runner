@@ -184,6 +184,8 @@ flutter:
     - assets/images/icons/gear-icons/willow/field_kits/
     - assets/images/icons/gear-icons/willow/ranged/
     - assets/images/icons/skills-icons/
+    - assets/images/icons/skills-icons/eloise/
+    - assets/images/icons/skills-icons/willow/
     - assets/images/level/atlases/ancient_forest/
     - assets/images/level/atlases/autumn_trees/
     - assets/images/level/atlases/castle/

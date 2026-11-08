@@ -3,6 +3,10 @@
 - [Completed Éloïse ability balance](../archive/2026-11-08/building/eloise_ability_balance.md): utility costs/uptime, charged attacks, Riposte lifecycle and HUD;
   [local verification](../verification/eloise-ability-balance-2026-11-08.md). Playtesting and deployment remain separate acceptance work.
 
+- [Completed ability icon artwork](../archive/2026-11-08/building/ability_icon_art.md):
+  21 Éloïse and 25 Willow illustrations integrated in shared game/Admin presentation;
+  [review sheets and verification](../verification/ability-icon-art-2026-11-08.md).
+
 - [Completed Willow item illustrations](../archive/2026-11-08/building/willow_item_art.md):
   34 transparent icons matching existing equipment art, integrated in game/Admin;
   [review sheet and verification](../verification/willow-item-art-2026-11-08.md).

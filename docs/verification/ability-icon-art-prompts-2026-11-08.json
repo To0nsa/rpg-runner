@@ -1,0 +1,1122 @@
+{
+  "date": "2026-11-08",
+  "generator": "Built-in imagegen tool; underlying model identifier not exposed",
+  "export": "Nearest-neighbor resize to 64x64 transparent RGBA PNG; original alpha retained",
+  "count": 46,
+  "entries": [
+    {
+      "id": "eloise.bloodletter_slash",
+      "name": "Bloodletter Slash",
+      "family": "sword",
+      "asset": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "c0b3168d5a99f52635de75bdac25a5c384d319674c7f7aad07a6e2d647de06ba",
+      "subject": "A short worn steel sword sweeps through ONE strong ivory crescent from lower left to upper right. One decisive cut; dark leather grip and aged brass guard. No blood drop, no red effect: this slash has no innate bleed.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Bloodletter Slash for Éloïse. A short worn steel sword sweeps through ONE strong ivory crescent from lower left to upper right. One decisive cut; dark leather grip and aged brass guard. No blood drop, no red effect: this slash has no innate bleed.",
+      "references": [
+        {
+          "path": "assets/images/icons/gear-icons/sword/waspfang.png",
+          "role": "style reference",
+          "sha256": "53b3f3f6031569a824b7ddbfa514685a61251e7d775f6ea59191a1e989493b5f"
+        },
+        {
+          "path": "assets/images/icons/gear-icons/willow/blades/hunter_blade.png",
+          "role": "style reference",
+          "sha256": "7c46aa176d78026ae4c39da4cfe6d09f09424255ef1e837d030595ea9c7bf4de"
+        }
+      ],
+      "generated_source": "exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+      "generated_source_sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0"
+    },
+    {
+      "id": "eloise.bloodletter_cleave",
+      "name": "Bloodletter Cleave",
+      "family": "sword",
+      "asset": "assets/images/icons/skills-icons/eloise/bloodletter_cleave.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "1a82c8739644e6df5b8e5e5fe29ee5c72c6097c48818c024b153748f436a903e",
+      "subject": "A broad steel sword making ONE heavy downward cutting crescent, visibly thicker and steeper than a normal slash. Three small brass charge notches near the hilt and ONE tiny muted rust-red teardrop at the end of the arc indicate charged bleeding strike. No gore or victim.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Bloodletter Cleave for Éloïse. A broad steel sword making ONE heavy downward cutting crescent, visibly thicker and steeper than a normal slash. Three small brass charge notches near the hilt and ONE tiny muted rust-red teardrop at the end of the arc indicate charged bleeding strike. No gore or victim.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        },
+        {
+          "path": "assets/images/icons/gear-icons/sword/waspfang.png",
+          "role": "style reference",
+          "sha256": "53b3f3f6031569a824b7ddbfa514685a61251e7d775f6ea59191a1e989493b5f"
+        }
+      ],
+      "generated_source": "exec-04909683-9bf2-4021-b403-7039c20b71f3.png",
+      "generated_source_sha256": "40fca6ae1ebf5278a66c4bb007ea3205c9f94c8b6fa74491ae8b634664e4a592"
+    },
+    {
+      "id": "eloise.seeker_slash",
+      "name": "Seeker Slash",
+      "family": "sword",
+      "asset": "assets/images/icons/skills-icons/eloise/seeker_slash.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "b893720e819e5b0227b759601ca15ff22d08beb5056f781efac859d58e2b14f9",
+      "subject": "A steel sword pointing diagonally toward a small target diamond in the upper right, a single curved ivory guiding trail bending into the target. Convey an automatically guided melee strike, no blood, no multiple slash marks.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Seeker Slash for Éloïse. A steel sword pointing diagonally toward a small target diamond in the upper right, a single curved ivory guiding trail bending into the target. Convey an automatically guided melee strike, no blood, no multiple slash marks.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        },
+        {
+          "path": "assets/images/icons/gear-icons/sword/waspfang.png",
+          "role": "style reference",
+          "sha256": "53b3f3f6031569a824b7ddbfa514685a61251e7d775f6ea59191a1e989493b5f"
+        }
+      ],
+      "generated_source": "exec-c0cb389f-6996-42e8-8527-5f0432c51d97.png",
+      "generated_source_sha256": "f49286cbfe52f7865d1d9ba8227d06ee543e76f15ed7c5e339bcdf505f8416b2"
+    },
+    {
+      "id": "eloise.aegis_riposte",
+      "name": "Aegis Riposte",
+      "family": "shield",
+      "asset": "assets/images/icons/skills-icons/eloise/aegis_riposte.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "c19f2ccf03489f8c63532f3dd6af001de43aaa3a7c2e35d55b0677148cfc18f7",
+      "subject": "A worn dark steel heater shield with modest brass rim, intercepting a small incoming pale stroke at its upper left; a short steel counterattack crescent emerges around its right edge. Guard plus retaliation, strong shield silhouette, no ornate crest.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Aegis Riposte for Éloïse. A worn dark steel heater shield with modest brass rim, intercepting a small incoming pale stroke at its upper left; a short steel counterattack crescent emerges around its right edge. Guard plus retaliation, strong shield silhouette, no ornate crest.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        },
+        {
+          "path": "assets/images/icons/gear-icons/shields/roadguard.png",
+          "role": "style reference",
+          "sha256": "73c39fb702ad0fa5a957d921028d51023af5492080dc3f99d05d5b7a25c32bd6"
+        }
+      ],
+      "generated_source": "exec-1a45c8ff-c0ed-4e75-85c9-accf52902b8b.png",
+      "generated_source_sha256": "67cd418492644e171f6dda538f04e5e0a4c27fc58e3ce9d679c092f6f968253f"
+    },
+    {
+      "id": "eloise.shield_block",
+      "name": "Shield Block",
+      "family": "shield",
+      "asset": "assets/images/icons/skills-icons/eloise/shield_block.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "a779f603f0a5c0d8879e0ced7c8d8cd3610154eb2e09eccc40c08703f7e58941",
+      "subject": "A broad front-facing worn steel heater shield with brass rim; TWO short incoming pale strokes stop against its left edge in a compact square impact notch. Firm stationary defense. No sword, no outgoing attack arc, no magical dome.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Shield Block for Éloïse. A broad front-facing worn steel heater shield with brass rim; TWO short incoming pale strokes stop against its left edge in a compact square impact notch. Firm stationary defense. No sword, no outgoing attack arc, no magical dome.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        },
+        {
+          "path": "assets/images/icons/gear-icons/shields/roadguard.png",
+          "role": "style reference",
+          "sha256": "73c39fb702ad0fa5a957d921028d51023af5492080dc3f99d05d5b7a25c32bd6"
+        }
+      ],
+      "generated_source": "exec-e2bddd58-794a-429a-9959-0c4864487b4a.png",
+      "generated_source_sha256": "6d82298cd8c3b0f6d580b415dc41cfc9e73e5e5c21e09eb7bf921d6fa6f37018"
+    },
+    {
+      "id": "eloise.snap_shot",
+      "name": "Snap Shot",
+      "family": "ranged",
+      "asset": "assets/images/icons/skills-icons/eloise/snap_shot.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "d28364d72032df33ccad979b17b4c5c2d71c05f5923ba3194d77461e12ee00f8",
+      "subject": "A compact pale slate-white magical projectile curving toward a small brass target diamond at upper right; short hooked trajectory and three separated target brackets show automatic targeting. No gun, bow, fire, ice or lightning: selectable spell element is independent.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Snap Shot for Éloïse. A compact pale slate-white magical projectile curving toward a small brass target diamond at upper right; short hooked trajectory and three separated target brackets show automatic targeting. No gun, bow, fire, ice or lightning: selectable spell element is independent. The reference blade must NOT appear in this icon.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-ab15d037-db7f-492c-b5dc-46ae6c016f11.png",
+      "generated_source_sha256": "4ade8d2db7eacbc95c02cda582b964b3aedd013c094f29bf45778742c8a86025"
+    },
+    {
+      "id": "eloise.quick_shot",
+      "name": "Quick Shot",
+      "family": "ranged",
+      "asset": "assets/images/icons/skills-icons/eloise/quick_shot.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "d4ebf90ad09958da96566174e6c1697d2b493c721c80b2c846ce7a314a6b91db",
+      "subject": "A small pointed slate-white spell mote moving straight from lower left to upper right with TWO short clean speed streaks. Compact light shot and rapid release; no targeting brackets, charge ring, weapon, flame or elemental symbols.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Quick Shot for Éloïse. A small pointed slate-white spell mote moving straight from lower left to upper right with TWO short clean speed streaks. Compact light shot and rapid release; no targeting brackets, charge ring, weapon, flame or elemental symbols. The reference blade must NOT appear in this icon.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-a579b180-6b2a-4252-9bfc-f4457c810232.png",
+      "generated_source_sha256": "193eae173251b27d2abef752a098d9256ea0d2be87fb0d27af7db040414f43fc"
+    },
+    {
+      "id": "eloise.skewer_shot",
+      "name": "Skewer Shot",
+      "family": "ranged",
+      "asset": "assets/images/icons/skills-icons/eloise/skewer_shot.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "e14d2df5e3760fe7f48679fd152f19098136577c029334920434a2e914682811",
+      "subject": "One slender ivory spell lance travels diagonally through THREE separated dark slate diamond target wafers in a straight line, with small gaps between targets; the tip exits the third. Clearly piercing several targets, no weapon or element.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Skewer Shot for Éloïse. One slender ivory spell lance travels diagonally through THREE separated dark slate diamond target wafers in a straight line, with small gaps between targets; the tip exits the third. Clearly piercing several targets, no weapon or element.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-a579b180-6b2a-4252-9bfc-f4457c810232.png",
+          "role": "style reference",
+          "sha256": "193eae173251b27d2abef752a098d9256ea0d2be87fb0d27af7db040414f43fc",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/quick_shot.png"
+        }
+      ],
+      "generated_source": "exec-f12503d5-41b9-4dab-9b07-bc12dba30e9f.png",
+      "generated_source_sha256": "8e85cd97343882498e1cfca1439c274ebeecbfbd3d122e62c1b399743a5af9fd"
+    },
+    {
+      "id": "eloise.overcharge_shot",
+      "name": "Overcharge Bolt",
+      "family": "ranged",
+      "asset": "assets/images/icons/skills-icons/eloise/overcharge_shot.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "446b632ca4562235b048b794d07fe8df1c43bf5fc1e814ec491f1a8cd77491bd",
+      "subject": "A large pointed cold slate-white spell bolt emerging from THREE close concentric broken brass charge arcs behind its base. Compact stored power and deliberate charged release, no target wafers, no weapon or elemental fire/lightning.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Overcharge Bolt for Éloïse. A large pointed cold slate-white spell bolt emerging from THREE close concentric broken brass charge arcs behind its base. Compact stored power and deliberate charged release, no target wafers, no weapon or elemental fire/lightning.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-a579b180-6b2a-4252-9bfc-f4457c810232.png",
+          "role": "style reference",
+          "sha256": "193eae173251b27d2abef752a098d9256ea0d2be87fb0d27af7db040414f43fc",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/quick_shot.png"
+        }
+      ],
+      "generated_source": "exec-b7bd8dfd-b94b-431f-a483-145f16cc9d1d.png",
+      "generated_source_sha256": "56ff18e85f55afea76b73d3f61ae1ea2b496d1c357506dfc4d7955ac5c89a966"
+    },
+    {
+      "id": "eloise.arcane_haste",
+      "name": "Arcane Haste",
+      "family": "spell",
+      "asset": "assets/images/icons/skills-icons/eloise/arcane_haste.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "873ad9471adc345a524109f0bc15882da8995bce07da7840873c8f9a24100b71",
+      "subject": "One practical steel-edged boot leaning forward in a running stride, accompanied by two small angular pale-slate wing-like speed fins behind its heel. A tiny closed brass rune loop at the ankle implies a sustained movement enchantment. No feathers or heroic wings.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Arcane Haste for Éloïse. One practical steel-edged boot leaning forward in a running stride, accompanied by two small angular pale-slate wing-like speed fins behind its heel. A tiny closed brass rune loop at the ankle implies a sustained movement enchantment. No feathers or heroic wings. Use the reference for pixel density, outlines and palette ONLY; do not include its sword or slash.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-72aadc1a-4bd0-460f-8b8e-2061c4060c91.png",
+      "generated_source_sha256": "6014148833e4ad168ad01d6674077e30e9d9fde13bd97e3b8e61da2a63ec144c"
+    },
+    {
+      "id": "eloise.focus",
+      "name": "Focus",
+      "family": "spell",
+      "asset": "assets/images/icons/skills-icons/eloise/focus.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "31818999416e9a6fc871bb31a7415323bcd82447cfd859939f86de0e9bb5a149",
+      "subject": "A single calm human eye with a pale iris, enclosed by three inward-pointing small brass facets; composition concentrated at the pupil. Cold slate and aged gold, precise controlled magical concentration, no weapon, no outer reticle or quarry silhouette.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Focus for Éloïse. A single calm human eye with a pale iris, enclosed by three inward-pointing small brass facets; composition concentrated at the pupil. Cold slate and aged gold, precise controlled magical concentration, no weapon, no outer reticle or quarry silhouette. Use the reference for pixel density, outlines and palette ONLY; do not include its sword or slash.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-7ce3e6b2-11be-41b4-ab4f-11b7d0a34ff9.png",
+      "generated_source_sha256": "23096de8a313c403f1f6d119f5ae4356955d1e7c314c6e5ee6e9bb7d05b2393c"
+    },
+    {
+      "id": "eloise.arcane_ward",
+      "name": "Arcane Ward",
+      "family": "spell",
+      "asset": "assets/images/icons/skills-icons/eloise/arcane_ward.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "48239542706b5a78a1f53dbdd4de54ec64fcc1b50854806d5567ab45504f41ff",
+      "subject": "A small upright neutral human bust silhouette enclosed inside ONE thick segmented oval of cold slate and ivory, with two tiny muted brass joints. The enclosure is clearly a protective magical barrier around a person. No physical shield, nested shields or luminous halo.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Arcane Ward for Éloïse. A small upright neutral human bust silhouette enclosed inside ONE thick segmented oval of cold slate and ivory, with two tiny muted brass joints. The enclosure is clearly a protective magical barrier around a person. No physical shield, nested shields or luminous halo. Reference is style only: do not include a sword or slash.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-60c5f843-dbfe-416d-8da0-1b351802d576.png",
+      "generated_source_sha256": "854eafefdd3a8ba35586baf93fbbf4123a3a2b0c634ddc600071a64f08735b13"
+    },
+    {
+      "id": "eloise.cleanse",
+      "name": "Cleanse",
+      "family": "spell",
+      "asset": "assets/images/icons/skills-icons/eloise/cleanse.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "895983aa8f6b79e55bb9d953c431eb492aaa7e822b165a0f0fea43228adade38",
+      "subject": "An open pale gloved hand facing upward, with three broken rust-colored thorn links falling away beneath it and a single clean ivory upward sweep. Read as harmful bindings being dispelled, not healing. No heart, red cross, potion or protective dome.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Cleanse for Éloïse. An open pale gloved hand facing upward, with three broken rust-colored thorn links falling away beneath it and a single clean ivory upward sweep. Read as harmful bindings being dispelled, not healing. No heart, red cross, potion or protective dome. Reference is style only: do not include a sword or slash.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-545a7681-102e-4b07-ae99-408223b57ea0.png",
+      "generated_source_sha256": "c4fd236ad2f8fe4e3f79a6b15596c95f686a1b0dad1bcce6328f855e2a754703"
+    },
+    {
+      "id": "eloise.vital_surge",
+      "name": "Vital Surge",
+      "family": "spell",
+      "asset": "assets/images/icons/skills-icons/eloise/vital_surge.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "89885c6f46101d275985d217917c7e480d015dc745c7ae6376347228765be332",
+      "subject": "A small muted rust-red heart held gently above an open slate glove, with THREE ascending pale segmented pulses rising beside it. Sustained health recovery, compact and restrained, no blood, no medical cross, no bright green.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Vital Surge for Éloïse. A small muted rust-red heart held gently above an open slate glove, with THREE ascending pale segmented pulses rising beside it. Sustained health recovery, compact and restrained, no blood, no medical cross, no bright green. Reference is pixel style and glove treatment only; omit the reference's broken bindings and crescent.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-545a7681-102e-4b07-ae99-408223b57ea0.png",
+          "role": "style reference",
+          "sha256": "c4fd236ad2f8fe4e3f79a6b15596c95f686a1b0dad1bcce6328f855e2a754703",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/cleanse.png"
+        }
+      ],
+      "generated_source": "exec-63fcddd8-1ce2-4b29-9780-2488b632d35f.png",
+      "generated_source_sha256": "a84bbfdb8743dda5566778fc85c2190e51d760bf082b595f71d27a395bf7afb6"
+    },
+    {
+      "id": "eloise.mana_infusion",
+      "name": "Mana Infusion",
+      "family": "spell",
+      "asset": "assets/images/icons/skills-icons/eloise/mana_infusion.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "b144fcc65cc3aa834f3ea339a3c271dc29043b36ae49994c691a6b2a4a663a3d",
+      "subject": "A faceted slate-blue crystal droplet held above a cupped dark glove, three separated ivory flecks feeding upward into the crystal from the palm. Sustained mana replenishment, broad simple crystal, no flask, heart or spark explosion.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Mana Infusion for Éloïse. A faceted slate-blue crystal droplet held above a cupped dark glove, three separated ivory flecks feeding upward into the crystal from the palm. Sustained mana replenishment, broad simple crystal, no flask, heart or spark explosion. Reference is pixel style and glove treatment only; omit the reference's broken bindings and crescent.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-545a7681-102e-4b07-ae99-408223b57ea0.png",
+          "role": "style reference",
+          "sha256": "c4fd236ad2f8fe4e3f79a6b15596c95f686a1b0dad1bcce6328f855e2a754703",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/cleanse.png"
+        }
+      ],
+      "generated_source": "exec-b8c73183-1498-4d72-9310-56e114281fdb.png",
+      "generated_source_sha256": "0da7264117137329961765a1dbcfd62e445947f2c9cd83e22910b4e55077b27b"
+    },
+    {
+      "id": "eloise.second_wind",
+      "name": "Second Wind",
+      "family": "spell",
+      "asset": "assets/images/icons/skills-icons/eloise/second_wind.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "9eb2e8909250a9ff743ca2f8443f77e514979021a24db2132e59f020504757d0",
+      "subject": "A simple torso and paired lung silhouette in muted slate, with two broad ivory breath curls entering from below and three small brass rising recovery ticks. Restoring endurance through steady breathing, no heart, potion, shield or boot.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Second Wind for Éloïse. A simple torso and paired lung silhouette in muted slate, with two broad ivory breath curls entering from below and three small brass rising recovery ticks. Restoring endurance through steady breathing, no heart, potion, shield or boot. Reference is pixel style only, no sword or slash in this icon.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-8cdd70b7-35d7-42ea-ba5d-e84411325d72.png",
+      "generated_source_sha256": "deab28a00b6603132c67da3a294de10d84af05ddfd1ac99180ba81bc1f25e398"
+    },
+    {
+      "id": "eloise.jump",
+      "name": "Jump",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/eloise/jump.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "be652208fb812993b7150c9e5dcf74354be9f06f0e523513bd2c76a8c10bd557",
+      "subject": "A small simple side-profile clothed figure in a rising tuck, both feet clearly off a tiny takeoff mark; ONE broad ivory curved upward trajectory behind it. Cold slate clothes, pale trim, no wings. One takeoff, one arc.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Jump for Éloïse. A small simple side-profile clothed figure in a rising tuck, both feet clearly off a tiny takeoff mark; ONE broad ivory curved upward trajectory behind it. Cold slate clothes, pale trim, no wings. One takeoff, one arc. Reference is pixel style only, no sword or slash in this icon.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-10f4f1fb-f52f-4263-8452-9cdb5d0e28d5.png",
+      "generated_source_sha256": "b143fb6a36299cbafa2965f9c25c959ed5ab237ca223900e878be904873e0c09"
+    },
+    {
+      "id": "eloise.double_jump",
+      "name": "Double Jump",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/eloise/double_jump.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "2d34ac7fbe6b4f785b31cb7796f36350f8a15cb1b09bbef83f4cb3c843c09660",
+      "subject": "A small simple side-profile clothed figure rising in the upper half; TWO separate ivory upward impulse crescents stacked below its boots with a visible gap between them, lower physical impulse and upper pale magical impulse. Cold slate clothes. Two jump stages, no wings or text.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Double Jump for Éloïse. A small simple side-profile clothed figure rising in the upper half; TWO separate ivory upward impulse crescents stacked below its boots with a visible gap between them, lower physical impulse and upper pale magical impulse. Cold slate clothes. Two jump stages, no wings or text. Match the reference's simplified figure treatment and clothing palette, but change the pose and motion marks to this specific action.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-10f4f1fb-f52f-4263-8452-9cdb5d0e28d5.png",
+          "role": "style reference",
+          "sha256": "b143fb6a36299cbafa2965f9c25c959ed5ab237ca223900e878be904873e0c09",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/jump.png"
+        }
+      ],
+      "generated_source": "exec-235185dc-8498-42a6-b498-ce2429093f57.png",
+      "generated_source_sha256": "c2452c9d8b326f1a7a2227f275174ef15a5a15ed8ab8710e53996089dd5046b6"
+    },
+    {
+      "id": "eloise.dash",
+      "name": "Dash",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/eloise/dash.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "c0beff64991682c3f3d1eb1201348b2e58a065c44fe7c59b1c06c8e2fd857621",
+      "subject": "A simple side-profile clothed figure leaning sharply forward in a long horizontal dash toward the right, legs trailing, with ONE continuous broad pale motion streak behind it. Cold slate clothes, small brass belt. Horizontal burst, no shield or invulnerability bubble.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Dash for Éloïse. A simple side-profile clothed figure leaning sharply forward in a long horizontal dash toward the right, legs trailing, with ONE continuous broad pale motion streak behind it. Cold slate clothes, small brass belt. Horizontal burst, no shield or invulnerability bubble. Match the reference's simplified figure treatment and clothing palette, but change the pose and motion marks to this specific action.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-10f4f1fb-f52f-4263-8452-9cdb5d0e28d5.png",
+          "role": "style reference",
+          "sha256": "b143fb6a36299cbafa2965f9c25c959ed5ab237ca223900e878be904873e0c09",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/jump.png"
+        }
+      ],
+      "generated_source": "exec-8e8ba3e0-c34e-4e44-aed7-d7997f82fdda.png",
+      "generated_source_sha256": "aca4e87cd3e1ed73a50f1d5c021b3b349399367da58e6d77126ba7d75cc50fae"
+    },
+    {
+      "id": "eloise.double_dash",
+      "name": "Double Dash",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/eloise/double_dash.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "4bb178cb0413d5257cf456e95f9e7171ac39be54ac1e1e0d840142d394058ae8",
+      "subject": "Two small side-profile forward-leaning clothed silhouettes in successive horizontal positions, each with its own SHORT pale dash streak; a clear transparent gap separates the two bursts. Cold slate and brass. Two deliberate successive dashes, not a long single streak, no text or numerals.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Double Dash for Éloïse. Two small side-profile forward-leaning clothed silhouettes in successive horizontal positions, each with its own SHORT pale dash streak; a clear transparent gap separates the two bursts. Cold slate and brass. Two deliberate successive dashes, not a long single streak, no text or numerals. Match simplified figure styling, with the exact action posture described. All parts must stay comfortably inside the canvas.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8e8ba3e0-c34e-4e44-aed7-d7997f82fdda.png",
+          "role": "style reference",
+          "sha256": "aca4e87cd3e1ed73a50f1d5c021b3b349399367da58e6d77126ba7d75cc50fae",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/dash.png"
+        }
+      ],
+      "generated_source": "exec-694085d7-3e9b-4b5a-aa8f-6c3a3e3783c7.png",
+      "generated_source_sha256": "199c4e082f4e4de744db8bbf0d27a075872735c510f37a2713e50ab6303d06f1"
+    },
+    {
+      "id": "eloise.roll",
+      "name": "Concussive Roll",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/eloise/roll.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "e5aa10e805d7bb7661d6c4e9302258c5c01cbd27cd5c740d3df854f041dcd8fc",
+      "subject": "A compact side-profile clothed body tucked into a forward roll, one pale crescent wraps its curved back; a small blunt ivory-and-brass impact star sits at the front/right edge. Cold slate clothes. Ground roll that stuns on contact, no invulnerability shield.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Concussive Roll for Éloïse. A compact side-profile clothed body tucked into a forward roll, one pale crescent wraps its curved back; a small blunt ivory-and-brass impact star sits at the front/right edge. Cold slate clothes. Ground roll that stuns on contact, no invulnerability shield. Match simplified figure styling, with the exact action posture described. All parts must stay comfortably inside the canvas.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8e8ba3e0-c34e-4e44-aed7-d7997f82fdda.png",
+          "role": "style reference",
+          "sha256": "aca4e87cd3e1ed73a50f1d5c021b3b349399367da58e6d77126ba7d75cc50fae",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/dash.png"
+        }
+      ],
+      "generated_source": "exec-28c617c4-8113-48aa-8787-c30410d53ad4.png",
+      "generated_source_sha256": "b866e68e320c5a49bd5a4051338dfb591db4e4219974b68484d379ae0fd2fe34"
+    },
+    {
+      "id": "bounty_hunter.quick_cut",
+      "name": "Quick Cut",
+      "family": "blade",
+      "asset": "assets/images/icons/skills-icons/willow/quick_cut.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "c9fca3fc55adc98b4061f4aa8cf5ced00a999d50756419c4c4e234e394dcd902",
+      "subject": "A practical short steel hunting knife sweeping through ONE compact pale diagonal cutting stroke. Brown leather grip and modest brass guard, fast close-quarters cut. No blood, no long sword, no multiple arcs.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Quick Cut for Willow. A practical short steel hunting knife sweeping through ONE compact pale diagonal cutting stroke. Brown leather grip and modest brass guard, fast close-quarters cut. No blood, no long sword, no multiple arcs. Match first reference action-icon style, but use the second reference's SHORT hunting knife proportions.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        },
+        {
+          "path": "assets/images/icons/gear-icons/willow/blades/hunter_blade.png",
+          "role": "style reference",
+          "sha256": "7c46aa176d78026ae4c39da4cfe6d09f09424255ef1e837d030595ea9c7bf4de"
+        }
+      ],
+      "generated_source": "exec-3bbb3086-7ce1-47a2-a82b-4cd256ed1863.png",
+      "generated_source_sha256": "8130e200912e44e12eaaa34de3231df952e5f6c4e928b4ce1078b7a52faf0367"
+    },
+    {
+      "id": "bounty_hunter.twin_cut",
+      "name": "Twin Cut",
+      "family": "blade",
+      "asset": "assets/images/icons/skills-icons/willow/twin_cut.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "d53973cddfc9ef96ac5b0c637d063c6cae2ae2509747afb9aade0cc53f05fe2f",
+      "subject": "A short steel hunting knife at lower left with EXACTLY TWO clearly separated bold pale cutting crescents rising diagonally to the right. Keep equal visual weight and a transparent gap between the two strokes. No third streak, no blood.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Twin Cut for Willow. A short steel hunting knife at lower left with EXACTLY TWO clearly separated bold pale cutting crescents rising diagonally to the right. Keep equal visual weight and a transparent gap between the two strokes. No third streak, no blood. Match first reference action-icon style, but use the second reference's SHORT hunting knife proportions.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        },
+        {
+          "path": "assets/images/icons/gear-icons/willow/blades/hunter_blade.png",
+          "role": "style reference",
+          "sha256": "7c46aa176d78026ae4c39da4cfe6d09f09424255ef1e837d030595ea9c7bf4de"
+        }
+      ],
+      "generated_source": "exec-8eb48c9e-37c6-47a3-bf38-804ee6db4382.png",
+      "generated_source_sha256": "50376b15c7147b032a2144f412d184685a5291aee20efa629366a0b1f9260066"
+    },
+    {
+      "id": "bounty_hunter.threefold_cut",
+      "name": "Threefold Cut",
+      "family": "blade",
+      "asset": "assets/images/icons/skills-icons/willow/threefold_cut.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "7993a1451eb1669d73b72bba94017117a70bbed5d63532f21581610f6c8cf789",
+      "subject": "A short steel hunting knife at lower left with EXACTLY THREE clearly separated bold pale cutting crescents rising diagonally to the right. Three countable strokes with transparent gaps, no extra speed streaks, no blood.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Threefold Cut for Willow. A short steel hunting knife at lower left with EXACTLY THREE clearly separated bold pale cutting crescents rising diagonally to the right. Three countable strokes with transparent gaps, no extra speed streaks, no blood. Match the reference short knife and crisp action shapes; change the number/direction of strokes exactly as described.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8eb48c9e-37c6-47a3-bf38-804ee6db4382.png",
+          "role": "style reference",
+          "sha256": "50376b15c7147b032a2144f412d184685a5291aee20efa629366a0b1f9260066",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/twin_cut.png"
+        }
+      ],
+      "generated_source": "exec-c7286c9e-9abc-4816-92c1-3b53e1bfb77e.png",
+      "generated_source_sha256": "2ef8f9000c3ba4ffeb621bbce7466be7289fd8391655df0cd280df17586a360f"
+    },
+    {
+      "id": "bounty_hunter.lunge_slash",
+      "name": "Lunge Slash",
+      "family": "blade",
+      "asset": "assets/images/icons/skills-icons/willow/lunge_slash.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "84d7fe38a9c79180bb37df42c1a8226f48761bec9e303a3f1d0adeb1f29c6b5b",
+      "subject": "A leather-gloved forearm thrusts a short steel hunting knife horizontally right; one long tapered pale forward wedge behind the wrist conveys bodily advance into the strike. Strong long horizontal silhouette, no multiple cuts, no projectile.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Lunge Slash for Willow. A leather-gloved forearm thrusts a short steel hunting knife horizontally right; one long tapered pale forward wedge behind the wrist conveys bodily advance into the strike. Strong long horizontal silhouette, no multiple cuts, no projectile. Match the reference short knife and crisp action shapes; change the number/direction of strokes exactly as described.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8eb48c9e-37c6-47a3-bf38-804ee6db4382.png",
+          "role": "style reference",
+          "sha256": "50376b15c7147b032a2144f412d184685a5291aee20efa629366a0b1f9260066",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/twin_cut.png"
+        }
+      ],
+      "generated_source": "exec-a4a57d8e-5db9-4f40-92ec-9d9b2a2383dc.png",
+      "generated_source_sha256": "ff834f53c307ed0fc10a8a98ee647b4e49f78e91f30f1fef3d533599708866ca"
+    },
+    {
+      "id": "bounty_hunter.blast_bomb",
+      "name": "Blast Bomb",
+      "family": "bomb",
+      "asset": "assets/images/icons/skills-icons/willow/blast_bomb.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "f2fe97eee8b971aba70e66673355986449a252bec0011140ac47406b69c6dc7f",
+      "subject": "A squat iron sphere bomb with a short bent fuse, in front of ONE compact blunt six-lobed pale blast silhouette. Muted brass fuse collar. Clear explosive impact, no flames, shrapnel needles or magical runes.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Blast Bomb for Willow. A squat iron sphere bomb with a short bent fuse, in front of ONE compact blunt six-lobed pale blast silhouette. Muted brass fuse collar. Clear explosive impact, no flames, shrapnel needles or magical runes. First reference provides pixel-art style; second provides iron bomb material only. Do not include the knife or a carrying pouch.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        },
+        {
+          "path": "assets/images/icons/gear-icons/willow/bomb_kits/bomb_kit.png",
+          "role": "style reference",
+          "sha256": "fbebb22fd90a23b2bca29c9aaba0317df3a8fe995d3af084600acf935c71862c"
+        }
+      ],
+      "generated_source": "exec-d4afa7eb-48aa-4c5b-a721-38fa844cd93c.png",
+      "generated_source_sha256": "9797ddea6cfffdeb900a4971090a2029dfe367f83b232bfc606bef8b740c0030"
+    },
+    {
+      "id": "bounty_hunter.shrapnel_bomb",
+      "name": "Shrapnel Bomb",
+      "family": "bomb",
+      "asset": "assets/images/icons/skills-icons/willow/shrapnel_bomb.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "60cecbcd8205cc9ef1c31dec7fd44a259bba5bdd3c40588929a7b5074afcd20c",
+      "subject": "A squat split iron sphere with FIVE large angular steel fragments flying outward, one tiny muted rust-red drop near a fragment denotes bleeding. Short fuse, leather-brown and iron accents, no fire or clouds. Large readable fragments, no gore.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Shrapnel Bomb for Willow. A squat split iron sphere with FIVE large angular steel fragments flying outward, one tiny muted rust-red drop near a fragment denotes bleeding. Short fuse, leather-brown and iron accents, no fire or clouds. Large readable fragments, no gore. First reference provides pixel-art style; second provides iron bomb material only. Do not include the knife or a carrying pouch.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        },
+        {
+          "path": "assets/images/icons/gear-icons/willow/bomb_kits/bomb_kit.png",
+          "role": "style reference",
+          "sha256": "fbebb22fd90a23b2bca29c9aaba0317df3a8fe995d3af084600acf935c71862c"
+        }
+      ],
+      "generated_source": "exec-5a6698a0-202c-4544-816e-030e956f7745.png",
+      "generated_source_sha256": "cd530732935e4dc32776f80673add23b23b424d7a6998e71effed70ffd6c9085"
+    },
+    {
+      "id": "bounty_hunter.fire_bomb",
+      "name": "Fire Bomb",
+      "family": "bomb",
+      "asset": "assets/images/icons/skills-icons/willow/fire_bomb.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "9b39fcbf69e4539f58525ea71dd96f8640966381169a0a2b8eb3efd16999e3c6",
+      "subject": "A squat iron bomb cradled by THREE broad compact rust-orange flame tongues, one clear rising central flame. Worn brass fuse collar, tiny ash highlight. Controlled muted fire silhouette, no shrapnel, neon glow or smoke background.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Fire Bomb for Willow. A squat iron bomb cradled by THREE broad compact rust-orange flame tongues, one clear rising central flame. Worn brass fuse collar, tiny ash highlight. Controlled muted fire silhouette, no shrapnel, neon glow or smoke background. Keep the reference bomb scale and palette, but replace its plain blast silhouette with this ability's specific effect.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-d4afa7eb-48aa-4c5b-a721-38fa844cd93c.png",
+          "role": "style reference",
+          "sha256": "9797ddea6cfffdeb900a4971090a2029dfe367f83b232bfc606bef8b740c0030",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/blast_bomb.png"
+        }
+      ],
+      "generated_source": "exec-17b8823b-0860-4d2e-9f21-63592f8f7df0.png",
+      "generated_source_sha256": "21f28da7f099e8f9d438285ce8ca2e6317f2a60b04e07c41c409faeca797eab1"
+    },
+    {
+      "id": "bounty_hunter.concussion_bomb",
+      "name": "Concussion Bomb",
+      "family": "bomb",
+      "asset": "assets/images/icons/skills-icons/willow/concussion_bomb.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "cc7da2e4dd0c46334d6fb18ee08bfa1477cd6e87789810ed2df0ae39be7e8f3f",
+      "subject": "A squat iron sphere bomb at center with TWO broad separated pale pressure arcs on both sides and a small blunt brass stun star above. Symmetric shock-wave silhouette with generous transparent gaps, no flames or sharp fragments.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Concussion Bomb for Willow. A squat iron sphere bomb at center with TWO broad separated pale pressure arcs on both sides and a small blunt brass stun star above. Symmetric shock-wave silhouette with generous transparent gaps, no flames or sharp fragments. Keep the reference bomb scale and palette, but replace its plain blast silhouette with this ability's specific effect.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-d4afa7eb-48aa-4c5b-a721-38fa844cd93c.png",
+          "role": "style reference",
+          "sha256": "9797ddea6cfffdeb900a4971090a2029dfe367f83b232bfc606bef8b740c0030",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/blast_bomb.png"
+        }
+      ],
+      "generated_source": "exec-4292d606-1d0b-4575-be00-afae8abef223.png",
+      "generated_source_sha256": "d46f1577af48c794bfa75974115aa05b586e6d33f4357c2517c2d131df95b96c"
+    },
+    {
+      "id": "bounty_hunter.snap_shot",
+      "name": "Snap Shot",
+      "family": "ranged",
+      "asset": "assets/images/icons/skills-icons/willow/snap_shot.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "d3c382305e36995c3936a15b5ed2cbe98c888eaf065e094d1694714789cc2cdb",
+      "subject": "One small steel projectile tip curving toward a brass target diamond in the upper right, a short hooked pale trajectory and three separated targeting brackets. Practical automatic aim. No gun or bow silhouette because all ranged weapons can use the skill; no magic or flame.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Snap Shot for Willow. One small steel projectile tip curving toward a brass target diamond in the upper right, a short hooked pale trajectory and three separated targeting brackets. Practical automatic aim. No gun or bow silhouette because all ranged weapons can use the skill; no magic or flame. Use the reference's targeting/speed visual grammar; make the shot a compact physical steel point with aged-brass base rather than a long magical mote.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-ab15d037-db7f-492c-b5dc-46ae6c016f11.png",
+          "role": "style reference",
+          "sha256": "4ade8d2db7eacbc95c02cda582b964b3aedd013c094f29bf45778742c8a86025",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/snap_shot.png"
+        }
+      ],
+      "generated_source": "exec-1922a035-d479-4531-9fba-492091fb81ec.png",
+      "generated_source_sha256": "a739eaf5ab381c0149ab335322a757e30df655e9f594fb396e3eac70e24a5daf"
+    },
+    {
+      "id": "bounty_hunter.quick_shot",
+      "name": "Quick Shot",
+      "family": "ranged",
+      "asset": "assets/images/icons/skills-icons/willow/quick_shot.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "4a82741b8feaf2f8986c395f081050d3b4b07bbf53f82e7c590a60445821b910",
+      "subject": "One small steel projectile tip on a straight diagonal path from lower left to upper right, TWO short pale speed streaks behind it, tiny brass base. Light quick release; no gun, bow, reticle, charge rings or magic.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Quick Shot for Willow. One small steel projectile tip on a straight diagonal path from lower left to upper right, TWO short pale speed streaks behind it, tiny brass base. Light quick release; no gun, bow, reticle, charge rings or magic. Use the reference's targeting/speed visual grammar; make the shot a compact physical steel point with aged-brass base rather than a long magical mote.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-a579b180-6b2a-4252-9bfc-f4457c810232.png",
+          "role": "style reference",
+          "sha256": "193eae173251b27d2abef752a098d9256ea0d2be87fb0d27af7db040414f43fc",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/quick_shot.png"
+        }
+      ],
+      "generated_source": "exec-2fd5ee96-1855-48aa-8a9b-90de86161ba6.png",
+      "generated_source_sha256": "d5bb6ddd8cfcc02ea774fa2a48bc00fea99286488d9bc4e3cdb3e7539642c516"
+    },
+    {
+      "id": "bounty_hunter.piercing_shot",
+      "name": "Piercing Shot",
+      "family": "ranged",
+      "asset": "assets/images/icons/skills-icons/willow/piercing_shot.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "a0c76e2c647dff7ef786fb0c893e2bbfb85df917eef4db9d4dd5f8150258340f",
+      "subject": "One elongated steel projectile point traveling straight diagonally through THREE separated dark iron diamond target wafers, the point exits the last. Brown-brass base and pale trail, clear piercing sequence. No gun or bow, no flame or magic.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Piercing Shot for Willow. One elongated steel projectile point traveling straight diagonally through THREE separated dark iron diamond target wafers, the point exits the last. Brown-brass base and pale trail, clear piercing sequence. No gun or bow, no flame or magic. Reference is projectile material and pixel style only; use the explicitly requested trajectory/count.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-2fd5ee96-1855-48aa-8a9b-90de86161ba6.png",
+          "role": "style reference",
+          "sha256": "d5bb6ddd8cfcc02ea774fa2a48bc00fea99286488d9bc4e3cdb3e7539642c516",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/quick_shot.png"
+        }
+      ],
+      "generated_source": "exec-e08215f2-e754-42d4-ad4e-f482d20847e7.png",
+      "generated_source_sha256": "dfdab9ccb04122f7e52009f1f87106bb7c20898d562e9f370fc90b1ff8a67e22"
+    },
+    {
+      "id": "bounty_hunter.scatter_shot",
+      "name": "Scatter Shot",
+      "family": "ranged",
+      "asset": "assets/images/icons/skills-icons/willow/scatter_shot.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "8d4b515f9c7f1149576fbb80ea2be4f4728635fefa76c4db1ea5bd0844d0c2e9",
+      "subject": "EXACTLY FIVE steel projectile tips spreading in a broad fan from ONE small brass origin near lower-left. Five simple pale paths with visible transparent gaps, no extra particles. No gun, bow or magical blast; five countable pellets.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Scatter Shot for Willow. EXACTLY FIVE steel projectile tips spreading in a broad fan from ONE small brass origin near lower-left. Five simple pale paths with visible transparent gaps, no extra particles. No gun, bow or magical blast; five countable pellets. Reference is projectile material and pixel style only; use the explicitly requested trajectory/count.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-2fd5ee96-1855-48aa-8a9b-90de86161ba6.png",
+          "role": "style reference",
+          "sha256": "d5bb6ddd8cfcc02ea774fa2a48bc00fea99286488d9bc4e3cdb3e7539642c516",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/quick_shot.png"
+        }
+      ],
+      "generated_source": "exec-92fa5355-6f9b-4466-852c-3ebc3982348e.png",
+      "generated_source_sha256": "3f797b23e93df80c4ec98e81908742a117bf8da26af6ec6c9557cbc294bc7caf"
+    },
+    {
+      "id": "bounty_hunter.charged_shot",
+      "name": "Charged Shot",
+      "family": "ranged",
+      "asset": "assets/images/icons/skills-icons/willow/charged_shot.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "16bef23cd5c4f24668c8024374cd6122cfc3aedd9dd82584206c6c81d2888b91",
+      "subject": "One large steel projectile point emerging diagonally from THREE close broken brass compression arcs around its base. Strong compact triangular tip, pale edge, dark iron interior. Deliberately stored shot power, no gun, bow, fire or lightning.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Charged Shot for Willow. One large steel projectile point emerging diagonally from THREE close broken brass compression arcs around its base. Strong compact triangular tip, pale edge, dark iron interior. Deliberately stored shot power, no gun, bow, fire or lightning. Use physical iron and brass projectile construction.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-b7bd8dfd-b94b-431f-a483-145f16cc9d1d.png",
+          "role": "style reference",
+          "sha256": "56ff18e85f55afea76b73d3f61ae1ea2b496d1c357506dfc4d7955ac5c89a966",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/overcharge_shot.png"
+        }
+      ],
+      "generated_source": "exec-cd2653c7-01fe-4ffe-b482-d879251c7b28.png",
+      "generated_source_sha256": "ecf3cac78e5114aa9b76ad98b4cf86018d6df17a652d648e7ed02a657d58475f"
+    },
+    {
+      "id": "bounty_hunter.dash",
+      "name": "Dash",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/willow/dash.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "cf6e97156c6852136f3bdabcdc0f0d918189142e4e992304444af04b249c4795",
+      "subject": "A simple side-profile practical clothed figure leaning sharply forward in a long horizontal dash to the right, legs trailing with ONE continuous broad pale speed streak behind it. Brown leather coat, muted brass belt, charcoal legs. No shield or invulnerability bubble.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Dash for Willow. A simple side-profile practical clothed figure leaning sharply forward in a long horizontal dash to the right, legs trailing with ONE continuous broad pale speed streak behind it. Brown leather coat, muted brass belt, charcoal legs. No shield or invulnerability bubble. Match the reference's simplified figure treatment, but use a practical brown leather coat, charcoal trousers, dark hair tied back and brass belt.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8e8ba3e0-c34e-4e44-aed7-d7997f82fdda.png",
+          "role": "style reference",
+          "sha256": "aca4e87cd3e1ed73a50f1d5c021b3b349399367da58e6d77126ba7d75cc50fae",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/dash.png"
+        }
+      ],
+      "generated_source": "exec-8db59f72-addb-4b35-bc23-54ad3b0ddc30.png",
+      "generated_source_sha256": "d5340997d074a5089ee53f3b3e15e7c0f988c14c88f6a1618b4c0a309420caf9"
+    },
+    {
+      "id": "bounty_hunter.roll",
+      "name": "Roll",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/willow/roll.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "63232b0d79029c3bae1ea471ff1259f98e32cffd24f2c08d6ea0580a1af61a2f",
+      "subject": "A compact side-profile brown-leather clothed figure tucked into a ground roll, one pale curved motion crescent following the back, small dust square under its feet. No impact star, no stun mark, no shield or invulnerability effect.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Roll for Willow. A compact side-profile brown-leather clothed figure tucked into a ground roll, one pale curved motion crescent following the back, small dust square under its feet. No impact star, no stun mark, no shield or invulnerability effect. Match the reference's dark tied hair, brown coat and simplified figure. Pose is the key distinction; no impact star or protection effects.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8db59f72-addb-4b35-bc23-54ad3b0ddc30.png",
+          "role": "style reference",
+          "sha256": "d5340997d074a5089ee53f3b3e15e7c0f988c14c88f6a1618b4c0a309420caf9",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/dash.png"
+        }
+      ],
+      "generated_source": "exec-70ed2ef7-d58c-4a24-b703-14354121331b.png",
+      "generated_source_sha256": "48c06f3a6dd6a3bde1361d67b64dfdb1f370409718c87b0c5a8087c7d43b6612"
+    },
+    {
+      "id": "bounty_hunter.slide",
+      "name": "Slide",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/willow/slide.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "c31908957a74ee9a2b9eb5a51dfe65e3b75f91d8c4b5f6b09ec6f4889172d798",
+      "subject": "A low side-profile brown-leather clothed figure sliding feet-first toward the right, one leg extended and torso leaned back close to the floor; two short flat pale horizontal scrape streaks underneath. Clearly long and low, not rolling or airborne; no impact star.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Slide for Willow. A low side-profile brown-leather clothed figure sliding feet-first toward the right, one leg extended and torso leaned back close to the floor; two short flat pale horizontal scrape streaks underneath. Clearly long and low, not rolling or airborne; no impact star. Match the reference's dark tied hair, brown coat and simplified figure. Pose is the key distinction; no impact star or protection effects.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8db59f72-addb-4b35-bc23-54ad3b0ddc30.png",
+          "role": "style reference",
+          "sha256": "d5340997d074a5089ee53f3b3e15e7c0f988c14c88f6a1618b4c0a309420caf9",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/dash.png"
+        }
+      ],
+      "generated_source": "exec-69fa6314-30ae-4023-a59d-da9af1157653.png",
+      "generated_source_sha256": "5493e30c02812c765220b5201c3829c17d933e98c70c1be262e974c98b4c2a47"
+    },
+    {
+      "id": "bounty_hunter.jump",
+      "name": "Jump",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/willow/jump.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "d1daaacf7fbf98af4f3521b9bbad648647a1157ef46b7c57fd2258b1e9430253",
+      "subject": "A small simple brown-leather clothed figure rising in a tuck, boots clearly above a tiny takeoff mark, ONE broad pale curved upward path behind the figure. Practical athletic jump, no wings or magic, one takeoff and one arc.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Jump for Willow. A small simple brown-leather clothed figure rising in a tuck, boots clearly above a tiny takeoff mark, ONE broad pale curved upward path behind the figure. Practical athletic jump, no wings or magic, one takeoff and one arc. Use first reference's dark hair and brown coat, and second reference's upward motion grammar. No protective effects.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8db59f72-addb-4b35-bc23-54ad3b0ddc30.png",
+          "role": "style reference",
+          "sha256": "d5340997d074a5089ee53f3b3e15e7c0f988c14c88f6a1618b4c0a309420caf9",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/dash.png"
+        },
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-10f4f1fb-f52f-4263-8452-9cdb5d0e28d5.png",
+          "role": "style reference",
+          "sha256": "b143fb6a36299cbafa2965f9c25c959ed5ab237ca223900e878be904873e0c09",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/jump.png"
+        }
+      ],
+      "generated_source": "exec-f6ac8513-6324-4733-a21b-38aefc7db283.png",
+      "generated_source_sha256": "bf88046f85f11d804c3cf0b7a7f65ed2cdbe53feac5f6dc9265bc6ec1dbfd77d"
+    },
+    {
+      "id": "bounty_hunter.double_jump",
+      "name": "Double Jump",
+      "family": "mobility",
+      "asset": "assets/images/icons/skills-icons/willow/double_jump.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "e2f911a5bf2bfc125b1edfbf9c422375150135c55ecb5e9a9f89f74e5f2a88a1",
+      "subject": "A small simple brown-leather clothed figure rising in the upper half, TWO separate pale upward impulse crescents stacked under its boots with clear transparent space between them. Two successive jump stages, practical athletic icon, no wings, magic ring or text.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Double Jump for Willow. A small simple brown-leather clothed figure rising in the upper half, TWO separate pale upward impulse crescents stacked under its boots with clear transparent space between them. Two successive jump stages, practical athletic icon, no wings, magic ring or text. Use first reference's dark hair and brown coat, and second reference's upward motion grammar. No protective effects.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8db59f72-addb-4b35-bc23-54ad3b0ddc30.png",
+          "role": "style reference",
+          "sha256": "d5340997d074a5089ee53f3b3e15e7c0f988c14c88f6a1618b4c0a309420caf9",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/dash.png"
+        },
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-235185dc-8498-42a6-b498-ce2429093f57.png",
+          "role": "style reference",
+          "sha256": "c2452c9d8b326f1a7a2227f275174ef15a5a15ed8ab8710e53996089dd5046b6",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/double_jump.png"
+        }
+      ],
+      "generated_source": "exec-f9e9d245-8815-49bd-8339-2e08ced3f604.png",
+      "generated_source_sha256": "6fa0db94ee1c55438cb1e6cbc025df0eb0b7e553a30d997e2fbc613da86f34f0"
+    },
+    {
+      "id": "bounty_hunter.hunters_focus",
+      "name": "Hunter's Focus",
+      "family": "fieldcraft",
+      "asset": "assets/images/icons/skills-icons/willow/hunters_focus.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "0b7e9249c51fe86e26e98f3cfd51957408b968a2bddc446c16023990c695b9f8",
+      "subject": "A close-up steady human eye beneath a worn brown leather hood edge, with three tiny inward-aimed brass sight ticks framing the pupil. Alert precise concentration and offensive readiness. No quarry silhouette, full reticle, magic, weapons or modern optics.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Hunter's Focus for Willow. A close-up steady human eye beneath a worn brown leather hood edge, with three tiny inward-aimed brass sight ticks framing the pupil. Alert precise concentration and offensive readiness. No quarry silhouette, full reticle, magic, weapons or modern optics. Reference supplies pixel style only; depict only the specified subject.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-7ce3e6b2-11be-41b4-ab4f-11b7d0a34ff9.png",
+          "role": "style reference",
+          "sha256": "23096de8a313c403f1f6d119f5ae4356955d1e7c314c6e5ee6e9bb7d05b2393c",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/focus.png"
+        }
+      ],
+      "generated_source": "exec-14a2da2a-2ff1-42c6-8047-0362a77ef135.png",
+      "generated_source_sha256": "ce5f1ff00f488fdcf14b5d575430d4665721043f812b39cb0beb91c4ec0b9f4c"
+    },
+    {
+      "id": "bounty_hunter.mark_quarry",
+      "name": "Mark Quarry",
+      "family": "fieldcraft",
+      "asset": "assets/images/icons/skills-icons/willow/mark_quarry.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "1581e8d227d98cf56f30daf5369c82d9b2507e5d15501dadfd8062f945666ef9",
+      "subject": "A dark neutral quarry bust silhouette in the center, framed by FOUR separated aged-brass corner sight brackets; ONE tiny rust diamond sits above the head. Clearly one marked target, no eye close-up, gun, bow or magic.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Mark Quarry for Willow. A dark neutral quarry bust silhouette in the center, framed by FOUR separated aged-brass corner sight brackets; ONE tiny rust diamond sits above the head. Clearly one marked target, no eye close-up, gun, bow or magic. Reference supplies pixel style only; depict only the specified subject.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-0b3c29cd-5140-4a84-9e3d-9e120b93ac82.png",
+      "generated_source_sha256": "3e8662deb8a16acdd4fee02a5079cd2d2567846c898bfa331b79e90702b40afe"
+    },
+    {
+      "id": "bounty_hunter.forced_march",
+      "name": "Forced March",
+      "family": "fieldcraft",
+      "asset": "assets/images/icons/skills-icons/willow/forced_march.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "ec7f1a042559fc3365c2cd6c80045d80022ebc6b342abd734f1e929bb3ca3d7d",
+      "subject": "Two practical brown leather boots taking alternating forward steps, broad pale forward chevron beneath them and two short rhythmic dust marks. Sustained purposeful marching speed, upright footwear, not a crouched dash or magic.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Forced March for Willow. Two practical brown leather boots taking alternating forward steps, broad pale forward chevron beneath them and two short rhythmic dust marks. Sustained purposeful marching speed, upright footwear, not a crouched dash or magic. Reference is pixel density, dark outlines and muted materials ONLY; no sword or cutting crescent.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-f034ac07-9a71-4daa-a734-44ec766ebcb7.png",
+      "generated_source_sha256": "8c14e89af58c340ce4b7b963f4889e9be815bbefc87ff73c8641917e0a53bba4"
+    },
+    {
+      "id": "bounty_hunter.field_dressing",
+      "name": "Field Dressing",
+      "family": "fieldcraft",
+      "asset": "assets/images/icons/skills-icons/willow/field_dressing.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "32de91c07b15f7959def17e61699949ddfc2038f42538acfa6663947800773a8",
+      "subject": "Close-up of a brown leather-gloved hand firmly wrapping pale linen bandage around a bare forearm, two clear overlapping cloth turns and a short loose end. Practical sustained wound care; no blood, cross, syringe, heart symbol or potion.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Field Dressing for Willow. Close-up of a brown leather-gloved hand firmly wrapping pale linen bandage around a bare forearm, two clear overlapping cloth turns and a short loose end. Practical sustained wound care; no blood, cross, syringe, heart symbol or potion. Reference is pixel density, dark outlines and muted materials ONLY; no sword or cutting crescent.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-00311381-cb47-4aba-8f6d-bc047258510e.png",
+          "role": "style reference",
+          "sha256": "cd8a365caa70e975268cf279255cf3b8a41eda805bf15afabad95b45c3f18fd0",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/bloodletter_slash.png"
+        }
+      ],
+      "generated_source": "exec-5257eb6b-d7a2-4043-a461-7fa52aa21122.png",
+      "generated_source_sha256": "067277cc629c9511a0db260bd156cbf5f8214ea2a7fa025321545675476ca6df"
+    },
+    {
+      "id": "bounty_hunter.antidote",
+      "name": "Antidote",
+      "family": "fieldcraft",
+      "asset": "assets/images/icons/skills-icons/willow/antidote.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "427269f18fbf68afade69eb78cb79fe8493ee011d6353c428859a81dc0ab0124",
+      "subject": "A short amber glass remedy vial with dark cork, one pale droplet falling from its lip onto a broken rust-colored thorn loop beneath it. Clear cleansing harmful effects, practical field medicine. No label, lettering, medical cross, syringe or neon green.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Antidote for Willow. A short amber glass remedy vial with dark cork, one pale droplet falling from its lip onto a broken rust-colored thorn loop beneath it. Clear cleansing harmful effects, practical field medicine. No label, lettering, medical cross, syringe or neon green. Use only the reference's broken-binding visual cue and pixel style; replace its hand and arc with the remedy vial.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-545a7681-102e-4b07-ae99-408223b57ea0.png",
+          "role": "style reference",
+          "sha256": "c4fd236ad2f8fe4e3f79a6b15596c95f686a1b0dad1bcce6328f855e2a754703",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/cleanse.png"
+        }
+      ],
+      "generated_source": "exec-306c6bba-22cc-454d-9438-9b5006764596.png",
+      "generated_source_sha256": "b7f3409823ed45d262cc6d210e1422fa9c3f00eb4f239cc1971418e0d3021b5d"
+    },
+    {
+      "id": "bounty_hunter.second_wind",
+      "name": "Second Wind",
+      "family": "fieldcraft",
+      "asset": "assets/images/icons/skills-icons/willow/second_wind.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "5a30ebe4cb68a0136a62df4062d9d2315cb13180110af079e54badec4766f0a2",
+      "subject": "A simple leather-clad chest and pale paired lung silhouette with two broad pale breath curls entering from below and three small brass rising recovery ticks. Steady breath restores endurance. No heart, potion, magical aura or boots.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Second Wind for Willow. A simple leather-clad chest and pale paired lung silhouette with two broad pale breath curls entering from below and three small brass rising recovery ticks. Steady breath restores endurance. No heart, potion, magical aura or boots. Use brown leather coat, dark tied-back hair and ivory lungs, keeping the reference's steady-breath recovery cue.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-8cdd70b7-35d7-42ea-ba5d-e84411325d72.png",
+          "role": "style reference",
+          "sha256": "deab28a00b6603132c67da3a294de10d84af05ddfd1ac99180ba81bc1f25e398",
+          "corresponding_export": "assets/images/icons/skills-icons/eloise/second_wind.png"
+        }
+      ],
+      "generated_source": "exec-4b8fb41f-54ee-4da5-8732-c7bc2c06f210.png",
+      "generated_source_sha256": "4dc213b7e53d804f8c27ff6da92f6d489780979cbaa7b33d29e36894f6d9364a"
+    },
+    {
+      "id": "bounty_hunter.prepare_charges",
+      "name": "Prepare Charges",
+      "family": "fieldcraft",
+      "asset": "assets/images/icons/skills-icons/willow/prepare_charges.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "sha256": "7230ac9aef2a79f97f71a48057e2c2855335211cfcb4a4cbc69e05c014236754",
+      "subject": "Two practical brown leather-gloved fingertips rolling pale paper around dark powder on a small fold of cloth; two finished short paper charges alongside. Strong diagonal paper roll silhouette, brass binding accent. Supplies preparation, no bomb fuse, finite ammo counter, gun or modern cartridge.",
+      "prompt": "Use case: game-asset. Generate ONE finished ability icon for Lothringen: The Long Run. Provided images are STYLE REFERENCES ONLY, not edit targets. Match their crisp compact pixel-art outlines and restrained material colors, but depict the requested ACTION EMBLEM. Output a transparent PNG with NO background or tile. Design on a strict 64 by 64 logical pixel grid, chunky deliberate square pixel clusters, dark charcoal outline around all major shapes, 3 or 4 flat shade steps, upper-left lighting. Broad readable silhouette filling roughly 75–80% of the canvas, centered with at least 10% transparent padding on all sides. Easy to identify at 32 pixels. Palette: charcoal #151A1F, cold slate #415362 #55616D, fog #AEB7B1, ivory #D6D2C6, worn brass #7A5C2E #B99A52, muted brown leather and sparing rust #8B3A28 where specified. All action trails are opaque flat pixel shapes, no luminous halos. No bloom, gradients, blur, painted texture, soft shading, antialiasing, photorealism, text, letters, numbers, labels, border, icon frame, drop shadow or watermark. Keep the full illustration inside the canvas. Primary request: Prepare Charges for Willow. Two practical brown leather-gloved fingertips rolling pale paper around dark powder on a small fold of cloth; two finished short paper charges alongside. Strong diagonal paper roll silhouette, brass binding accent. Supplies preparation, no bomb fuse, finite ammo counter, gun or modern cartridge. Reference is leather glove and linen/paper material style only. Depict paper charge preparation, no bandaged arm or healing imagery.",
+      "references": [
+        {
+          "path": "C:\\Users\\Toonsa\\.codex\\generated_images\\01a1b7d2-b7f2-7ee3-82d5-0979f6852eeb\\exec-5257eb6b-d7a2-4043-a461-7fa52aa21122.png",
+          "role": "style reference",
+          "sha256": "067277cc629c9511a0db260bd156cbf5f8214ea2a7fa025321545675476ca6df",
+          "corresponding_export": "assets/images/icons/skills-icons/willow/field_dressing.png"
+        }
+      ],
+      "generated_source": "exec-81c5321d-a1d9-4630-8890-28a497c7b944.png",
+      "generated_source_sha256": "69224928aa6904b9b4457d16da79684ec5e3e702bf83f4215cb13c2c79a4c642"
+    }
+  ]
+}

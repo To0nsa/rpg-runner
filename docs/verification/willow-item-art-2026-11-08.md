@@ -83,3 +83,8 @@ was performed. This is completed local asset authoring and integration.
 
 The completed [work checklist](../archive/2026-11-08/building/willow_item_art.md)
 and [equipment roster](../gdd/combat/gears/willow_equipment_roster.md) describe scope.
+
+
+Subsequent work: all 25 Willow abilities now have dedicated icons; see
+[ability-art verification](ability-icon-art-2026-11-08.md). The boundary above
+records the state at completion of the earlier equipment-art task.

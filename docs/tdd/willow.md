@@ -134,7 +134,11 @@ Shared presentation maps all 34 Willow-specific equipment identities to dedicate
 bundle with nearest-neighbor filtering, so game menus, inbox attachments and
 repository-backed Admin share the same artwork. Ranged inventory illustrations
 are independent of projectile flight effects. The eight shared accessories keep
-their existing icons.
+their existing icons. All 25 Willow ability IDs map to dedicated 64×64 transparent
+PNGs under `assets/images/icons/skills-icons/willow/` in
+`ability_skill_icon.dart`. `AbilitySkillIcon` uses the consumer asset bundle and
+nearest-neighbor filtering; unknown IDs remain empty fixed-size boxes. See
+[ability-art verification](../verification/ability-icon-art-2026-11-08.md).
 Gameplay effects, the character portrait and animated previews still use supplied
 assets. See [item-art verification](../verification/willow-item-art-2026-11-08.md).
 

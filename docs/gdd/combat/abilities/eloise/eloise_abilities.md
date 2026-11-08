@@ -57,5 +57,15 @@ Core units:
 8. `cleanse` applies `PurgeProfileId.cleanse`, removes active debuffs including stun, and can commit while stunned.
 9. `roll` has mobility contact status (`stunOnHit`) via `MobilityImpactDef`.
 
+## Ability illustrations
+
+All 21 abilities have distinct transparent 64×64 pixel-art icons in
+`assets/images/icons/skills-icons/eloise/`. Single and double movement actions
+use one or two impulses; Concussive Roll includes its contact-stun impact.
+Riposte combines guard and counterattack, while Block shows incoming strikes
+stopped by a shield. Only Cleave includes an innate bleed cue. Projectile
+symbols describe targeting and charge independently of the selected payload.
+See [ability-art verification](../../../../verification/ability-icon-art-2026-11-08.md).
+
 Balance pass: [local evidence and decisions](../../../../verification/eloise-ability-balance-2026-11-08.md).
 `eloise.bloodletter_slash` displays as **Sword Slash**; its ownership ID is stable.

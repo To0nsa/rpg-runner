@@ -12,6 +12,8 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Éloïse ability balance](verification/eloise-ability-balance-2026-11-08.md):
   utility downtime, charged bleed, responsive Quick Shot and persistent guard rewards;
   locally prepared in compatibility `2026.11.8.1`.
+- [Ability artwork](verification/ability-icon-art-2026-11-08.md): 21 redesigned
+  Éloïse icons and 25 Willow icons, shared by the game and Admin.
 - [Willow](gdd/combat/abilities/willow.md): playable bounty hunter with 25
   abilities, eight ranged weapons, unlimited cooldown bombs and character selection;
   [technical contract](tdd/willow.md) and [local verification](verification/willow-2026-11-07.md).

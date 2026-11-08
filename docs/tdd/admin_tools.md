@@ -63,7 +63,13 @@ Existing skills are granted to an explicit `eloise`, `eloiseWip` or
 them. Picker filtering and backend validation both enforce character families.
 Gear ownership is account-wide, while equip eligibility remains character-specific.
 Willow's 34 character-specific items use the canonical dedicated equipment icons;
-the eight shared accessories retain their existing art.
+the eight shared accessories retain their existing art. Shared
+`abilitySkillIconAssets` maps all 21 Éloïse and 25 Willow abilities to distinct
+64×64 transparent PNGs in character subdirectories of
+`assets/images/icons/skills-icons/`. `AbilitySkillIcon` resolves the consumer
+asset bundle with nearest-neighbor filtering; null, unknown and failed assets
+retain the empty-box fallback. Game and Admin use the same mapping and files.
+See [ability-art verification](../verification/ability-icon-art-2026-11-08.md).
 There are no quantities, arbitrary items or client-supplied ownership patches.
 
 Gold-only messages remain schema 1. Catalog attachments use schema 2 with up to
