@@ -1,6 +1,7 @@
 import '../../abilities/ability_def.dart';
 import '../entity_id.dart';
 import '../sparse_set.dart';
+import '../../util/vec2.dart';
 
 class MobilityIntentDef {
   const MobilityIntentDef({
@@ -18,6 +19,7 @@ class MobilityIntentDef {
     required this.cooldownGroupId,
     required this.staminaCost100,
     required this.tick,
+    this.blinkDestination,
   });
 
   final AbilityKey abilityId;
@@ -55,6 +57,7 @@ class MobilityIntentDef {
   /// Use `-1` for "no intent". The effect triggers only when
   /// `tick == currentTick`.
   final int tick;
+  final Vec2? blinkDestination;
 }
 
 /// Per-entity "perform a mobility action this tick" intent.
@@ -77,6 +80,9 @@ class MobilityIntentStore extends SparseSet {
   /// Fixed-point: 100 = 1.0
   final List<int> staminaCost100 = <int>[];
   final List<int> tick = <int>[];
+
+  /// Captured safe destination; retained through recovery for action identity.
+  final List<Vec2?> blinkDestination = <Vec2?>[];
 
   void add(EntityId entity) {
     addEntity(entity);
@@ -102,6 +108,7 @@ class MobilityIntentStore extends SparseSet {
     cooldownGroupId[i] = def.cooldownGroupId;
     staminaCost100[i] = def.staminaCost100;
     tick[i] = def.tick;
+    blinkDestination[i] = def.blinkDestination;
   }
 
   @override
@@ -120,6 +127,7 @@ class MobilityIntentStore extends SparseSet {
     cooldownGroupId.add(0);
     staminaCost100.add(0);
     tick.add(-1);
+    blinkDestination.add(null);
   }
 
   @override
@@ -138,6 +146,7 @@ class MobilityIntentStore extends SparseSet {
     cooldownGroupId[removeIndex] = cooldownGroupId[lastIndex];
     staminaCost100[removeIndex] = staminaCost100[lastIndex];
     tick[removeIndex] = tick[lastIndex];
+    blinkDestination[removeIndex] = blinkDestination[lastIndex];
 
     abilityId.removeLast();
     slot.removeLast();
@@ -153,5 +162,6 @@ class MobilityIntentStore extends SparseSet {
     cooldownGroupId.removeLast();
     staminaCost100.removeLast();
     tick.removeLast();
+    blinkDestination.removeLast();
   }
 }

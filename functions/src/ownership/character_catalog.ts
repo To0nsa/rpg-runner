@@ -11,7 +11,7 @@ export const hunterAbilitiesBySlot = {
   primary: ["quick_cut", "twin_cut", "threefold_cut", "lunge_slash"],
   secondary: ["blast_bomb", "shrapnel_bomb", "fire_bomb", "concussion_bomb"],
   projectile: ["snap_shot", "quick_shot", "piercing_shot", "scatter_shot", "charged_shot"],
-  mobility: ["dash", "roll", "slide"],
+  mobility: ["dash", "blink_dash", "roll", "slide"],
   jump: ["jump", "double_jump"],
   spell: ["hunters_focus", "mark_quarry", "forced_march", "field_dressing", "antidote", "second_wind", "prepare_charges"],
 } as const;

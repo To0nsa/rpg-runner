@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed Willow Blink Dash](../archive/2026-11-08/building/willow_blink_dash.md):
+  placed-tent crossing and corrected Lunge Slash art;
+  [local verification](../verification/willow-blink-dash-2026-11-08.md).
+
 - [Completed Éloïse ability balance](../archive/2026-11-08/building/eloise_ability_balance.md): utility costs/uptime, charged attacks, Riposte lifecycle and HUD;
   [local verification](../verification/eloise-ability-balance-2026-11-08.md). Playtesting and deployment remain separate acceptance work.
 

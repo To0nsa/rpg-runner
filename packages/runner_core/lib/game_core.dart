@@ -642,7 +642,10 @@ class GameCore {
       statsCache: _resolvedStatsCache,
     );
     _jumpSystem = JumpSystem(abilities: abilityCatalog);
-    _mobilitySystem = MobilitySystem(statsCache: _resolvedStatsCache);
+    _mobilitySystem = MobilitySystem(
+      statsCache: _resolvedStatsCache,
+      worldMotionAuthority: _worldMotionAuthority,
+    );
     _combatLungeSystem = CombatLungeSystem(abilities: abilityCatalog);
     _cooldownSystem = CooldownSystem();
     _gravitySystem = GravitySystem();
@@ -767,6 +770,7 @@ class GameCore {
       playerCastOriginOffset: _playerCharacter.catalog.castOriginOffset,
       playerCharacter: _playerCharacter,
       projectileAimPathClear: projectileAimVisibility.isClear,
+      worldMotionAuthority: _worldMotionAuthority,
       physics: _physicsTuning,
       aimTerrainProvider: () {
         final bundle =
@@ -1974,7 +1978,14 @@ class GameCore {
       fixedPointPilotEnabled: _physicsTuning.fixedPointPilot.enabled,
       fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,
     );
-    _mobilitySystem.step(_world, _movement, currentTick: tick);
+    // A blink commits before ordinary integration; its discontinuous displacement
+    // contributes to progress exactly once, separately from terrain travel.
+    final blinkDistance = _mobilitySystem.step(
+      _world,
+      _movement,
+      currentTick: tick,
+      player: _player,
+    );
     _combatLungeSystem.step(_world);
     // Accepted damage from the preceding tick overrides horizontal control;
     // gravity and the terrain controller still own falling and containment.
@@ -1992,7 +2003,7 @@ class GameCore {
     _waterImmersionSystem.step(_world, waterRegions);
 
     // ─── Phase 4: Distance tracking ───
-    _runDistance.recordMotion(distanceDelta);
+    _runDistance.recordMotion(blinkDistance + distanceDelta);
 
     // ─── Phase 5: Death condition checks ───
     if (_checkFellIntoGap()) {

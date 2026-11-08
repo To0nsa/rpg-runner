@@ -6,6 +6,7 @@ import '../../projectiles/projectile_id.dart';
 import '../../snapshots/enums.dart';
 import '../../weapons/weapon_proc.dart';
 import '../ability_def.dart';
+import '../blink_mobility_def.dart';
 
 /// Complete six-slot roster. Damage is per melee swing or total projectile fan.
 final Map<AbilityKey, AbilityDef> bountyHunterAbilityDefs = {
@@ -73,6 +74,29 @@ final Map<AbilityKey, AbilityDef> bountyHunterAbilityDefs = {
     _shot('scatter_shot', 2200, 1100, 42, scatter: true),
     _shot('charged_shot', 2300, 1300, 45, charged: true),
     _move('dash', AnimKey.dash, 12, 550, 200),
+    AbilityDef(
+      id: 'bounty_hunter.blink_dash',
+      category: AbilityCategory.mobility,
+      allowedSlots: {AbilitySlot.mobility},
+      targetingModel: TargetingModel.directional,
+      windupTicks: 12,
+      activeTicks: 3,
+      recoveryTicks: 15,
+      cooldownTicks: 180,
+      defaultCost: const AbilityResourceCost(staminaCost100: 400),
+      blinkMobility: const BlinkMobilityDef(
+        openDistance: 110,
+        // Widest placed woodcamp tent: 92-unit collision shape at scale 1.5.
+        maxObstacleWidth: 138,
+        maxApproachDistance: 32,
+      ),
+      forcedInterruptCauses: {
+        ForcedInterruptCause.stun,
+        ForcedInterruptCause.death,
+        ForcedInterruptCause.damageTaken,
+      },
+      animKey: AnimKey.teleportOut,
+    ),
     _move('roll', AnimKey.roll, 18, 320, 300, grounded: true),
     _move('slide', AnimKey.slide, 24, 360, 400, grounded: true),
     _jump('jump'),

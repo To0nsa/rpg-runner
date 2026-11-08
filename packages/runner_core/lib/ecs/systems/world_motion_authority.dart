@@ -1,5 +1,8 @@
 import 'dart:math' as math;
 
+import '../../abilities/blink_mobility_def.dart';
+import '../../navigation/terrain_blink_query.dart';
+
 import '../../collision/terrain/terrain_capsule_controller.dart';
 import '../../collision/terrain/terrain_controller_diagnostic.dart';
 import '../../collision/terrain/terrain_edge_id.dart';
@@ -91,6 +94,14 @@ abstract interface class WorldMotionAuthority {
   });
 
   bool playerGrounded(EcsWorld world, EntityId player);
+
+  /// Side-effect-free full-capsule selection before blink costs are committed.
+  WorldBodyPlacementOrigin? resolveBlinkDestination(
+    EcsWorld world,
+    EntityId entity, {
+    required Facing facing,
+    required BlinkMobilityDef blink,
+  });
 
   /// Clears transient support/path state and retains the last safe transform.
   WorldBodyPlacementOrigin beginBodyTeleport(EcsWorld world, EntityId entity);
@@ -763,6 +774,69 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   }
 
   @override
+  WorldBodyPlacementOrigin? resolveBlinkDestination(
+    EcsWorld world,
+    EntityId entity, {
+    required Facing facing,
+    required BlinkMobilityDef blink,
+  }) {
+    final ci = world.worldContactCapsule.tryIndexOf(entity);
+    final pi = world.terrainTraversalProfile.tryIndexOf(entity);
+    final ti = world.transform.tryIndexOf(entity);
+    if (ci == null || pi == null || ti == null) return null;
+    final target = resolveTerrainBlink(
+      placement: _placementQuery,
+      origin: TerrainPoint(
+        physicsCoordinateToTicks(world.transform.posX[ti]),
+        physicsCoordinateToTicks(world.transform.posY[ti]),
+      ),
+      capsule: TerrainPlacementCapsule(
+        radiusTicks: world.worldContactCapsule.radiusTicks[ci],
+        verticalHalfSegmentTicks:
+            world.worldContactCapsule.verticalHalfSegmentTicks[ci],
+        resolvedOffsetXTicks:
+            world.worldContactCapsule.offsetXTicks[ci] *
+            _facingOffsetSignFor(world, entity, facing),
+        offsetYTicks: world.worldContactCapsule.offsetYTicks[ci],
+      ),
+      profile: world.terrainTraversalProfile.profile[pi],
+      direction: facing == Facing.right ? 1 : -1,
+      blink: blink,
+    );
+    return target == null ||
+            !_withinTeleportBounds(world, entity, target.xTicks, facing)
+        ? null
+        : WorldBodyPlacementOrigin(
+            bodyX: target.xTicks / terrainPhysicsTicksPerWorldUnit,
+            bodyY: target.yTicks / terrainPhysicsTicksPerWorldUnit,
+            facing: facing,
+          );
+  }
+
+  // Teleports obey the same encounter confinement as ordinary terrain motion.
+  bool _withinTeleportBounds(
+    EcsWorld world,
+    EntityId entity,
+    int bodyXTicks,
+    Facing facing,
+  ) {
+    if (world.arenaSuspension.has(entity)) return false;
+    final index = world.actorMotionBounds.tryIndexOf(entity);
+    if (index == null) return true;
+    if (world.actorMotionBounds.frozen[index]) return false;
+    final bounds = world.actorMotionBounds.bounds[index];
+    if (bounds == null) return true;
+    final capsule = world.worldContactCapsule.indexOf(entity);
+    final center =
+        bodyXTicks +
+        world.worldContactCapsule.offsetXTicks[capsule] *
+            _facingOffsetSignFor(world, entity, facing);
+    final radius = world.worldContactCapsule.radiusTicks[capsule];
+    return center - radius >= bounds.minXTicks &&
+        center + radius <= bounds.maxXTicks;
+  }
+
+  @override
   bool tryCommitBodyTeleport(
     EcsWorld world,
     EntityId entity, {
@@ -777,6 +851,14 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         entity: entity,
         reason: 'teleport placement requires capsule and traversal stores',
       );
+    }
+    if (!_withinTeleportBounds(
+      world,
+      entity,
+      physicsCoordinateToTicks(bodyX),
+      facing,
+    )) {
+      return false;
     }
     final facingSign = _facingOffsetSignFor(world, entity, facing);
     final npcIndex = world.npc.tryIndexOf(entity);

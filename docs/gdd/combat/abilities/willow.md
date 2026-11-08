@@ -47,7 +47,7 @@ change the base Supplies cost. The [complete equipment roster](../gears/willow_e
 weapons and 8 shared accessories. Ordinary gear,
 status, critical-hit and resistance rules still apply.
 
-## Complete roster: 25 abilities
+## Complete roster: 26 abilities
 
 Numbers below are authored base values before gear and status modifiers.
 The starter blade, bomb kit and field kit now contribute passive bonuses;
@@ -71,6 +71,7 @@ rate. Equip one ability per slot.
 | Ranged | Scatter Shot | Five-pellet fan, 22 damage budget | 11 Supplies | 0.70s |
 | Ranged | Charged Shot | 23 base damage budget, 70–150% by charge | 13 Supplies | 0.75s |
 | Mobility | Dash | Ground/air, 550 units/s for 0.20s | 2 stamina | 2s |
+| Mobility | Blink Dash | Cross a nearby obstacle up to 138 units wide; clear exit required | 4 Stamina | 3s |
 | Mobility | Roll | Ground, low body pose, 320 units/s for 0.30s | 3 stamina | 2s |
 | Mobility | Slide | Ground, low body pose, 360 units/s for 0.40s | 4 stamina | 2s |
 | Jump | Jump | One ground jump | 2 stamina | None |
@@ -98,6 +99,17 @@ Jumps, new actions, turning around and damage reactions take over immediately.
 Airborne exits return to the air animation. This extra animation coverage does
 not extend the movement burst or change dash distance, cost or cooldown.
 
+Blink Dash is a separate mobility choice. Willow prepares for 0.20s, vanishes
+for 0.05s while relocating, then reappears through a 0.25s recovery. It travels
+110 units in open space or just beyond the first solid obstacle within 32 units
+of her body. The 138-unit obstacle limit matches the widest tent **as placed in
+the woodcamp chunks**, including its 1.5 scale. She needs room for her whole body
+at the exit; a blocked or oversized crossing costs no stamina or cooldown.
+It works in either direction, on the ground or airborne, preserving height.
+She is protected only while invisible; damage interrupts visible preparation
+and recovery. Blink Dash deals no damage. Lunge Slash uses the final five-frame
+blade attack strip instead of the teleport art.
+
 ## Bomb behavior
 
 Press the secondary action to drop the chosen bomb, on the ground or in the
@@ -117,13 +129,13 @@ guns. The 28 additional equipment items each use the existing 150-gold store
 price and normal offer rotation.
 Starter abilities are Quick Cut, Blast Bomb, Snap Shot, Dash, Jump, Hunter's
 Focus and Prepare Charges. Other abilities use the existing store price of
-150 gold and normal store offer rotation. Developer Practice unlocks all 25.
+150 gold and normal store offer rotation. Developer Practice unlocks all 26.
 Gear and skills remain character-specific; accessories are shared.
 
 The imported base/add-on sprites provide gameplay animations, gun variants and
 bomb effects. All 34 Willow-specific equipment items now have dedicated
 illustrations; the eight shared accessories retain their existing art.
-All 25 abilities have distinct transparent pixel-art icons. Blade arcs distinguish
+All 26 abilities have distinct transparent pixel-art icons. Blade arcs distinguish
 single, double and triple attacks; bomb effects distinguish blast, fragments,
 fire and concussion. Projectile icons describe guidance, piercing, spread or
 charge independently of the equipped ranged weapon. Fieldcraft uses preparation,

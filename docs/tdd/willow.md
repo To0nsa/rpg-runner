@@ -71,6 +71,36 @@ The existing status pipeline handles bleed, burn, stun, buffs, restoration and
 cleanse. Antidote explicitly allows committing while stunned. Charged Shot opts
 into damage interruption using the existing policy. No UI timers apply effects.
 
+## Blink Dash
+
+`BlinkMobilityDef` configures a horizontal displacement in the existing mobility
+slot. `AbilityActivationSystem` asks terrain authority for a full-capsule sweep
+and a clear destination before paying stamina or starting cooldown. Open travel
+is 110 world units. The first solid obstacle must be within 32 units of capsule
+travel and at most 138 units wide, measured from placed polygon bounds. This is
+`woods_tent_02`'s 92-unit collision width at the chunks' scale 1.5; smaller tents
+and atlas padding do not define the limit. Exit includes body radius and 2 units
+of clearance. One-way platforms do not obstruct blink. Height is preserved;
+landing support is optional so a blink may cross a gap and then fall.
+
+The committed destination lives in `MobilityIntentStore` and is guarded by
+ability ID and commit tick. `MobilitySystem` holds motion through preparation,
+relocates once through the existing begin/commit/cancel teleport authority, and
+holds recovery. Execution revalidates clearance and encounter bounds; failure
+restores the origin and refunds stamina/cooldown. Jump, damage, stun, death or
+replacement cannot execute a stale destination. World authority also fences
+teleports to encounter confinement. Swapped/reused intent entries reset targets.
+
+Authored phases are 12/3/15 ticks at 60 Hz, with a 180-tick cooldown and 4 stamina
+base cost. Only the invisible active phase grants protection; preparation and
+recovery remain vulnerable. The action-frame policy maps these phases to four
+preparation frames, one blank frame and five recovery frames in every gun family.
+No damage payload is emitted. Signed blink displacement joins ordinary movement
+once in run-distance accounting; normal Dash keeps its existing behavior.
+
+The client, Functions catalog, Admin fixture and replay worker share the ability
+ID and compatibility `2026.11.8.2`. Command and replay shapes are unchanged.
+
 ## Animation and collision
 
 `players/characters/bounty_hunter.dart` defines native frame composition for
@@ -85,8 +115,9 @@ units. Menu previews share a world-space viewport and foot baseline; they do
 not fit each full transparent frame or apply a character-selection-only zoom.
 The Entities editor reads the definition's scale, retaining guarded bindings to
 imported constants and the shared default. Collider literals remain editable.
-The source Dash Attack exports ten files, one entirely transparent; runtime
-uses the nine visible poses packed contiguously in its sheet.
+The source Dash Attack exports ten files, one entirely transparent; Blink Dash restores the transparent fifth frame as an empty composite between
+the nine visible sheet poses (row 27 onward). Lunge Slash uses the final five-frame
+strip (row 29), with strike frames 2–3 and recovery frames 4–5.
 
 The seven-frame mobility Dash uses `dashHoldFrame: 3` (zero-based) in all
 weapon variants. `AnimSystem` plays frames 1â€“3 at the quantized authored step,
@@ -134,7 +165,7 @@ Shared presentation maps all 34 Willow-specific equipment identities to dedicate
 bundle with nearest-neighbor filtering, so game menus, inbox attachments and
 repository-backed Admin share the same artwork. Ranged inventory illustrations
 are independent of projectile flight effects. The eight shared accessories keep
-their existing icons. All 25 Willow ability IDs map to dedicated 64Ã—64 transparent
+their existing icons. All 26 Willow ability IDs map to dedicated 64Ã—64 transparent
 PNGs under `assets/images/icons/skills-icons/willow/` in
 `ability_skill_icon.dart`. `AbilitySkillIcon` uses the consumer asset bundle and
 nearest-neighbor filtering; unknown IDs remain empty fixed-size boxes. See
@@ -144,14 +175,14 @@ assets. See [item-art verification](../verification/willow-item-art-2026-11-08.m
 
 ## Replay and validation
 
-Client, Functions and worker use local gameplay compatibility `2026.11.8.1`;
+Client, Functions and worker use local gameplay compatibility `2026.11.8.2`;
 replay/command format 1, rules-v2, score-v4 and ghost-v1 remain unchanged.
 The version check prevents different simulations from accepting the same run.
 It does not require a production data migration. Ranked seed preparation is
 refreshed with the existing offline helper; navigation geometry is unchanged.
 No deployment, board mutation or ticket cancellation is part of this work.
 
-Core tests exercise all 25 commits, real melee damage at 30/60/120 Hz, bomb
+Core tests exercise all 26 commits, real melee damage at 30/60/120 Hz, bomb
 terrain/lifecycle/status behavior, fan budgets, fieldcraft, marks and charged
 shot interruption. Worker tests replay recorded inputs for each weapon. Widget
 tests exercise character switching, remembered builds and actual Training Field
@@ -184,7 +215,7 @@ remain authoritative. Backtrail Rig uses the shared low-health reactive pipeline
 ReactiveProcSystem receives GameCore's tick rate and scales authored 60 Hz
 cooldowns, so 1800 authored ticks are 30 seconds at all supported rates.
 
-The client, Functions issuer and worker require compatibility `2026.11.8.1` for
+The client, Functions issuer and worker require compatibility `2026.11.8.2` for
 these changed outcomes. This is source preparation only, not a deployment.
 
 See [equipment verification](../verification/willow-equipment-2026-11-08.md) for

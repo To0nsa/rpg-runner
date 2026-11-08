@@ -61,6 +61,13 @@ String? bountyHunterAbilityDescription(AbilityDef def, ProjectileId? weapon) {
         ? 'Jump, then tap again in the air for a second jump.'
         : 'Tap to jump.';
   }
+  final blink = def.blinkMobility;
+  if (blink != null) {
+    return 'Blink forward on the ground or in the air, crossing a nearby '
+        'obstacle up to ${blink.maxObstacleWidth.toStringAsFixed(0)} units wide. '
+        'Requires a clear landing beyond it. A blocked exit costs nothing. '
+        'Untouchable only while vanished; damage interrupts preparation and recovery.';
+  }
   if (def.allowedSlots.contains(AbilitySlot.mobility)) {
     return '${switch (def.id) {
       'bounty_hunter.roll' => 'Roll forward with a low profile. Ground only.',

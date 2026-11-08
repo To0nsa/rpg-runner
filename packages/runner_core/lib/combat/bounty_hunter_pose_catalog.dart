@@ -71,8 +71,8 @@ abstract final class BountyHunterPoseCatalog {
     ],
   );
   static const lunge = CombatStrikeProfile(
-    timing: ActionFramePolicy(frameCount: 9, activeStart: 5, activeEnd: 8),
-    frames: [[], [], [], [], [], _thrust, _thrust, _thrust, []],
+    timing: ActionFramePolicy(frameCount: 5, activeStart: 1, activeEnd: 3),
+    frames: [[], _thrust, _thrust, [], []],
   );
   static const shot = ActionFramePolicy(
     frameCount: 3,
@@ -90,6 +90,11 @@ abstract final class BountyHunterPoseCatalog {
     'bounty_hunter.twin_cut' => twin.timing,
     'bounty_hunter.threefold_cut' => triple.timing,
     'bounty_hunter.lunge_slash' => lunge.timing,
+    'bounty_hunter.blink_dash' => const ActionFramePolicy(
+      frameCount: 10,
+      activeStart: 4,
+      activeEnd: 5,
+    ),
     'bounty_hunter.blast_bomb' ||
     'bounty_hunter.shrapnel_bomb' ||
     'bounty_hunter.fire_bomb' ||

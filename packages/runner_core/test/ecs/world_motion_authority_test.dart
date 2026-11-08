@@ -1,3 +1,12 @@
+import 'package:runner_core/abilities/ability_def.dart';
+import 'package:runner_core/abilities/catalog/bounty_hunter_ability_defs.dart';
+import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
+import 'package:runner_core/combat/damage.dart';
+import 'package:runner_core/ecs/stores/mobility_intent_store.dart';
+import 'package:runner_core/ecs/systems/active_ability_phase_system.dart';
+import 'package:runner_core/ecs/systems/mobility_system.dart';
+import 'package:runner_core/ecs/systems/damage_system.dart';
+import 'package:runner_core/util/vec2.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
@@ -36,6 +45,142 @@ import 'package:runner_core/tuning/physics_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('blink preflight and execution respect encounter confinement', () {
+    final h = _terrainHarness();
+    final blink =
+        bountyHunterAbilityDefs['bounty_hunter.blink_dash']!.blinkMobility!;
+    expect(
+      h.authority.resolveBlinkDestination(
+        h.world,
+        h.player,
+        facing: Facing.right,
+        blink: blink,
+      ),
+      isNotNull,
+    );
+    h.world.actorMotionBounds.add(
+      h.player,
+      TerrainHorizontalBounds(minXTicks: 0, maxXTicks: 180 * 1024),
+    );
+    expect(
+      h.authority.resolveBlinkDestination(
+        h.world,
+        h.player,
+        facing: Facing.right,
+        blink: blink,
+      ),
+      isNull,
+    );
+    final ti = h.world.transform.indexOf(h.player);
+    expect(
+      h.authority.tryCommitBodyTeleport(
+        h.world,
+        h.player,
+        bodyX: 210,
+        bodyY: h.world.transform.posY[ti],
+        facing: Facing.right,
+      ),
+      false,
+    );
+    expect(h.world.transform.posX[ti], 100);
+  });
+
+  test(
+    'a newly blocked committed exit refunds once and restores the origin',
+    () {
+      final h = _terrainHarness();
+      final ti = h.world.transform.indexOf(h.player),
+          si = h.world.stamina.indexOf(h.player);
+      final stamina = h.world.stamina.stamina[si];
+      _commitTestBlink(
+        h.world,
+        h.player,
+        Vec2(210, h.world.transform.posY[ti]),
+      );
+      h.world.stamina.stamina[si] -= 400;
+      h.world.cooldown.setTicksLeft(h.player, 0, 180);
+      h.world.actorMotionBounds.add(
+        h.player,
+        TerrainHorizontalBounds(minXTicks: 0, maxXTicks: 180 * 1024),
+      );
+      final mobility = MobilitySystem(worldMotionAuthority: h.authority);
+      for (var tick = 1; tick <= 35; tick++) {
+        const ActiveAbilityPhaseSystem().step(h.world, currentTick: tick);
+        mobility.step(h.world, h.movement, currentTick: tick, player: h.player);
+      }
+      expect(h.world.transform.posX[ti], 100);
+      expect(h.world.stamina.stamina[si], stamina);
+      expect(h.world.cooldown.getTicksLeft(h.player, 0), 0);
+      expect(h.world.activeAbility.hasActiveAbility(h.player), false);
+    },
+  );
+
+  for (final attackTick in [3, 13, 16]) {
+    test(
+      'blink damage protection is restricted to vanish: tick $attackTick',
+      () {
+        final h = _terrainHarness();
+        final ti = h.world.transform.indexOf(h.player),
+            hi = h.world.health.indexOf(h.player);
+        final hp = h.world.health.hp[hi];
+        _commitTestBlink(
+          h.world,
+          h.player,
+          Vec2(210, h.world.transform.posY[ti]),
+        );
+        final mobility = MobilitySystem(worldMotionAuthority: h.authority);
+        for (var tick = 1; tick <= attackTick; tick++) {
+          const ActiveAbilityPhaseSystem().step(h.world, currentTick: tick);
+          mobility.step(
+            h.world,
+            h.movement,
+            currentTick: tick,
+            player: h.player,
+          );
+        }
+        h.world.damageQueue.add(
+          DamageRequest(target: h.player, amount100: 100),
+        );
+        DamageSystem(
+          invulnerabilityTicksOnHit: 0,
+          rngSeed: 1,
+        ).step(h.world, currentTick: attackTick);
+        expect(h.world.health.hp[hi], attackTick == 13 ? hp : lessThan(hp));
+        expect(
+          h.world.activeAbility.hasActiveAbility(h.player),
+          attackTick == 13,
+        );
+        for (var tick = attackTick + 1; tick <= 35; tick++) {
+          const ActiveAbilityPhaseSystem().step(h.world, currentTick: tick);
+          mobility.step(
+            h.world,
+            h.movement,
+            currentTick: tick,
+            player: h.player,
+          );
+        }
+        expect(h.world.transform.posX[ti], attackTick == 3 ? 100 : 210);
+      },
+    );
+  }
+
+  test(
+    'captured blink destination follows swap removal and clears on reuse',
+    () {
+      final world = EcsWorld();
+      final a = world.createEntity(), b = world.createEntity();
+      world.mobilityIntent.add(a);
+      world.mobilityIntent.add(b);
+      world.mobilityIntent.blinkDestination[1] = const Vec2(99, 2);
+      world.destroyEntity(a);
+      expect(world.mobilityIntent.blinkDestination.single!.x, 99);
+      world.destroyEntity(b);
+      final reused = world.createEntity();
+      world.mobilityIntent.add(reused);
+      expect(world.mobilityIntent.blinkDestination.single, isNull);
+    },
+  );
+
   group('world motion authority', () {
     test('NPC capsules remain bounded through walking, jumps, facing and protection', () {
       final h = _terrainHarness();
@@ -1243,3 +1388,36 @@ TerrainGeometry _terrainGeometry({
         ],
   geometryVersion: version,
 );
+
+void _commitTestBlink(EcsWorld world, int player, Vec2 target) {
+  world.activeAbility.set(
+    player,
+    id: 'bounty_hunter.blink_dash',
+    slot: AbilitySlot.mobility,
+    commitTick: 1,
+    windupTicks: 12,
+    activeTicks: 3,
+    recoveryTicks: 15,
+    facingDir: Facing.right,
+  );
+  world.mobilityIntent.set(
+    player,
+    MobilityIntentDef(
+      abilityId: 'bounty_hunter.blink_dash',
+      slot: AbilitySlot.mobility,
+      dirX: 1,
+      dirY: 0,
+      speedScaleBp: 10000,
+      mobilitySpeedX: 0,
+      commitTick: 1,
+      windupTicks: 12,
+      activeTicks: 3,
+      recoveryTicks: 15,
+      cooldownTicks: 180,
+      cooldownGroupId: 0,
+      staminaCost100: 400,
+      tick: 13,
+      blinkDestination: target,
+    ),
+  );
+}

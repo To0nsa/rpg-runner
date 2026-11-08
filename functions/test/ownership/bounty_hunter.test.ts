@@ -20,9 +20,9 @@ test("fresh profiles include Willow and selection requires her complete branch",
   assert.equal(normalizeAuthorizedSelection(state), null);
 });
 
-test("hunter has 25 purchasable abilities in the correct slots at existing prices", () => {
+test("hunter has 26 purchasable abilities in the correct slots at existing prices", () => {
   const entries = storeOfferDefinitions.filter(d => d.itemId.startsWith("bounty_hunter."));
-  assert.equal(entries.length, 25);
+  assert.equal(entries.length, 26);
   for (const [slot, names] of Object.entries(hunterAbilitiesBySlot)) {
     for (const name of names) {
       const entry = entries.find(d => d.slot === slot && d.itemId === `bounty_hunter.${name}`);

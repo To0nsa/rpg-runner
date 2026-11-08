@@ -14,7 +14,10 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
   locally prepared in compatibility `2026.11.8.1`.
 - [Ability artwork](verification/ability-icon-art-2026-11-08.md): 21 redesigned
   Éloïse icons and 25 Willow icons, shared by the game and Admin.
-- [Willow](gdd/combat/abilities/willow.md): playable bounty hunter with 25
+- [Willow Blink Dash](verification/willow-blink-dash-2026-11-08.md): uses all teleport
+  frames and crosses placed obstacles up to 138 units wide; Lunge Slash uses the
+  final blade strip. Prepared locally in compatibility `2026.11.8.2`.
+- [Willow](gdd/combat/abilities/willow.md): playable bounty hunter with 26
   abilities, eight ranged weapons, unlimited cooldown bombs and character selection;
   [technical contract](tdd/willow.md) and [local verification](verification/willow-2026-11-07.md).
 - [Training Field](gdd/training_field.md): local build testing from character

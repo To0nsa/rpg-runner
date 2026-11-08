@@ -22,13 +22,14 @@ void main() {
       () {
         final direct = _core(gun), replayed = _core(gun);
         final frames = <ReplayCommandFrameV1>[];
-        var sawBomb = false, sawShot = false;
+        var sawBomb = false, sawShot = false, sawBlink = false;
         final checkpoints = <int, List<Object?>>{};
         for (var tick = 1; tick <= 600; tick++) {
           if (tick == 1 || tick % 256 == 0)
             checkpoints[tick] = _signature(direct);
           final phase = tick % 240;
           final mask = switch (phase) {
+            10 => ReplayCommandFrameV1.pressedDashBit,
             40 => ReplayCommandFrameV1.pressedSecondaryBit,
             100 => ReplayCommandFrameV1.pressedProjectileBit,
             140 => ReplayCommandFrameV1.pressedStrikeBit,
@@ -47,6 +48,7 @@ void main() {
           );
           direct.applyCommands([
             MoveAxisCommand(tick: tick, axis: 0),
+            if (phase == 10) DashPressedCommand(tick: tick),
             if (phase == 40) SecondaryPressedCommand(tick: tick),
             if (phase == 100) ProjectilePressedCommand(tick: tick),
             if (phase == 140) StrikePressedCommand(tick: tick),
@@ -54,6 +56,7 @@ void main() {
           ]);
           direct.stepOneTick();
           final snapshot = direct.buildSnapshot();
+          sawBlink |= snapshot.playerEntity!.anim == AnimKey.teleportOut;
           sawBomb |= snapshot.entities.any(
             (e) => e.projectileId == ProjectileId.hunterBomb,
           );
@@ -80,6 +83,7 @@ void main() {
               expect(_signature(replayed), checkpoints[tick]),
         );
         expect(result.ticksExecuted, 600);
+        expect(sawBlink, isTrue);
         expect(sawBomb, isTrue);
         expect(sawShot, isTrue);
         expect(_signature(replayed), _signature(direct));
@@ -108,11 +112,11 @@ GameCore _core(ProjectileId gun) => GameCore(
     offhandWeaponId: WeaponId.hunterSnareRig,
     spellBookId: SpellBookId.hunterLongtrailPack,
     projectileSlotSpellId: gun,
-    abilityPrimaryId: 'bounty_hunter.threefold_cut',
+    abilityPrimaryId: 'bounty_hunter.lunge_slash',
     abilitySecondaryId: 'bounty_hunter.blast_bomb',
     abilityProjectileId: 'bounty_hunter.snap_shot',
     abilitySpellId: 'bounty_hunter.prepare_charges',
-    abilityMobilityId: 'bounty_hunter.dash',
+    abilityMobilityId: 'bounty_hunter.blink_dash',
     abilityJumpId: 'bounty_hunter.double_jump',
   ),
   levelDefinition: LevelRegistry.byId(LevelId.field).copyWith(

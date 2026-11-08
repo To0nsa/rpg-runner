@@ -5,6 +5,7 @@ import '../combat/damage_type.dart';
 import '../combat/knockback.dart';
 import '../combat/status/status.dart';
 import '../snapshots/enums.dart';
+import 'blink_mobility_def.dart';
 import '../weapons/weapon_proc.dart';
 
 /// Stable ability identifier used by loadouts, systems, and authored data.
@@ -478,6 +479,7 @@ class AbilityDef {
     this.requiresGrounded = false,
     this.activeForwardSpeedX,
     this.mobilityRecast,
+    this.blinkMobility,
     this.groundJumpSpeedY,
     this.airJumpSpeedY,
     this.maxAirJumps = 0,
@@ -514,6 +516,22 @@ class AbilityDef {
          'Ticks cannot be negative',
        ),
        assert(cooldownTicks >= 0, 'Cooldown cannot be negative'),
+       assert(
+         blinkMobility == null ||
+             (category == AbilityCategory.mobility &&
+                 allowedSlots.length == 1 &&
+                 allowedSlots.contains(AbilitySlot.mobility) &&
+                 inputLifecycle == AbilityInputLifecycle.tap &&
+                 mobilitySpeedX == null &&
+                 mobilityRecast == null &&
+                 windupTicks > 0 &&
+                 activeTicks > 0 &&
+                 recoveryTicks > 0 &&
+                 defaultCost.manaCost100 == 0 &&
+                 defaultCost.healthCost100 == 0 &&
+                 costProfileByWeaponType.isEmpty),
+         'Blink requires a phased tap mobility with a stamina-only cost.',
+       ),
        assert(
          mobilityRecast == null ||
              (category == AbilityCategory.mobility &&
@@ -725,6 +743,9 @@ class AbilityDef {
 
   /// Optional single follow-up; does not grant independently recharging uses.
   final MobilityRecastDef? mobilityRecast;
+
+  /// Captured horizontal teleport instead of an ordinary velocity burst.
+  final BlinkMobilityDef? blinkMobility;
 
   /// Optional authored initial vertical speed for ground jump execution.
   ///

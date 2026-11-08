@@ -27,6 +27,13 @@ implementation. Those concerns are documented in:
 | Replay/run/board wire payloads | `packages/run_protocol` | Duplicate gameplay implementation |
 | Ticket validation and deterministic replay execution | `services/replay_validator` | Alternate gameplay rules |
 
+Willow's Blink Dash is a committed mobility action: destination preflight precedes
+costs, and the mobility phase revalidates/commits its teleport before the ordinary
+terrain integration. Signed blink displacement and integrated travel contribute
+once to furthest-progress distance. Encounter bounds apply to teleport placement.
+See [Willow's blink contract](willow.md#blink-dash); compatible replay input remains
+format 1 with gameplay compatibility `2026.11.8.2`.
+
 ## Run configuration and command lifecycle
 
 `GameCore` is configured with deterministic run inputs, including seed, tick

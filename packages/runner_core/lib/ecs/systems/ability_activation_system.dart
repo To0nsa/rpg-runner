@@ -32,6 +32,8 @@ import '../stores/self_intent_store.dart';
 import '../world.dart';
 import '../world_support_view.dart';
 import 'target_mark_system.dart';
+import 'world_motion_authority.dart';
+import '../../util/vec2.dart';
 
 /// Routes player input into ability intents based on the equipped loadout.
 ///
@@ -58,6 +60,7 @@ class AbilityActivationSystem {
     this.playerCastOriginOffset,
     this.playerCharacter,
     this.projectileAimPathClear,
+    this.worldMotionAuthority,
     AimTerrain Function()? aimTerrainProvider,
     PhysicsTuning physics = const PhysicsTuning(),
     ResolvedStatsCache? statsCache,
@@ -82,6 +85,7 @@ class AbilityActivationSystem {
            );
 
   final int tickHz;
+  final WorldMotionAuthority? worldMotionAuthority;
   final int inputBufferTicks;
   final AbilityResolver abilities;
   final WeaponCatalog weapons;
@@ -716,7 +720,9 @@ class AbilityActivationSystem {
     );
 
     // Preserve old behavior: mobility cancels pending combat + buffered input + active combat ability.
-    _cancelCombatOnMobilityPress(world, player);
+    if (ability.blinkMobility == null) {
+      _cancelCombatOnMobilityPress(world, player);
+    }
 
     final isJump = slot == AbilitySlot.jump;
     final isRecast =
@@ -738,6 +744,22 @@ class AbilityActivationSystem {
     if (fail != null) return false;
 
     // Jump resolves resources/execution in JumpSystem (ground vs air costs).
+    Vec2? blinkDestination;
+    final blink = ability.blinkMobility;
+    if (blink != null) {
+      final target = worldMotionAuthority?.resolveBlinkDestination(
+        world,
+        player,
+        facing: _facingFromDirectionX(
+          dirX,
+          fallbackDirX: directionalFallback.$1,
+        ),
+        blink: blink,
+      );
+      if (target == null) return false;
+      blinkDestination = Vec2(target.bodyX, target.bodyY);
+      _cancelCombatOnMobilityPress(world, player);
+    }
     if (!isJump) {
       final facingDir = _facingFromDirectionX(
         dirX,
@@ -781,6 +803,7 @@ class AbilityActivationSystem {
         dirY: dirY,
         speedScaleBp: chargeTuning.speedScaleBp,
         mobilitySpeedX: ability.mobilitySpeedX ?? 0,
+        blinkDestination: blinkDestination,
         commitTick: commitTick,
         windupTicks: windupTicks,
         activeTicks: activeTicks,

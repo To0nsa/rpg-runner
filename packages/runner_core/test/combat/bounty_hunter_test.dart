@@ -546,7 +546,7 @@ void main() {
     },
   );
   test('complete roster and valid starter loadout', () {
-    expect(bountyHunterAbilityDefs.length, 25);
+    expect(bountyHunterAbilityDefs.length, 26);
     final validation = const LoadoutValidator(
       abilityCatalog: AbilityCatalog.shared,
       weaponCatalog: WeaponCatalog(),
@@ -555,7 +555,10 @@ void main() {
     ).validate(_loadout);
     expect(validation.isValid, isTrue, reason: validation.issues.toString());
   });
-  for (final ability in bountyHunterAbilityDefs.values) {
+  // Blink commits require real terrain authority, covered by willow_blink_test.
+  for (final ability in bountyHunterAbilityDefs.values.where(
+    (a) => a.blinkMobility == null,
+  )) {
     test('${ability.id} commits in its declared slot', () {
       final h = _Harness();
       h.enemy(80, 20);

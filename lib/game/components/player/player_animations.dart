@@ -21,6 +21,7 @@ Future<SpriteAnimSet> loadPlayerAnimations(
     AnimKey.cast,
     AnimKey.ranged,
     AnimKey.dash,
+    AnimKey.teleportOut,
     AnimKey.hit,
     AnimKey.death,
     AnimKey.twinStrike,
