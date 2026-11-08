@@ -44,7 +44,7 @@ The client consumes its packaged assets, never replay-supplied graphs.
 `functions/src/runs/navigation_routes.json` defines 16 Practice seeds per
 selectable level, 60 Hz, a 128-chunk worker horizon, an eight-chunk client prefix
 and explicit ranked windows. The checked-in ranked windows cover
-October/November 2026 and Field ISO weeks 43/44 of 2026. Refresh these explicit
+November/December 2026 and Field ISO weeks 45/46 of 2026. Refresh these explicit
 windows before a later release. The producer enumerates production forward
 camera selections at width 600 and all actor profiles. It verifies old pieces before
 reuse, publishes the manifest after completion, and removes only obsolete flat
