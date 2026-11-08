@@ -47,12 +47,18 @@ String? bountyHunterAbilityDescription(AbilityDef def, ProjectileId? weapon) {
         'Uses regenerating Supplies.';
   }
   if (delivery is MeleeHitDelivery) {
+    if (def.activeForwardSpeedX != null) {
+      return 'Briefly ready your blade, then automatically rush forward while slashing. '
+          "Hits each enemy in the blade's path once for ${formatFixed100(def.baseDamage)} base damage. "
+          'A short recovery follows. Solid obstacles stop the lunge. '
+          'You remain vulnerable throughout.';
+    }
     final swings = switch (def.id) {
       'bounty_hunter.twin_cut' => 2,
       'bounty_hunter.threefold_cut' => 3,
       _ => 1,
     };
-    return '${def.activeForwardSpeedX != null ? 'Lunge forward and strike' : 'Strike in front of you'} '
+    return 'Strike in front of you '
         '${swings == 1 ? 'once' : '$swings times'}, dealing ${formatFixed100(def.baseDamage)} damage per swing. '
         'Each swing can hit every enemy in reach once.';
   }
