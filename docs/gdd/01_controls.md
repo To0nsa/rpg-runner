@@ -107,6 +107,10 @@ Six action buttons/slots:
 5. **Projectile** (tap or aim+commit depending on equipped ability)
 6. **Bonus** (tap or aim+commit depending on equipped ability)
 
+Willow's secondary control uses a bomb symbol and her fieldcraft control uses a
+supply bag. Healing abilities retain the heart symbol. These symbols are shared
+by the touch HUD, desktop HUD and Skills radial preview.
+
 **Loadout slot constraints (design contract)**
 - **Jump slot**: Jump abilities only.
 - **Mobility slot**: Mobility abilities only.

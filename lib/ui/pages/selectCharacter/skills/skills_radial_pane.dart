@@ -18,6 +18,7 @@ class SkillsRadialPane extends StatelessWidget {
     required this.selectedSlot,
     required this.resourcesBySlot,
     required this.onSelectSlot,
+    this.secondaryAbilityId,
     this.spellAbilityId,
   });
 
@@ -25,6 +26,9 @@ class SkillsRadialPane extends StatelessWidget {
   final AbilitySlot selectedSlot;
   final Map<AbilitySlot, ControlResourceUsage> resourcesBySlot;
   final ValueChanged<AbilitySlot> onSelectSlot;
+
+  /// Equipped secondary, independent of the candidate inspected in the list.
+  final AbilityKey? secondaryAbilityId;
 
   /// Equipped spell, independent of the candidate currently inspected in the list.
   final AbilityKey? spellAbilityId;
@@ -52,9 +56,11 @@ class SkillsRadialPane extends StatelessWidget {
                         .buttonTop,
                     child: _ActionSlotButton(
                       slot: slot,
-                      abilityId: slot == AbilitySlot.spell
-                          ? spellAbilityId
-                          : null,
+                      abilityId: switch (slot) {
+                        AbilitySlot.secondary => secondaryAbilityId,
+                        AbilitySlot.spell => spellAbilityId,
+                        _ => null,
+                      },
                       resources:
                           resourcesBySlot[slot] ?? ControlResourceUsage.none,
                       selected: slot == selectedSlot,

@@ -148,6 +148,7 @@ class GameOverlay extends StatefulWidget {
                 !uiState.isRunning ||
                 controller.terrainReadiness == TerrainReadiness.failed,
             child: RunnerControlsOverlay(
+              secondaryAbilityId: hud.abilitySecondaryId,
               spellAbilityId: hud.abilitySpellId,
               movementInputEpoch: movementInputEpoch,
               movementControlMode: movementControlMode,

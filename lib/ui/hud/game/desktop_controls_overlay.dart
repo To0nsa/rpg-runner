@@ -134,9 +134,12 @@ class DesktopControlsOverlay extends StatelessWidget {
                                 Icon(
                                   abilityRadialLayoutSpec.iconFor(
                                     item.slot,
-                                    abilityId: item.slot == AbilitySlot.spell
-                                        ? hud.abilitySpellId
-                                        : null,
+                                    abilityId: switch (item.slot) {
+                                      AbilitySlot.secondary =>
+                                        hud.abilitySecondaryId,
+                                      AbilitySlot.spell => hud.abilitySpellId,
+                                      _ => null,
+                                    },
                                   ),
                                   color: color,
                                   size: ui.sizes.iconSize.md,

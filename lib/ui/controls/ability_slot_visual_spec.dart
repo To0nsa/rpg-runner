@@ -51,12 +51,22 @@ class AbilityRadialLayoutSpec {
     throw StateError('No AbilityRadialSlotSpec found for slot: $slot');
   }
 
-  /// Healing spells identify their effect; unknown abilities retain the slot symbol.
+  /// Bombs and fieldcraft use equipment symbols; healing keeps its heart symbol.
+  /// Unknown abilities retain the default slot symbol.
   IconData iconFor(AbilitySlot slot, {AbilityKey? abilityId}) {
-    if (slot == AbilitySlot.spell && abilityId != null) {
-      final ability = AbilityCatalog.shared.resolve(abilityId);
+    final ability = abilityId == null
+        ? null
+        : AbilityCatalog.shared.resolve(abilityId);
+    if (slot == AbilitySlot.secondary &&
+        ability?.hitDelivery is BombHitDelivery) {
+      return LucideIcons400.bomb;
+    }
+    if (slot == AbilitySlot.spell) {
       if (ability?.selfStatusProfileId == StatusProfileId.restoreHealth) {
         return LucideIcons400.heart;
+      }
+      if (ability?.id.startsWith('bounty_hunter.') ?? false) {
+        return LucideIcons400.backpack;
       }
     }
     return slotSpec(slot).icon;

@@ -90,6 +90,7 @@ class RunnerControlsOverlay extends StatelessWidget {
     this.tuning = ControlsTuning.fixed,
     this.missingResourcesBySlot = const {},
     this.onResourceShortfall,
+    this.secondaryAbilityId,
     this.spellAbilityId,
   });
 
@@ -159,6 +160,9 @@ class RunnerControlsOverlay extends StatelessWidget {
   final Map<AbilitySlot, ControlResourceUsage> missingResourcesBySlot;
   final ValueChanged<ControlResourceUsage>? onResourceShortfall;
 
+  /// Equipped secondary identity, shared with the Skills preview's icon resolver.
+  final AbilityKey? secondaryAbilityId;
+
   /// Equipped spell identity, shared with the Skills preview's icon resolver.
   final AbilityKey? spellAbilityId;
 
@@ -172,8 +176,9 @@ class RunnerControlsOverlay extends StatelessWidget {
     final action = style.actionButton;
     final directional = style.directionalActionButton;
     final cooldownRing = style.cooldownRing;
-    final secondarySlot = abilityRadialLayoutSpec.slotSpec(
+    final secondaryIcon = abilityRadialLayoutSpec.iconFor(
       AbilitySlot.secondary,
+      abilityId: secondaryAbilityId,
     );
     final mobilitySlot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.mobility);
     final jumpSlot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump);
@@ -297,7 +302,7 @@ class RunnerControlsOverlay extends StatelessWidget {
               secondaryInputMode == AbilityInputMode.holdMaintain
                   ? HoldActionButton(
                       label: labelFor(AbilitySlot.secondary),
-                      icon: secondarySlot.icon,
+                      icon: secondaryIcon,
                       resources:
                           resourcesBySlot[AbilitySlot.secondary] ??
                           ControlResourceUsage.none,
@@ -313,7 +318,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   : secondaryInputMode == AbilityInputMode.holdRelease
                   ? HoldActionButton(
                       label: labelFor(AbilitySlot.secondary),
-                      icon: secondarySlot.icon,
+                      icon: secondaryIcon,
                       resources:
                           resourcesBySlot[AbilitySlot.secondary] ??
                           ControlResourceUsage.none,
@@ -330,7 +335,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                   : secondaryInputMode == AbilityInputMode.holdAimRelease
                   ? DirectionalActionButton(
                       label: labelFor(AbilitySlot.secondary),
-                      icon: secondarySlot.icon,
+                      icon: secondaryIcon,
                       resources:
                           resourcesBySlot[AbilitySlot.secondary] ??
                           ControlResourceUsage.none,
@@ -355,7 +360,7 @@ class RunnerControlsOverlay extends StatelessWidget {
                     )
                   : ActionButton(
                       label: labelFor(AbilitySlot.secondary),
-                      icon: secondarySlot.icon,
+                      icon: secondaryIcon,
                       resources:
                           resourcesBySlot[AbilitySlot.secondary] ??
                           ControlResourceUsage.none,
