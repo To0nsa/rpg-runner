@@ -40,7 +40,7 @@ class _CharacterSelectionPageState extends State<CharacterSelectionPage> {
       }
       if (!mounted) return;
       if (buildIndex != null) {
-        Navigator.of(context).pushReplacementNamed(UiRoutes.setupLoadout);
+        Navigator.of(context).pushNamed(UiRoutes.setupLoadout);
       }
     } catch (_) {
       if (!mounted) return;

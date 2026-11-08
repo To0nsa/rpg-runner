@@ -149,10 +149,12 @@ online run modes are unavailable. See [technical contract](../tdd/developer_prac
   - `Weekly` quick button → starts Weekly Challenge directly **if compatible**; otherwise shows “Update required” (does not change `selectedLevelId` by default)
   - Icons: `Profile`, `Leaderboards`, `Options`, `Town` → open those screens
   - `Town` → Théodonis city map → `Town Store` or `Library`
-- From Setup Character Loadout:
-  - Character-name button → Character Selection (Éloïse / Willow), then the chosen character's remembered build
-  - `Try on Dummy` → Loadout Lab
+- From Character Selection:
+  - Unlocked build button → Setup Character Loadout for that character and build
   - `Back` → Play Hub
+- From Setup Character Loadout:
+  - `Try on Dummy` → Loadout Lab
+  - `Back` (app bar or system) → Character Selection, keeping the selected character and build
   - `Level` → Setup Level (cross-link)
 - From Loadout Lab:
   - `Back` → Setup Character Loadout
@@ -324,7 +326,7 @@ section visually mirrors the in-game HUD cluster **on this page only**.
 ### Layout
 
 - Header: “Character & Loadout”
-- Character-name button returns to selection. Gear, Skills and Training Field
+- Back returns to character selection. Gear, Skills and Training Field
   use the chosen character; Start and Restart use the remembered build directly.
 
 - **Gear slots (4 slots)**

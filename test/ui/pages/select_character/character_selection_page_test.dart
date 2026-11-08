@@ -80,7 +80,8 @@ void main() {
             ),
             builder: (context, child) =>
                 RepaintBoundary(key: boundary, child: child),
-            home: const CharacterSelectionPage(),
+            home: const Scaffold(body: Text('Hub')),
+            initialRoute: UiRoutes.selectCharacter,
             routes: {
               UiRoutes.selectCharacter: (_) => const CharacterSelectionPage(),
               UiRoutes.setupLoadout: (_) => const LoadoutSetupPage(),
@@ -255,13 +256,12 @@ void main() {
       expect(find.byType(Dialog), findsNothing);
       expect(state.selection.buildName, 'Willow crossbow practice kit');
       expect(find.text('Willow crossbow practice kit'), findsOneWidget);
-      final navigator = tester.state<NavigatorState>(
-        find.byType(Navigator).first,
-      );
-      navigator.pushReplacementNamed(UiRoutes.selectCharacter);
+      await tester.pageBack();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump();
+      expect(find.byType(CharacterSelectionPage), findsOneWidget);
+      expect(find.byType(LoadoutSetupPage), findsNothing);
       expect(find.text('Willow crossbow practice kit'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('build-eloise-1')));
       await tester.pump();
@@ -281,6 +281,18 @@ void main() {
             .projectileSlotSpellId,
         ProjectileId.hunterCrossbow,
       );
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(CharacterSelectionPage), findsOneWidget);
+      expect(find.byType(LoadoutSetupPage), findsNothing);
+      expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
+
+      await tester.pageBack();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Hub'), findsOneWidget);
+      expect(find.byType(CharacterSelectionPage), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     });

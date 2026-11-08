@@ -47,7 +47,9 @@ three build buttons occupy the right. Unlocked buttons show the saved name;
 locked buttons show a centered lock icon and required level together inside the
 button instead of the name. Card taps select in place, unlocked build buttons
 save and open the builder, and locked buttons consume taps. The selected
-character retains the level-selector scrim behavior. Builder actions show the
+character retains the level-selector scrim behavior. The builder is pushed above
+the chooser, so both the app-bar and system Back return to character selection;
+Back from the chooser returns to the hub. Builder actions show the
 current build name and edit icon. Rename has Save/Cancel, keyboard submission,
 validation, a busy state and retryable errors.
 
