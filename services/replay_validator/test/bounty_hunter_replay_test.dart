@@ -17,6 +17,71 @@ import 'package:runner_core/tuning/track_tuning.dart';
 
 void main() {
   for (final hz in [30, 60, 120]) {
+    test('bomb hand release, arc and contact blast replay at $hz Hz', () {
+      final direct = _core(ProjectileId.hunterPistol, tickHz: hz);
+      final frames = <ReplayCommandFrameV1>[];
+      final checkpoints = <int, List<Object?>>{};
+      int? release;
+      int? impact;
+      double? releaseY;
+      var apex = double.infinity;
+      for (var tick = 1; tick <= hz * 3; tick++) {
+        final pressed = tick == hz;
+        frames.add(
+          ReplayCommandFrameV1.fromJson(
+            ReplayCommandFrameV1(
+              tick: tick,
+              moveAxis: 0,
+              pressedMask: pressed
+                  ? ReplayCommandFrameV1.pressedSecondaryBit
+                  : 0,
+            ).toJson(),
+          ),
+        );
+        direct.applyCommands([
+          if (pressed) SecondaryPressedCommand(tick: tick),
+        ]);
+        direct.stepOneTick();
+        final snapshot = direct.buildSnapshot();
+        final bombs = snapshot.entities.where(
+          (e) => e.projectileId == ProjectileId.hunterBomb,
+        );
+        if (bombs.isNotEmpty) {
+          final bomb = bombs.single;
+          if (release == null) {
+            release = tick;
+            releaseY = bomb.pos.y;
+            final player = snapshot.playerEntity!;
+            expect(player.anim, AnimKey.bombDrop);
+            expect(player.animFrame! ~/ (.05 * hz).round(), 6);
+            expect(bomb.pos.x, closeTo(player.pos.x + 26 * 1.35, 1e-9));
+            expect(bomb.pos.y, closeTo(player.pos.y - 7 * 1.35, 1e-9));
+            expect(bomb.vel!.y, lessThan(0));
+            checkpoints[tick] = _signature(direct);
+          }
+          if (bomb.pos.y < apex) apex = bomb.pos.y;
+          if (bomb.anim == AnimKey.bombExplosion && impact == null) {
+            impact = tick;
+            expect(bomb.animFrame, 0);
+            checkpoints[tick] = _signature(direct);
+          }
+          if (tick == release + hz ~/ 3) checkpoints[tick] = _signature(direct);
+        }
+        direct.drainEvents();
+      }
+      expect(release, isNotNull);
+      expect(impact, lessThan(release! + hz));
+      expect(apex, lessThan(releaseY! - 40));
+      for (final checkpoint in checkpoints.entries) {
+        final replayed = _core(ProjectileId.hunterPistol, tickHz: hz);
+        runReplaySimulation(
+          core: replayed,
+          totalTicks: checkpoint.key,
+          commandStream: frames,
+        );
+        expect(_signature(replayed), checkpoint.value);
+      }
+    });
     test('Twin Cut replays only its two blade swings at $hz Hz', () {
       final direct = _core(
         ProjectileId.hunterPistol,

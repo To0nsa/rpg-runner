@@ -1,5 +1,9 @@
 # Current Implementation Plans
 
+- [Completed Willow bomb throws](../archive/2026-11-08/building/willow_bomb_throw.md):
+  hand-aligned lob, farthest reachable auto-aim, contact/fuse detonation and
+  6 Supplies per throw; [local verification](../verification/willow-bomb-throw-2026-11-08.md).
+
 - [Completed Willow Blink Dash](../archive/2026-11-08/building/willow_blink_dash.md):
   placed-tent crossing and corrected Lunge Slash art;
   [local verification](../verification/willow-blink-dash-2026-11-08.md).

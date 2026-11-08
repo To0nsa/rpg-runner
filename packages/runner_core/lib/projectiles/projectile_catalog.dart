@@ -106,11 +106,13 @@ class ProjectileCatalog {
         return const ProjectileItemDef(
           id: ProjectileId.hunterBomb,
           weaponType: WeaponType.bombKit,
-          speedUnitsPerSecond: 0,
+          // Maximum launch speed; closer targets use a slower lob.
+          speedUnitsPerSecond: 520,
           lifetimeSeconds: 3,
           colliderSizeX: 6,
           colliderSizeY: 6,
           ballistic: true,
+          gravityScale: 0.6,
         );
       case ProjectileId.unknown:
       case ProjectileId.poisonDart:

@@ -7,6 +7,7 @@ import '../combat/status/status.dart';
 import '../snapshots/enums.dart';
 import 'blink_mobility_def.dart';
 import '../weapons/weapon_proc.dart';
+import '../util/vec2.dart';
 
 /// Stable ability identifier used by loadouts, systems, and authored data.
 ///
@@ -146,17 +147,32 @@ class ProjectileHitDelivery extends HitDeliveryDef {
   final double spreadRadians;
 }
 
-/// A dropped ballistic projectile whose fuse begins on release. Contact never
-/// detonates it; the blast radius is in world units and the fuse in 60 Hz ticks.
+/// A lobbed projectile detonating on hostile/terrain contact or fuse expiry.
+/// Distances/attachments use world units; timing uses authored 60 Hz ticks.
 class BombHitDelivery extends ProjectileHitDelivery {
   const BombHitDelivery({
     required super.projectileId,
     this.fuseTicks = 60,
     this.radius = 48,
+    this.releaseOffset = const Vec2(0, 0),
+    this.flightTicks = 48,
+    this.maxRange = 320,
+    this.fallbackRange = 240,
   }) : assert(fuseTicks > 0),
-       assert(radius > 0);
+       assert(radius > 0),
+       assert(flightTicks > 0 && flightTicks < fuseTicks),
+       assert(maxRange > 0),
+       assert(fallbackRange > 0 && fallbackRange <= maxRange);
   final int fuseTicks;
   final double radius;
+
+  /// Right-facing bomb pivot at the release pose, relative to the actor pivot.
+  final Vec2 releaseOffset;
+
+  /// A 0.8s lob gives a visible apex and reaches its target before the 1s fuse.
+  final int flightTicks;
+  final double maxRange;
+  final double fallbackRange;
 }
 
 /// For abilities that affect the user (Buff/Block) or have no hitbox (Dash).

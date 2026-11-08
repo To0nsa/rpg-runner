@@ -12,6 +12,7 @@ import '../../combat/aim_motion_forecast.dart';
 import '../../tuning/physics_tuning.dart';
 import '../../snapshots/enums.dart';
 import '../../projectiles/projectile_id.dart';
+import '../../projectiles/bomb_throw_aim.dart';
 import '../../players/player_character_definition.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../spellBook/spell_book_catalog.dart';
@@ -64,7 +65,13 @@ class AbilityActivationSystem {
     AimTerrain Function()? aimTerrainProvider,
     PhysicsTuning physics = const PhysicsTuning(),
     ResolvedStatsCache? statsCache,
-  }) : _sourceAimMotion = AimMotionForecast(
+  }) : _bombAim = BombThrowAim(
+         tickHz: tickHz,
+         physics: physics,
+         terrainProvider: aimTerrainProvider,
+         pathClear: projectileAimPathClear,
+       ),
+       _sourceAimMotion = AimMotionForecast(
          tickHz: tickHz,
          physics: physics,
          terrainProvider: aimTerrainProvider,
@@ -107,6 +114,7 @@ class AbilityActivationSystem {
   final ResolvedStatsCache _statsCache;
   final AimMotionForecast _sourceAimMotion;
   final AimMotionForecast _targetAimMotion;
+  final BombThrowAim _bombAim;
 
   void step(
     EcsWorld world, {
@@ -1258,23 +1266,46 @@ class AbilityActivationSystem {
     final fallbackDirY = directionalFallback.$2;
     final hasMuzzle =
         playerCharacter?.projectileMuzzles.containsKey(projectileId) == true;
-    final resolvedDir = _resolveCommitDirection(
-      world,
-      source: player,
-      ability: ability,
-      rawAimX: rawAimX,
-      rawAimY: rawAimY,
-      directionalFallbackX: fallbackDirX,
-      directionalFallbackY: fallbackDirY,
-      homingWindupTicks: windupTicks,
-      homingProjectileSpeedUnitsPerSecond:
-          projectileBaseSpeedUnitsPerSecond *
-          (chargeTuning.speedScaleBp / 10000.0),
-      homingProjectileLifetimeSeconds: projectileLifetimeSeconds,
-      homingProjectileOriginOffset: hasMuzzle ? 0 : originOffset,
-      homingProjectileId: projectileId,
-      homingExecuteTick: commitTick + windupTicks,
-    );
+    final throwAim = hitDelivery is BombHitDelivery
+        ? _bombAim.solve(
+            world,
+            source: player,
+            delivery: hitDelivery,
+            maxSpeed: projectileBaseSpeedUnitsPerSecond,
+            gravityScale: gravityScale,
+            fallbackFacing: fallbackDirX < 0 ? Facing.left : Facing.right,
+            motionTicksToRelease: windupTicks + 1,
+          )
+        : null;
+    final throwSpeed = throwAim == null
+        ? 1.0
+        : sqrt(
+            throwAim.velocityX * throwAim.velocityX +
+                throwAim.velocityY * throwAim.velocityY,
+          );
+    final resolvedDir = throwAim != null
+        ? (
+            throwAim.velocityX / throwSpeed,
+            throwAim.velocityY / throwSpeed,
+            throwAim.facing,
+          )
+        : _resolveCommitDirection(
+            world,
+            source: player,
+            ability: ability,
+            rawAimX: rawAimX,
+            rawAimY: rawAimY,
+            directionalFallbackX: fallbackDirX,
+            directionalFallbackY: fallbackDirY,
+            homingWindupTicks: windupTicks,
+            homingProjectileSpeedUnitsPerSecond:
+                projectileBaseSpeedUnitsPerSecond *
+                (chargeTuning.speedScaleBp / 10000.0),
+            homingProjectileLifetimeSeconds: projectileLifetimeSeconds,
+            homingProjectileOriginOffset: hasMuzzle ? 0 : originOffset,
+            homingProjectileId: projectileId,
+            homingExecuteTick: commitTick + windupTicks,
+          );
     final aimX = resolvedDir.$1;
     final aimY = resolvedDir.$2;
 
@@ -1283,13 +1314,15 @@ class AbilityActivationSystem {
     final facingDir =
         resolvedDir.$3 ??
         _facingFromDirectionX(aimX, fallbackDirX: fallbackDirX);
-    if (hasMuzzle || aimX.abs() > 1e-6 || resolvedDir.$3 != null) {
+    if (hasMuzzle ||
+        throwAim != null ||
+        aimX.abs() > 1e-6 ||
+        resolvedDir.$3 != null) {
       world.movement.facing[movementIndex] = facingDir;
       // Movement decrements before checking the lock. Keep the chosen muzzle
       // through the commit tick and the release tick, including vertical aim.
-      world.movement.facingLockTicksLeft[movementIndex] = hasMuzzle
-          ? windupTicks + 2
-          : 1;
+      world.movement.facingLockTicksLeft[movementIndex] =
+          hasMuzzle || throwAim != null ? windupTicks + 2 : 1;
     }
     _applyCommitSideEffects(
       world,

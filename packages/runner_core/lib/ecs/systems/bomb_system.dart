@@ -5,7 +5,7 @@ import '../hit/hit_resolver.dart';
 import '../spatial/broadphase_grid.dart';
 import '../world.dart';
 
-/// Resolves fuses after final terrain motion and broadphase, before damage.
+/// Resolves swept contact or fuse expiry after terrain/broadphase, before damage.
 /// The one-time blast ignores allies and requires a clear solid-terrain ray.
 class BombSystem {
   BombSystem({required this.tickHz, required this.pathClear});
@@ -25,6 +25,39 @@ class BombSystem {
       final pi = world.projectile.indexOf(entity);
       final ti = world.transform.indexOf(entity);
       final projectile = world.projectile;
+      if (!bombs.exploded[i]) {
+        final x = world.transform.posX[ti], y = world.transform.posY[ti];
+        final startX = projectile.previousX[pi] ?? x;
+        final startY = projectile.previousY[pi] ?? y;
+        final ci = world.colliderAabb.indexOf(entity);
+        // Terrain already clipped this segment; swept hostile contact can
+        // detonate earlier along it without tunnelling through a thin target.
+        final contact = _resolver.firstSweptCapsuleContact(
+          broadphase: broadphase,
+          ax: startX,
+          ay: startY,
+          bx: startX,
+          by: startY,
+          radius: world.colliderAabb.halfY[ci],
+          deltaX: x - startX,
+          deltaY: y - startY,
+          owner: projectile.owner[pi],
+          sourceFaction: projectile.faction[pi],
+        );
+        final collision = world.collision.indexOf(entity);
+        final terrainContact =
+            world.collision.grounded[collision] ||
+            world.collision.hitCeiling[collision] ||
+            world.collision.hitLeft[collision] ||
+            world.collision.hitRight[collision];
+        if (contact != null) {
+          world.transform.posX[ti] = startX + (x - startX) * contact.fraction;
+          world.transform.posY[ti] = startY + (y - startY) * contact.fraction;
+        }
+        if (contact != null || terrainContact) {
+          bombs.explodeTick[i] = currentTick;
+        }
+      }
       final fuse = bombs.explodeTick[i];
       if (currentTick < fuse) {
         final start = projectile.spawnTick[pi] ?? currentTick;

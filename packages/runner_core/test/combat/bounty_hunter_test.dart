@@ -33,6 +33,8 @@ import 'package:runner_core/ecs/systems/ability_activation_system.dart';
 import 'package:runner_core/ecs/systems/player_movement_system.dart';
 import 'package:runner_core/ecs/systems/projectile_launch_system.dart';
 import 'package:runner_core/ecs/systems/projectile_hit_system.dart';
+import 'package:runner_core/ecs/systems/projectile_system.dart';
+import 'package:runner_core/projectiles/bomb_throw_aim.dart';
 import 'package:runner_core/ecs/systems/projectile_world_collision_system.dart';
 import 'package:runner_core/ecs/systems/terrain_ballistic_projectile_system.dart';
 import 'package:runner_core/ecs/systems/gravity_system.dart';
@@ -412,13 +414,19 @@ void main() {
     h.launch.step(h.world, currentTick: release);
     expect(h.world.projectile.denseEntities, isEmpty);
   });
-  test('bomb windup does not reserve weapon-tip facing', () {
-    final h = _Harness();
-    h.press(AbilitySlot.secondary);
-    h.world.playerInput.moveAxis[0] = -1;
-    PlayerMovementSystem().step(h.world, h.movement, currentTick: 1);
-    expect(h.world.movement.facing[0], Facing.left);
-  });
+  test(
+    'bomb windup retains throwing-hand facing and interruption clears it',
+    () {
+      final h = _Harness();
+      h.press(AbilitySlot.secondary);
+      h.world.playerInput.moveAxis[0] = -1;
+      PlayerMovementSystem().step(h.world, h.movement, currentTick: 1);
+      expect(h.world.movement.facing[0], Facing.right);
+      h.world.projectileIntent.tick[0] = -1;
+      PlayerMovementSystem().step(h.world, h.movement, currentTick: 2);
+      expect(h.world.movement.facing[0], Facing.left);
+    },
+  );
   for (final name in [
     'hunters_focus',
     'forced_march',
@@ -760,10 +768,10 @@ void main() {
   }
   for (final tickHz in [30, 60, 120]) {
     test(
-      'bomb lands, ignores contact/allies/walls, detonates exactly once at $tickHz Hz',
+      'bomb terrain contact detonates once and walls shield the blast at $tickHz Hz',
       () {
         final h = _Harness(tickHz: tickHz);
-        h.world.mana.mana[0] = 0;
+        h.world.mana.mana[0] = 600;
         h.world.stamina.stamina[0] = 0;
         h.press(AbilitySlot.secondary);
         final release = h.world.projectileIntent.tick[0];
@@ -773,12 +781,12 @@ void main() {
         expect(fuse - release, tickHz);
         expect(h.world.mana.mana[0], 0);
         expect(h.world.stamina.stamina[0], 0);
-        final clear = h.enemy(-30, 82);
-        final blocked = h.enemy(40, 82);
-        final ally = h.enemy(-15, 82, faction: Faction.player);
+        final clear = h.enemy(40, 30);
+        final blocked = h.enemy(85, 30);
+        final ally = h.enemy(45, 35, faction: Faction.player);
         final geometry = const TerrainCompiler().compile([
           _polygon('floor', [(-200, 100), (200, 100), (200, 130), (-200, 130)]),
-          _polygon('wall', [(20, 0), (23, 0), (23, 100), (20, 100)]),
+          _polygon('wall', [(65, -100), (68, -100), (68, 100), (65, 100)]),
         ], geometryVersion: 1);
         final index = TerrainEdgeIndex(edges: geometry.edges);
         final motion = TerrainBallisticProjectileSystem(edgeIndex: index);
@@ -790,8 +798,10 @@ void main() {
           ).isClear,
         );
         final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
+        int? explodedAt;
         for (var tick = release; tick <= fuse + 3; tick++) {
           if (tick > release) {
+            ProjectileSystem().capturePhysicsPositions(h.world);
             GravitySystem().step(
               h.world,
               h.movement,
@@ -803,13 +813,14 @@ void main() {
           grid.rebuild(h.world);
           ProjectileHitSystem().step(h.world, grid, currentTick: tick);
           system.step(h.world, grid, currentTick: tick);
-          if (tick < fuse) expect(h.world.damageQueue.length, 0);
+          if (h.world.bomb.exploded.single) explodedAt ??= tick;
         }
         expect(h.world.projectile.has(bomb), isTrue);
         expect(
-          h.world.transform.posY[h.world.transform.indexOf(bomb)],
-          closeTo(97, .01),
+          h.world.transform.posX[h.world.transform.indexOf(bomb)],
+          closeTo(62, .01),
         );
+        expect(explodedAt, lessThan(fuse));
         expect(h.world.damageQueue.target, [clear]);
         expect(h.world.damageQueue.target, isNot(contains(blocked)));
         expect(h.world.damageQueue.target, isNot(contains(ally)));
@@ -820,6 +831,239 @@ void main() {
       },
     );
   }
+  for (final ability in bountyHunterAbilityDefs.values.where(
+    (def) => def.hitDelivery is BombHitDelivery,
+  )) {
+    test('${ability.id} requires and spends exactly six Supplies', () {
+      final h = _Harness()..equip(ability);
+      h.world.stamina.stamina[0] = 0;
+      h.world.mana.mana[0] = 599;
+      h.press(AbilitySlot.secondary);
+      expect(h.world.projectileIntent.tick[0], -1);
+      expect(h.world.mana.mana[0], 599);
+      h.world.mana.mana[0] = 600;
+      h.press(AbilitySlot.secondary, tick: 2);
+      final release = h.world.projectileIntent.tick[0];
+      expect(release, greaterThan(2));
+      expect(h.world.mana.mana[0], 0);
+      h.launch.step(h.world, currentTick: release);
+      expect(h.world.bomb.denseEntities, hasLength(1));
+      expect(h.world.mana.mana[0], 0);
+      expect(h.world.stamina.stamina[0], 0);
+    });
+  }
+  for (final tickHz in [30, 60, 120]) {
+    for (final sign in [-1, 1]) {
+      test(
+        'bomb arcs to farthest moving hostile, direction $sign at $tickHz Hz',
+        () {
+          final h = _Harness(tickHz: tickHz);
+          final near = h.enemy(sign * 70.0, 20);
+          final far = h.enemy(sign * 240.0, 20);
+          h.enemy(sign * 340.0, 20);
+          h.enemy(sign * 310.0, 20, faction: Faction.player);
+          final farTi = h.world.transform.indexOf(far);
+          h.world.transform.velX[farTi] = sign * 30;
+          h.press(AbilitySlot.secondary);
+          final release = h.world.projectileIntent.tick[0];
+          // Release samples final source/target positions, including airborne motion.
+          h.world.transform.posX[0] = sign * 5;
+          h.world.transform.posY[0] = 5;
+          h.world.collision.grounded[0] = false;
+          h.world.transform.posX[farTi] += sign * 10;
+          h.launch.step(h.world, currentTick: release);
+          final bomb = h.world.bomb.denseEntities.single;
+          final ti = h.world.transform.indexOf(bomb);
+          final startY = h.world.transform.posY[ti];
+          expect(
+            h.world.transform.posX[ti],
+            closeTo(sign * (5 + 26 * 1.35), 1e-9),
+          );
+          expect(startY, closeTo(5 - 7 * 1.35, 1e-9));
+          expect(
+            h.world.movement.facing[0],
+            sign < 0 ? Facing.left : Facing.right,
+          );
+          expect(h.world.transform.velX[ti] * sign, greaterThan(0));
+          expect(h.world.transform.velY[ti], lessThan(0));
+          final geometry = const TerrainCompiler().compile(
+            [],
+            geometryVersion: 1,
+          );
+          final motion = TerrainBallisticProjectileSystem(
+            edgeIndex: TerrainEdgeIndex(edges: geometry.edges),
+          );
+          final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
+          final system = BombSystem(
+            tickHz: tickHz,
+            pathClear: (_, _, _, _) => true,
+          );
+          final deadline = h.world.bomb.explodeTick.single;
+          var apex = startY;
+          int? impact;
+          for (var tick = release + 1; tick <= deadline + 2; tick++) {
+            ProjectileSystem().capturePhysicsPositions(h.world);
+            h.world.transform.posX[farTi] += sign * 30 / tickHz;
+            GravitySystem().step(
+              h.world,
+              h.movement,
+              physics: const PhysicsTuning(),
+            );
+            motion.step(h.world, h.movement);
+            grid.rebuild(h.world);
+            system.step(h.world, grid, currentTick: tick);
+            apex = math.min(apex, h.world.transform.posY[ti]);
+            if (h.world.bomb.exploded.single) impact ??= tick;
+          }
+          expect(apex, lessThan(startY - 30));
+          expect(impact, lessThan(deadline));
+          expect(h.world.damageQueue.target, [far]);
+          expect(h.world.damageQueue.target, isNot(contains(near)));
+          expect(h.world.projectile.animFrame.single, deadline + 2 - impact!);
+        },
+      );
+    }
+    test(
+      'empty-space lob keeps its one-second fuse after owner removal at $tickHz Hz',
+      () {
+        final h = _Harness(tickHz: tickHz);
+        h.press(AbilitySlot.secondary);
+        final release = h.world.projectileIntent.tick[0];
+        h.launch.step(h.world, currentTick: release);
+        final deadline = h.world.bomb.explodeTick.single;
+        expect(deadline - release, tickHz);
+        final bomb = h.world.bomb.denseEntities.single;
+        h.world.destroyEntity(h.player);
+        final geometry = const TerrainCompiler().compile(
+          [],
+          geometryVersion: 1,
+        );
+        final motion = TerrainBallisticProjectileSystem(
+          edgeIndex: TerrainEdgeIndex(edges: geometry.edges),
+        );
+        final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
+        final system = BombSystem(
+          tickHz: tickHz,
+          pathClear: (_, _, _, _) => true,
+        );
+        for (var tick = release; tick <= deadline + 2; tick++) {
+          if (tick > release) {
+            ProjectileSystem().capturePhysicsPositions(h.world);
+            GravitySystem().step(
+              h.world,
+              h.movement,
+              physics: const PhysicsTuning(),
+            );
+            motion.step(h.world, h.movement);
+          }
+          grid.rebuild(h.world);
+          system.step(h.world, grid, currentTick: tick);
+          expect(h.world.bomb.exploded.single, tick >= deadline);
+        }
+        expect(h.world.projectile.owner.single, 0);
+        expect(h.world.projectile.animFrame.single, 2);
+        expect(h.world.transform.velY[h.world.transform.indexOf(bomb)], 0);
+      },
+    );
+  }
+  test(
+    'bomb targeting rejects blocked arcs and breaks equal distance ties by ID',
+    () {
+      final h = _Harness();
+      final left = h.enemy(-200, 20);
+      h.enemy(200, 20);
+      h.enemy(280, 20);
+      final delivery =
+          bountyHunterAbilityDefs['bounty_hunter.blast_bomb']!.hitDelivery
+              as BombHitDelivery;
+      final aim = BombThrowAim(
+        tickHz: 60,
+        pathClear: (x, y, nx, ny) => nx < 250,
+      );
+      final solved = aim.solve(
+        h.world,
+        source: h.player,
+        delivery: delivery,
+        maxSpeed: 520,
+        gravityScale: .6,
+        fallbackFacing: Facing.right,
+      );
+      expect(solved.target, left);
+      expect(solved.facing, Facing.left);
+    },
+  );
+  test('fast bomb sweeps first hostile contact, ignores allies, and does not pulse twice', () {
+    final h = _Harness(tickHz: 30);
+    h.press(AbilitySlot.secondary);
+    final release = h.world.projectileIntent.tick[0];
+    h.launch.step(h.world, currentTick: release);
+    final ti = h.world.transform.indexOf(h.world.bomb.denseEntities.single);
+    final x = h.world.transform.posX[ti], y = h.world.transform.posY[ti];
+      final later = h.enemy(x + 100, y);
+    final first = h.enemy(x + 25, y);
+    final ally = h.enemy(x + 12, y, faction: Faction.player);
+    h.world.transform.velX[ti] = 3000;
+    h.world.transform.velY[ti] = 0;
+    ProjectileSystem().capturePhysicsPositions(h.world);
+    final geometry = const TerrainCompiler().compile([], geometryVersion: 1);
+    TerrainBallisticProjectileSystem(
+      edgeIndex: TerrainEdgeIndex(edges: geometry.edges),
+    ).step(h.world, h.movement);
+    final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64))
+      ..rebuild(h.world);
+    final system = BombSystem(tickHz: 30, pathClear: (_, _, _, _) => true);
+    system.step(h.world, grid, currentTick: release + 1);
+    expect(h.world.bomb.explodeTick.single, release + 1);
+    expect(h.world.transform.posX[ti], closeTo(x + 16, .01));
+    expect(h.world.damageQueue.target, [first]);
+    expect(h.world.damageQueue.target, isNot(contains(later)));
+    expect(h.world.damageQueue.target, isNot(contains(ally)));
+    system.step(h.world, grid, currentTick: release + 2);
+    expect(h.world.damageQueue.target, [first]);
+  });
+  test(
+    'bomb passes up through a one-way platform and detonates on descent',
+    () {
+      final h = _Harness();
+      h.press(AbilitySlot.secondary);
+      final release = h.world.projectileIntent.tick[0];
+      h.launch.step(h.world, currentTick: release);
+      final geometry = const TerrainCompiler().compile([
+        _polygon('oneway', [
+          (-500, 0),
+          (500, 0),
+          (500, 5),
+          (-500, 5),
+        ], collisionMode: TerrainCollisionMode.oneWay),
+      ], geometryVersion: 1);
+      final motion = TerrainBallisticProjectileSystem(
+        edgeIndex: TerrainEdgeIndex(edges: geometry.edges),
+      );
+      final grid = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
+      final system = BombSystem(tickHz: 60, pathClear: (_, _, _, _) => true);
+      final ti = h.world.transform.indexOf(h.world.bomb.denseEntities.single);
+      var crossedAbove = false;
+      for (var tick = release + 1; tick < release + 60; tick++) {
+        ProjectileSystem().capturePhysicsPositions(h.world);
+        GravitySystem().step(
+          h.world,
+          h.movement,
+          physics: const PhysicsTuning(),
+        );
+        motion.step(h.world, h.movement);
+        grid.rebuild(h.world);
+        system.step(h.world, grid, currentTick: tick);
+        if (h.world.transform.posY[ti] < -10) {
+          crossedAbove = true;
+          expect(h.world.bomb.exploded.single, isFalse);
+        }
+        if (h.world.bomb.exploded.single) break;
+      }
+      expect(crossedAbove, isTrue);
+      expect(h.world.bomb.exploded.single, isTrue);
+      expect(h.world.transform.posY[ti], closeTo(-3, .01));
+    },
+  );
   test('removed roll and slide are rejected by loadout validation', () {
     for (final name in ['roll', 'slide']) {
       final id = 'bounty_hunter.$name';
@@ -878,16 +1122,16 @@ void main() {
   });
 }
 
-TerrainPolygonInput _polygon(String id, List<(double, double)> vertices) =>
-    TerrainPolygonInput.fromWorld(
-      sourcePath: 'test/$id',
-      identity: TerrainSourceIdentity(
-        chunkIndex: 0,
-        chunkKey: 'test',
-        shapeId: id,
-      ),
-      vertices: vertices,
-    );
+TerrainPolygonInput _polygon(
+  String id,
+  List<(double, double)> vertices, {
+  TerrainCollisionMode collisionMode = TerrainCollisionMode.solid,
+}) => TerrainPolygonInput.fromWorld(
+  sourcePath: 'test/$id',
+  collisionMode: collisionMode,
+  identity: TerrainSourceIdentity(chunkIndex: 0, chunkKey: 'test', shapeId: id),
+  vertices: vertices,
+);
 
 class _Harness {
   _Harness({

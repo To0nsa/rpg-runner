@@ -32,7 +32,7 @@ costs, and the mobility phase revalidates/commits its teleport before the ordina
 terrain integration. Signed blink displacement and integrated travel contribute
 once to furthest-progress distance. Encounter bounds apply to teleport placement.
 See [Willow's blink contract](willow.md#blink-dash); compatible replay input remains
-format 1 with gameplay compatibility `2026.11.8.5`. Willow's Double Dash uses the
+format 1 with gameplay compatibility `2026.11.8.6`. Willow's Double Dash uses the
 existing recast pipeline and replaces her Roll/Slide catalog entries without
 changing command encoding or simulation order; see [Double Dash](willow.md#double-dash).
 
@@ -174,6 +174,13 @@ Willow's Twin Cut uses the eight blade-only add-on poses with two hit windows
 (low sweep, then overhead slash), and Threefold Cut is removed. The revised
 collision timing requires gameplay compatibility `2026.11.8.4`; command format
 and simulation phase order are unchanged. See [Willow](willow.md#animation-and-collision).
+
+Willow's bombs use a separate farthest-reachable lob policy, refreshed at release
+from the frame-6 hand attachment. Commitment spends 6 Supplies. Terrain-clipped
+hostile sweeps or terrain contact detonate before the one-second fuse; one area
+payload and the actual detonation animation clock remain Core-owned. Matching
+client/issuer/worker builds use `2026.11.8.6`, with unchanged commands and phase
+order. See [bomb throws](willow.md#bomb-throws).
 
 ## Player horizontal movement tuning
 

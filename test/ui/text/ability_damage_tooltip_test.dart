@@ -9,6 +9,24 @@ import 'package:rpg_runner/ui/text/ability_tooltip_builder.dart';
 void main() {
   const builder = DefaultAbilityTooltipBuilder();
 
+  test('bombs explain farthest-target throws, contact/fuse and Supplies', () {
+    for (final name in [
+      'blast_bomb',
+      'shrapnel_bomb',
+      'fire_bomb',
+      'concussion_bomb',
+    ]) {
+      final ability = const AbilityCatalog().resolve('bounty_hunter.$name')!;
+      final tooltip = builder.build(ability);
+      expect(ability.defaultCost.manaCost100, 600);
+      expect(tooltip.description, contains('farthest reachable enemy'));
+      expect(tooltip.description, contains('enemy or terrain contact'));
+      expect(tooltip.description, contains('1.0 seconds after release'));
+      expect(tooltip.description, contains('Uses regenerating Supplies'));
+      expect(tooltip.description, isNot(contains('cooldown only')));
+    }
+  });
+
   test('Double Dash explains its follow-up window and per-burst cost', () {
     for (final prefix in ['eloise', 'bounty_hunter']) {
       final tooltip = builder.build(

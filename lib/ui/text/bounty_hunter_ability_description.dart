@@ -16,10 +16,12 @@ String? bountyHunterAbilityDescription(AbilityDef def, ProjectileId? weapon) {
       'bounty_hunter.concussion_bomb' => ' Stuns susceptible enemies.',
       _ => '',
     };
-    return 'Drop a bomb on the ground or in the air. It explodes '
+    return 'Throw a bomb in an arc at the farthest reachable enemy within '
+        '${delivery.maxRange.toStringAsFixed(0)} units, or lob forward without a target. '
+        'It explodes on enemy or terrain contact, or '
         '${delivery.fuseTicks / 60} seconds after release, dealing '
         '${formatFixed100(def.baseDamage)} damage in a ${delivery.radius.toStringAsFixed(0)}-unit radius.'
-        '$effect Solid terrain blocks the blast. Unlimited uses; cooldown only.';
+        '$effect Solid terrain blocks the blast. Uses regenerating Supplies.';
   }
   if (delivery is MarkHitDelivery) {
     return 'Mark the nearest visible enemy within ${delivery.range.toStringAsFixed(0)} units '

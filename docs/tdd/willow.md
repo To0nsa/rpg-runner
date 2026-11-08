@@ -44,13 +44,15 @@ label for Willow. No new command encoding or resource authority is introduced.
   `ProjectileLaunchSystem` materializes a bomb only when the queued release
   tick survives interruption. `BombStore` holds radius, absolute fuse tick and
   the once-only explosion flag.
-- Ordinary terrain motion runs before bombs. Terrain collision disables a
-  grounded bomb's body without deleting the projectile. Projectile contact,
+- Ordinary terrain motion runs before bombs and clips travel at terrain contact.
+  `BombSystem` sweeps hostile contact along that clipped segment and detonates
+  at its earliest contact, or on terrain contact/fuse expiry. Ordinary projectile contact,
   flight-pose and directional-animation systems skip bombs.
 - `BombSystem` runs after combat hurtboxes and broadphase, before hit damage.
   It collects ordered hostile overlaps, checks a solid-terrain ray to each
   target and queues one damage request per target. Fuse animation and the
-  explosion clock come from Core. The nine-frame explosion stays alive for
+  explosion clock come from Core; early contact replaces the fuse deadline with
+  the actual detonation tick and freezes motion. The nine-frame explosion stays alive for
   the quantized frame duration, without another damage pulse.
 - Projectile fans use the larger ability/item pellet count and angular spread.
   Item damage multipliers apply to the total budget; integer remainders are
@@ -70,6 +72,43 @@ label for Willow. No new command encoding or resource authority is introduced.
 The existing status pipeline handles bleed, burn, stun, buffs, restoration and
 cleanse. Antidote explicitly allows committing while stunned. Charged Shot opts
 into damage interruption using the existing policy. No UI timers apply effects.
+
+## Bomb throws
+
+All four bombs cost 600 fixed-point Supplies (6 displayed) on commitment.
+The normal resource gate rejects insufficient Supplies before cooldown/intent
+mutation; release never charges again. Stamina, blast damage/radii, status
+payloads and cooldowns keep their authored values.
+
+`BombThrowAim` shares read-only motion forecasts between commitment and release.
+The farthest live hostile within 320 world units wins, with lower entity ID
+breaking equal-distance ties. It excludes dead/suspended actors and allies,
+forecasts actor motion through windup and a quantized 48-authored-tick flight,
+and rejects arcs exceeding the 520-unit/s launch cap or crossing blocking
+terrain. The launch solve refreshes from final positions; released bombs never
+steer. The 0.6 gravity multiplier creates a visible upward lob. Without a valid
+target the mirrored forward fallback travels 240 units over the same 0.8s
+same-height flight. The solver includes gravity-before-motion's half-tick term.
+
+The existing action policy releases on zero-based frame 6 of the ten-frame
+add-on throw strip. The bomb pivot is canvas `(60,40)`, relative to Willow's
+`(34,47)` pivot and multiplied by her 1.35 world scale. This places the bomb
+body at the fingertips in all gun families and both facings, in ground/air
+poses. Commitment reserves facing through release; cancellation clears the
+reservation. Launch samples actual caster position and mirrors the attachment;
+aim controls velocity without rotating the upright bomb art.
+
+`BombSystem` uses the existing capsule sweep and stable contact ordering after
+terrain motion and broadphase. An enemy on the travelled segment can trigger
+before a wall; a target behind the clipped terrain segment cannot. Terrain
+contact includes floor, walls, ceilings and descending one-way landings. Allies
+do not trigger contact. Detonation emits only the existing area payload, once,
+then retains all nine explosion frames from the actual detonation tick. The
+one-second fuse is measured from release and survives owner removal.
+
+Client, issuer and worker prepare these replay-sensitive outcomes together in
+`2026.11.8.6`. Command encoding and phase order are unchanged; no deployment is
+included in this implementation. See the [local throw and replay checks](../verification/willow-bomb-throw-2026-11-08.md).
 
 ## Double Dash
 
@@ -189,8 +228,9 @@ including manual vertical shots. Movement drops the reservation when the pending
 intent is cancelled or consumed, so mobility and damage interruptions cannot leave
 stale turning restrictions. The reservation includes movement's pre-turn timer
 decrement and the commit tick; it does not extend into shot recovery. Missing
-attachments preserve the existing caster-owned radial offset. Bomb drops and
-autonomous casters retain their existing launch contracts. Tick order and
+attachments preserve the existing caster-owned radial offset. Bomb throws use
+the separate hand/arc contract above; autonomous casters retain their existing
+launch contracts. Tick order and
 command encoding are unchanged; matching client/worker Core builds are required
 because projectile origins affect hits. See the
 [muzzle verification](../verification/willow-projectile-muzzles-2026-11-08.md).
@@ -212,7 +252,7 @@ assets. See [item-art verification](../verification/willow-item-art-2026-11-08.m
 
 ## Replay and validation
 
-Client, Functions and worker use local gameplay compatibility `2026.11.8.5`;
+Client, Functions and worker use local gameplay compatibility `2026.11.8.6`;
 replay/command format 1, rules-v2, score-v4 and ghost-v1 remain unchanged.
 The version check prevents different simulations from accepting the same run.
 It does not require a production data migration. Ranked seed preparation is

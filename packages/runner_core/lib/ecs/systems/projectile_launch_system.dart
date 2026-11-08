@@ -2,6 +2,9 @@ import 'dart:math';
 
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../combat/aim_motion_forecast.dart';
+import '../../projectiles/bomb_throw_aim.dart';
+import '../../tuning/physics_tuning.dart';
 import '../../projectiles/projectile_catalog.dart';
 import '../../players/player_character_definition.dart';
 import '../../snapshots/enums.dart';
@@ -17,13 +20,24 @@ import '../world.dart';
 /// - Spawns projectile entities.
 /// - Does **not** deduct resources or start cooldowns (handled by Activation).
 class ProjectileLaunchSystem {
+  /// Bomb forecasts must use the run's physics and published terrain, matching
+  /// activation. Isolated free-motion callers may omit the terrain callbacks.
   ProjectileLaunchSystem({
     required this.projectiles,
     required this.tickHz,
     this.abilities = AbilityCatalog.shared,
     this.playerCharacter,
-  });
+    PhysicsTuning physics = const PhysicsTuning(),
+    AimTerrain Function()? aimTerrainProvider,
+    bool Function(double, double, double, double)? projectileAimPathClear,
+  }) : _bombAim = BombThrowAim(
+         tickHz: tickHz,
+         physics: physics,
+         terrainProvider: aimTerrainProvider,
+         pathClear: projectileAimPathClear,
+       );
   final AbilityResolver abilities;
+  final BombThrowAim _bombAim;
 
   final ProjectileCatalog projectiles;
   final int tickHz;
@@ -80,13 +94,28 @@ class ProjectileLaunchSystem {
       final facingSign = mi != null && world.movement.facing[mi] == Facing.left
           ? -1
           : 1;
+      final throwAim = bomb == null
+          ? null
+          : _bombAim.solve(
+              world,
+              source: caster,
+              delivery: bomb,
+              maxSpeed: projectile.speedUnitsPerSecond,
+              gravityScale: intents.gravityScale[ii],
+              fallbackFacing: facingSign < 0 ? Facing.left : Facing.right,
+            );
+      if (throwAim != null && mi != null) {
+        world.movement.facing[mi] = throwAim.facing;
+      }
       final sourceX =
+          throwAim?.x ??
           transforms.posX[ti] +
-          (offset == null ? intents.sourceOffsetX[ii] : offset.x * facingSign);
+              (offset == null
+                  ? intents.sourceOffsetX[ii]
+                  : offset.x * facingSign);
       final sourceY =
-          transforms.posY[ti] +
-          (offset?.y ?? intents.sourceOffsetY[ii]) +
-          (bomb == null ? 0 : 8);
+          throwAim?.y ??
+          transforms.posY[ti] + (offset?.y ?? intents.sourceOffsetY[ii]);
       final angle = atan2(intents.dirY[ii], intents.dirX[ii]);
       for (var shot = 0; shot < shots; shot++) {
         final shotAngle =
@@ -105,13 +134,13 @@ class ProjectileLaunchSystem {
           originOffset: bomb == null && offset == null
               ? intents.originOffset[ii]
               : 0,
-          dirX: bomb != null
-              ? 1
+          dirX: throwAim != null
+              ? throwAim.velocityX
               : shots == 1
               ? intents.dirX[ii]
               : cos(shotAngle),
-          dirY: bomb != null
-              ? 0
+          dirY: throwAim != null
+              ? throwAim.velocityY
               : shots == 1
               ? intents.dirY[ii]
               : sin(shotAngle),
@@ -127,9 +156,19 @@ class ProjectileLaunchSystem {
           maxPierceHits: intents.maxPierceHits[ii],
           ballistic: intents.ballistic[ii],
           gravityScale: intents.gravityScale[ii],
-          speedScale: intents.speedScaleBp[ii] / 10000.0,
+          speedScale: throwAim == null
+              ? intents.speedScaleBp[ii] / 10000.0
+              : sqrt(
+                      throwAim.velocityX * throwAim.velocityX +
+                          throwAim.velocityY * throwAim.velocityY,
+                    ) /
+                    projectile.speedUnitsPerSecond,
         );
         if (bomb != null) {
+          // Ballistic velocity owns the arc; keep the fuse sprite upright.
+          final pi = world.projectile.indexOf(spawned);
+          world.projectile.dirX[pi] = 1;
+          world.projectile.dirY[pi] = 0;
           world.bomb.add(
             spawned,
             explodeTick: currentTick + (bomb.fuseTicks * tickHz / 60).ceil(),

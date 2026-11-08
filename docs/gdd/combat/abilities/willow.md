@@ -21,8 +21,8 @@ scaled body and action poses.
 ## Resources and weapons
 
 Willow has 90 health, 100 stamina and 100 Supplies. Baseline regeneration is
-0.5 health, 1.5 stamina and 3 Supplies per second. Supplies power shots and
-fieldcraft; bombs have unlimited uses and only a cooldown. There are no ammo
+0.5 health, 1.5 stamina and 3 Supplies per second. Supplies power shots,
+fieldcraft and bomb throws. There are no ammo
 pickups, magazines or finite bomb stocks.
 
 Equip one ranged weapon before a run. The weapon changes the sprite set,
@@ -63,10 +63,10 @@ rate. Equip one ability per slot.
 | Primary | Quick Cut | One 12-damage slash | 4 stamina | 0.30s |
 | Primary | Twin Cut | Two 9-damage slashes | 7 stamina | 0.65s |
 | Primary | Lunge Slash | Advance during the strike; 17 damage | 8 stamina | 0.53s |
-| Secondary | Blast Bomb | 26 damage, radius 48 | Free | 4s |
-| Secondary | Shrapnel Bomb | 17 damage and bleed, radius 48 | Free | 5s |
-| Secondary | Fire Bomb | 16 fire damage and burn, radius 48 | Free | 5s |
-| Secondary | Concussion Bomb | 10 damage and 1s stun, radius 54 | Free | 6s |
+| Secondary | Blast Bomb | 26 damage, radius 48 | 6 Supplies | 4s |
+| Secondary | Shrapnel Bomb | 17 damage and bleed, radius 48 | 6 Supplies | 5s |
+| Secondary | Fire Bomb | 16 fire damage and burn, radius 48 | 6 Supplies | 5s |
+| Secondary | Concussion Bomb | 10 damage and 1s stun, radius 54 | 6 Supplies | 6s |
 | Ranged | Snap Shot | Auto-aim; 13 damage budget | 7 Supplies | 0.50s |
 | Ranged | Quick Shot | Aim and release; 9 damage budget | 4 Supplies | 0.27s |
 | Ranged | Piercing Shot | 17 damage budget; up to three targets per projectile | 10 Supplies | 0.60s |
@@ -122,16 +122,20 @@ blade attack strip instead of the teleport art.
 
 ## Bomb behavior
 
-Press the secondary action to drop the chosen bomb, on the ground or in the
-air. After its 0.30s windup it falls, settles on terrain and detonates one second
-after release. Contact causes no damage; a single blast hits each eligible
-enemy once. Solid terrain blocks the blast, one-way platforms do not. Allies
+Press the secondary action to throw the chosen bomb, on the ground or in the
+air. After its 0.30s windup it leaves the throwing hand in an upward arc. Auto-aim
+selects the farthest reachable enemy within 320 units, leading its motion over
+a 0.8s flight and rejecting terrain-blocked arcs. Without a target, Willow lobs
+forward. The bomb detonates on enemy or terrain contact, or one second after
+release, whichever happens first. A single blast hits each eligible enemy once.
+Solid terrain blocks the blast, one-way platforms do not. Allies
 and Willow are unaffected. A released bomb persists through later actions and
-owner removal. An interrupted, unreleased drop cannot leave a delayed bomb.
+owner removal. An interrupted, unreleased throw cannot leave a delayed bomb.
 The bomb and its explosion use the same sprite scale as Willow.
 
-Bombs remain usable with empty Supplies and stamina. Their cooldown is the
-only repeating limit, so an endless run never exhausts a stock of bombs.
+Every bomb costs 6 Supplies when the throw commits; insufficient Supplies
+prevents the action and starts no cooldown. Bombs cost no stamina and have no
+finite inventory. Their existing cooldowns still apply.
 
 ## Progression and art
 

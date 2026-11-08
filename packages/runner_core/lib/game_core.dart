@@ -794,6 +794,14 @@ class GameCore {
       abilities: abilityCatalog,
       projectiles: _projectiles,
       tickHz: tickHz,
+      physics: _physicsTuning,
+      projectileAimPathClear: projectileAimVisibility.isClear,
+      aimTerrainProvider: () {
+        final bundle =
+            (_worldMotionAuthority as TerrainMultiBodyWorldMotionAuthority)
+                .terrainRuntimeBundle;
+        return (geometry: bundle.geometry, index: bundle.edgeIndex);
+      },
     );
     _targetPointImpactSystem = TargetPointImpactSystem(
       queueImpactEvent: (event) => _events.add(event),

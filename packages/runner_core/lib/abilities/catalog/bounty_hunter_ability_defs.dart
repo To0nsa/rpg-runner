@@ -3,6 +3,8 @@ import '../../combat/combat_geometry.dart';
 import '../../combat/damage_type.dart';
 import '../../combat/status/status.dart';
 import '../../projectiles/projectile_id.dart';
+import '../../players/characters/bounty_hunter_geometry.dart';
+import '../../util/vec2.dart';
 import '../../snapshots/enums.dart';
 import '../../weapons/weapon_proc.dart';
 import '../ability_def.dart';
@@ -187,9 +189,15 @@ AbilityDef _bomb(
   id: 'bounty_hunter.$name',
   category: AbilityCategory.ranged,
   allowedSlots: {AbilitySlot.secondary},
+  targetingModel: TargetingModel.homing,
   hitDelivery: BombHitDelivery(
     projectileId: ProjectileId.hunterBomb,
     radius: radius,
+    // Frame 6 fingertips meet the bomb body at canvas (60,40), pivot (34,47).
+    releaseOffset: const Vec2(
+      26 * bountyHunterWorldScale,
+      -7 * bountyHunterWorldScale,
+    ),
   ),
   payloadSource: AbilityPayloadSource.secondaryWeapon,
   requiredWeaponTypes: {WeaponType.bombKit},
@@ -201,7 +209,8 @@ AbilityDef _bomb(
   windupTicks: 18,
   activeTicks: 3,
   recoveryTicks: 9,
-  // Unlimited uses: no resource cost. Four seconds is the basic bomb's cadence.
+  // Six Supplies per throw supplements the bomb's longer cooldown.
+  defaultCost: AbilityResourceCost(manaCost100: 600),
   cooldownTicks: cooldown,
   animKey: AnimKey.bombDrop,
 );

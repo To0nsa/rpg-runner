@@ -301,9 +301,27 @@ void main() {
       game.controller.enqueue(
         SecondaryPressedCommand(tick: game.controller.tick + 1),
       );
-      for (var i = 0; i < 84; i++) {
+      var sawHandRelease = false;
+      for (var i = 0; i < 100; i++) {
         game.controller.advanceFrame(1 / 60);
+        final snapshot = game.controller.snapshot;
+        final bombs = snapshot.entities.where(
+          (e) => e.projectileId == ProjectileId.hunterBomb,
+        );
+        if (bombs.isEmpty) continue;
+        final bomb = bombs.single;
+        if (!sawHandRelease) {
+          final player = snapshot.playerEntity!;
+          expect(player.anim, AnimKey.bombDrop);
+          expect(player.animFrame! ~/ 3, 6);
+          final sign = player.facing == Facing.left ? -1 : 1;
+          expect(bomb.pos.x, closeTo(player.pos.x + sign * 26 * 1.35, 1e-9));
+          expect(bomb.pos.y, closeTo(player.pos.y - 7 * 1.35, 1e-9));
+          sawHandRelease = true;
+        }
+        if (bomb.anim == AnimKey.bombExplosion && bomb.animFrame! >= 12) break;
       }
+      expect(sawHandRelease, isTrue);
       expect(
         game.controller.snapshot.entities.where(
           (e) =>
