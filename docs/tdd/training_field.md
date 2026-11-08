@@ -54,7 +54,7 @@ image cache or animation loop.
 
 Character setup opts into `MenuScaffold.overlayAppBar` only for Training Field.
 The game viewport and `GameOverlay` use the full page behind the transparent app
-bar. Only the resources row (including its settings cog) consumes the body's
+bar. Only the resources row (including its opponent button) consumes the body's
 safe-area padding, which includes the app bar. Touch controls, the desktop control
 bar, aim cancellation, damage borders, and terrain-recovery dimming use full-page
 bounds. Rendering and desktop aim share the full viewport metrics.

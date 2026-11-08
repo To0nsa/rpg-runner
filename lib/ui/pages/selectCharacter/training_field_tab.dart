@@ -1,6 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/contracts/render_contract.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -340,7 +341,7 @@ class _TrainingFieldTabState extends State<TrainingFieldTab>
                         ? 'Choose training opponent'
                         : 'Opponent: ${_selectedEnemy!.displayName}',
                     onPressed: snapshot.gameOver ? null : _chooseEnemy,
-                    icon: const Icon(Icons.settings),
+                    icon: const Icon(LucideIcons.skull),
                   ),
                 ),
               if (snapshot.gameOver)

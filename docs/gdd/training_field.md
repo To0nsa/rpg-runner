@@ -3,16 +3,16 @@
 Training Field is the third tab in character setup, beside Gear and Skills. All
 three tabs remain visible while testing the selected character and equipped build.
 The transparent app bar overlays the game in this tab. Only the resource bars
-and their settings cog use safe-area padding below the tabs. Controls and screen
+and their opponent button use safe-area padding below the tabs. Controls and screen
 feedback use the full page area.
 
 Two normal 600 × 270 chunks repeat in order: 1, 2, 1, 2. The character moves
 continuously through the world. The existing camera follows forward progress,
 with zero automatic runner scrolling. The HUD contains resources, controls, and
-an opponent settings cog beside the resource bars.
+an opponent button with a skull icon beside the resource bars.
 
-The field starts empty. The cog offers None and regular enemies whose Library
-entries are unlocked. Bosses and their summons are excluded. Choosing an enemy
+The field starts empty. The opponent button offers None and regular enemies whose
+Library entries are unlocked. Bosses and their summons are excluded. Choosing an enemy
 queues one spawn at the next occurrence of the chunk containing the authored
 enemy marker. The previous opponent and its attacks are removed when the new
 one spawns. None clears the opponent and any queued spawn. Defeating an opponent
