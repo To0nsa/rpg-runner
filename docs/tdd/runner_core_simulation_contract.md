@@ -32,7 +32,7 @@ costs, and the mobility phase revalidates/commits its teleport before the ordina
 terrain integration. Signed blink displacement and integrated travel contribute
 once to furthest-progress distance. Encounter bounds apply to teleport placement.
 See [Willow's blink contract](willow.md#blink-dash); compatible replay input remains
-format 1 with gameplay compatibility `2026.11.8.3`.
+format 1 with gameplay compatibility `2026.11.8.4`.
 
 ## Run configuration and command lifecycle
 
@@ -167,6 +167,11 @@ timer decrement in that reservation. Movement clears it when the projectile inte
 is cancelled or consumed; recovery does not retain it. This keeps the predicted and
 actual muzzle on the same side even when the player runs away from the target.
 The correction is prepared in gameplay compatibility `2026.11.8.3`.
+
+Willow's Twin Cut uses the eight blade-only add-on poses with two hit windows
+(low sweep, then overhead slash), and Threefold Cut is removed. The revised
+collision timing requires gameplay compatibility `2026.11.8.4`; command format
+and simulation phase order are unchanged. See [Willow](willow.md#animation-and-collision).
 
 ## Player horizontal movement tuning
 

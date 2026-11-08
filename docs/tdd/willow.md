@@ -130,11 +130,19 @@ airborne dash exit returns to jump/fall rather than grounded recovery poses.
 The ordinary action animation remains the combat pose clock: this visual tail
 changes no movement, collision, ability duration, cost or cooldown.
 
-`BountyHunterPoseCatalog` owns Willow's vulnerable poses and four melee strike
+`BountyHunterPoseCatalog` owns Willow's vulnerable poses and three melee strike
 profiles. `HitboxFollowOwnerSystem` receives the selected render metadata and
-recognizes Twin Cut, Threefold Cut and Lunge Slash. Each visible swing uses
+recognizes Twin Cut and Lunge Slash. Each visible swing uses
 the existing combo hit policy and damage protection exception. Terrain capsules
 remain separate from low combat hurtboxes.
+
+Twin Cut uses the first eight cells of add-on row 2 (zero-based), stopping before
+the ninth cell draws the ranged weapon. Its low sweep lands on frames 3-4 and
+its overhead slash on frame 6; frame 7 is harmless recovery. The two hit windows
+start at frames 3 and 6. Existing 7/22/10 windup/active/recovery ticks, damage,
+cost and cooldown remain unchanged. Threefold Cut is removed from Core, the
+store/gift catalog and selectable skills. The unused `tripleStrike` enum value
+is retained to preserve snapshot enum ordering. No command or system order changes.
 
 AnimSystem chooses ground/air/run shots, air hurt/death and the short double-jump
 sequence. Run shooting combines three firing phases with eight locomotion poses.
@@ -170,7 +178,7 @@ Shared presentation maps all 34 Willow-specific equipment identities to dedicate
 bundle with nearest-neighbor filtering, so game menus, inbox attachments and
 repository-backed Admin share the same artwork. Ranged inventory illustrations
 are independent of projectile flight effects. The eight shared accessories keep
-their existing icons. All 26 Willow ability IDs map to dedicated 64×64 transparent
+their existing icons. All 25 Willow ability IDs map to dedicated 64×64 transparent
 PNGs under `assets/images/icons/skills-icons/willow/` in
 `ability_skill_icon.dart`. `AbilitySkillIcon` uses the consumer asset bundle and
 nearest-neighbor filtering; unknown IDs remain empty fixed-size boxes. See
@@ -180,7 +188,7 @@ assets. See [item-art verification](../verification/willow-item-art-2026-11-08.m
 
 ## Replay and validation
 
-Client, Functions and worker use local gameplay compatibility `2026.11.8.3`;
+Client, Functions and worker use local gameplay compatibility `2026.11.8.4`;
 replay/command format 1, rules-v2, score-v4 and ghost-v1 remain unchanged.
 The version check prevents different simulations from accepting the same run.
 It does not require a production data migration. Ranked seed preparation is
@@ -191,7 +199,13 @@ The muzzle-facing correction changes replayed hits and requires matching
 client/issuer/worker artifacts. Command encoding and simulation phase order stay
 unchanged. See [aim verification](../verification/willow-aim-facing-2026-11-08.md).
 
-Core tests exercise all 26 commits, real melee damage at 30/60/120 Hz, bomb
+The Twin Cut animation/hit-window change and Threefold Cut removal require
+matching client/issuer/worker artifacts in `2026.11.8.4`. No deployment or remote
+ownership migration is included. Retained loadouts referencing the removed ID
+are invalid. Developer Practice restores Quick Cut in saved builds through its
+existing normalization; online loadouts must select a currently available skill.
+
+Core tests exercise all 25 commits, real melee damage at 30/60/120 Hz, bomb
 terrain/lifecycle/status behavior, fan budgets, fieldcraft, marks and charged
 shot interruption. Worker tests replay recorded inputs for each weapon. Widget
 tests exercise character switching, remembered builds and actual Training Field
@@ -224,7 +238,7 @@ remain authoritative. Backtrail Rig uses the shared low-health reactive pipeline
 ReactiveProcSystem receives GameCore's tick rate and scales authored 60 Hz
 cooldowns, so 1800 authored ticks are 30 seconds at all supported rates.
 
-The client, Functions issuer and worker require compatibility `2026.11.8.3` for
+The client, Functions issuer and worker require compatibility `2026.11.8.4` for
 these changed outcomes. This is source preparation only, not a deployment.
 
 See [equipment verification](../verification/willow-equipment-2026-11-08.md) for

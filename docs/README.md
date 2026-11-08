@@ -17,9 +17,12 @@ Audit and planning restarted on September 15, 2026. Start here for current work.
 - [Willow Blink Dash](verification/willow-blink-dash-2026-11-08.md): uses all teleport
   frames and crosses placed obstacles up to 138 units wide; Lunge Slash uses the
   final blade strip. Prepared locally in compatibility `2026.11.8.2`.
-- [Willow](gdd/combat/abilities/willow.md): playable bounty hunter with 26
+- [Willow](gdd/combat/abilities/willow.md): playable bounty hunter with 25
   abilities, eight ranged weapons, unlimited cooldown bombs and character selection;
   [technical contract](tdd/willow.md) and [local verification](verification/willow-2026-11-07.md).
+- [Willow Twin Cut](verification/willow-twin-cut-2026-11-08.md): two blade swings
+  from the add-on combo, ending before weapon draw; Threefold Cut removed.
+  Prepared locally in compatibility `2026.11.8.4`.
 - [Willow aim correction](verification/willow-aim-facing-2026-11-08.md): retains
   the selected weapon-tip facing while moving through shot release; prepared
   locally in compatibility `2026.11.8.3`.

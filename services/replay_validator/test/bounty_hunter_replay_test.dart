@@ -16,6 +16,63 @@ import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
 
 void main() {
+  for (final hz in [30, 60, 120]) {
+    test('Twin Cut replays only its two blade swings at $hz Hz', () {
+      final direct = _core(
+        ProjectileId.hunterPistol,
+        meleeAbility: 'bounty_hunter.twin_cut',
+        tickHz: hz,
+      );
+      final replayed = _core(
+        ProjectileId.hunterPistol,
+        meleeAbility: 'bounty_hunter.twin_cut',
+        tickHz: hz,
+      );
+      final frames = <ReplayCommandFrameV1>[];
+      final poses = <int>{};
+      var hitWindows = 0;
+      var wasActive = false;
+      for (var tick = 1; tick <= hz * 2; tick++) {
+        final strike = tick == hz;
+        frames.add(
+          ReplayCommandFrameV1.fromJson(
+            ReplayCommandFrameV1(
+              tick: tick,
+              moveAxis: 0,
+              pressedMask: strike ? ReplayCommandFrameV1.pressedStrikeBit : 0,
+            ).toJson(),
+          ),
+        );
+        direct.applyCommands([if (strike) StrikePressedCommand(tick: tick)]);
+        direct.stepOneTick();
+        final snapshot = direct.buildSnapshot();
+        final player = snapshot.playerEntity!;
+        if (player.anim == AnimKey.twinStrike) {
+          final step = (.06 * hz).round();
+          poses.add(player.animFrame! ~/ step);
+        }
+        final active = snapshot.entities.any(
+          (e) => e.kind == EntityKind.trigger && e.combatCapsules.isNotEmpty,
+        );
+        if (active && !wasActive) hitWindows++;
+        wasActive = active;
+        expect(
+          snapshot.entities.where((e) => e.kind == EntityKind.projectile),
+          isEmpty,
+        );
+        direct.drainEvents();
+      }
+      final result = runReplaySimulation(
+        core: replayed,
+        totalTicks: hz * 2,
+        commandStream: frames,
+      );
+      expect(result.ticksExecuted, hz * 2);
+      expect(poses, {0, 1, 2, 3, 4, 5, 6, 7});
+      expect(hitWindows, 2);
+      expect(_signature(replayed), _signature(direct));
+    });
+  }
   for (final gun in hunterRangedWeaponIds) {
     test('$gun retains rear firing while moving through replay encoding', () {
       final direct = _core(gun, shotAbility: 'bounty_hunter.quick_shot');
@@ -167,8 +224,11 @@ void main() {
 GameCore _core(
   ProjectileId gun, {
   String shotAbility = 'bounty_hunter.snap_shot',
+  String meleeAbility = 'bounty_hunter.lunge_slash',
+  int tickHz = 60,
 }) => GameCore(
   seed: 98,
+  tickHz: tickHz,
   playerCharacter: PlayerCharacterRegistry.bountyHunter,
   equippedLoadoutOverride: EquippedLoadoutDef(
     mask: LoadoutSlotMask.all,
@@ -176,7 +236,7 @@ GameCore _core(
     offhandWeaponId: WeaponId.hunterSnareRig,
     spellBookId: SpellBookId.hunterLongtrailPack,
     projectileSlotSpellId: gun,
-    abilityPrimaryId: 'bounty_hunter.lunge_slash',
+    abilityPrimaryId: meleeAbility,
     abilitySecondaryId: 'bounty_hunter.blast_bomb',
     abilityProjectileId: shotAbility,
     abilitySpellId: 'bounty_hunter.prepare_charges',

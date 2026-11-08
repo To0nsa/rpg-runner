@@ -32,16 +32,6 @@ final Map<AbilityKey, AbilityDef> bountyHunterAbilityDefs = {
       700,
     ),
     _cut(
-      'threefold_cut',
-      BountyHunterPoseCatalog.triple,
-      AnimKey.tripleStrike,
-      850,
-      8,
-      30,
-      10,
-      1000,
-    ),
-    _cut(
       'lunge_slash',
       BountyHunterPoseCatalog.lunge,
       AnimKey.lunge,

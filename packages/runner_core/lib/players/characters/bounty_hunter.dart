@@ -94,14 +94,14 @@ RenderAnimSetDefinition bountyHunterRenderAnim(ProjectileId weapon) {
   strip(AnimKey.slide, 22, 4, .06);
   strip(AnimKey.roll, 23, 7, .05);
   strip(AnimKey.strike, 25, 7, .06);
-  strip(AnimKey.twinStrike, 25, 14, .06);
+  // Keep the add-on's two blade swings; frame 9 starts drawing the ranged weapon.
+  strip(AnimKey.twinStrike, 2, 8, .06, addon: true);
   strip(AnimKey.lunge, 29, 5, .05);
   // The atlas omits source frame 5: restore its intentional disappearance
   // between the two streak poses without adding a second sprite asset.
   strip(AnimKey.teleportOut, 27, 9, .05);
   frames[AnimKey.teleportOut]!.insert(4, const []);
   counts[AnimKey.teleportOut] = 10;
-  strip(AnimKey.tripleStrike, 2, 13, .06, addon: true);
   strip(AnimKey.bombDrop, 3, 10, .05, addon: true);
   strip(AnimKey.doubleJump, 8, 6, .06, addon: true);
   // Fieldcraft has no dedicated cast art; a brief ready pose preserves its gun.

@@ -42,8 +42,6 @@ const Map<AbilityKey, String> abilitySkillIconAssets = <AbilityKey, String>{
       'assets/images/icons/skills-icons/willow/quick_cut.png',
   'bounty_hunter.twin_cut':
       'assets/images/icons/skills-icons/willow/twin_cut.png',
-  'bounty_hunter.threefold_cut':
-      'assets/images/icons/skills-icons/willow/threefold_cut.png',
   'bounty_hunter.lunge_slash':
       'assets/images/icons/skills-icons/willow/lunge_slash.png',
   'bounty_hunter.blast_bomb':

@@ -47,28 +47,9 @@ abstract final class BountyHunterPoseCatalog {
     frames: [[], [], [], _high, _low, [], []],
   );
   static const twin = CombatStrikeProfile(
-    timing: ActionFramePolicy(frameCount: 14, activeStart: 3, activeEnd: 10),
-    combo: CombatCombo(strikeStartFrames: [3, 8]),
-    frames: [[], [], [], _high, _low, [], [], [], _high, _low, [], [], [], []],
-  );
-  static const triple = CombatStrikeProfile(
-    timing: ActionFramePolicy(frameCount: 13, activeStart: 3, activeEnd: 12),
-    combo: CombatCombo(strikeStartFrames: [3, 6, 10]),
-    frames: [
-      [],
-      [],
-      [],
-      _low,
-      _low,
-      [],
-      _high,
-      _high,
-      [],
-      [],
-      _thrust,
-      _thrust,
-      [],
-    ],
+    timing: ActionFramePolicy(frameCount: 8, activeStart: 3, activeEnd: 7),
+    combo: CombatCombo(strikeStartFrames: [3, 6]),
+    frames: [[], [], [], _low, _low, [], _high, []],
   );
   static const lunge = CombatStrikeProfile(
     timing: ActionFramePolicy(frameCount: 5, activeStart: 1, activeEnd: 3),
@@ -88,7 +69,6 @@ abstract final class BountyHunterPoseCatalog {
   static ActionFramePolicy? timingFor(String id) => switch (id) {
     'bounty_hunter.quick_cut' => quick.timing,
     'bounty_hunter.twin_cut' => twin.timing,
-    'bounty_hunter.threefold_cut' => triple.timing,
     'bounty_hunter.lunge_slash' => lunge.timing,
     'bounty_hunter.blink_dash' => const ActionFramePolicy(
       frameCount: 10,

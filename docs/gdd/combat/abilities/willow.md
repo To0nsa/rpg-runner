@@ -50,7 +50,7 @@ change the base Supplies cost. The [complete equipment roster](../gears/willow_e
 weapons and 8 shared accessories. Ordinary gear,
 status, critical-hit and resistance rules still apply.
 
-## Complete roster: 26 abilities
+## Complete roster: 25 abilities
 
 Numbers below are authored base values before gear and status modifiers.
 The starter blade, bomb kit and field kit now contribute passive bonuses;
@@ -62,7 +62,6 @@ rate. Equip one ability per slot.
 | --- | --- | --- | --- | --- |
 | Primary | Quick Cut | One 12-damage slash | 4 stamina | 0.30s |
 | Primary | Twin Cut | Two 9-damage slashes | 7 stamina | 0.65s |
-| Primary | Threefold Cut | Three 8.5-damage slashes | 10 stamina | 0.80s |
 | Primary | Lunge Slash | Advance during the strike; 17 damage | 8 stamina | 0.53s |
 | Secondary | Blast Bomb | 26 damage, radius 48 | Free | 4s |
 | Secondary | Shrapnel Bomb | 17 damage and bleed, radius 48 | Free | 5s |
@@ -87,7 +86,10 @@ rate. Equip one ability per slot.
 | Fieldcraft | Second Wind | Restore 35% maximum stamina over 5s | 15 Supplies | 7s |
 | Fieldcraft | Prepare Charges | Restore 35% maximum Supplies over 5s | 15 stamina | 7s |
 
-Quick/Twin/Threefold Cut have independent per-swing hits. Mobility does not
+Quick Cut and Twin Cut have independent per-swing hits. Twin Cut uses the low
+sweep and overhead slash from the add-on combo, ending before the weapon draw.
+It retains two 9-damage hits, 7 stamina and its 0.65-second base cooldown.
+Threefold Cut is no longer selectable or purchasable. Mobility does not
 grant invulnerability. Roll and Slide cannot commit in the air. Charged Shot
 reaches the middle tier after 20 authored ticks and full charge after 45;
 those tiers add 5%/10% critical chance. Full charge pierces two targets. Taking
@@ -132,14 +134,14 @@ guns. The 28 additional equipment items each use the existing 150-gold store
 price and normal offer rotation.
 Starter abilities are Quick Cut, Blast Bomb, Snap Shot, Dash, Jump, Hunter's
 Focus and Prepare Charges. Other abilities use the existing store price of
-150 gold and normal store offer rotation. Developer Practice unlocks all 26.
+150 gold and normal store offer rotation. Developer Practice unlocks all 25.
 Gear and skills remain character-specific; accessories are shared.
 
 The imported base/add-on sprites provide gameplay animations, gun variants and
 bomb effects. All 34 Willow-specific equipment items now have dedicated
 illustrations; the eight shared accessories retain their existing art.
-All 26 abilities have distinct transparent pixel-art icons. Blade arcs distinguish
-single, double and triple attacks; bomb effects distinguish blast, fragments,
+All 25 abilities have distinct transparent pixel-art icons. Blade arcs distinguish
+single and double attacks; bomb effects distinguish blast, fragments,
 fire and concussion. Projectile icons describe guidance, piercing, spread or
 charge independently of the equipped ranged weapon. Fieldcraft uses preparation,
 recovery and tracking symbols. See [ability-art verification](../../../verification/ability-icon-art-2026-11-08.md).

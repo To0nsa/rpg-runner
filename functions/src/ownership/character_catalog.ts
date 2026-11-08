@@ -8,7 +8,7 @@ export const hunterBlades = ["hunterBlade", "hunterNotchknife", "hunterHookblade
 export const hunterBombKits = ["hunterBombKit", "hunterSplinterRig", "hunterPitchRig", "hunterSnareRig", "hunterEtchingRig", "hunterSapperHarness", "hunterKilnwrapRig", "hunterSealedRig", "hunterStormwrapRig", "hunterBacktrailRig"] as const;
 export const hunterFieldKits = ["hunterFieldKit", "hunterLongtrailPack", "hunterMarksmanRoll", "hunterQuickAccessSatchel", "hunterReserveBandolier", "hunterTrackerPouch", "hunterSurveyorCase", "hunterQuarryKit"] as const;
 export const hunterAbilitiesBySlot = {
-  primary: ["quick_cut", "twin_cut", "threefold_cut", "lunge_slash"],
+  primary: ["quick_cut", "twin_cut", "lunge_slash"],
   secondary: ["blast_bomb", "shrapnel_bomb", "fire_bomb", "concussion_bomb"],
   projectile: ["snap_shot", "quick_shot", "piercing_shot", "scatter_shot", "charged_shot"],
   mobility: ["dash", "blink_dash", "roll", "slide"],

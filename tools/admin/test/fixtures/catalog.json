@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "catalogHash": "319e6ce331f875b3ac8288a252f1155496e5b620be2e14213d09404f162302b3",
+  "catalogHash": "45e4b4ed3508deebf1e35b671dc5fe0614d026e6ef239748cdfca6697d9355b1",
   "entries": [
     {
       "kind": "gear",
@@ -141,11 +141,6 @@
       "kind": "ability",
       "slot": "primary",
       "itemId": "bounty_hunter.twin_cut"
-    },
-    {
-      "kind": "ability",
-      "slot": "primary",
-      "itemId": "bounty_hunter.threefold_cut"
     },
     {
       "kind": "ability",

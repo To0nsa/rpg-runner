@@ -59,6 +59,42 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  test(
+    'saved Threefold Cut selections restore Quick Cut in every Willow build',
+    () async {
+      final json = SelectionState.defaults
+          .copyWith(selectedCharacterId: PlayerCharacterId.bountyHunter)
+          .toJson();
+      final branches = json['buildsByCharacter'] as Map;
+      final willow = branches['bountyHunter'] as Map;
+      for (final build in willow['builds'] as List) {
+        (build['loadout'] as Map)['abilityPrimaryId'] =
+            'bounty_hunter.threefold_cut';
+      }
+      final store = SharedPrefsDeveloperProfileStore();
+      await store.saveSelection(SelectionState.fromJson(json));
+      final state = AppState.developer(store: store);
+      addTearDown(state.dispose);
+      await state.bootstrap();
+      for (final build
+          in state.selection.buildsFor(PlayerCharacterId.bountyHunter).builds) {
+        expect(build.loadout.abilityPrimaryId, 'bounty_hunter.quick_cut');
+      }
+      expect(
+        state.meta
+            .abilityOwnershipFor(PlayerCharacterId.bountyHunter)
+            .learnedAbilityIdsForSlot(AbilitySlot.primary),
+        isNot(contains('bounty_hunter.threefold_cut')),
+      );
+      expect(
+        (await state.prepareRunStartDescriptor())
+            .equippedLoadout
+            .abilityPrimaryId,
+        'bounty_hunter.quick_cut',
+      );
+    },
+  );
+
   Future<AppState> developer() async {
     final state = AppState.developer(store: SharedPrefsDeveloperProfileStore());
     addTearDown(state.dispose);

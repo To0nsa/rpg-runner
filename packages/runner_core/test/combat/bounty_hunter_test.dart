@@ -51,6 +51,7 @@ import 'package:runner_core/ecs/systems/combat_lunge_system.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/loadout/loadout_validator.dart';
+import 'package:runner_core/loadout/loadout_issue.dart';
 import 'package:runner_core/players/characters/bounty_hunter.dart';
 import 'package:runner_core/players/characters/bounty_hunter_geometry.dart';
 import 'package:runner_core/players/player_tuning.dart';
@@ -550,7 +551,6 @@ void main() {
     for (final (name, swings) in [
       ('quick_cut', 1),
       ('twin_cut', 2),
-      ('threefold_cut', 3),
       ('lunge_slash', 1),
     ]) {
       test('$name damages each visible swing once at $hz Hz', () {
@@ -585,6 +585,7 @@ void main() {
           tickHz: hz,
         );
         var count = 0;
+        final hitFrames = <int>[];
         for (var tick = 1; tick <= hz + 1; tick++) {
           const ActiveAbilityPhaseSystem().step(h.world, currentTick: tick);
           MeleeStrikeSystem().step(h.world, currentTick: tick);
@@ -597,10 +598,23 @@ void main() {
           follow.step(h.world, currentTick: tick);
           grid.rebuild(h.world);
           hits.step(h.world, grid, currentTick: tick);
+          if (h.world.damageQueue.length > 0) {
+            final ai = h.world.animState.indexOf(h.player);
+            final key = h.world.animState.anim[ai];
+            final step = math.max(
+              1,
+              (render.stepTimeSecondsByKey[key]! * hz).round(),
+            );
+            hitFrames.add(h.world.animState.animFrame[ai] ~/ step);
+          }
           count += h.world.damageQueue.length;
           apply.step(h.world, currentTick: tick);
         }
         expect(count, swings);
+        if (name == 'twin_cut') {
+          expect(hitFrames, [3, 6]);
+          expect(h.world.projectile.denseEntities, isEmpty);
+        }
         expect(
           h.world.health.hp[h.world.health.indexOf(target)],
           10000 - swings * damage,
@@ -647,7 +661,17 @@ void main() {
     },
   );
   test('complete roster and valid starter loadout', () {
-    expect(bountyHunterAbilityDefs.length, 26);
+    expect(bountyHunterAbilityDefs.length, 25);
+    expect(
+      AbilityCatalog.shared.resolve('bounty_hunter.threefold_cut'),
+      isNull,
+    );
+    for (final gun in hunterRangedWeaponIds) {
+      expect(
+        bountyHunterCharacter.withProjectile(gun).renderAnim.sourcesByKey,
+        isNot(contains(AnimKey.tripleStrike)),
+      );
+    }
     final validation = const LoadoutValidator(
       abilityCatalog: AbilityCatalog.shared,
       weaponCatalog: WeaponCatalog(),
@@ -655,6 +679,32 @@ void main() {
       spellBookCatalog: SpellBookCatalog(),
     ).validate(_loadout);
     expect(validation.isValid, isTrue, reason: validation.issues.toString());
+  });
+  test('removed Threefold Cut is rejected by loadout validation', () {
+    final validation =
+        const LoadoutValidator(
+          abilityCatalog: AbilityCatalog.shared,
+          weaponCatalog: WeaponCatalog(),
+          projectileCatalog: ProjectileCatalog(),
+          spellBookCatalog: SpellBookCatalog(),
+        ).validate(
+          EquippedLoadoutDef(
+            mask: _loadout.mask,
+            mainWeaponId: _loadout.mainWeaponId,
+            offhandWeaponId: _loadout.offhandWeaponId,
+            spellBookId: _loadout.spellBookId,
+            projectileSlotSpellId: _loadout.projectileSlotSpellId,
+            abilityPrimaryId: 'bounty_hunter.threefold_cut',
+            abilitySecondaryId: _loadout.abilitySecondaryId,
+            abilityProjectileId: _loadout.abilityProjectileId,
+            abilitySpellId: _loadout.abilitySpellId,
+            abilityMobilityId: _loadout.abilityMobilityId,
+            abilityJumpId: _loadout.abilityJumpId,
+          ),
+        );
+    expect(validation.isValid, isFalse);
+    expect(validation.issues.single.kind, IssueKind.catalogMissing);
+    expect(validation.issues.single.abilityId, 'bounty_hunter.threefold_cut');
   });
   // Blink commits require real terrain authority, covered by willow_blink_test.
   for (final ability in bountyHunterAbilityDefs.values.where(

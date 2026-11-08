@@ -74,7 +74,7 @@ part 'controllers/developer_controller.dart';
 part 'controllers/inbox_controller.dart';
 part 'controllers/achievements_controller.dart';
 
-const String _defaultGameCompatVersion = '2026.11.8.3';
+const String _defaultGameCompatVersion = '2026.11.8.4';
 
 const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
 const int _runTicketPrefetchCacheMaxEntries = 4;

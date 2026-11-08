@@ -55,7 +55,6 @@ String? bountyHunterAbilityDescription(AbilityDef def, ProjectileId? weapon) {
     }
     final swings = switch (def.id) {
       'bounty_hunter.twin_cut' => 2,
-      'bounty_hunter.threefold_cut' => 3,
       _ => 1,
     };
     return 'Strike in front of you '
