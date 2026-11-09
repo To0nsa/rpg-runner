@@ -889,6 +889,7 @@ class GameCore {
     _playerSpawnStartTick = tick;
     _playerDeathPhase = DeathPhase.none;
     _playerDeathStartTick = -1;
+    _playerDeathGrounded = null;
 
     final spawnX = _trackTuning.playerStartX;
     final playerArchetype = _playerArchetype;
@@ -1072,6 +1073,7 @@ class GameCore {
   DeathInfo? _pendingDeathInfo;
   DeathPhase _playerDeathPhase = DeathPhase.none;
   int _playerDeathStartTick = -1;
+  bool? _playerDeathGrounded;
   int _playerSpawnStartTick = -1;
   // ─── ECS Systems ───
   // Stateless processors that operate on component stores.
@@ -1819,6 +1821,7 @@ class GameCore {
         currentTick: tick,
         playerDeathPhase: _playerDeathPhase,
         playerDeathStartTick: _playerDeathStartTick,
+        playerDeathGrounded: _playerDeathGrounded,
         playerSpawnStartTick: _playerSpawnStartTick,
       );
       _bossArenas.countScoreTick(tick);
@@ -2310,6 +2313,9 @@ class GameCore {
     if (_isPlayerDead()) {
       if (_deathAnimTicksLeft <= 0) {
         if (_playerDeathPhase == DeathPhase.none) {
+          // Motion cleanup releases support; keep the fatal pose so grounded
+          // deaths cannot switch to the shorter airborne strip during freeze.
+          _playerDeathGrounded = playerGrounded;
           _worldMotionAuthority.beforeBodyMotionStops(_world, _player);
           _playerDeathPhase = DeathPhase.deathAnim;
           // First death frame is rendered during the freeze tick immediately

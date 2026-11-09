@@ -123,12 +123,15 @@ class AnimSystem {
   /// Updates animation state for player and enemies.
   ///
   /// Call this once per tick before [SnapshotBuilder.build].
+  /// [playerDeathGrounded] preserves support at death before motion cleanup;
+  /// omit it to select the death strip from current support.
   void step(
     EcsWorld world, {
     required EntityId player,
     required int currentTick,
     DeathPhase playerDeathPhase = DeathPhase.none,
     int playerDeathStartTick = -1,
+    bool? playerDeathGrounded,
     int playerSpawnStartTick = 0,
     bool advanceLocomotion = true,
   }) {
@@ -139,6 +142,7 @@ class AnimSystem {
       currentTick: currentTick,
       deathPhase: playerDeathPhase,
       deathStartTick: playerDeathStartTick,
+      deathGrounded: playerDeathGrounded,
       spawnStartTick: playerSpawnStartTick,
     );
     _stepEnemies(world, currentTick: currentTick);
@@ -167,6 +171,7 @@ class AnimSystem {
     required int currentTick,
     required DeathPhase deathPhase,
     required int deathStartTick,
+    required bool? deathGrounded,
     required int spawnStartTick,
   }) {
     if (player < 0) return;
@@ -211,7 +216,8 @@ class AnimSystem {
     var result = AnimResolver.resolve(_playerProfile, signals);
     final variant = switch (result.anim) {
       AnimKey.hit when !common.grounded => AnimKey.airHit,
-      AnimKey.death when !common.grounded => AnimKey.airDeath,
+      AnimKey.death when !(deathGrounded ?? common.grounded) =>
+        AnimKey.airDeath,
       _ => result.anim,
     };
     if (playerRenderAnim.sourcesByKey.containsKey(variant)) {

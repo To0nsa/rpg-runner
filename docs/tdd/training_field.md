@@ -46,6 +46,10 @@ input on modal/focus/background changes, and retires the entire session on
 unmount or Reset. The parent mounts this tab only while selected. The picker uses
 the same Library unlock rule as Codex and rechecks it on confirmation. Selecting
 None, death Reset, and returning to the tab never restore an old opponent choice.
+Combat death keeps the existing Core animation-only freeze, and Reset appears
+only when Core publishes `gameOver` after the complete strip. Core captures the
+player's grounded state before death cleanup releases terrain support, so Willow's
+grounded death cannot switch to her shorter airborne strip during the freeze.
 
 `TrainingOpponentDialog` uses the shared `AppDialog` shell with scrollable content
 and fixed title/actions. Its `EnemyPortrait` component is shared with the Library

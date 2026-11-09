@@ -8,6 +8,7 @@ import 'package:flame/game.dart';
 import 'package:rpg_runner/game/runner_flame_game.dart';
 import 'package:rpg_runner/game/components/player/player_view.dart';
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:rpg_runner/ui/state/ownership/enemy_defeats.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -251,6 +252,75 @@ void main() {
       },
     );
   }
+  testWidgets('Training Reset waits for Willow to finish her grounded death', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.binding.setSurfaceSize(const Size(1200, 540));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final state = AppState.developer(store: SharedPrefsDeveloperProfileStore());
+    addTearDown(state.dispose);
+    await state.bootstrap();
+    await state.setCharacter(PlayerCharacterId.bountyHunter);
+    await tester.pumpWidget(_TestApp(appState: state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Tab).at(2));
+    await tester.pump();
+    final game = tester
+        .widget<GameWidget<RunnerFlameGame>>(
+          find.byType(GameWidget<RunnerFlameGame>),
+        )
+        .game!;
+    await _trainingReady(tester, game);
+    final controller = game.controller;
+    controller.setPaused(false);
+    controller.selectTrainingEnemy(EnemyId.grojib);
+    // Let a real opponent kill the player without skipping the death ticks.
+    for (var i = 0; i < 7200 && controller.snapshot.hud.hp > 0; i++) {
+      controller.enqueue(
+        MoveAxisCommand(
+          tick: controller.tick + 1,
+          axis: controller.snapshot.playerEntity!.pos.x < 850 ? 1 : 0,
+        ),
+      );
+      controller.advanceFrame(1 / controller.tickHz);
+    }
+    expect(controller.snapshot.hud.hp, 0);
+    expect(controller.snapshot.gameOver, isFalse);
+    await tester.pump();
+    final reset = find.byKey(const ValueKey('training-reset'));
+    expect(reset, findsNothing);
+    final player = game.world.children.whereType<PlayerView>().single;
+    final render = controller.playerCharacter.renderAnim;
+    final frames = render.frameCountsByKey[AnimKey.death]!;
+    final ticksPerFrame =
+        (render.stepTimeSecondsByKey[AnimKey.death]! * controller.tickHz)
+            .round();
+    for (var elapsed = 0; elapsed < frames * ticksPerFrame; elapsed++) {
+      game.update(1 / controller.tickHz);
+      await tester.pump();
+      expect(player.current, AnimKey.death);
+      expect(player.animationTicker!.currentIndex, elapsed ~/ ticksPerFrame);
+      expect(
+        reset,
+        elapsed == frames * ticksPerFrame - 1 ? findsOneWidget : findsNothing,
+      );
+    }
+    await tester.tap(reset);
+    await tester.pump();
+    final fresh = tester
+        .widget<GameWidget<RunnerFlameGame>>(
+          find.byType(GameWidget<RunnerFlameGame>),
+        )
+        .game!;
+    expect(fresh, isNot(same(game)));
+    await _trainingReady(tester, fresh);
+    expect(fresh.controller.snapshot.gameOver, isFalse);
+    expect(reset, findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
   for (final (gun, folder) in [
     (ProjectileId.hunterPistol, 'gun'),
     (ProjectileId.hunterCrossbow, 'crossbow'),

@@ -46,6 +46,11 @@ Player death is a deliberate exception to the normal path. The gameplay tick
 that detects player death schedules the death animation and returns before the
 normal `AnimSystem` step. Each following death-freeze tick runs animation only
 until the run ends; the controller still builds a snapshot after each Core step.
+Core captures player support before death cleanup clears terrain contact and
+passes it to `AnimSystem` during the freeze. Grounded/airborne death selection
+uses that captured pose, preserving the full grounded strip for characters with
+separate airborne art. This changes animation selection only; the death clock,
+run-ended tick, scoring and replay commands remain unchanged.
 
 Important: render does not decide gameplay phase. It only displays what Core already resolved.
 

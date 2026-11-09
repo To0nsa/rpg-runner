@@ -388,6 +388,41 @@ void main() {
         expect(world.animState.animFrame[ai], equals(tick - deathStartTick));
       });
 
+      for (final groundedAtDeath in [true, false]) {
+        test(
+          'death retains captured grounded=$groundedAtDeath after cleanup',
+          () {
+            final character = PlayerCharacterRegistry.bountyHunter;
+            final system = AnimSystem(
+              tickHz: 60,
+              enemyCatalog: enemyCatalog,
+              playerMovement: playerMovement,
+              playerAnimTuning: playerAnimTuning,
+              playerRenderAnim: character.renderAnim,
+            );
+            final player = spawnPlayer(grounded: !groundedAtDeath);
+            system.step(
+              world,
+              player: player,
+              currentTick: 73,
+              playerDeathPhase: DeathPhase.deathAnim,
+              playerDeathStartTick: 70,
+              playerDeathGrounded: groundedAtDeath,
+            );
+            final ai = world.animState.indexOf(player);
+            expect(
+              world.animState.anim[ai],
+              groundedAtDeath ? AnimKey.death : AnimKey.airDeath,
+            );
+            expect(world.animState.animFrame[ai], 3);
+            expect(
+              world.collision.grounded[world.collision.indexOf(player)],
+              !groundedAtDeath,
+            );
+          },
+        );
+      }
+
       test('is read-only for gameplay stores', () {
         final player = spawnPlayer(grounded: true);
         const tick = 80;
