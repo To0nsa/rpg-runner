@@ -550,6 +550,7 @@ List<RunResult> _toRunResults(List<LeaderboardEntry> entries) {
       tick: entry.durationSeconds * 60,
       displayName: entry.displayName,
       playerLevel: entry.playerLevel,
+      characterId: entry.characterId,
     );
   }, growable: false);
 }

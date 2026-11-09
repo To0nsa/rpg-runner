@@ -38,6 +38,10 @@ Keys:
 Data shape:
 
 - JSON list of `RunResult` rows (top-10 after sort/dedupe).
+- Optional `characterId` is preserved when present and decodes as null when
+  absent. Online rows populate it from `LeaderboardEntry`; the table resolves
+  the display name through `PlayerCharacterRegistry`, with a dash for unknown
+  IDs. The character column is omitted when all rows lack character IDs.
 
 How used:
 

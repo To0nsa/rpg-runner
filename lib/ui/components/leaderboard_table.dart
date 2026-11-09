@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:runner_core/players/player_character_registry.dart';
 
 import '../leaderboard/run_result.dart';
 import '../theme/ui_leaderboard_theme.dart';
@@ -37,6 +38,9 @@ class LeaderboardTable extends StatelessWidget {
   bool get _showPlayerLevelColumn =>
       _showDisplayNameColumn && showPlayerLevelColumn;
 
+  bool get _showCharacterColumn =>
+      entries.any((entry) => entry.characterId != null);
+
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
@@ -49,6 +53,7 @@ class LeaderboardTable extends StatelessWidget {
           spec: spec,
           showDisplayNameColumn: _showDisplayNameColumn,
           showPlayerLevelColumn: _showPlayerLevelColumn,
+          showCharacterColumn: _showCharacterColumn,
           trailingHeaderLabel: trailingHeaderLabel,
           trailingColumnWidth: trailingColumnWidth,
         ),
@@ -71,6 +76,7 @@ class LeaderboardTable extends StatelessWidget {
               hideScoreForRunId != null && entry.runId == hideScoreForRunId,
           showDisplayNameColumn: _showDisplayNameColumn,
           showPlayerLevelColumn: _showPlayerLevelColumn,
+          showCharacterColumn: _showCharacterColumn,
           trailingChild: trailingBuilder?.call(context, rank, entry),
           trailingColumnWidth: trailingColumnWidth,
         ),
@@ -101,6 +107,7 @@ class _LeaderboardHeaderRow extends StatelessWidget {
     required this.spec,
     required this.showDisplayNameColumn,
     required this.showPlayerLevelColumn,
+    required this.showCharacterColumn,
     required this.trailingHeaderLabel,
     required this.trailingColumnWidth,
   });
@@ -108,6 +115,7 @@ class _LeaderboardHeaderRow extends StatelessWidget {
   final UiLeaderboardSpec spec;
   final bool showDisplayNameColumn;
   final bool showPlayerLevelColumn;
+  final bool showCharacterColumn;
   final String? trailingHeaderLabel;
   final double trailingColumnWidth;
 
@@ -136,6 +144,11 @@ class _LeaderboardHeaderRow extends StatelessWidget {
           SizedBox(
             width: _playerLevelColumnWidth,
             child: Text('Lvl', style: style, textAlign: TextAlign.center),
+          ),
+        if (showCharacterColumn)
+          SizedBox(
+            width: _characterColumnWidth,
+            child: Text('Character', style: style, textAlign: TextAlign.center),
           ),
         cell('Score', spec.columns.score, TextAlign.right),
         cell('Distance', spec.columns.distance, TextAlign.right),
@@ -176,6 +189,7 @@ class _LeaderboardRow extends StatelessWidget {
     required this.hideScore,
     required this.showDisplayNameColumn,
     required this.showPlayerLevelColumn,
+    required this.showCharacterColumn,
     required this.trailingChild,
     required this.trailingColumnWidth,
   });
@@ -187,6 +201,7 @@ class _LeaderboardRow extends StatelessWidget {
   final bool hideScore;
   final bool showDisplayNameColumn;
   final bool showPlayerLevelColumn;
+  final bool showCharacterColumn;
   final Widget? trailingChild;
   final double trailingColumnWidth;
 
@@ -236,6 +251,17 @@ class _LeaderboardRow extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
+        if (showCharacterColumn)
+          SizedBox(
+            width: _characterColumnWidth,
+            child: Text(
+              _characterName(entry.characterId),
+              style: style,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
         _LeaderboardColumnCell(
           column: spec.columns.score,
           child: Text(
@@ -281,6 +307,14 @@ class _LeaderboardRow extends StatelessWidget {
 const double _playerNameColumnWidth = 132;
 const double _playerNameColumnWidthWithLevel = 104;
 const double _playerLevelColumnWidth = 32;
+const double _characterColumnWidth = 80;
+
+String _characterName(String? characterId) {
+  for (final character in PlayerCharacterRegistry.all) {
+    if (character.id.name == characterId) return character.displayName;
+  }
+  return '—';
+}
 
 String _formatTime(int totalSeconds) {
   final minutes = totalSeconds ~/ 60;

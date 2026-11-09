@@ -110,7 +110,7 @@ LeaderboardEntry {
   boardKey
   playerId           // opaque id
   displayName        // sanitized
-  characterId        // optional (icon)
+  characterId        // character used for the ranked run (display name in UI)
   score
   distanceMeters
   durationSeconds
@@ -130,6 +130,8 @@ Score and its breakdown are computed deterministically from run stats.
 - Avoid exposing raw `playerId`; keep it opaque.
 - Competitive and Weekly rows show the player's current account level beside
   the display name. Level is informational and does not affect ranking.
+- The character's display name appears between `Lvl` and `Score`, using the
+  character from that ranked run, independently of the player's current selection.
 
 ---
 

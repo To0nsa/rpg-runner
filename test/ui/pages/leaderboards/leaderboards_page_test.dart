@@ -49,6 +49,24 @@ void main() {
 
     expect(find.text('Lvl'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
+    expect(find.text('Character'), findsOneWidget);
+    expect(find.text('Éloïse'), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('Lvl')).dx,
+      lessThan(tester.getCenter(find.text('Character')).dx),
+    );
+    expect(
+      tester.getCenter(find.text('Character')).dx,
+      lessThan(tester.getCenter(find.text('Score')).dx),
+    );
+    expect(
+      tester.getCenter(find.text('7')).dx,
+      lessThan(tester.getCenter(find.text('Éloïse')).dx),
+    );
+    expect(
+      tester.getCenter(find.text('Éloïse')).dx,
+      lessThan(tester.getCenter(find.text('1234')).dx),
+    );
 
     await tester.tap(find.byTooltip('Race this ghost.').first);
     await tester.pumpAndSettle();
@@ -67,7 +85,10 @@ void main() {
       authApi: const _StaticAuthApi(),
       loadoutOwnershipApi: ownershipApi,
       runBoardsApi: const _StaticRunBoardsApi(),
-      leaderboardApi: const _StaticLeaderboardApi(ghostAvailable: false),
+      leaderboardApi: const _StaticLeaderboardApi(
+        ghostAvailable: false,
+        characterId: 'bountyHunter',
+      ),
       runSessionApi: const _StaticRunSessionApi(),
       ghostApi: const _StaticGhostApi(),
       ghostReplayCache: const _StaticGhostReplayCache(),
@@ -87,6 +108,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('run-route-marker'), findsNothing);
     expect(ownershipApi.setSelectionCalls, 0);
+    expect(find.text('Willow'), findsOneWidget);
+    expect(find.text('bountyHunter'), findsNothing);
+
+    await tester.tap(find.text('WEEKLY'));
+    await tester.pumpAndSettle();
+    expect(find.text('Character'), findsOneWidget);
+    expect(find.text('Willow'), findsOneWidget);
   });
 }
 
@@ -259,9 +287,13 @@ class _StaticRunBoardsApi implements RunBoardsApi {
 }
 
 class _StaticLeaderboardApi implements LeaderboardApi {
-  const _StaticLeaderboardApi({this.ghostAvailable = true});
+  const _StaticLeaderboardApi({
+    this.ghostAvailable = true,
+    this.characterId = 'eloise',
+  });
 
   final bool ghostAvailable;
+  final String characterId;
 
   @override
   Future<OnlineLeaderboardBoardData> loadActiveBoardData({
@@ -301,7 +333,7 @@ class _StaticLeaderboardApi implements LeaderboardApi {
           uid: 'u_top',
           displayName: 'Top Runner',
           playerLevel: 7,
-          characterId: 'eloise',
+          characterId: characterId,
           score: 1234,
           distanceMeters: 456,
           durationSeconds: 89,

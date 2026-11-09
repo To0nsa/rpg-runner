@@ -7,7 +7,7 @@ import 'package:rpg_runner/ui/leaderboard/run_result.dart';
 import 'package:rpg_runner/ui/leaderboard/shared_prefs_leaderboard_store.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
-RunResult _result({required int score}) {
+RunResult _result({required int score, String? characterId}) {
   return RunResult(
     runId: 0,
     endedAtMs: 1,
@@ -16,6 +16,7 @@ RunResult _result({required int score}) {
     distanceMeters: 0,
     durationSeconds: 0,
     tick: 1,
+    characterId: characterId,
   );
 }
 
@@ -42,7 +43,7 @@ void main() {
       await store.addResult(
         levelId: LevelId.forest,
         runMode: RunMode.practice,
-        result: _result(score: 300),
+        result: _result(score: 300, characterId: 'bountyHunter'),
       );
       await store.addResult(
         levelId: LevelId.forest,
@@ -64,6 +65,7 @@ void main() {
       );
 
       expect(forest.map((e) => e.score).toList(), [300, 100]);
+      expect(forest.map((e) => e.characterId).toList(), ['bountyHunter', null]);
       expect(field.map((e) => e.score).toList(), [200]);
       expect(forestCompetitive.map((e) => e.score).toList(), [999]);
     },

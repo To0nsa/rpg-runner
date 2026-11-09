@@ -15,6 +15,7 @@ class RunResult {
     required this.tick,
     this.displayName,
     this.playerLevel,
+    this.characterId,
     this.rescuedNpcs = 0,
     this.rescuePoints = 0,
   });
@@ -28,6 +29,9 @@ class RunResult {
   final int tick;
   final String? displayName;
   final int? playerLevel;
+
+  /// Character used for this run; absent on older local results.
+  final String? characterId;
   final int rescuedNpcs;
   final int rescuePoints;
 
@@ -42,6 +46,7 @@ class RunResult {
       tick: tick,
       displayName: displayName ?? this.displayName,
       playerLevel: playerLevel,
+      characterId: characterId,
       rescuedNpcs: rescuedNpcs,
       rescuePoints: rescuePoints,
     );
@@ -57,6 +62,7 @@ class RunResult {
     'tick': tick,
     'displayName': displayName,
     if (playerLevel != null) 'playerLevel': playerLevel,
+    if (characterId != null) 'characterId': characterId,
     'rescuedNpcs': rescuedNpcs,
     'rescuePoints': rescuePoints,
   };
@@ -74,6 +80,7 @@ class RunResult {
       tick: json['tick'] as int? ?? 0,
       displayName: json['displayName'] as String?,
       playerLevel: json['playerLevel'] as int?,
+      characterId: json['characterId'] as String?,
       rescuedNpcs: json['rescuedNpcs'] as int? ?? 0,
       rescuePoints: json['rescuePoints'] as int? ?? 0,
     );
