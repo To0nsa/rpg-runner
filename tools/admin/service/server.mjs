@@ -108,6 +108,9 @@ export async function startConsole({ environments, port = 0, deliver = sendOpera
         const { uid, delivery, messageId } = parseOperatorMessage(body.message);
         const message = Object.freeze({ uid, sourceId: delivery.sourceId.slice('operator:'.length),
           title: delivery.title, body: delivery.body, goldAmount: delivery.goldAmount,
+          ...(delivery.localization ? { localization: Object.freeze({ schemaVersion: 1,
+            translations: Object.freeze(Object.fromEntries(Object.entries(delivery.localization.translations)
+              .map(([locale, text]) => [locale, Object.freeze({ ...text })]))) }) } : {}),
           ...(delivery.attachments ? { attachments: Object.freeze(delivery.attachments.map((value) => Object.freeze({ ...value }))) } : {}) });
         const previewId = randomUUID();
         const preview = Object.freeze({ previewId, environment: environment.name,

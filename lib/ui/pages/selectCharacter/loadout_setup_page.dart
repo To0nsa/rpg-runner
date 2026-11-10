@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -74,23 +75,23 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
-            tabs: const [
+            tabs: [
               Tab(
                 child: _LoadoutTopTabLabel(
                   icon: Icons.shield_outlined,
-                  text: 'Gear',
+                  text: context.l10n.uiGear,
                 ),
               ),
               Tab(
                 child: _LoadoutTopTabLabel(
                   icon: Icons.auto_awesome_outlined,
-                  text: 'Skills',
+                  text: context.l10n.uiSkills,
                 ),
               ),
               Tab(
                 child: _LoadoutTopTabLabel(
                   icon: Icons.sports_martial_arts,
-                  text: 'Training Field',
+                  text: context.l10n.uiTrainingField,
                 ),
               ),
             ],

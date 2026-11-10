@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
@@ -10,6 +11,24 @@ import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
+  test(
+    'purchase target stays pinned when stale revision reload changes selection',
+    () async {
+      final api = _RecordingOwnershipApi()..rejectFirstPurchase = true;
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: api,
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap(force: true);
+      await app.purchaseStoreOffer(offerId: 'gear:mainWeapon:waspfang');
+      expect(api.purchaseTargets, [
+        PlayerCharacterId.eloise,
+        PlayerCharacterId.eloise,
+      ]);
+      expect(app.selection.selectedCharacterId, PlayerCharacterId.bountyHunter);
+    },
+  );
   test(
     'AppState routes slot and projectile selection through dedicated commands',
     () async {
@@ -68,6 +87,8 @@ class _RecordingOwnershipApi extends LoadoutOwnershipApi {
   int setLoadoutCalls = 0;
   int setAbilitySlotCalls = 0;
   int setProjectileSpellCalls = 0;
+  bool rejectFirstPurchase = false;
+  final purchaseTargets = <PlayerCharacterId?>[];
   int purchaseStoreOfferCalls = 0;
   int refreshStoreCalls = 0;
 
@@ -75,7 +96,11 @@ class _RecordingOwnershipApi extends LoadoutOwnershipApi {
     return OwnershipCanonicalState(
       profileId: 'test_profile',
       revision: _revision,
-      selection: SelectionState.defaults,
+      selection: SelectionState.defaults.copyWith(
+        selectedCharacterId: rejectFirstPurchase && purchaseStoreOfferCalls > 0
+            ? PlayerCharacterId.bountyHunter
+            : PlayerCharacterId.eloise,
+      ),
       meta: _metaService.createNew(),
       progression: ProgressionState.initial,
     );
@@ -137,7 +162,16 @@ class _RecordingOwnershipApi extends LoadoutOwnershipApi {
   Future<OwnershipCommandResult> purchaseStoreOffer(
     PurchaseStoreOfferCommand command,
   ) async {
+    purchaseTargets.add(command.characterId);
     purchaseStoreOfferCalls += 1;
+    if (rejectFirstPurchase && purchaseStoreOfferCalls == 1) {
+      return OwnershipCommandResult(
+        canonicalState: _canonical(),
+        newRevision: _revision,
+        replayedFromIdempotency: false,
+        rejectedReason: OwnershipRejectedReason.staleRevision,
+      );
+    }
     return _acceptedResult();
   }
 

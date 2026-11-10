@@ -20,7 +20,10 @@ class UiRoutes {
   static const String leaderboards = '/leaderboards';
   static const String options = '/meta/options';
   static const String town = '/meta/town';
-  static const String townStore = '/meta/town/store';
+  static const String townStore =
+      '/meta/town/store'; // Retained route opens Equipment.
+  static const String townEquipment = '/meta/town/equipment';
+  static const String townTraining = '/meta/town/training';
   static const String library = '/meta/town/library';
   static const String achievements = '/meta/town/hall-of-honour';
   static const String messages = '/meta/messages';

@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:rpg_runner/ui/controls/control_resource_usage.dart';
 import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
 import 'package:rpg_runner/ui/controls/control_button_visuals.dart';
@@ -116,7 +117,10 @@ void main() {
     expect(find.byType(GameIcon), findsNothing);
     for (final slot in abilityRadialLayoutSpec.slots) {
       expect(find.byIcon(slot.icon), findsOneWidget);
-      expect(find.bySemanticsLabel(slot.label), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(slot.label(appStringsFor(null))),
+        findsOneWidget,
+      );
     }
     final mana = tester.widget<ControlButtonSurface>(
       find.descendant(

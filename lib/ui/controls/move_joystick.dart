@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'controls_tuning.dart';
@@ -84,11 +85,11 @@ class _MoveJoystickState extends State<MoveJoystick> {
     final tuning = widget.tuning;
     final style = widget.style;
     return Semantics(
-      label: 'Movement joystick',
+      label: context.l10n.controlJoystick,
       value: switch (_axis) {
-        < 0 => 'Backward',
-        > 0 => 'Forward',
-        _ => 'Neutral',
+        < 0 => context.l10n.controlBackward,
+        > 0 => context.l10n.controlForward,
+        _ => context.l10n.controlNeutral,
       },
       child: LayoutBuilder(
         builder: (context, constraints) {

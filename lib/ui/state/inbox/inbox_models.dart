@@ -1,4 +1,5 @@
 import 'package:game_presentation/catalog_gift.dart';
+import 'package:game_presentation/message_localization.dart';
 
 import '../ownership/loadout_ownership_api.dart';
 
@@ -33,11 +34,15 @@ class InboxMessage {
     this.claimedAtMs,
     this.goldAmount = 0,
     this.attachments = const [],
+    this.localization,
   });
   final String id, title, body;
   final int createdAtMs, goldAmount;
   final int? readAtMs, claimedAtMs;
   final List<CatalogGift> attachments;
+  final MessageLocalization? localization;
+  MessageText textFor(String localeTag) =>
+      localization?.resolve(localeTag) ?? MessageText(title: title, body: body);
   bool get isUnread => readAtMs == null;
   bool get hasReward => goldAmount > 0 || attachments.isNotEmpty;
   bool get canClaim => hasReward && claimedAtMs == null;
@@ -90,6 +95,9 @@ class InboxMessage {
           : inboxInteger(json['claimedAtMs']),
       goldAmount: gold,
       attachments: List.unmodifiable(attachments),
+      localization: json.containsKey('localization')
+          ? MessageLocalization.fromJson(json['localization'])
+          : null,
     );
   }
 }

@@ -1,3 +1,6 @@
+import '../../text/number_format.dart';
+
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -35,8 +38,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
   static const Duration _cooldown = Duration(hours: 24);
 
-  String _fallbackName(String displayName) =>
-      displayName.isEmpty ? 'Guest' : displayName;
+  String _fallbackName(String displayName) => displayName.isEmpty
+      ? context.l10n.uiGuest
+      : context.read<AppState>().isDeveloperMode && displayName == 'Developer'
+      ? context.l10n.developerIdentity
+      : displayName;
 
   bool _cooldownActive(int lastChangedAtMs, int nowMs) {
     if (lastChangedAtMs <= 0) return false;
@@ -52,16 +58,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String? _validateDisplayName(UserProfile profile, String raw) {
     final trimmed = raw.trim();
-    if (trimmed == profile.displayName) return 'Name is unchanged.';
+    if (trimmed == profile.displayName) return context.l10n.uiNameIsUnchanged;
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final active = _cooldownActive(profile.displayNameLastChangedAtMs, nowMs);
     if (active) {
       final rem = _cooldownRemaining(profile.displayNameLastChangedAtMs, nowMs);
-      return 'You can change your name again in ${rem.inHours}h ${rem.inMinutes.remainder(60)}m.';
+      return context.l10n.nameChangeCooldown(
+        hours: rem.inHours,
+        minutes: rem.inMinutes.remainder(60),
+      );
     }
 
-    return _policy.validate(trimmed);
+    return _policy.validate(trimmed)?.message(context.l10n);
   }
 
   Future<void> _commitDisplayName(String raw) async {
@@ -75,7 +84,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Name updated')));
+        .showSnackBar(SnackBar(content: Text(context.l10n.uiNameUpdated)));
   }
 
   String _accountDeletionFailureMessage(AccountDeletionResult result) {
@@ -83,44 +92,32 @@ class _ProfilePageState extends State<ProfilePage> {
       case AccountDeletionStatus.requested:
       case AccountDeletionStatus.inProgress:
       case AccountDeletionStatus.retrying:
-        return 'Account deletion is in progress.';
+        return context.l10n.uiAccountDeletionIsInProgress;
       case AccountDeletionStatus.requiresRecentLogin:
-        return 'Please sign in again and retry account deletion.';
+        return context.l10n.uiPleaseSignInAgainAndRetryAccountDeletion;
       case AccountDeletionStatus.unauthorized:
-        return 'Session expired. Please restart the game and try again.';
+        return context.l10n.uiSessionExpiredPleaseRestartTheGameAndTryAgain;
       case AccountDeletionStatus.unsupported:
-        return 'Account deletion is not available in this environment.';
+        return context.l10n.uiAccountDeletionIsNotAvailableInThisEnvironment;
       case AccountDeletionStatus.failed:
-        final message = result.errorMessage?.trim();
-        if (message != null && message.isNotEmpty) {
-          return message;
-        }
-        return 'Account deletion failed. Please try again.';
+        return context.l10n.uiAccountDeletionFailedPleaseTryAgain;
       case AccountDeletionStatus.deleted:
-        return 'Account deleted.';
+        return context.l10n.uiAccountDeleted;
     }
   }
 
   String _playGamesLinkResultMessage(AuthLinkResult result) {
     switch (result.status) {
       case AuthLinkStatus.linked:
-        return 'Play Games account linked.';
+        return context.l10n.uiPlayGamesAccountLinked;
       case AuthLinkStatus.alreadyLinked:
-        return 'Play Games is already linked.';
+        return context.l10n.uiPlayGamesIsAlreadyLinked;
       case AuthLinkStatus.canceled:
-        return 'Play Games sign-in canceled.';
+        return context.l10n.uiPlayGamesSignInCanceled;
       case AuthLinkStatus.unsupported:
-        final unsupportedMessage = result.errorMessage?.trim();
-        if (unsupportedMessage != null && unsupportedMessage.isNotEmpty) {
-          return unsupportedMessage;
-        }
-        return 'Play Games sign-in is not available on this device.';
+        return context.l10n.uiPlayGamesSignInIsNotAvailableOnThisDevice;
       case AuthLinkStatus.failed:
-        final failureMessage = result.errorMessage?.trim();
-        if (failureMessage != null && failureMessage.isNotEmpty) {
-          return failureMessage;
-        }
-        return 'Could not link Play Games account. Please try again.';
+        return context.l10n.uiCouldNotLinkPlayGamesAccountPleaseTryAgain;
     }
   }
 
@@ -149,8 +146,10 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not link Play Games account. Please try again.'),
+        SnackBar(
+          content: Text(
+            context.l10n.uiCouldNotLinkPlayGamesAccountPleaseTryAgain,
+          ),
         ),
       );
     } finally {
@@ -165,15 +164,11 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<bool> _confirmDeletionStepOne() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => const AppConfirmDialog(
-        title: 'Delete account and data?',
-        message:
-            'This will permanently delete your account, profile, and cloud '
-            'progress for this user.\n\n'
-            'Deletion can take several hours. You cannot start a new account '
-            'with the same Play Games profile until it finishes.',
-        cancelLabel: 'Cancel',
-        confirmLabel: 'Continue',
+      builder: (dialogContext) => AppConfirmDialog(
+        title: context.l10n.uiDeleteAccountAndData,
+        message: context.l10n.deleteAccountBody,
+        cancelLabel: context.l10n.uiCancel,
+        confirmLabel: context.l10n.uiContinue,
         confirmVariant: AppButtonVariant.secondary,
       ),
     );
@@ -183,12 +178,12 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<bool> _confirmDeletionStepTwo() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => const AppConfirmDialog(
-        title: 'Final confirmation',
+      builder: (dialogContext) => AppConfirmDialog(
+        title: context.l10n.uiFinalConfirmation,
         message:
-            'This action cannot be undone. Delete this account permanently?',
-        cancelLabel: 'Keep account',
-        confirmLabel: 'Delete account',
+            context.l10n.uiThisActionCannotBeUndoneDeleteThisAccountPermanently,
+        cancelLabel: context.l10n.uiKeepAccount,
+        confirmLabel: context.l10n.uiDeleteAccount,
         confirmVariant: AppButtonVariant.danger,
         buttonSize: AppButtonSize.md,
       ),
@@ -227,8 +222,8 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account deletion failed. Please try again.'),
+        SnackBar(
+          content: Text(context.l10n.uiAccountDeletionFailedPleaseTryAgain),
         ),
       );
     } finally {
@@ -245,11 +240,13 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!result.localCleanupSucceeded) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Account deletion was accepted. Device cleanup needs another attempt.',
+          content: Text(
+            context
+                .l10n
+                .uiAccountDeletionWasAcceptedDeviceCleanupNeedsAnotherAttempt,
           ),
           action: SnackBarAction(
-            label: 'Retry cleanup',
+            label: context.l10n.uiRetryCleanup,
             onPressed: () async {
               final retry = await context
                   .read<AppState>()
@@ -274,7 +271,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final progression = appState.progression;
 
     return MenuScaffold(
-      title: 'Profile',
+      title: context.l10n.uiProfile,
       child: MenuLayout(
         child: Center(
           child: ConstrainedBox(
@@ -320,14 +317,18 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          SizedBox(width: 80, child: Text('Name', style: labelStyle)),
+          SizedBox(
+            width: 80,
+            child: Text(context.l10n.uiName, style: labelStyle),
+          ),
           Expanded(
             child: AppInlineEditText(
               text: currentName,
               displayText: _fallbackName(currentName),
-              hintText: 'Enter name',
+              hintText: context.l10n.uiEnterName,
               validator: (value) => _validateDisplayName(profile, value),
-              errorTextFromError: displayNameSaveErrorText,
+              errorTextFromError: (error) =>
+                  displayNameSaveErrorText(error, context.l10n),
               onCommit: _commitDisplayName,
             ),
           ),
@@ -343,7 +344,10 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          SizedBox(width: 80, child: Text('Gold', style: labelStyle)),
+          SizedBox(
+            width: 80,
+            child: Text(context.l10n.uiGold, style: labelStyle),
+          ),
           Expanded(
             child: GoldDisplay(gold: gold, variant: GoldDisplayVariant.body),
           ),
@@ -357,19 +361,28 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Player stats', style: ui.text.headline),
+        Text(context.l10n.uiPlayerStats, style: ui.text.headline),
         SizedBox(height: ui.space.sm),
         PlayerLevelBar(progress: progress),
         SizedBox(height: ui.space.sm),
-        _statRow('Lifetime XP', '${progress.totalXp}'),
-        _statRow('Practice runs played', '${progress.runsInMode('practice')}'),
         _statRow(
-          'Competitive runs played',
-          '${progress.runsInMode('competitive')}',
+          context.l10n.uiLifetimeXp,
+          formatCount(progress.totalXp, l10n: context.l10n),
         ),
-        _statRow('Enemies defeated', '$enemyKills'),
-        _statRow('Damage dealt', _hp(progress.damageDealt100)),
-        _statRow('Damage taken', _hp(progress.damageTaken100)),
+        _statRow(
+          context.l10n.uiPracticeRunsPlayed,
+          formatCount(progress.runsInMode('practice'), l10n: context.l10n),
+        ),
+        _statRow(
+          context.l10n.uiCompetitiveRunsPlayed,
+          formatCount(progress.runsInMode('competitive'), l10n: context.l10n),
+        ),
+        _statRow(
+          context.l10n.uiEnemiesDefeated,
+          formatCount(enemyKills, l10n: context.l10n),
+        ),
+        _statRow(context.l10n.uiDamageDealt, _hp(progress.damageDealt100)),
+        _statRow(context.l10n.uiDamageTaken, _hp(progress.damageTaken100)),
       ],
     );
   }
@@ -391,7 +404,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  String _hp(int hundredths) => '${(hundredths / 100).round()} HP';
+  String _hp(int hundredths) =>
+      context.l10n.healthPoints(hp: (hundredths / 100).round());
 
   Widget _buildDangerZoneCard() {
     final ui = context.ui;
@@ -402,12 +416,12 @@ class _ProfilePageState extends State<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Danger zone',
+            context.l10n.uiDangerZone,
             style: ui.text.headline.copyWith(color: ui.colors.danger),
           ),
           SizedBox(height: ui.space.xs),
           Text(
-            'Delete your account and all linked player data permanently.',
+            context.l10n.uiDeleteYourAccountAndAllLinkedPlayerDataPermanently,
             style: ui.text.body.copyWith(color: ui.colors.textMuted),
           ),
           SizedBox(height: ui.space.sm),
@@ -417,7 +431,7 @@ class _ProfilePageState extends State<ProfilePage> {
               alignment: Alignment.center,
               children: [
                 AppButton(
-                  label: 'Delete account',
+                  label: context.l10n.uiDeleteAccount,
                   variant: AppButtonVariant.danger,
                   size: AppButtonSize.sm,
                   onPressed: _deleteInFlight ? null : _deleteAccountAndData,
@@ -450,19 +464,21 @@ class _ProfilePageState extends State<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upgrade guest account',
+            context.l10n.uiUpgradeGuestAccount,
             style: ui.text.headline.copyWith(color: ui.colors.textPrimary),
           ),
           SizedBox(height: ui.space.xs),
           Text(
-            'Link Play Games to keep progress across devices.',
+            context.l10n.uiLinkPlayGamesToKeepProgressAcrossDevices,
             style: ui.text.body.copyWith(color: ui.colors.textMuted),
           ),
           SizedBox(height: ui.space.sm),
           Align(
             alignment: Alignment.center,
             child: AppButton(
-              label: _playGamesLinkInFlight ? 'Linking...' : 'Link Play Games',
+              label: _playGamesLinkInFlight
+                  ? context.l10n.uiLinking
+                  : context.l10n.uiLinkPlayGames,
               variant: AppButtonVariant.secondary,
               size: AppButtonSize.lg,
               onPressed: _playGamesLinkInFlight ? null : _linkPlayGames,

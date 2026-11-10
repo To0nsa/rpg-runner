@@ -139,6 +139,7 @@ class TestInboxApi implements InboxApi {
       claimedAtMs: old.claimedAtMs,
       goldAmount: old.goldAmount,
       attachments: old.attachments,
+      localization: old.localization,
     );
     _replace(next);
     return InboxMessageUpdate(message: next, summary: summary);
@@ -210,6 +211,7 @@ class TestInboxApi implements InboxApi {
         claimedAtMs: 2,
         goldAmount: message.goldAmount,
         attachments: message.attachments,
+        localization: message.localization,
       );
       _replace(message);
     }

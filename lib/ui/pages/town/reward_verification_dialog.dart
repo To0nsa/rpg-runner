@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../components/app_button.dart';
@@ -26,10 +27,10 @@ class RewardVerificationDialog extends StatelessWidget {
       final verifying = appState.goldNeedsVerification(cost);
       return AppDialog(
         title: ready
-            ? 'Your gold is ready'
+            ? context.l10n.uiYourGoldIsReady
             : verifying
-            ? 'Your rewards are on their way'
-            : 'Your balance has changed',
+            ? context.l10n.uiYourRewardsAreOnTheirWay
+            : context.l10n.uiYourBalanceHasChanged,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,19 +43,25 @@ class RewardVerificationDialog extends StatelessWidget {
             SizedBox(height: ui.space.sm),
             Text(
               ready
-                  ? 'Your run rewards are confirmed. You can now spend your gold.'
+                  ? context
+                        .l10n
+                        .uiYourRunRewardsAreConfirmedYouCanNowSpendYourGold
                   : verifying
-                  ? 'We’re confirming your latest run rewards before they can '
-                        'be spent. You can keep playing while we finish.'
-                  : 'There isn’t enough gold for this purchase. '
-                        'Return to the store to see your updated balance.',
+                  ? context
+                        .l10n
+                        .uiWeReConfirmingYourLatestRunRewardsBeforeTheyCanBeSpentYouCanKeepPlayingWhileWeFinish
+                  : context
+                        .l10n
+                        .uiThereIsnTEnoughGoldForThisPurchaseReturnToTheStoreToSeeYourUpdatedBalance,
               style: ui.text.body.copyWith(color: ui.colors.textPrimary),
             ),
           ],
         ),
         actions: [
           AppButton(
-            label: ready || !verifying ? 'Back to store' : 'Got it',
+            label: ready || !verifying
+                ? context.l10n.uiBackToStore
+                : context.l10n.uiGotIt,
             size: AppButtonSize.sm,
             onPressed: () => Navigator.of(context).pop(),
           ),

@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:game_presentation/catalog_gift.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +21,37 @@ import 'package:rpg_runner/ui/theme/ui_theme.dart';
 import '../../test_support/inbox_fixture.dart';
 
 void main() {
+  testWidgets(
+    'French inbox retains translated text through read and locale changes',
+    (tester) async {
+      tester.view.physicalSize = const Size(640, 360);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final f = InboxFixture();
+      addTearDown(f.app.dispose);
+      f.inbox.messages = [
+        InboxMessage.fromJson(
+          jsonDecode(
+            File('functions/test/fixtures/localized_message.json')
+                .readAsStringSync(),
+          ),
+        ),
+      ];
+      await f.app.bootstrap();
+      await tester.pumpWidget(_app(f, locale: const Locale('fr'), scale: 1.3));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Niveau 2 atteint'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Tu as atteint le niveau 2'), findsOneWidget);
+      expect(f.app.inboxSummary.unreadCount, 0);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(_app(f, locale: const Locale('en'), scale: 1.3));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('You have reached level 2'), findsOneWidget);
+      expect(f.app.inboxSummary.unreadCount, 0);
+      expect(f.inbox.claimCalls, 0);
+    },
+  );
   testWidgets(
     'shared marker preserves icon geometry, tap behavior and accessible meaning',
     (tester) async {
@@ -352,17 +385,23 @@ void main() {
   }
 }
 
-Widget _app(InboxFixture f, {double scale = 1}) =>
-    ChangeNotifierProvider<AppState>.value(
-      value: f.app,
-      child: MaterialApp(
-        theme: createUiTheme(),
-        debugShowCheckedModeBanner: false,
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(scale)),
-          child: child!,
-        ),
-        home: const MessagesPage(),
-      ),
-    );
+Widget _app(
+  InboxFixture f, {
+  double scale = 1,
+  Locale locale = const Locale('en'),
+}) => ChangeNotifierProvider<AppState>.value(
+  value: f.app,
+  child: MaterialApp(
+    locale: locale,
+    localizationsDelegates: RunnerLocalizations.delegates,
+    supportedLocales: RunnerLocalizations.supportedLocales,
+    theme: createUiTheme(),
+    debugShowCheckedModeBanner: false,
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context)
+          .copyWith(textScaler: TextScaler.linear(scale)),
+      child: child!,
+    ),
+    home: const MessagesPage(),
+  ),
+);

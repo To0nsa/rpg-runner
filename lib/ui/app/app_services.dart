@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'app_runtime_policy.dart';
 import '../state/app/app_state.dart';
 import '../state/settings/control_settings.dart';
+import '../state/settings/locale_settings.dart';
 import '../state/developer/developer_profile_store.dart';
 import '../state/ownership/ownership_sync_policy.dart';
 
@@ -22,10 +23,12 @@ class AppServices extends ChangeNotifier {
     required AppState Function() createAppState,
     DeveloperProfileStore? developerProfileStore,
     ControlSettingsStore? controlSettingsStore,
+    LocaleSettingsStore? localeSettingsStore,
     bool startInDeveloperMode = false,
   }) : _initialize = initialize,
        _practiceOnly = false,
        controlSettings = ControlSettings(store: controlSettingsStore),
+       localeSettings = LocaleSettings(store: localeSettingsStore),
        _createAppState = createAppState,
        _developerProfileStore = developerProfileStore,
        _startInDeveloperMode = startInDeveloperMode;
@@ -35,10 +38,12 @@ class AppServices extends ChangeNotifier {
   AppServices.practiceOnly({
     required DeveloperProfileStore developerProfileStore,
     ControlSettingsStore? controlSettingsStore,
+    LocaleSettingsStore? localeSettingsStore,
   }) : _initialize = null,
        _createAppState = null,
        _practiceOnly = true,
        controlSettings = ControlSettings(store: controlSettingsStore),
+       localeSettings = LocaleSettings(store: localeSettingsStore),
        _developerProfileStore = developerProfileStore,
        _startInDeveloperMode = true {
     if (!developerPracticeAllowed) {
@@ -51,6 +56,7 @@ class AppServices extends ChangeNotifier {
 
   /// Device preferences survive replacement of the authenticated app state.
   final ControlSettings controlSettings;
+  final LocaleSettings localeSettings;
   final AppState Function()? _createAppState;
   final DeveloperProfileStore? _developerProfileStore;
   final bool _startInDeveloperMode;
@@ -96,6 +102,7 @@ class AppServices extends ChangeNotifier {
   }
 
   Future<AppState> _initializeState() async {
+    await localeSettings.load();
     await controlSettings.load();
     if (_disposed) throw StateError('App services have been disposed.');
     if (developerModeAvailable &&
@@ -155,6 +162,7 @@ class AppServices extends ChangeNotifier {
     if (_disposed) return;
     _disposed = true;
     controlSettings.dispose();
+    localeSettings.dispose();
     _appState?.dispose();
     _appState = null;
     super.dispose();

@@ -65,7 +65,7 @@ void main() {
     );
     expect(
       tester.getCenter(find.text('Éloïse')).dx,
-      lessThan(tester.getCenter(find.text('1234')).dx),
+      lessThan(tester.getCenter(find.text('1,234')).dx),
     );
 
     await tester.tap(find.byTooltip('Race this ghost.').first);

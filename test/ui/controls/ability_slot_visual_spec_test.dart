@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:lucide_icons_flutter/lucide_icons_400.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/abilities/ability_def.dart';
@@ -8,7 +9,9 @@ import 'package:rpg_runner/ui/controls/layout/controls_radial_layout.dart';
 void main() {
   test('radial layout spec exposes canonical labels, icons, and families', () {
     expect(
-      abilityRadialLayoutSpec.slotSpec(AbilitySlot.primary).label,
+      abilityRadialLayoutSpec
+          .slotSpec(AbilitySlot.primary)
+          .label(appStringsFor(null)),
       'Sword',
     );
     expect(
@@ -21,7 +24,9 @@ void main() {
     );
 
     expect(
-      abilityRadialLayoutSpec.slotSpec(AbilitySlot.secondary).label,
+      abilityRadialLayoutSpec
+          .slotSpec(AbilitySlot.secondary)
+          .label(appStringsFor(null)),
       'Shield',
     );
     expect(
@@ -34,7 +39,9 @@ void main() {
     );
 
     expect(
-      abilityRadialLayoutSpec.slotSpec(AbilitySlot.projectile).label,
+      abilityRadialLayoutSpec
+          .slotSpec(AbilitySlot.projectile)
+          .label(appStringsFor(null)),
       'Projectile',
     );
     expect(
@@ -47,7 +54,9 @@ void main() {
     );
 
     expect(
-      abilityRadialLayoutSpec.slotSpec(AbilitySlot.mobility).label,
+      abilityRadialLayoutSpec
+          .slotSpec(AbilitySlot.mobility)
+          .label(appStringsFor(null)),
       'Mobility',
     );
     expect(
@@ -59,7 +68,12 @@ void main() {
       AbilityRadialSlotFamily.action,
     );
 
-    expect(abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump).label, 'Jump');
+    expect(
+      abilityRadialLayoutSpec
+          .slotSpec(AbilitySlot.jump)
+          .label(appStringsFor(null)),
+      'Jump',
+    );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump).icon,
       LucideIcons400.arrowUpFromLine,
@@ -69,7 +83,12 @@ void main() {
       AbilityRadialSlotFamily.jump,
     );
 
-    expect(abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).label, 'Spell');
+    expect(
+      abilityRadialLayoutSpec
+          .slotSpec(AbilitySlot.spell)
+          .label(appStringsFor(null)),
+      'Spell',
+    );
     expect(
       abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).icon,
       LucideIcons400.wandSparkles,

@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,30 +16,46 @@ class BuildNameAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.sizeOf(context).width < 700 ? 95 : 150,
+    final selection = state.selection;
+    final buildIndex = selection.selectedBuildIndexFor(
+      selection.selectedCharacterId,
+    );
+    void rename() => showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _BuildNameDialog(state: state),
+    );
+
+    if (selection.buildName == SelectionState.defaultBuildName(buildIndex)) {
+      return AppInlineIconButton(
+        icon: Icons.edit_outlined,
+        tooltip: context.l10n.uiRenameBuild,
+        onPressed: rename,
+      );
+    }
+
+    final ui = context.ui;
+    return Tooltip(
+      message: context.l10n.uiRenameBuild,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width < 700 ? 95 : 150,
+        ),
+        child: TextButton(
+          onPressed: rename,
+          style: TextButton.styleFrom(
+            foregroundColor: ui.colors.textPrimary,
+            textStyle: ui.text.label,
+            minimumSize: Size(ui.sizes.tapTarget, ui.sizes.tapTarget),
+            padding: EdgeInsets.symmetric(horizontal: ui.space.xs),
           ),
           child: Text(
-            state.selection.buildName,
+            selection.buildName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: context.ui.text.label,
           ),
         ),
-        AppInlineIconButton(
-          icon: Icons.edit_outlined,
-          tooltip: 'Rename build',
-          onPressed: () => showDialog<void>(
-            context: context,
-            barrierDismissible: false,
-            builder: (_) => _BuildNameDialog(state: state),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -52,10 +69,18 @@ class _BuildNameDialog extends StatefulWidget {
 
 class _BuildNameDialogState extends State<_BuildNameDialog> {
   late final _controller = TextEditingController(
-    text: widget.state.selection.buildName,
+    text:
+        widget.state.selection.buildName ==
+            SelectionState.defaultBuildName(
+              widget.state.selection.selectedBuildIndexFor(
+                widget.state.selection.selectedCharacterId,
+              ),
+            )
+        ? ''
+        : widget.state.selection.buildName,
   );
   bool _saving = false;
-  String? _error;
+  String Function(AppLocalizations)? _error;
 
   @override
   void dispose() {
@@ -66,7 +91,7 @@ class _BuildNameDialogState extends State<_BuildNameDialog> {
   Future<void> _save() async {
     if (_saving) return;
     if (_controller.text.trim().isEmpty) {
-      setState(() => _error = 'Enter a build name.');
+      setState(() => _error = (l10n) => l10n.uiEnterABuildName);
       return;
     }
     setState(() {
@@ -80,7 +105,7 @@ class _BuildNameDialogState extends State<_BuildNameDialog> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = 'Could not save the name. Please try again.';
+          _error = (l10n) => l10n.uiCouldNotSaveTheNamePleaseTryAgain;
         });
       }
     }
@@ -105,8 +130,15 @@ class _BuildNameDialogState extends State<_BuildNameDialog> {
       textInputAction: TextInputAction.done,
       onSubmitted: (_) => _save(),
       decoration: field.fieldDecoration.copyWith(
-        labelText: 'Build name',
-        errorText: _error,
+        labelText: context.l10n.uiBuildName,
+        hintText: context.l10n.defaultBuildName(
+          number:
+              widget.state.selection.selectedBuildIndexFor(
+                widget.state.selection.selectedCharacterId,
+              ) +
+              1,
+        ),
+        errorText: _error?.call(context.l10n),
         labelStyle: ui.text.body.copyWith(color: ui.colors.textMuted),
         counterStyle: ui.text.body.copyWith(
           color: ui.colors.textMuted,
@@ -120,13 +152,13 @@ class _BuildNameDialogState extends State<_BuildNameDialog> {
     );
     final actions = [
       AppButton(
-        label: 'Cancel',
+        label: context.l10n.uiCancel,
         size: compact ? AppButtonSize.xxs : AppButtonSize.xs,
         variant: AppButtonVariant.secondary,
         onPressed: _saving ? null : () => Navigator.of(context).pop(),
       ),
       AppButton(
-        label: _saving ? 'Saving…' : 'Save',
+        label: _saving ? context.l10n.uiSaving : context.l10n.uiSave,
         size: compact ? AppButtonSize.xxs : AppButtonSize.xs,
         onPressed: _saving ? null : _save,
       ),
@@ -134,7 +166,7 @@ class _BuildNameDialogState extends State<_BuildNameDialog> {
     return PopScope(
       canPop: !_saving,
       child: AppDialog(
-        title: compact ? null : 'Rename build',
+        title: compact ? null : context.l10n.uiRenameBuild,
         maxWidth: compact ? 640 : 440,
         scrollable: true,
         content: compact

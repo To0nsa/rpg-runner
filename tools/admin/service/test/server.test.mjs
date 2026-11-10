@@ -7,6 +7,22 @@ import { parseOperatorMessage } from '../../../../functions/lib/inbox/operator.j
 
 const message = { uid: 'test-player', sourceId: 'test-delivery', title: 'Hello', body: 'Your gift', goldAmount: 25 };
 
+test('translated previews preserve normalized immutable contents through retry', async (t) => {
+  const sends = [];
+  const f = await fixture(t, async (_, input) => { sends.push(input); return parseOperatorMessage(input).messageId; });
+  const translated = { ...message, localization: { schemaVersion: 1, translations: {
+    fr: { title: ' Bonjour ', body: ' Ton cadeau ' },
+  } } };
+  const { body: preview } = await f.call('/api/preview', { environment: 'dev', message: translated });
+  translated.localization.translations.fr.title = 'Changed after preview';
+  const result = await f.call('/api/send', { previewId: preview.previewId });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.localization.translations.fr.title, 'Bonjour');
+  assert.deepEqual(sends[0].localization, preview.localization);
+  await f.call('/api/send', { previewId: preview.previewId });
+  assert.equal(sends.length, 1);
+});
+
 test('offline service cannot fall through to real catalog reads or real delivery', async (t) => {
   const environments = await loadEnvironments();
   await assert.rejects(startConsole({ environments, offlineTest: true }), /fixture delivery/);

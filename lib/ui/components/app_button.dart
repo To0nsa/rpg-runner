@@ -143,17 +143,21 @@ class _AppButtonState extends State<AppButton> {
     final textColor = enabled
         ? spec.foreground
         : spec.foreground.withValues(alpha: buttons.disabledForegroundAlpha);
-    final textStyle = spec.textStyle.copyWith(
-      color: textColor,
-      height: 1,
-      shadows: [
-        Shadow(
-          color: UiBrandPalette.black.withValues(alpha: enabled ? 0.65 : 0.4),
-          blurRadius: _pressed ? 1 : 2.5,
-          offset: Offset(0, _pressed ? 0.5 : 1.2),
-        ),
-      ],
-    );
+    final textStyle = DefaultTextStyle.of(context).style
+        .merge(spec.textStyle)
+        .copyWith(
+          color: textColor,
+          height: 1,
+          shadows: [
+            Shadow(
+              color: UiBrandPalette.black.withValues(
+                alpha: enabled ? 0.65 : 0.4,
+              ),
+              blurRadius: _pressed ? 1 : 2.5,
+              offset: Offset(0, _pressed ? 0.5 : 1.2),
+            ),
+          ],
+        );
     final textStrutStyle = StrutStyle(
       fontFamily: textStyle.fontFamily,
       fontSize: textStyle.fontSize,
@@ -170,6 +174,31 @@ class _AppButtonState extends State<AppButton> {
       style: textStyle,
       strutStyle: textStrutStyle,
     );
+    // Size tokens are minima. Translations and accessibility scaling must be
+    // allowed to grow a button when its parent has room for the full action.
+    final measure = TextPainter(
+      text: TextSpan(text: widget.label, style: textStyle),
+      textDirection: Directionality.of(context),
+      locale: Localizations.maybeLocaleOf(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      strutStyle: textStrutStyle,
+    )..layout();
+    final iconWidth = widget.icon == null
+        ? 0.0
+        : (textStyle.fontSize ?? 16) + ui.space.xs;
+    final frameInset = (bevelInset + ui.sizes.borderWidth + 1) * 2;
+    final width = math.max(
+      spec.width,
+      measure.width.ceilToDouble() +
+          iconWidth +
+          spec.padding.horizontal +
+          frameInset,
+    );
+    final height = math.max(
+      spec.height,
+      measure.height.ceilToDouble() + spec.padding.vertical + frameInset,
+    );
+    measure.dispose();
     // 3) Nudge on press for physical button feedback.
     final pressedOffsetY = enabled && _pressed ? 1.5 : 0.0;
     final pressedOffsetX = enabled && _pressed ? 0.5 : 0.0;
@@ -178,8 +207,8 @@ class _AppButtonState extends State<AppButton> {
         : spec.shadow.withValues(alpha: buttons.disabledBackgroundAlpha);
 
     return SizedBox(
-      width: spec.width,
-      height: spec.height,
+      width: width,
+      height: height,
       child: AnimatedContainer(
         duration: _stateAnimationDuration,
         curve: Curves.easeOutCubic,

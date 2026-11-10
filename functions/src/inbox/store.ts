@@ -16,6 +16,7 @@ import { inboxMessageExpiry } from "./retention_policy.js";
 import { assertInboxGiftsEnabled, catalogDefinition, inboxRewardKey, parseInboxRewards } from "./gifts.js";
 import { grantCatalogOwnership, normalizeProgressionStore } from "../ownership/store_state.js";
 import type { InboxCatalogReward } from "./contracts.js";
+import { parseMessageLocalization, type MessageLocalization } from "./localization.js";
 
 const pageSize = 20;
 export const emptyInboxSummary: InboxSummary = { revision: 0, unreadCount: 0, unclaimedCount: 0 };
@@ -28,6 +29,8 @@ export function systemMessageId(uid: string, sourceId: string): string {
 function contentHash(message: SystemMessage): string {
   return createHash("sha256").update(JSON.stringify([
     message.uid, message.sourceId, message.title, message.body, message.rewards,
+    // Do not append even null for legacy mail: retained removal receipts hash exactly five fields.
+    ...(message.localization ? [message.localization] : []),
   ])).digest("hex");
 }
 
@@ -76,6 +79,7 @@ export function decodeSystemMessage(raw: DocumentData | undefined, id: string, u
     sourceId: boundedText(raw.sourceId, "sourceId", 200),
     title: boundedText(raw.title, "title", 120),
     body: boundedText(raw.body, "body", 2000),
+    ...(raw.localization !== undefined ? { localization: parseMessageLocalization(raw.localization) } : {}),
     rewards,
     createdAtMs: safeInteger(raw.createdAtMs, "createdAtMs"),
     readAtMs: raw.readAtMs === null ? null : safeInteger(raw.readAtMs, "readAtMs"),
@@ -89,6 +93,7 @@ export interface SystemMessageDelivery {
   body: string;
   goldAmount?: number;
   attachments?: InboxCatalogReward[];
+  localization?: MessageLocalization;
 }
 
 /** Prepare all reads before settlement writes; invoke the returned writer in that transaction. */
@@ -115,6 +120,7 @@ export async function prepareSystemMessages(args: {
       sourceId,
       title: boundedText(delivery.title, "title", 120),
       body: boundedText(delivery.body, "body", 2000),
+      ...(delivery.localization !== undefined ? { localization: parseMessageLocalization(delivery.localization) } : {}),
       createdAtMs: safeInteger(args.nowMs, "nowMs"),
       readAtMs: null,
       claimedAtMs: null,
@@ -141,7 +147,8 @@ export async function prepareSystemMessages(args: {
     if (!existing[index].exists) return true;
     const previous = decodeSystemMessage(existing[index].data(), message.id, args.uid);
     if (previous.sourceId !== message.sourceId || previous.title !== message.title ||
-        previous.body !== message.body || !isDeepStrictEqual(previous.rewards, message.rewards)) {
+        previous.body !== message.body || !isDeepStrictEqual(previous.rewards, message.rewards) ||
+        !isDeepStrictEqual(previous.localization, message.localization)) {
       throw new HttpsError("already-exists", "Delivery identity was reused with different content.");
     }
     return false;

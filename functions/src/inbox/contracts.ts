@@ -22,6 +22,7 @@ export interface SystemMessage {
   sourceId: string;
   title: string;
   body: string;
+  localization?: import("./localization.js").MessageLocalization;
   createdAtMs: number;
   readAtMs: number | null;
   claimedAtMs: number | null;

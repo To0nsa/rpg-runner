@@ -1,5 +1,14 @@
 # Current Implementation Plans
 
+- [Equipment and Training town services](town_services.md): permanent catalogues,
+  independent character browsing, protected purchases, dev backend release and Android build.
+
+- [Completed English source and French localization](../archive/2026-11-09/building/localization.md):
+  typed resources, device language settings, complete player text migration,
+  compatible inbox messages, enforcement and contributor/agent workflows;
+  [local verification](../verification/localization-2026-11-09.md). Native-device
+  and full French editorial acceptance remain separate checks.
+
 - [Completed Willow bomb throws](../archive/2026-11-08/building/willow_bomb_throw.md):
   hand-aligned lob, farthest reachable auto-aim, contact/fuse detonation and
   6 Supplies per throw; [local verification](../verification/willow-bomb-throw-2026-11-08.md).

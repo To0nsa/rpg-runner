@@ -259,7 +259,7 @@ canonical. Account replacement clears previews and starts a fresh revision
 baseline; canonical application rejects older revisions within that account.
 
 `goldNeedsVerification(cost)` identifies actions affordable only with displayed
-local rewards. Store purchases and paid refreshes show the existing themed modal
+local rewards. Catalogue purchases show the existing themed modal
 instead of sending a command in that case. Confirmed funds remain usable; the
 backend still authorizes every actual purchase. The modal observes account
 changes and becomes ready after settlement, but never retries/submits a purchase.

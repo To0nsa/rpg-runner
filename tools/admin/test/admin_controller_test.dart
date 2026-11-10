@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:game_presentation/message_localization.dart';
 import 'package:lothringen_admin/src/admin_controller.dart';
 import 'package:lothringen_admin/src/admin_draft.dart';
 import 'package:lothringen_admin/src/admin_service.dart';
@@ -66,6 +67,54 @@ class TestService implements AdminService {
 }
 
 void main() {
+  test('translated drafts survive restart and changed translation receipts are rejected', () async {
+    final service = TestService(), store = MemoryStore();
+    final c = AdminController(service: service, store: store);
+    addTearDown(c.dispose);
+    await c.initialize();
+    await c.selectEnvironment('dev');
+    c.edit(
+      c.draft.copyWith(
+        uid: 'player',
+        title: 'Gift',
+        body: 'Your gift',
+        translations: {
+          'fr': const MessageText(title: 'Cadeau', body: 'Ton cadeau'),
+          'fr-CA': const MessageText(
+            title: 'Cadeau',
+            body: 'Ton cadeau canadien',
+          ),
+        },
+      ),
+    );
+    final restored = AdminDraft.fromJson(c.draft.toJson());
+    expect(restored.message, c.draft.message);
+    expect(restored.sourceId, c.draft.sourceId);
+    await c.createPreview();
+    service.preview!['localization'] = {
+      'schemaVersion': 1,
+      'translations': {
+        'fr': {'title': 'Changed', 'body': 'Changed'},
+      },
+    };
+    await c.send();
+    expect(c.draft.receipt, isNull);
+    expect(c.error, contains('Invalid delivery'));
+    expect(store.draft!.translations['fr']!.title, 'Cadeau');
+    expect(store.draft!.attempted, isTrue);
+    final incomplete = AdminDraft.fromJson(
+      restored
+          .copyWith(
+            translations: {'fr': const MessageText(title: 'Draft', body: '')},
+          )
+          .toJson(),
+    );
+    expect(incomplete.translations['fr']!.body, isEmpty);
+    expect(
+      () => MessageLocalization.fromJson(incomplete.message['localization']),
+      throwsFormatException,
+    );
+  });
   test(
     'failed persistence blocks send and receipt mismatch never confirms',
     () async {

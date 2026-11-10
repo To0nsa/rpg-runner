@@ -197,9 +197,8 @@ test("settlement handoff credits gold once and exposes terminal validation toget
   assert.equal(receipt.submissionStatus.state, "validated");
   assert.equal(receipt.submissionStatus.validatedRun, undefined);
   const fixture = JSON.parse(JSON.stringify(receipt).replaceAll(runSessionId, "run_completion_fixture"));
-  // Normalize only the current-day store marker; all account fields remain in
-  // the real transaction payload consumed by the Dart contract test.
-  fixture.canonicalState.progression.store.refreshDayKeyUtc = "2023-11-14";
+  // Capture the real transaction payload, including the permanent catalogue,
+  // for the Dart contract test. Only the generated run identity is normalized.
   const fixturePath = resolve(process.cwd(), "test/fixtures/run_completion_receipt_v1.json");
   if (process.env.UPDATE_RUN_COMPLETION_FIXTURE === "true") {
     mkdirSync(resolve(process.cwd(), "test/fixtures"), { recursive: true });

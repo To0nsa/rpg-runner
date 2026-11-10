@@ -5,6 +5,12 @@ background, typography, colors and controls. Select a message in the left list
 to read it on the right. Text scrolls while gift controls remain visible.
 Information messages have no claim action.
 
+The inbox interface follows the device language setting. New level messages
+include English and French, with French addressing the player as **tu**. Operator
+mail can include a French translation. Missing translations and legacy messages
+show their original fallback text; changing language never changes a gift or
+marks additional messages read.
+
 Each newly reached account level delivers **25 gold** to claim manually. A run
 crossing several levels creates one gift per new level. Previously reached
 levels receive nothing when the feature is introduced. There is no catch-up

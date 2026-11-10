@@ -26,6 +26,8 @@ void main() {
       expect(completion.status.state, RunSessionState.validated);
       expect(completion.status.reward!.spendableGoldDelta, 75);
       expect(completion.canonical!.progression.gold, 75);
+      expect(completion.canonical!.progression.store.schemaVersion, 2);
+      expect(completion.canonical!.progression.store.catalogOffers, isNotEmpty);
       expect(
         completion.canonical!.progression.appliedRewardGrantIds,
         contains('run_completion_fixture'),

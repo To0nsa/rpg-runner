@@ -1,3 +1,7 @@
+import 'package:intl/intl.dart';
+
+import '../../../l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:battery_plus/battery_plus.dart';
@@ -132,7 +136,11 @@ class _HubTopRowState extends State<HubTopRow> {
           SizedBox(width: ui.space.xs),
           Icon(_batteryIcon, color: _batteryColor, size: ui.sizes.iconSize.sm),
           SizedBox(width: ui.space.xxs),
-          Text('$_batteryLevel%', style: ui.text.body),
+          Text(
+            NumberFormat.percentPattern(context.l10n.localeName)
+                .format(_batteryLevel / 100),
+            style: ui.text.body,
+          ),
           SizedBox(width: ui.space.md),
           Icon(
             Icons.access_time,

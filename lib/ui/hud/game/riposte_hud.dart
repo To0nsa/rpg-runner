@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../components/hud_frame.dart';
@@ -22,8 +23,8 @@ class RiposteHud extends StatelessWidget {
       padding: EdgeInsets.all(context.ui.space.xs),
       child: Text(
         guarding
-            ? 'Riposte ready · release to counter'
-            : 'Riposte · ${(ticksLeft / tickHz).toStringAsFixed(1)}s',
+            ? context.l10n.riposteReady
+            : context.l10n.riposteCountdown(seconds: ticksLeft / tickHz),
       ),
     );
   }

@@ -1024,115 +1024,47 @@ test("sword bucket eventually becomes sold out after all sword purchases", async
   assert.equal(storeOfferByBucket(canonical, "sword"), null);
 });
 
-test("refreshStore gold refresh rerolls offers and spends exactly 50 gold", async () => {
+test("retained refresh requests reject without spending and retry idempotently", async () => {
   const seeded = await loadOrCreateCanonicalState({ db, uid });
-  const withGold = await executeOwnershipCommand({
-    db,
-    uid,
-    command: awardRunGoldCommand({
-      expectedRevision: seeded.revision,
-      commandId: "cmd_store_refresh_award",
-      runId: 504,
-      goldEarned: 200,
-    }),
-  });
-  assert.equal(withGold.rejectedReason, null);
-
-  const beforeStore = storeState(withGold.canonicalState);
-  const beforeOffers = storeOfferIdByBucket(withGold.canonicalState);
-  const refresh = await executeOwnershipCommand({
-    db,
-    uid,
-    command: refreshStoreCommand({
-      expectedRevision: withGold.newRevision,
-      commandId: "cmd_store_refresh_gold",
-      method: "gold",
-    }),
-  });
-  assert.equal(refresh.rejectedReason, null);
-  assert.equal(refresh.canonicalState.progression.gold, 200 - goldRefreshCost);
-
-  const afterStore = storeState(refresh.canonicalState);
-  assert.equal(afterStore.generation, beforeStore.generation + 1);
-  assert.equal(afterStore.refreshesUsedToday, beforeStore.refreshesUsedToday + 1);
-  assert.equal(changedBuckets(beforeOffers, storeOfferIdByBucket(refresh.canonicalState)) > 0, true);
-});
-
-test("refreshStore replay is idempotent with no double spend", async () => {
-  const seeded = await loadOrCreateCanonicalState({ db, uid });
-  const withGold = await executeOwnershipCommand({
-    db,
-    uid,
-    command: awardRunGoldCommand({
-      expectedRevision: seeded.revision,
-      commandId: "cmd_store_refresh_replay_award",
-      runId: 505,
-      goldEarned: 200,
-    }),
-  });
-  assert.equal(withGold.rejectedReason, null);
-
-  const command = refreshStoreCommand({
-    expectedRevision: withGold.newRevision,
-    commandId: "cmd_store_refresh_replay",
-    method: "gold",
-  });
+  const withGold = await executeOwnershipCommand({ db, uid, command: awardRunGoldCommand({
+    expectedRevision: seeded.revision, commandId: "catalogue_gold", runId: 504, goldEarned: 500,
+  }) });
+  const before = withGold.canonicalState;
+  const command = refreshStoreCommand({ expectedRevision: before.revision,
+    commandId: "catalogue_refresh", method: "gold" });
   const first = await executeOwnershipCommand({ db, uid, command });
   const replay = await executeOwnershipCommand({ db, uid, command });
-
-  assert.equal(first.rejectedReason, null);
+  assert.equal(first.rejectedReason, "nothingToRefresh");
   assert.equal(replay.replayedFromIdempotency, true);
-  assert.equal(replay.newRevision, first.newRevision);
-  assert.equal(
-    replay.canonicalState.progression.gold,
-    first.canonicalState.progression.gold,
-  );
+  assert.equal(replay.canonicalState.progression.gold, 500);
+  assert.equal(replay.newRevision, before.revision);
+  assert.deepEqual(replay.canonicalState.progression.store, before.progression.store);
 });
 
-test("refreshStore rejects after three successful refreshes in one UTC day", async () => {
+test("explicit-character purchase survives retries and binds target into idempotency", async () => {
   const seeded = await loadOrCreateCanonicalState({ db, uid });
-  const withGold = await executeOwnershipCommand({
-    db,
-    uid,
-    command: awardRunGoldCommand({
-      expectedRevision: seeded.revision,
-      commandId: "cmd_store_refresh_limit_award",
-      runId: 506,
-      goldEarned: 500,
-    }),
-  });
-  assert.equal(withGold.rejectedReason, null);
-
-  let canonical = withGold.canonicalState;
-  for (let index = 0; index < 3; index += 1) {
-    const refreshed = await executeOwnershipCommand({
-      db,
-      uid,
-      command: refreshStoreCommand({
-        expectedRevision: canonical.revision,
-        commandId: `cmd_store_refresh_limit_ok_${index}`,
-        method: "gold",
-      }),
-    });
-    assert.equal(refreshed.rejectedReason, null);
-    canonical = refreshed.canonicalState;
-  }
-
-  const limitRejected = await executeOwnershipCommand({
-    db,
-    uid,
-    command: refreshStoreCommand({
-      expectedRevision: canonical.revision,
-      commandId: "cmd_store_refresh_limit_reject",
-      method: "gold",
-    }),
-  });
-  assert.equal(limitRejected.rejectedReason, "refreshLimitReached");
-  assert.equal(limitRejected.newRevision, canonical.revision);
-  assert.equal(
-    limitRejected.canonicalState.progression.gold,
-    canonical.progression.gold,
-  );
+  const withGold = await executeOwnershipCommand({ db, uid, command: awardRunGoldCommand({
+    expectedRevision: seeded.revision, commandId: "catalogue_target_gold", runId: 505, goldEarned: 500,
+  }) });
+  const command = purchaseStoreOfferCommand({ expectedRevision: withGold.newRevision,
+    commandId: "catalogue_target_purchase", offerId: "ability:mobility:bounty_hunter.blink_dash" });
+  command.payload.characterId = "bountyHunter";
+  const first = await executeOwnershipCommand({ db, uid, command });
+  assert.equal(first.rejectedReason, null);
+  assert.equal(first.canonicalState.progression.gold, 350);
+  assert.deepEqual(first.canonicalState.selection, withGold.canonicalState.selection);
+  const replay = await executeOwnershipCommand({ db, uid, command });
+  assert.equal(replay.replayedFromIdempotency, true);
+  assert.equal(replay.canonicalState.progression.gold, 350);
+  const mismatch = await executeOwnershipCommand({ db, uid, command: {
+    ...command, payload: { ...command.payload, characterId: "eloise" },
+  } });
+  assert.equal(mismatch.rejectedReason, "idempotencyKeyReuseMismatch");
+  const duplicate = await executeOwnershipCommand({ db, uid, command: {
+    ...command, commandId: "catalogue_duplicate", expectedRevision: first.newRevision,
+  } });
+  assert.equal(duplicate.rejectedReason, "alreadyOwned");
+  assert.equal(duplicate.canonicalState.progression.gold, 350);
 });
 
 test("refreshStore rejects when no bucket can change", async () => {

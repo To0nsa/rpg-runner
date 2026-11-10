@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../components/ui_progress_animator.dart';
@@ -14,7 +15,6 @@ class CodexEntryTile extends StatefulWidget {
     required this.portrait,
     required this.current,
     required this.requiredProgress,
-    required this.progressLabel,
     required this.active,
     required this.tracker,
     required this.accountKey,
@@ -22,7 +22,7 @@ class CodexEntryTile extends StatefulWidget {
     required this.onPressed,
     this.concealUntilUnlocked = false,
   });
-  final String title, progressLabel;
+  final String title;
   final Widget portrait;
   final int current, requiredProgress;
   final bool active;
@@ -98,17 +98,19 @@ class _CodexEntryTileState extends State<CodexEntryTile>
     final unlocked = widget.current >= widget.requiredProgress;
     final concealed = widget.concealUntilUnlocked && !unlocked;
     final count =
-        '${formatCount(widget.current)} / ${formatCount(widget.requiredProgress)}';
+        '${formatCount(widget.current, l10n: context.l10n)} / ${formatCount(widget.requiredProgress, l10n: context.l10n)}';
     return Padding(
       padding: EdgeInsets.only(bottom: ui.space.xs),
       child: Semantics(
-        label:
-            '${concealed ? 'Entry locked' : widget.title}, ${unlocked ? 'discovered' : 'locked'}',
+        label: context.l10n.codexEntrySemantics(
+          title: concealed ? context.l10n.uiEntryLocked : widget.title,
+          state: unlocked ? 'discovered' : 'locked',
+        ),
         value: unlocked
-            ? 'Open'
+            ? context.l10n.uiOpen
             : concealed
-            ? 'Defeat $count to unlock'
-            : '$count ${widget.progressLabel}',
+            ? context.l10n.codexDefeatToUnlock(progress: count)
+            : count,
         button: true,
         onTap: widget.onPressed,
         child: ExcludeSemantics(
@@ -149,7 +151,9 @@ class _CodexEntryTileState extends State<CodexEntryTile>
                           SizedBox(width: ui.space.xs),
                           Expanded(
                             child: Text(
-                              concealed ? 'Entry locked' : widget.title,
+                              concealed
+                                  ? context.l10n.uiEntryLocked
+                                  : widget.title,
                               style: ui.text.headline,
                             ),
                           ),
@@ -161,16 +165,18 @@ class _CodexEntryTileState extends State<CodexEntryTile>
                               builder: (context, _) {
                                 final shown = _progressAnimation.value;
                                 final shownCount =
-                                    '${formatCount(shown)} / ${formatCount(widget.requiredProgress)}';
+                                    '${formatCount(shown, l10n: context.l10n)} / ${formatCount(widget.requiredProgress, l10n: context.l10n)}';
                                 final open =
                                     unlocked &&
                                     shown >= widget.requiredProgress;
                                 return ProgressMeter(
                                   fraction: shown / widget.requiredProgress,
                                   label: open
-                                      ? 'Open'
+                                      ? context.l10n.uiOpen
                                       : concealed
-                                      ? 'Defeat $shownCount to unlock'
+                                      ? context.l10n.codexDefeatToUnlock(
+                                          progress: shownCount,
+                                        )
                                       : shownCount,
                                 );
                               },

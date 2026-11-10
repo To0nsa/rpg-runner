@@ -417,6 +417,7 @@ function applyPurchaseStoreOffer(
     selection,
     userId: command.userId,
     offerId,
+    characterId: typeof payload.characterId === "string" ? payload.characterId : undefined,
     nowMs: Date.now(),
   });
   if (!result.accepted) {

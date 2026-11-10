@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -39,7 +41,7 @@ class _BrandSplashScreenState extends State<BrandSplashScreen> {
       backgroundColor: ui.colors.background,
       body: Center(
         child: Text(
-          'Luxis Games',
+          context.l10n.studioName,
           style: ui.text.display.copyWith(
             fontSize: 36,
             fontWeight: FontWeight.w700,

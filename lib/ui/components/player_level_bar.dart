@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'reward_value_paint.dart';
@@ -87,8 +88,14 @@ class _PlayerLevelBarState extends State<PlayerLevelBar>
           surface: 'hub',
           child: Semantics(
             label: widget.progress.isMaxLevel
-                ? 'Level ${PlayerProgress.maxLevel}, maximum level reached'
-                : 'Level ${widget.progress.level}, ${widget.progress.xpInLevel} of ${widget.progress.xpForNextLevel} XP to next level',
+                ? context.l10n.levelMaximumSemantics(
+                    level: PlayerProgress.maxLevel,
+                  )
+                : context.l10n.levelProgressSemantics(
+                    level: widget.progress.level,
+                    earned: widget.progress.xpInLevel,
+                    needed: widget.progress.xpForNextLevel,
+                  ),
             child: ExcludeSemantics(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,8 +130,14 @@ class _PlayerLevelBarState extends State<PlayerLevelBar>
                               ),
                               child: Text(
                                 displayed.isMaxLevel
-                                    ? 'LEVEL ${displayed.level}  ·  MAX LEVEL'
-                                    : 'LEVEL ${displayed.level}  ·  $earned / $needed XP',
+                                    ? context.l10n.levelMaximumLabel(
+                                        level: displayed.level,
+                                      )
+                                    : context.l10n.levelProgressLabel(
+                                        level: displayed.level,
+                                        earned: earned,
+                                        needed: needed,
+                                      ),
                                 style: ui.text.label.copyWith(
                                   color: ui.colors.textPrimary,
                                 ),

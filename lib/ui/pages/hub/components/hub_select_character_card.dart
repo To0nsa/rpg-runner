@@ -1,7 +1,11 @@
+import 'package:game_presentation/character_text.dart';
+import 'package:game_presentation/game_localization.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+
 import 'hub_select_card_body.dart';
 import 'hub_select_card_frame.dart';
 import '../../../components/player_idle_preview.dart';
@@ -30,8 +34,8 @@ class HubSelectCharacterCard extends StatelessWidget {
       onTap: onChange,
       background: const ColoredBox(color: UiBrandPalette.cardBackground),
       child: HubSelectCardBody(
-        label: 'CHARACTER SELECTION',
-        title: def.displayName,
+        label: context.l10n.uiCharacterSelection,
+        title: characterDisplayName(def.id, strings: context.gameL10n),
         subtitle: buildName,
         trailing: PlayerIdlePreview(
           characterId: characterId,

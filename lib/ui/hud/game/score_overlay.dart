@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/widgets.dart';
 import 'package:runner_core/scoring/run_distance.dart';
 
@@ -43,13 +44,13 @@ class ScoreOverlay extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Distance ${distanceMeters}m',
+                    context.l10n.scoreDistance(meters: distanceMeters),
                     textAlign: TextAlign.center,
                     style: labelStyle,
                   ),
                   SizedBox(height: ui.space.xxs / 2),
                   Text(
-                    'Collectibles $collectibles',
+                    context.l10n.scoreCollectibles(count: collectibles),
                     textAlign: TextAlign.center,
                     style: labelStyle,
                   ),

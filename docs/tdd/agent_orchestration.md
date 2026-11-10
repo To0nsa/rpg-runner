@@ -59,6 +59,13 @@ Record release prerequisites separately from local implementation completion;
 cloud cutover requires the user's release authorization.
 
 Shared tool work routes through [shared tool changes](../../.agent/workflows/change-shared-tools.md).
+Player text and language changes route through
+[localization](../../.agent/workflows/change-localization.md), including resource
+ownership, translator context, locale lifecycle and indirect text sources.
+  The workflow points to authoring recipes, terminology and the source/resource/
+  generated checks. Explicitly authorized collaborators receive separate owner
+  packets; shared resource writes and generation are serialized. Local checks do
+  not establish native-device, linguistic or live rollout acceptance.
 Neutral Flutter presentation belongs to `tool_ui`; Core-backed icons/names belong
 to `game_presentation`; editor authoring and Admin delivery state keep separate
 owners. Gift changes compose backend and game-client contract checks, including

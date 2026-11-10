@@ -1,3 +1,5 @@
+import '../l10n/app_localization.dart';
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons_400.dart';
 
@@ -18,14 +20,20 @@ enum AbilityRadialAnchor { jump, dash, melee, secondary, projectile, spell }
 class AbilityRadialSlotSpec {
   const AbilityRadialSlotSpec({
     required this.slot,
-    required this.label,
     required this.icon,
     required this.anchor,
     required this.family,
   });
 
   final AbilitySlot slot;
-  final String label;
+  String label(AppLocalizations l10n) => switch (slot) {
+    AbilitySlot.primary => l10n.controlSword,
+    AbilitySlot.secondary => l10n.controlShield,
+    AbilitySlot.projectile => l10n.controlProjectile,
+    AbilitySlot.mobility => l10n.controlMobility,
+    AbilitySlot.jump => l10n.controlJump,
+    AbilitySlot.spell => l10n.controlSpell,
+  };
   final IconData icon;
   final AbilityRadialAnchor anchor;
   final AbilityRadialSlotFamily family;
@@ -121,42 +129,36 @@ const AbilityRadialLayoutSpec abilityRadialLayoutSpec = AbilityRadialLayoutSpec(
   slots: <AbilityRadialSlotSpec>[
     AbilityRadialSlotSpec(
       slot: AbilitySlot.primary,
-      label: 'Sword',
       icon: LucideIcons400.sword,
       anchor: AbilityRadialAnchor.melee,
       family: AbilityRadialSlotFamily.directional,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.secondary,
-      label: 'Shield',
       icon: LucideIcons400.shield,
       anchor: AbilityRadialAnchor.secondary,
       family: AbilityRadialSlotFamily.action,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.projectile,
-      label: 'Projectile',
       icon: LucideIcons400.bowArrow,
       anchor: AbilityRadialAnchor.projectile,
       family: AbilityRadialSlotFamily.directional,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.mobility,
-      label: 'Mobility',
       icon: LucideIcons400.wind,
       anchor: AbilityRadialAnchor.dash,
       family: AbilityRadialSlotFamily.action,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.jump,
-      label: 'Jump',
       icon: LucideIcons400.arrowUpFromLine,
       anchor: AbilityRadialAnchor.jump,
       family: AbilityRadialSlotFamily.jump,
     ),
     AbilityRadialSlotSpec(
       slot: AbilitySlot.spell,
-      label: 'Spell',
       icon: LucideIcons400.wandSparkles,
       anchor: AbilityRadialAnchor.spell,
       family: AbilityRadialSlotFamily.action,

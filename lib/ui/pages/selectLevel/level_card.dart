@@ -1,6 +1,8 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/levels/level_id.dart';
+
 import '../../levels/level_id_ui.dart';
 import '../../components/level_card_artwork.dart';
 import '../../theme/ui_tokens.dart';
@@ -71,7 +73,7 @@ class LevelCard extends StatelessWidget {
                 LevelCardArtwork(levelId: levelId, unselected: !selected),
                 Center(
                   child: Text(
-                    levelId.displayName.toUpperCase(),
+                    levelId.localizedName(context.l10n).toUpperCase(),
                     style: ui.text.cardTitle,
                   ),
                 ),

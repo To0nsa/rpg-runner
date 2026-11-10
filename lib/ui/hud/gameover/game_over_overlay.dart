@@ -1,3 +1,7 @@
+import 'package:game_presentation/enemy_text.dart';
+import 'package:game_presentation/gear_text.dart';
+import 'package:game_presentation/game_localization.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -157,7 +161,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Wallet: ',
+                    context.l10n.uiWallet,
                     style: ui.text.body.copyWith(
                       color: ui.colors.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -179,7 +183,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    'Run reward: +',
+                    context.l10n.uiRunReward,
                     style: ui.text.body.copyWith(
                       color: ui.colors.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -195,7 +199,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
             if (runRewardXp > 0) ...[
               SizedBox(height: ui.space.xxs),
               Text(
-                '+$runRewardXp XP',
+                context.l10n.runRewardXp(xp: runRewardXp),
                 style: ui.text.body.copyWith(
                   color: ui.colors.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -240,9 +244,10 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       final ui = context.ui;
       final journalError = widget.replaySubmissionJournalError;
       final message = journalError == null
-          ? 'Saving replay. Keep this screen open until it is saved.'
-          : 'Replay could not be saved. Retry before leaving, or exit without '
-                'a verified reward.';
+          ? context.l10n.uiSavingReplayKeepThisScreenOpenUntilItIsSaved
+          : context
+                .l10n
+                .uiReplayCouldNotBeSavedRetryBeforeLeavingOrExitWithoutAVerifiedReward;
       return DecoratedBox(
         decoration: BoxDecoration(
           color: ui.colors.shadow.withValues(alpha: 0.2),
@@ -257,7 +262,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                journalError == null ? 'Saving replay' : 'Replay save failed',
+                journalError == null
+                    ? context.l10n.uiSavingReplay
+                    : context.l10n.uiReplaySaveFailed,
                 style: ui.text.body.copyWith(
                   color: journalError == null
                       ? ui.colors.textPrimary
@@ -275,7 +282,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                   widget.onRetryReplayJournal != null) ...[
                 SizedBox(height: ui.space.xs),
                 AppButton(
-                  label: 'Retry Saving',
+                  label: context.l10n.uiRetrySaving,
                   variant: AppButtonVariant.secondary,
                   size: AppButtonSize.xs,
                   onPressed: widget.onRetryReplayJournal,
@@ -312,8 +319,11 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Verification: ', style: labelStyle),
-          Text(_submissionStatusLabel(status.phase), style: valueStyle),
+          Text(context.l10n.uiVerification, style: labelStyle),
+          Text(
+            _submissionStatusLabel(status.phase, context.l10n),
+            style: valueStyle,
+          ),
         ],
       ),
     ];
@@ -321,12 +331,14 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       rows.add(SizedBox(height: ui.space.xxs));
       rows.add(
         Text(
-          'Verification delayed',
+          context.l10n.uiVerificationDelayed,
           style: ui.text.body.copyWith(color: ui.colors.danger),
         ),
       );
     }
-    final statusMessage = _normalizeSubmissionStatusMessage(status.message);
+    final statusMessage = status.message == null
+        ? null
+        : context.l10n.submissionFailureBody;
     if (statusMessage != null) {
       rows.add(SizedBox(height: ui.space.xxs));
       rows.add(
@@ -430,15 +442,18 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     if (!widget.visible) return const SizedBox.shrink();
     final ui = context.ui;
 
-    final subtitleDeathReason = _buildSubtitleDeathReason(widget.runEndedEvent);
+    final subtitleDeathReason = _RunEndText(
+      context.l10n,
+      context.gameL10n,
+    )._buildSubtitleDeathReason(widget.runEndedEvent);
     final showCollectButton =
         (_feedController.totalPoints > 0 &&
         _feedController.feedState != ScoreFeedState.complete);
     final showScoreInHeader =
         _feedController.feedState == ScoreFeedState.complete;
     final collectLabel = _feedController.feedState == ScoreFeedState.idle
-        ? 'Collect Score'
-        : 'Skip';
+        ? context.l10n.uiCollectScore
+        : context.l10n.uiSkip;
     final goldPanel = _buildGoldPanel(context);
     final submissionPanel = _buildSubmissionStatusPanel(context);
     final mayLeaveGameOver =
@@ -450,7 +465,8 @@ class _GameOverOverlayState extends State<GameOverOverlay>
         formatScoreRow(
           _feedController.rows[i].row,
           _feedController.rows[i].remainingPoints,
-          enemyName: _enemyName,
+          enemyName: (id) => enemyDisplayName(id, strings: context.gameL10n),
+          l10n: context.l10n,
         ),
     ];
 
@@ -496,7 +512,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                         else
                           RestartExitButtons(
                             restartButton: PlayButton(
-                              label: 'Restart',
+                              label: context.l10n.uiRestart,
                               variant: AppButtonVariant.secondary,
                               size: AppButtonSize.xs,
                               isLoading: widget.restartInProgress,
@@ -510,9 +526,11 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                                         ? (widget.isDeveloperPractice ||
                                                   widget
                                                       .replaySubmissionJournaled
-                                              ? 'Exit'
-                                              : 'Exit Without Reward')
-                                        : 'Saving Replay',
+                                              ? context.l10n.uiExit
+                                              : context
+                                                    .l10n
+                                                    .uiExitWithoutReward)
+                                        : context.l10n.uiSavingReplayLabel,
                                     variant: AppButtonVariant.secondary,
                                     size: AppButtonSize.xs,
                                     onPressed: mayLeaveGameOver
@@ -535,7 +553,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                     alignment: Alignment.topCenter,
                     child: widget.isDeveloperPractice
                         ? Text(
-                            'Developer Practice\nNo rewards or leaderboard entries.',
+                            context.l10n.practiceNoRewards,
                             style: ui.text.body,
                             textAlign: TextAlign.center,
                           )
@@ -561,190 +579,121 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 }
 
-String? _buildSubtitleDeathReason(RunEndedEvent? event) {
-  if (event == null) return null;
-  switch (event.reason) {
-    case RunEndReason.bossEncounterFailed:
-      return 'Boss encounter failed';
-    case RunEndReason.gaveUp:
-      return 'You gave up the run.';
-    case RunEndReason.fellBehindCamera:
-      return 'You fell behind.';
-    case RunEndReason.fellIntoGap:
-      return 'You fell into a gap.';
-    case RunEndReason.playerDied:
-      return _buildDeathSubtitle(event.deathInfo);
-  }
-}
+class _RunEndText {
+  const _RunEndText(this.l10n, this.strings);
+  final AppLocalizations l10n;
+  final GameLocalizations strings;
 
-String _buildDeathSubtitle(DeathInfo? info) {
-  if (info == null) return 'You died.';
-  final trap = info.sourceTrap;
-  if (trap != null) {
-    if (info.kind == DeathSourceKind.statusEffect) {
-      return 'You succumbed to Poison from a dart trap.';
+  String? _buildSubtitleDeathReason(RunEndedEvent? event) {
+    if (event == null) return null;
+    switch (event.reason) {
+      case RunEndReason.bossEncounterFailed:
+        return l10n.runBossFailed;
+      case RunEndReason.gaveUp:
+        return l10n.runGaveUp;
+      case RunEndReason.fellBehindCamera:
+        return l10n.runFellBehind;
+      case RunEndReason.fellIntoGap:
+        return l10n.runFellIntoGap;
+      case RunEndReason.playerDied:
+        return _buildDeathSubtitle(event.deathInfo);
     }
-    return switch (trap.trapId) {
-      TrapId.spike => 'Killed by a Spike trap.',
-      TrapId.swingingAxe => 'Killed by a Swinging Axe trap.',
-      TrapId.poisonDarts => 'Killed by a Poison Dart.',
-    };
   }
-  switch (info.kind) {
-    case DeathSourceKind.projectile:
-      return _buildProjectileDeath(info);
-    case DeathSourceKind.meleeHitbox:
-      return _buildMeleeDeath(info);
-    case DeathSourceKind.statusEffect:
-      return 'You succumbed to a status effect.';
-    case DeathSourceKind.unknown:
-      return 'You died.';
-    case DeathSourceKind.spellImpact:
-      return _buildSpellImpactDeath(info);
-    case DeathSourceKind.trap:
-      return 'Killed by a trap.';
+
+  String _buildDeathSubtitle(DeathInfo? info) {
+    if (info == null) return l10n.runDied;
+    final trap = info.sourceTrap;
+    if (trap != null) {
+      if (info.kind == DeathSourceKind.statusEffect) {
+        return l10n.runPoisonTrap;
+      }
+      return switch (trap.trapId) {
+        TrapId.spike => l10n.runSpikeTrap,
+        TrapId.swingingAxe => l10n.runAxeTrap,
+        TrapId.poisonDarts => l10n.runPoisonDart,
+      };
+    }
+    switch (info.kind) {
+      case DeathSourceKind.projectile:
+        return _buildProjectileDeath(info);
+      case DeathSourceKind.meleeHitbox:
+        return _buildMeleeDeath(info);
+      case DeathSourceKind.statusEffect:
+        return l10n.runStatusDeath;
+      case DeathSourceKind.unknown:
+        return l10n.runDied;
+      case DeathSourceKind.spellImpact:
+        return _buildSpellImpactDeath(info);
+      case DeathSourceKind.trap:
+        return l10n.runTrapDeath;
+    }
   }
-}
 
-String _buildProjectileDeath(DeathInfo info) {
-  final projectileId = info.projectileId;
-  if (projectileId == null) return 'You died.';
-  final projectileName = _projectileName(projectileId);
-  /* final spellName =
-      info.spellId == null ? null : _spellName(info.spellId!); */
-  final enemyName = info.enemyId == null ? null : _enemyName(info.enemyId!);
-
-  final buffer = StringBuffer('Killed by $projectileName');
-  /*   if (spellName != null) {
-    buffer.write(' ($spellName)');
-  } */
-  if (enemyName != null) {
-    buffer.write(' from $enemyName.');
-  } else {
-    buffer.write('.');
+  String _buildProjectileDeath(DeathInfo info) {
+    final projectileId = info.projectileId;
+    if (projectileId == null) return l10n.runDied;
+    final projectileName = _projectileName(projectileId);
+    return l10n.runProjectileDeath(
+      projectile: projectileName,
+      source: info.enemyId == null ? 'none' : 'enemy',
+      enemy: info.enemyId == null ? '' : _enemyName(info.enemyId!),
+    );
   }
-  return buffer.toString();
-}
 
-String _buildMeleeDeath(DeathInfo info) {
-  if (info.enemyId == null) return 'You died.';
-  return 'Killed by a melee strike from a ${_enemyName(info.enemyId!)}.';
-}
-
-String _buildSpellImpactDeath(DeathInfo info) {
-  final enemyId = info.enemyId;
-  if (enemyId == null) {
-    return 'You were consumed by a spell impact.';
+  String _buildMeleeDeath(DeathInfo info) {
+    if (info.enemyId == null) return l10n.runDied;
+    return l10n.runMeleeDeath(enemy: _enemyName(info.enemyId!));
   }
-  if (enemyId == EnemyId.derf) {
-    return 'Incinerated by Derf\'s explosion.';
-  }
-  return 'Killed by a spell impact from ${_enemyName(enemyId)}.';
-}
 
-String _enemyName(EnemyId id) {
-  switch (id) {
-    case EnemyId.unocoDemon:
-      return 'Unoco Demon';
-    case EnemyId.grojib:
-      return 'Ground enemy';
-    case EnemyId.hashash:
-      return 'Hashash';
-    case EnemyId.derf:
-      return 'Derf';
-    case EnemyId.voidbornGoddess:
-      return 'Voidborn Goddess';
-    case EnemyId.shoggoth:
-      return 'Shoggoth';
-    case EnemyId.voidcaller:
-      return 'Voidcaller';
-    case EnemyId.shoggothMinion:
-      return 'Shoggoth Minion';
-    case EnemyId.voidTentacle:
-      return 'Void Tentacle';
-    case EnemyId.bringerOfDeath:
-      return 'Bringer of Death';
+  String _buildSpellImpactDeath(DeathInfo info) {
+    final enemyId = info.enemyId;
+    if (enemyId == null) {
+      return l10n.runSpellDeath;
+    }
+    if (enemyId == EnemyId.derf) {
+      return l10n.runDerfDeath;
+    }
+    return l10n.runEnemySpellDeath(enemy: _enemyName(enemyId));
+  }
+
+  String _enemyName(EnemyId id) => enemyDisplayName(id, strings: strings);
+
+  String _projectileName(ProjectileId id) {
+    switch (id) {
+      case ProjectileId.hunterPistol:
+      case ProjectileId.hunterRoadsidePistol:
+      case ProjectileId.hunterLongbarrelPistol:
+        return l10n.impactBullet;
+      case ProjectileId.hunterCrossbow:
+      case ProjectileId.hunterLongwatchCrossbow:
+      case ProjectileId.hunterHeavyLimbCrossbow:
+        return l10n.impactCrossbow;
+      case ProjectileId.hunterShotgun:
+      case ProjectileId.hunterBrushgun:
+        return l10n.impactPellet;
+      default:
+        return projectileDisplayName(id, strings: strings);
+    }
   }
 }
 
-String _projectileName(ProjectileId id) {
-  switch (id) {
-    case ProjectileId.hunterPistol:
-    case ProjectileId.hunterRoadsidePistol:
-    case ProjectileId.hunterLongbarrelPistol:
-      return 'Bullet';
-    case ProjectileId.hunterCrossbow:
-    case ProjectileId.hunterLongwatchCrossbow:
-    case ProjectileId.hunterHeavyLimbCrossbow:
-      return 'Crossbow Bolt';
-    case ProjectileId.hunterShotgun:
-    case ProjectileId.hunterBrushgun:
-      return 'Shotgun Pellet';
-    case ProjectileId.hunterBomb:
-      return 'Bomb';
-    case ProjectileId.goddessOrb:
-      return 'Voidborn Orb';
-    case ProjectileId.shoggothOrb:
-      return 'Shoggoth Orb';
-    case ProjectileId.voidClaw:
-      return 'Void Claw';
-    case ProjectileId.unknown:
-      return 'Unknown Projectile';
-    case ProjectileId.poisonDart:
-      return 'Poison Dart';
-    case ProjectileId.npcSpear:
-      return 'Spear';
-    case ProjectileId.npcArrow:
-      return 'Arrow';
-    case ProjectileId.iceBolt:
-      return 'Ice Bolt';
-    case ProjectileId.thunderBolt:
-      return 'thunder Bolt';
-    case ProjectileId.fireBolt:
-      return 'Fire Bolt';
-    case ProjectileId.acidBolt:
-      return 'Acid Bolt';
-    case ProjectileId.darkBolt:
-      return 'Dark Bolt';
-    case ProjectileId.earthBolt:
-      return 'Earth Bolt';
-    case ProjectileId.holyBolt:
-      return 'Holy Bolt';
-    case ProjectileId.waterBolt:
-      return 'Water Bolt';
-  }
-}
-
-String _submissionStatusLabel(RunSubmissionPhase phase) {
+String _submissionStatusLabel(RunSubmissionPhase phase, AppLocalizations l10n) {
   return switch (phase) {
-    RunSubmissionPhase.queued => 'Queued',
-    RunSubmissionPhase.requestingUploadGrant => 'Requesting Upload Grant',
-    RunSubmissionPhase.uploading => 'Uploading Replay',
-    RunSubmissionPhase.finalizing => 'Finalizing',
-    RunSubmissionPhase.retryScheduled => 'Retry Scheduled',
-    RunSubmissionPhase.pendingValidation => 'Waiting For Verification',
-    RunSubmissionPhase.validating => 'Validating',
-    RunSubmissionPhase.settlementPending => 'Settling Reward',
-    RunSubmissionPhase.validated => 'Validated',
-    RunSubmissionPhase.rejected => 'Rejected',
-    RunSubmissionPhase.expired => 'Expired',
-    RunSubmissionPhase.cancelled => 'Cancelled',
-    RunSubmissionPhase.internalError => 'Internal Error',
+    RunSubmissionPhase.queued => l10n.submissionQueued,
+    RunSubmissionPhase.requestingUploadGrant =>
+      l10n.submissionRequestingUploadGrant,
+    RunSubmissionPhase.uploading => l10n.submissionUploading,
+    RunSubmissionPhase.finalizing => l10n.submissionFinalizing,
+    RunSubmissionPhase.retryScheduled => l10n.submissionRetryScheduled,
+    RunSubmissionPhase.pendingValidation => l10n.submissionPendingValidation,
+    RunSubmissionPhase.validating => l10n.submissionValidating,
+    RunSubmissionPhase.settlementPending => l10n.submissionSettlementPending,
+    RunSubmissionPhase.validated => l10n.submissionValidated,
+    RunSubmissionPhase.rejected => l10n.submissionRejected,
+    RunSubmissionPhase.expired => l10n.submissionExpired,
+    RunSubmissionPhase.cancelled => l10n.submissionCancelled,
+    RunSubmissionPhase.internalError => l10n.submissionInternalError,
   };
-}
-
-String? _normalizeSubmissionStatusMessage(String? message) {
-  if (message == null) {
-    return null;
-  }
-  final normalized = message.replaceAll(RegExp(r'\s+'), ' ').trim();
-  if (normalized.isEmpty) {
-    return null;
-  }
-  if (normalized.length <= 240) {
-    return normalized;
-  }
-  return '${normalized.substring(0, 237)}...';
 }
 
 Color _submissionStatusColor(RunSubmissionPhase phase, UiTokens ui) {
@@ -757,12 +706,3 @@ Color _submissionStatusColor(RunSubmissionPhase phase, UiTokens ui) {
     _ => ui.colors.accentStrong,
   };
 }
-
-/* String _spellName(SpellId id) {
-  switch (id) {
-    case SpellId.iceBolt:
-      return 'Ice Bolt';
-    case SpellId.thunderBolt:
-      return 'thunder';
-  }
-} */

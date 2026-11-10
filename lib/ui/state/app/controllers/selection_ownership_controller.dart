@@ -265,7 +265,10 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
 
   Future<OwnershipCommandResult> purchaseStoreOffer({
     required String offerId,
+    PlayerCharacterId? characterId,
   }) async {
+    // Pin the recipient across a stale-revision refresh or another-device selection.
+    final targetCharacterId = characterId ?? _selection.selectedCharacterId;
     final session = await _ensureAuthSession();
     var result = await _ownershipApi.purchaseStoreOffer(
       PurchaseStoreOfferCommand(
@@ -274,6 +277,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
         expectedRevision: _ownershipRevision,
         commandId: 'purchase_store_offer_${_newCommandId()}',
         offerId: offerId,
+        characterId: targetCharacterId,
       ),
     );
     if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
@@ -289,6 +293,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
           expectedRevision: _ownershipRevision,
           commandId: 'purchase_store_offer_${_newCommandId()}',
           offerId: offerId,
+          characterId: targetCharacterId,
         ),
       );
     }

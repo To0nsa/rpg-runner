@@ -1,3 +1,8 @@
+import '../text/number_format.dart';
+
+import 'package:game_presentation/game_localization.dart';
+import 'package:game_presentation/character_text.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 
@@ -132,27 +137,39 @@ class _LeaderboardHeaderRow extends StatelessWidget {
 
     final row = Row(
       children: [
-        cell('#Rank', spec.columns.rank, TextAlign.left),
+        cell(context.l10n.uiRank, spec.columns.rank, TextAlign.left),
         if (showDisplayNameColumn)
           SizedBox(
             width: showPlayerLevelColumn
                 ? _playerNameColumnWidthWithLevel
                 : _playerNameColumnWidth,
-            child: Text('Name', style: style, textAlign: TextAlign.left),
+            child: Text(
+              context.l10n.uiName,
+              style: style,
+              textAlign: TextAlign.left,
+            ),
           ),
         if (showPlayerLevelColumn)
           SizedBox(
             width: _playerLevelColumnWidth,
-            child: Text('Lvl', style: style, textAlign: TextAlign.center),
+            child: Text(
+              context.l10n.uiLvl,
+              style: style,
+              textAlign: TextAlign.center,
+            ),
           ),
         if (showCharacterColumn)
           SizedBox(
             width: _characterColumnWidth,
-            child: Text('Character', style: style, textAlign: TextAlign.center),
+            child: Text(
+              context.l10n.uiCharacter,
+              style: style,
+              textAlign: TextAlign.center,
+            ),
           ),
-        cell('Score', spec.columns.score, TextAlign.right),
-        cell('Distance', spec.columns.distance, TextAlign.right),
-        cell('Time', spec.columns.time, TextAlign.right),
+        cell(context.l10n.uiScore, spec.columns.score, TextAlign.right),
+        cell(context.l10n.uiDistance, spec.columns.distance, TextAlign.right),
+        cell(context.l10n.uiTime, spec.columns.time, TextAlign.right),
         if (trailingHeaderLabel != null)
           SizedBox(
             width: trailingColumnWidth,
@@ -234,7 +251,7 @@ class _LeaderboardRow extends StatelessWidget {
                 : _playerNameColumnWidth,
             child: Text(
               (entry.displayName ?? '').trim().isEmpty
-                  ? 'Unknown'
+                  ? context.l10n.uiUnknown
                   : entry.displayName!.trim(),
               style: style,
               maxLines: 1,
@@ -246,7 +263,9 @@ class _LeaderboardRow extends StatelessWidget {
           SizedBox(
             width: _playerLevelColumnWidth,
             child: Text(
-              entry.playerLevel?.toString() ?? '—',
+              entry.playerLevel == null
+                  ? '—'
+                  : formatCount(entry.playerLevel!, l10n: context.l10n),
               style: style,
               textAlign: TextAlign.center,
             ),
@@ -255,7 +274,7 @@ class _LeaderboardRow extends StatelessWidget {
           SizedBox(
             width: _characterColumnWidth,
             child: Text(
-              _characterName(entry.characterId),
+              _characterName(entry.characterId, context.gameL10n),
               style: style,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -265,7 +284,7 @@ class _LeaderboardRow extends StatelessWidget {
         _LeaderboardColumnCell(
           column: spec.columns.score,
           child: Text(
-            hideScore ? '—' : entry.score.toString(),
+            hideScore ? '—' : formatCount(entry.score, l10n: context.l10n),
             style: style,
             textAlign: TextAlign.right,
           ),
@@ -273,7 +292,7 @@ class _LeaderboardRow extends StatelessWidget {
         _LeaderboardColumnCell(
           column: spec.columns.distance,
           child: Text(
-            '${entry.distanceMeters}m',
+            context.l10n.shortDistance(meters: entry.distanceMeters),
             style: style,
             textAlign: TextAlign.right,
           ),
@@ -309,9 +328,11 @@ const double _playerNameColumnWidthWithLevel = 104;
 const double _playerLevelColumnWidth = 32;
 const double _characterColumnWidth = 80;
 
-String _characterName(String? characterId) {
+String _characterName(String? characterId, GameLocalizations strings) {
   for (final character in PlayerCharacterRegistry.all) {
-    if (character.id.name == characterId) return character.displayName;
+    if (character.id.name == characterId) {
+      return characterDisplayName(character.id, strings: strings);
+    }
   }
   return '—';
 }

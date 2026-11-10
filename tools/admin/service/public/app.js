@@ -74,6 +74,7 @@ async function api(path, body) {
 function readDraftFile(value) {
   const m = value?.message;
   if (m?.attachments?.length) throw new Error('Open item and skill drafts in the Flutter Admin app.');
+  if (m?.localization !== undefined) throw new Error('Open translated drafts in the Flutter Admin app.');
   if (value?.schemaVersion !== 1 || !environments.some(({ name }) => name === value.environment) ||
       !m || ['uid', 'sourceId', 'title', 'body'].some((key) => typeof m[key] !== 'string') ||
       !m.sourceId.trim() || !Number.isSafeInteger(m.goldAmount) || m.goldAmount < 0 ||
@@ -191,6 +192,7 @@ try {
   }
   const saved = localStorage.getItem(draftKey);
   draft = saved ? JSON.parse(saved) : freshDraft();
+  if (draft.message?.localization !== undefined) throw new Error('Open translated drafts in the Flutter Admin app.');
   if (draft.schemaVersion !== 1 || !draft.message) throw new Error('Saved draft is invalid. Restore a downloaded draft after clearing this site’s local storage.');
   ready = true;
   renderDraft();

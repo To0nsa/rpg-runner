@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -34,8 +36,8 @@ class SkillsBar extends StatefulWidget {
 }
 
 class _SkillsBarState extends State<SkillsBar> {
-  static const DefaultAbilityTooltipBuilder _tooltipBuilder =
-      DefaultAbilityTooltipBuilder();
+  DefaultAbilityTooltipBuilder get _tooltipBuilder =>
+      DefaultAbilityTooltipBuilder.localized(context);
 
   AbilitySlot _selectedSlot = AbilitySlot.primary;
   AbilityKey? _inspectedAbilityId;
@@ -207,12 +209,17 @@ class _SkillsBarState extends State<SkillsBar> {
     required EquippedLoadoutDef loadout,
     required AbilityOwnershipState abilityOwnership,
   }) {
-    final options = projectileSourceOptions(loadout, abilityOwnership);
+    final options = projectileSourceOptions(
+      loadout,
+      abilityOwnership,
+      strings: context.gameL10n,
+      l10n: context.l10n,
+    );
     return showProjectileSourceDialog(
       context,
       title: widget.characterId == PlayerCharacterId.bountyHunter
-          ? 'Select Weapon'
-          : 'Select Projectile Source',
+          ? context.l10n.uiSelectWeapon
+          : context.l10n.uiSelectProjectileSource,
       options: options,
       initialSelection: loadout.projectileSlotSpellId,
       onSelect: (sourceSpellId) async {

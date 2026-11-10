@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/foundation.dart';
 
 import '../app/ui_routes.dart';
@@ -20,7 +21,8 @@ class RunStartPreparation extends ChangeNotifier {
 
   bool get inFlight => _inFlight;
   Object? get error => _error;
-  String? get errorMessage => _error == null ? null : messageFor(_error!);
+  String? errorMessage(AppLocalizations l10n) =>
+      _error == null ? null : messageFor(_error!, l10n);
 
   /// Returns null on failure, disposal, or an already-running attempt.
   Future<RunStartDescriptor?> prepare() async {
@@ -71,24 +73,23 @@ class RunStartPreparation extends ChangeNotifier {
     }
   }
 
-  static String messageFor(Object error) {
+  static String messageFor(Object error, AppLocalizations l10n) {
     if (error is RunStartRemoteException && error.isUpdateRequired) {
-      return 'Update the game before starting another run. Your account and pending rewards remain available.';
+      return l10n.runUpdateRequired;
     }
     if (error is RunStartRemoteException && error.isReleaseMaintenance) {
-      return 'The game is undergoing maintenance. Please try again later. Your pending runs and rewards will be recovered.';
+      return l10n.runMaintenance;
     }
     if (error is RunStartRemoteException && error.code == 'invalid-loadout') {
-      return error.message ??
-          'Adjust your equipment and abilities before starting.';
+      return l10n.runInvalidLoadout;
     }
     if (error is RunStartRemoteException && error.isLevelUnavailable) {
-      return 'This level is unavailable in this build. Return to the hub and select an available level.';
+      return l10n.runLevelUnavailable;
     }
     if (error is RunStartRemoteException && error.isPreconditionFailed) {
-      return 'Run start requirements changed. Return to hub and try again.';
+      return l10n.runRequirementsChanged;
     }
-    return 'Unable to start run right now. Check your connection and try again.';
+    return l10n.runStartFailed;
   }
 
   @override

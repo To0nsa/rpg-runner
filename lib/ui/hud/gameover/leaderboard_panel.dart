@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
+
 import '../../components/leaderboard_table.dart';
 import '../../leaderboard/leaderboard_store.dart';
 import '../../leaderboard/run_result.dart';
@@ -13,7 +16,6 @@ import '../../leaderboard/shared_prefs_leaderboard_store.dart';
 import '../../levels/level_id_ui.dart';
 import '../../state/app/app_state.dart';
 import '../../state/boards/leaderboard_api.dart';
-import '../../state/run/run_start_remote_exception.dart';
 import '../../state/ownership/selection_state.dart';
 import '../../theme/ui_leaderboard_theme.dart';
 import '../../theme/ui_tokens.dart';
@@ -47,7 +49,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   List<RunResult> _entries = const <RunResult>[];
   int? _currentRunId;
   bool _loaded = false;
-  String _rankedMessage = 'Loading rank summary...';
+  OnlineLeaderboardBoardData? _rankedData;
 
   @override
   void initState() {
@@ -58,12 +60,20 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
 
   Future<void> _loadLeaderboard() async {
     if (widget.runMode != RunMode.practice) {
-      final rankedMessage = await _buildRankedMessage();
+      OnlineLeaderboardBoardData? data;
+      try {
+        data = await context.read<AppState>().loadOnlineLeaderboardData(
+          mode: widget.runMode,
+          levelId: widget.levelId,
+        );
+      } catch (_) {
+        // Retain failure as data; render recovery text in the current locale.
+      }
       if (!mounted) return;
       setState(() {
         _entries = const <RunResult>[];
         _currentRunId = null;
-        _rankedMessage = rankedMessage;
+        _rankedData = data;
         _loaded = true;
       });
       return;
@@ -106,9 +116,9 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final runModeLabel = switch (widget.runMode) {
-      RunMode.practice => 'Practice',
-      RunMode.competitive => 'Competitive',
-      RunMode.weekly => 'Weekly',
+      RunMode.practice => context.l10n.uiPractice,
+      RunMode.competitive => context.l10n.uiCompetitive,
+      RunMode.weekly => context.l10n.uiWeekly,
     };
     final titleStyle = ui.text.body.copyWith(
       color: ui.colors.textPrimary,
@@ -121,15 +131,22 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     if (widget.runMode != RunMode.practice) {
       content = Center(
         child: Text(
-          _rankedMessage,
+          !_loaded
+              ? context.l10n.uiLoadingRankSummary
+              : _rankedData == null
+              ? context.l10n.uiActualRankUnavailable
+              : _composeRankedMessage(
+                  data: _rankedData!,
+                  candidate: _buildCandidateRunResult(),
+                ),
           style: ui.text.body,
           textAlign: TextAlign.center,
         ),
       );
     } else if (!_loaded) {
-      content = const Center(child: Text('Loading leaderboard...'));
+      content = Center(child: Text(context.l10n.uiLoadingLeaderboard));
     } else if (_entries.isEmpty) {
-      content = const Center(child: Text('No runs yet.'));
+      content = Center(child: Text(context.l10n.uiNoRunsYet));
     } else {
       content = LeaderboardTable(
         entries: _entries,
@@ -154,7 +171,10 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${widget.levelId.displayName} $runModeLabel Scoreboard',
+              context.l10n.scoreboardTitle(
+                level: widget.levelId.localizedName(context.l10n),
+                mode: runModeLabel,
+              ),
               style: titleStyle,
             ),
             SizedBox(height: ui.space.xs),
@@ -182,35 +202,6 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     );
   }
 
-  Future<String> _buildRankedMessage() async {
-    final candidate = _buildCandidateRunResult();
-    try {
-      final appState = context.read<AppState>();
-      final data = await appState.loadOnlineLeaderboardData(
-        mode: widget.runMode,
-        levelId: widget.levelId,
-      );
-      return _composeRankedMessage(data: data, candidate: candidate);
-    } on ProviderNotFoundException {
-      return candidate == null
-          ? 'Actual rank unavailable right now.'
-          : 'Actual rank unavailable.';
-    } on RunStartRemoteException catch (error) {
-      final fallback = candidate == null
-          ? 'Actual rank unavailable right now.'
-          : 'Actual rank unavailable.';
-      final message = error.message?.trim();
-      if (message == null || message.isEmpty) {
-        return fallback;
-      }
-      return '$fallback\n$message';
-    } catch (_) {
-      return candidate == null
-          ? 'Actual rank unavailable right now.'
-          : 'Actual rank unavailable.';
-    }
-  }
-
   RunResult? _buildCandidateRunResult() {
     final event = widget.runEndedEvent;
     if (event == null) {
@@ -228,42 +219,21 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     required OnlineLeaderboardBoardData data,
     required RunResult? candidate,
   }) {
-    final rankSummary = _composeRankSummary(data.myRank.rank);
-    if (candidate == null) {
-      return '$rankSummary.';
-    }
-
+    final rank = data.myRank.rank;
     final best = data.myRank.myEntry;
-    final improved = best == null || _isBetterThanBest(candidate, best);
-    if (improved) {
-      return '$rankSummary.';
-    }
-    return '$rankSummary, you have not done better this run.';
-  }
-
-  String _composeRankSummary(int? rank) {
-    final rankLabel = rank == null ? 'Unranked' : '#$rank';
-    final rankContext = _rankContextLabel(rank);
-    return 'Actual rank $rankLabel$rankContext';
-  }
-
-  String _rankContextLabel(int? rank) {
-    if (rank == null) {
-      return '';
-    }
-    if (rank == 1) {
-      return ' (1st place)';
-    }
-    if (rank == 2) {
-      return ' (2nd place, podium)';
-    }
-    if (rank == 3) {
-      return ' (3rd place, podium)';
-    }
-    if (rank <= 10) {
-      return ' (top 10)';
-    }
-    return '';
+    final improved =
+        candidate == null || best == null || _isBetterThanBest(candidate, best);
+    return context.l10n.rankSummary(
+      rank: rank == null ? context.l10n.uiUnranked : '#$rank',
+      position: switch (rank) {
+        1 => 'first',
+        2 => 'second',
+        3 => 'third',
+        final value? when value <= 10 => 'topTen',
+        _ => 'none',
+      },
+      outcome: improved ? 'normal' : 'unchanged',
+    );
   }
 
   bool _isBetterThanBest(RunResult candidate, dynamic best) {

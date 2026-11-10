@@ -1,3 +1,6 @@
+import 'package:game_presentation/enemy_text.dart';
+import 'package:game_presentation/game_localization.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 
@@ -25,14 +28,14 @@ class TrainingOpponentDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final ui = context.ui;
     return AppDialog(
-      title: 'Training opponent',
+      title: context.l10n.uiTrainingOpponent,
       scrollable: true,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Choose an opponent for your next fight.',
+            context.l10n.uiChooseAnOpponentForYourNextFight,
             style: ui.text.body.copyWith(color: ui.colors.textMuted),
           ),
           SizedBox(height: ui.space.sm),
@@ -54,7 +57,9 @@ class TrainingOpponentDialog extends StatelessWidget {
             Padding(
               padding: EdgeInsets.only(top: ui.space.sm),
               child: Text(
-                'Unlock enemy entries in the Library to practise against them.',
+                context
+                    .l10n
+                    .uiUnlockEnemyEntriesInTheLibraryToPractiseAgainstThem,
                 style: ui.text.body.copyWith(color: ui.colors.textMuted),
               ),
             ),
@@ -62,7 +67,7 @@ class TrainingOpponentDialog extends StatelessWidget {
       ),
       actions: [
         AppButton(
-          label: 'Close',
+          label: context.l10n.uiClose,
           variant: AppButtonVariant.secondary,
           size: AppButtonSize.xs,
           onPressed: () => Navigator.of(context).pop(),
@@ -122,7 +127,12 @@ class _OpponentTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        enemy?.displayName ?? 'None',
+                        enemy == null
+                            ? context.l10n.uiNone
+                            : enemyDisplayName(
+                                enemy!,
+                                strings: context.gameL10n,
+                              ),
                         style: ui.text.headline.copyWith(
                           color: ui.colors.textPrimary,
                         ),
@@ -130,8 +140,8 @@ class _OpponentTile extends StatelessWidget {
                       SizedBox(height: ui.space.xxs),
                       Text(
                         enemy == null
-                            ? 'Practise without an opponent.'
-                            : CodexCatalog.enemyTactics(enemy!),
+                            ? context.l10n.uiPractiseWithoutAnOpponent
+                            : CodexCatalog.enemyTactics(enemy!, context.l10n),
                         style: ui.text.body.copyWith(
                           color: ui.colors.textMuted,
                         ),

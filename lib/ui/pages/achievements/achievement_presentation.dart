@@ -1,76 +1,63 @@
 import 'package:flutter/material.dart';
 
-import '../../text/number_format.dart';
+import 'package:intl/intl.dart';
+
+import '../../l10n/app_localization.dart';
 
 /// Names and units only: eligibility, thresholds and rewards are server-owned.
 enum AchievementPresentation {
-  firstSteps('First Steps', Icons.directions_walk),
-  marathoner('Marathoner', Icons.flag_outlined),
-  roadWarrior('Road Warrior', Icons.route),
-  stillStanding('Still Standing', Icons.hourglass_bottom),
-  slayer('Slayer', Icons.shield_outlined);
+  firstSteps(Icons.directions_walk),
+  marathoner(Icons.flag_outlined),
+  roadWarrior(Icons.route),
+  stillStanding(Icons.hourglass_bottom),
+  slayer(Icons.shield_outlined);
 
-  const AchievementPresentation(this.title, this.icon);
-  final String title;
+  const AchievementPresentation(this.icon);
+  String title(AppLocalizations l10n) => switch (this) {
+    firstSteps => l10n.achievementFirstSteps,
+    marathoner => l10n.achievementMarathoner,
+    roadWarrior => l10n.achievementRoadWarrior,
+    stillStanding => l10n.achievementStillStanding,
+    slayer => l10n.achievementSlayer,
+  };
   final IconData icon;
 
   static AchievementPresentation? forId(String id) =>
       values.where((value) => value.name == id).firstOrNull;
 
   /// Only First Steps requires a qualifying completion; other metrics retain quits.
-  String get eligibility => switch (this) {
-    firstSteps =>
-      'Verified Practice, Competitive and Weekly runs count after 100 metres or '
-          '30 seconds and must end naturally. Quitting does not count.',
-    marathoner || roadWarrior || stillStanding || slayer =>
-      'Verified Practice, Competitive and Weekly runs count, including short '
-          'runs and runs you quit.',
-  };
+  String eligibility(AppLocalizations l10n) =>
+      this == firstSteps ? l10n.achievementQualifying : l10n.achievementAllRuns;
 
-  String quantity(int value) => switch (this) {
-    firstSteps => '${formatCount(value)} ${value == 1 ? 'run' : 'runs'}',
-    marathoner || roadWarrior => '${formatCount(value)} m',
-    stillStanding => _duration(value),
-    slayer => '${formatCount(value)} enemies',
+  String quantity(int value, AppLocalizations l10n) => switch (this) {
+    firstSteps => l10n.achievementRuns(count: value),
+    marathoner || roadWarrior => l10n.achievementDistance(count: value),
+    stillStanding => _duration(value, l10n),
+    slayer => l10n.achievementEnemies(count: value),
   };
-
-  String requirement(int target) => switch (this) {
-    firstSteps =>
-      'Finish ${formatCount(target)} qualifying ${target == 1 ? 'run' : 'runs'}.',
-    marathoner => 'Reach ${formatCount(target)} metres in one run.',
-    roadWarrior => 'Travel ${formatCount(target)} metres across runs.',
-    stillStanding => 'Survive ${_duration(target)} across runs.',
-    slayer => 'Defeat ${formatCount(target)} enemies across runs.',
+  String requirement(int target, AppLocalizations l10n) => switch (this) {
+    firstSteps => l10n.achievementFinish(count: target),
+    marathoner => l10n.achievementReach(count: target),
+    roadWarrior => l10n.achievementTravel(count: target),
+    stillStanding => l10n.achievementSurvive(duration: _duration(target, l10n)),
+    slayer => l10n.achievementDefeat(count: target),
   };
 }
 
-String _duration(int seconds) {
+String _duration(int seconds, AppLocalizations l10n) {
   final hours = seconds ~/ 3600;
   final minutes = seconds % 3600 ~/ 60;
   final remainder = seconds % 60;
   return [
-    if (hours > 0) '${hours}h',
-    if (minutes > 0) '${minutes}m',
-    if (remainder > 0 || seconds == 0) '${remainder}s',
+    if (hours > 0) l10n.durationHours(count: hours),
+    if (minutes > 0) l10n.durationMinutes(count: minutes),
+    if (remainder > 0 || seconds == 0) l10n.durationSeconds(count: remainder),
   ].join(' ');
 }
 
-/// UTC dates remain identical across devices and never use the claim time.
-String achievementDate(int milliseconds) {
+/// UTC dates never use the claim time. The host loads locale date symbols through
+/// Flutter's Material delegate; standalone callers initialize Intl date data.
+String achievementDate(int milliseconds, AppLocalizations l10n) {
   final date = DateTime.fromMillisecondsSinceEpoch(milliseconds, isUtc: true);
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${date.day} ${months[date.month - 1]} ${date.year} (UTC)';
+  return l10n.dateUtc(date: DateFormat.yMMMd(l10n.localeName).format(date));
 }

@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -198,7 +199,7 @@ class RunnerControlsOverlay extends StatelessWidget {
       familyOverride: familyOverride,
     );
     String labelFor(AbilitySlot slot) =>
-        abilityRadialLayoutSpec.slotSpec(slot).label;
+        abilityRadialLayoutSpec.slotSpec(slot).label(context.l10n);
     Widget feedback(AbilitySlot slot, int cooldown, Widget child) =>
         ResourceActionFeedback(
           missing: cooldown > 0

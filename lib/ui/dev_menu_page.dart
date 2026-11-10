@@ -1,3 +1,5 @@
+import 'l10n/app_localization.dart';
+
 import 'package:flutter/material.dart';
 
 import 'app/ui_routes.dart';
@@ -17,7 +19,7 @@ class DevMenuPage extends StatelessWidget {
       backgroundColor: ui.colors.background,
       appBar: AppBar(
         title: Text(
-          'rpg Runner (Dev)',
+          context.l10n.developerAppTitle,
           style: ui.text.title.copyWith(
             color: ui.colors.textPrimary,
             fontSize: 20,
@@ -32,7 +34,7 @@ class DevMenuPage extends StatelessWidget {
           onPressed: () {
             Navigator.of(context).pushNamed(UiRoutes.hub);
           },
-          child: const Text('Menu'),
+          child: Text(context.l10n.developerMenu),
         ),
       ),
     );

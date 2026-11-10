@@ -1,6 +1,6 @@
 # Théodonis and the Codex
 
-Town opens the supplied `assets/Théodonis.jpg` city map, with Store,
+Town opens the supplied `assets/Théodonis.jpg` city map, with Equipment, Training Hall,
 Library and [Hall of Honour](12_achievements.md) callouts inside the walled city.
 The image fills the available view,
 cropping its edges initially; dragging reveals the remaining map. Pinch to
@@ -8,12 +8,12 @@ zoom and a small reset control remain. Service labels use Mist text and icons
 with dark shadows, without borders or backgrounds. There is no instruction
 footer or plus/minus zoom control. Indicator lines meet the beginning or end
 of each label, with a small gap and no crossing through the icon or name.
-Both service names and their white dot markers open their destinations. The Store points to the market streets and the Library to the large
+Both service names and their white dot markers open their destinations. Equipment points to the market streets and the Library to the large
 northeastern courtyard complex. Hall of Honour points to the southern courtyard
 building and hosts achievement claims. These are game navigation placements.
 Back from each service returns to Town.
 
-The Store retains its earned-gold offers and refresh rules. Its gold balance
+[Equipment and Training](town_services.md) offer permanent earned-gold catalogues. Their gold balance
 appears at the far right of the app bar as a number and coin icon, without a label.
 The Library is free to browse; discoveries cannot be purchased.
 

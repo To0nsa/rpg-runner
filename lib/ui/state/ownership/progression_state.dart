@@ -1,3 +1,5 @@
+import 'package:runner_core/players/player_character_definition.dart';
+
 import 'achievement_progress.dart';
 import 'codex_progress.dart';
 import 'enemy_defeats.dart';
@@ -38,6 +40,7 @@ class StoreOfferState {
     required this.slot,
     required this.itemId,
     required this.priceGold,
+    this.characterIds = const [],
   });
 
   final String offerId;
@@ -46,6 +49,7 @@ class StoreOfferState {
   final StoreSlot slot;
   final String itemId;
   final int priceGold;
+  final List<PlayerCharacterId> characterIds;
 
   StoreOfferState copyWith({
     String? offerId,
@@ -62,6 +66,7 @@ class StoreOfferState {
       slot: slot ?? this.slot,
       itemId: itemId ?? this.itemId,
       priceGold: priceGold ?? this.priceGold,
+      characterIds: characterIds,
     );
   }
 
@@ -73,6 +78,8 @@ class StoreOfferState {
       'slot': slot.name,
       'itemId': itemId,
       'priceGold': priceGold,
+      if (characterIds.isNotEmpty)
+        'characterIds': characterIds.map((id) => id.name).toList(),
     };
   }
 
@@ -106,6 +113,11 @@ class StoreOfferState {
       slot: slot,
       itemId: itemId,
       priceGold: priceGold < 0 ? 0 : priceGold,
+      characterIds: [
+        if (json['characterIds'] case final List ids)
+          for (final id in ids)
+            if (id is String) ?_enumByName(PlayerCharacterId.values, id),
+      ],
     );
   }
 }
@@ -117,6 +129,7 @@ class TownStoreState {
     required this.refreshDayKeyUtc,
     required this.refreshesUsedToday,
     required this.activeOffers,
+    this.catalogOffers = const [],
   });
 
   final int schemaVersion;
@@ -124,6 +137,9 @@ class TownStoreState {
   final String refreshDayKeyUtc;
   final int refreshesUsedToday;
   final List<StoreOfferState> activeOffers;
+
+  /// Server catalogue including owned entries; empty for retained schema-1 snapshots.
+  final List<StoreOfferState> catalogOffers;
 
   static const TownStoreState initial = TownStoreState(
     schemaVersion: 1,
@@ -139,6 +155,7 @@ class TownStoreState {
     String? refreshDayKeyUtc,
     int? refreshesUsedToday,
     List<StoreOfferState>? activeOffers,
+    List<StoreOfferState>? catalogOffers,
   }) {
     return TownStoreState(
       schemaVersion: schemaVersion ?? this.schemaVersion,
@@ -146,6 +163,7 @@ class TownStoreState {
       refreshDayKeyUtc: refreshDayKeyUtc ?? this.refreshDayKeyUtc,
       refreshesUsedToday: refreshesUsedToday ?? this.refreshesUsedToday,
       activeOffers: activeOffers ?? this.activeOffers,
+      catalogOffers: catalogOffers ?? this.catalogOffers,
     );
   }
 
@@ -156,6 +174,7 @@ class TownStoreState {
       'refreshDayKeyUtc': refreshDayKeyUtc,
       'refreshesUsedToday': refreshesUsedToday,
       'activeOffers': activeOffers.map((offer) => offer.toJson()).toList(),
+      'catalogOffers': catalogOffers.map((offer) => offer.toJson()).toList(),
     };
   }
 
@@ -203,6 +222,12 @@ class TownStoreState {
       refreshDayKeyUtc: refreshDayKeyUtc,
       refreshesUsedToday: refreshesUsedToday < 0 ? 0 : refreshesUsedToday,
       activeOffers: activeOffers,
+      catalogOffers: [
+        if (json['catalogOffers'] case final List offers)
+          for (final raw in offers)
+            if (raw is Map)
+              StoreOfferState.fromJson(Map<String, dynamic>.from(raw)),
+      ],
     );
   }
 }

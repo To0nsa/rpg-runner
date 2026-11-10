@@ -1,3 +1,6 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -159,11 +162,11 @@ class _GearsTabState extends State<GearsTab> {
                                 Expanded(
                                   flex: 3,
                                   child: _GearDetailsPane(
-                                    resourceLabel:
+                                    manaPresentation:
                                         widget.characterId ==
                                             PlayerCharacterId.bountyHunter
-                                        ? 'Supplies'
-                                        : 'Mana',
+                                        ? ManaPresentation.supplies
+                                        : ManaPresentation.mana,
                                     slot: slot,
                                     selectedId: selectedId,
                                     equippedForCompare: equippedId,
@@ -332,10 +335,10 @@ class _GearsTabState extends State<GearsTab> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AppConfirmDialog(
-        title: 'Visit Town store?',
-        message: 'Open Town to browse locked ${_gearSlotLabel(slot)} options?',
-        cancelLabel: 'Cancel',
-        confirmLabel: 'Go to Town',
+        title: context.l10n.uiVisitTownStore,
+        message: context.l10n.storeBrowseLocked(slot: slot.name),
+        cancelLabel: context.l10n.uiCancel,
+        confirmLabel: context.l10n.uiGoToTown,
         confirmVariant: AppButtonVariant.secondary,
       ),
     );
@@ -409,9 +412,9 @@ class _GearSlotSelectionDivider extends StatelessWidget {
 }
 
 class _GearDetailsPane extends StatelessWidget {
-  final String resourceLabel;
+  final ManaPresentation manaPresentation;
   const _GearDetailsPane({
-    required this.resourceLabel,
+    required this.manaPresentation,
     required this.slot,
     required this.selectedId,
     required this.equippedForCompare,
@@ -424,7 +427,7 @@ class _GearDetailsPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GearPickerStatsPanel(
-      resourceLabel: resourceLabel,
+      manaPresentation: manaPresentation,
       slot: slot,
       id: selectedId,
       equippedForCompare: equippedForCompare,
@@ -476,7 +479,7 @@ class _GearCandidatesPane extends StatelessWidget {
         Align(
           alignment: Alignment.center,
           child: AppButton(
-            label: 'Equip',
+            label: context.l10n.uiEquip,
             variant: AppButtonVariant.primary,
             size: AppButtonSize.xs,
             onPressed: canEquip ? onEquip : null,
@@ -579,15 +582,6 @@ class _GearSlotSpec {
   const _GearSlotSpec({required this.slot});
 
   final GearSlot slot;
-}
-
-String _gearSlotLabel(GearSlot slot) {
-  return switch (slot) {
-    GearSlot.mainWeapon => 'main weapon',
-    GearSlot.offhandWeapon => 'offhand',
-    GearSlot.spellBook => 'spellbook',
-    GearSlot.accessory => 'accessory',
-  };
 }
 
 List<_GearSlotSpec> _slotSpecsForMask(int mask) {

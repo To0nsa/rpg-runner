@@ -1,3 +1,5 @@
+import '../l10n/app_localization.dart';
+
 import 'package:flutter/material.dart';
 
 import '../components/app_button.dart';
@@ -6,21 +8,21 @@ import '../theme/ui_tokens.dart';
 class LoaderContent extends StatelessWidget {
   const LoaderContent({
     super.key,
-    this.title = 'The Long Run',
-    this.subtitle = 'Lothringen',
-    this.loadingMessage = 'Loading...',
-    this.errorTitle = 'Bootstrap failed',
+    this.title,
+    this.subtitle,
+    this.loadingMessage,
+    this.errorTitle,
     this.errorMessage,
-    this.continueLabel = 'Retry',
+    this.continueLabel,
     this.onContinue,
   });
 
-  final String title;
-  final String subtitle;
-  final String loadingMessage;
-  final String errorTitle;
+  final String? title;
+  final String? subtitle;
+  final String? loadingMessage;
+  final String? errorTitle;
   final String? errorMessage;
-  final String continueLabel;
+  final String? continueLabel;
   final VoidCallback? onContinue;
 
   bool get _hasError => errorMessage != null;
@@ -36,7 +38,7 @@ class LoaderContent extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            subtitle,
+            subtitle ?? context.l10n.loaderWorldTitle,
             style: TextStyle(
               fontFamily: 'Cinzel',
               fontSize: 24,
@@ -46,7 +48,7 @@ class LoaderContent extends StatelessWidget {
             ),
           ),
           Text(
-            title,
+            title ?? context.l10n.loaderGameTitle,
             style: TextStyle(
               fontFamily: 'Cinzel',
               fontSize: 36,
@@ -60,13 +62,13 @@ class LoaderContent extends StatelessWidget {
             CircularProgressIndicator(color: ui.colors.textPrimary),
             SizedBox(height: ui.space.xs),
             Text(
-              loadingMessage,
+              loadingMessage ?? context.l10n.uiLoading,
               style: ui.text.body.copyWith(color: ui.colors.textPrimary),
             ),
           ],
           if (_hasError) ...[
             Text(
-              errorTitle,
+              errorTitle ?? context.l10n.bootstrapFailed,
               style: ui.text.body.copyWith(
                 color: ui.colors.danger,
                 fontSize: 16,
@@ -82,7 +84,7 @@ class LoaderContent extends StatelessWidget {
             if (onContinue != null) ...[
               SizedBox(height: ui.space.md),
               AppButton(
-                label: continueLabel,
+                label: continueLabel ?? context.l10n.uiRetry,
                 variant: AppButtonVariant.secondary,
                 size: AppButtonSize.lg,
                 onPressed: onContinue,

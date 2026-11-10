@@ -58,6 +58,10 @@ void main() {
         Uri.parse('https://rpg-runner-d7add.web.app/privacy-policy.html'),
       );
       expect(find.textContaining('You can open it manually.'), findsOneWidget);
+      // Let the failure notice dismiss before using links beneath it on the
+      // compact landscape viewport.
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Contact support'));
       await tester.pumpAndSettle();
       expect(opened.last, Uri.parse('mailto:lothringen.rpg@gmail.com'));

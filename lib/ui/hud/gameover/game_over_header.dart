@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/ui_tokens.dart';
@@ -19,7 +20,7 @@ class GameOverHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Game Over',
+          context.l10n.gameOverTitle,
           style: ui.text.title.copyWith(
             color: ui.colors.textPrimary,
             fontSize: 28,
@@ -37,7 +38,7 @@ class GameOverHeader extends StatelessWidget {
         if (displayScore != null) ...[
           SizedBox(height: ui.space.sm + ui.space.xxs / 2),
           Text(
-            'Score: $displayScore',
+            context.l10n.scoreValue(score: displayScore!),
             style: ui.text.headline.copyWith(
               color: ui.colors.textPrimary,
               fontSize: 16,

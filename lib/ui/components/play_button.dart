@@ -1,3 +1,5 @@
+import '../l10n/app_localization.dart';
+
 import 'package:flutter/material.dart';
 
 import 'app_button.dart';
@@ -8,7 +10,7 @@ class PlayButton extends StatelessWidget {
     super.key,
     required this.isLoading,
     required this.onPressed,
-    this.label = 'PLAY',
+    this.label,
     this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.lg,
     this.showLoadingIndicator = true,
@@ -17,7 +19,7 @@ class PlayButton extends StatelessWidget {
 
   final bool isLoading;
   final VoidCallback? onPressed;
-  final String label;
+  final String? label;
   final AppButtonVariant variant;
   final AppButtonSize size;
   final bool showLoadingIndicator;
@@ -30,7 +32,7 @@ class PlayButton extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         AppButton(
-          label: label,
+          label: label ?? context.l10n.playButton,
           variant: variant,
           size: size,
           onPressed: isLoading ? null : onPressed,

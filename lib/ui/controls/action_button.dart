@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'control_button_visuals.dart';
@@ -53,7 +54,9 @@ class ActionButton extends StatelessWidget {
     );
 
     return ControlButtonShell(
-      label: recastAvailable ? '$label, follow-up available' : label,
+      label: recastAvailable
+          ? context.l10n.controlFollowUp(label: label)
+          : label,
       interactable: visual.interactable,
       onSemanticTap: onPressed,
       size: size,

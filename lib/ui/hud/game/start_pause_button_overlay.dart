@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../runner_game_ui_state.dart';
@@ -28,7 +29,9 @@ class StartPauseButtonOverlay extends StatelessWidget {
               onTogglePause();
             },
       icon: uiState.paused ? Icons.play_arrow : Icons.pause,
-      tooltip: uiState.paused ? 'Play' : 'Pause',
+      tooltip: uiState.paused
+          ? context.l10n.commonPlay
+          : context.l10n.commonPause,
     );
   }
 }

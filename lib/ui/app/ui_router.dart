@@ -1,3 +1,5 @@
+import '../l10n/app_localization.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,6 +12,7 @@ import '../pages/leaderboards/leaderboards_page.dart';
 import '../pages/messages/messages_page.dart';
 import '../pages/town/town_page.dart';
 import '../pages/town/town_store_page.dart';
+import '../pages/town/town_catalog.dart';
 import '../pages/library/library_page.dart';
 import '../pages/achievements/achievements_page.dart';
 import '../pages/profile/profile_page.dart';
@@ -67,7 +70,13 @@ class UiRouter {
       case UiRoutes.town:
         return _pageRoute(settings, const TownPage());
       case UiRoutes.townStore:
+      case UiRoutes.townEquipment:
         return _pageRoute(settings, const TownStorePage());
+      case UiRoutes.townTraining:
+        return _pageRoute(
+          settings,
+          const TownStorePage(initialService: TownService.training),
+        );
       case UiRoutes.library:
         return _pageRoute(settings, const LibraryPage());
       case UiRoutes.achievements:
@@ -107,17 +116,21 @@ class UiRouter {
         }
         return _pageRoute(
           settings,
-          const PlaceholderPage(
-            title: 'Unable to start run',
-            message: 'Return to the hub and start the run again.',
+          Builder(
+            builder: (context) => PlaceholderPage(
+              title: context.l10n.routeRunUnavailableTitle,
+              message: context.l10n.routeRunUnavailableBody,
+            ),
           ),
         );
       default:
         return _pageRoute(
           settings,
-          const PlaceholderPage(
-            title: 'Page unavailable',
-            message: 'This page could not be opened. Go back and try again.',
+          Builder(
+            builder: (context) => PlaceholderPage(
+              title: context.l10n.routeUnavailableTitle,
+              message: context.l10n.routeUnavailableBody,
+            ),
           ),
         );
     }

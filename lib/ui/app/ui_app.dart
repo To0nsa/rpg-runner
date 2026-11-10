@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../assets/ui_asset_lifecycle.dart';
+import '../l10n/app_localization.dart';
 import '../levels/level_id_ui.dart';
 import '../state/app/app_state.dart';
 import '../state/run/run_submission_status.dart';
@@ -84,8 +85,9 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
       }
       _messengerKey.currentState?.showSnackBar(
         SnackBar(
-          content: const Text(
-            'This run’s rewards could not be confirmed. Your totals have been updated.',
+          content: Text(
+            lookupAppLocalizations(widget.services.localeSettings.locale)
+                .rewardsCorrected,
           ),
           duration: const Duration(seconds: 5),
           behavior: SnackBarBehavior.floating,
@@ -231,22 +233,28 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
           dispose: (_, lifecycle) => lifecycle.dispose(),
         ),
       ],
-      child: MaterialApp(
-        title: 'rpg-runner',
-        debugShowCheckedModeBanner: false,
-        theme: _theme,
-        builder: (context, child) => child == null
-            ? const SizedBox.shrink()
-            : _StableHorizontalSafePadding(child: child),
-        navigatorKey: _navigatorKey,
-        scaffoldMessengerKey: _messengerKey,
-        initialRoute: UiRoutes.brandSplash,
-        onGenerateInitialRoutes: UiRouter.onGenerateInitialRoutes,
-        onGenerateRoute: (settings) => UiRouter.onGenerateRoute(
-          settings,
-          movementControlMode: widget.services.controlSettings.movementMode,
+      child: ListenableBuilder(
+        listenable: widget.services.localeSettings,
+        builder: (context, _) => MaterialApp(
+          locale: widget.services.localeSettings.locale,
+          localizationsDelegates: RunnerLocalizations.delegates,
+          supportedLocales: RunnerLocalizations.supportedLocales,
+          onGenerateTitle: (context) => context.l10n.appTitle,
+          debugShowCheckedModeBanner: false,
+          theme: _theme,
+          builder: (context, child) => child == null
+              ? const SizedBox.shrink()
+              : _StableHorizontalSafePadding(child: child),
+          navigatorKey: _navigatorKey,
+          scaffoldMessengerKey: _messengerKey,
+          initialRoute: UiRoutes.brandSplash,
+          onGenerateInitialRoutes: UiRouter.onGenerateInitialRoutes,
+          onGenerateRoute: (settings) => UiRouter.onGenerateRoute(
+            settings,
+            movementControlMode: widget.services.controlSettings.movementMode,
+          ),
+          navigatorObservers: [_routeObserver],
         ),
-        navigatorObservers: [_routeObserver],
       ),
     );
   }

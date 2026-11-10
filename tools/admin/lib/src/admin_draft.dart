@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:game_presentation/catalog_gift.dart';
+import 'package:game_presentation/message_localization.dart';
 
 /// Durable delivery identity. A send attempt locks the exact destination and contents.
 class AdminDraft {
@@ -14,6 +15,7 @@ class AdminDraft {
     this.body = '',
     this.goldAmount = 0,
     this.attachments = const [],
+    this.translations = const {},
     this.attempted = false,
     this.receipt,
   });
@@ -27,6 +29,7 @@ class AdminDraft {
   final String sourceId, environment, uid, title, body;
   final int goldAmount;
   final List<CatalogGift> attachments;
+  final Map<String, MessageText> translations;
   final bool attempted;
   final Map<String, dynamic>? receipt;
   Map<String, Object?> get message => {
@@ -35,6 +38,14 @@ class AdminDraft {
     'title': title,
     'body': body,
     'goldAmount': goldAmount,
+    if (translations.isNotEmpty)
+      'localization': {
+        'schemaVersion': 1,
+        'translations': {
+          for (final entry in translations.entries)
+            entry.key: entry.value.toJson(),
+        },
+      },
     if (attachments.isNotEmpty)
       'attachments': attachments.map((g) => g.toJson()).toList(),
   };
@@ -52,6 +63,7 @@ class AdminDraft {
     String? body,
     int? goldAmount,
     List<CatalogGift>? attachments,
+    Map<String, MessageText>? translations,
     bool? attempted,
     Map<String, dynamic>? receipt,
   }) => AdminDraft(
@@ -62,6 +74,7 @@ class AdminDraft {
     body: body ?? this.body,
     goldAmount: goldAmount ?? this.goldAmount,
     attachments: List.unmodifiable(attachments ?? this.attachments),
+    translations: Map.unmodifiable(translations ?? this.translations),
     attempted: attempted ?? this.attempted,
     receipt: receipt ?? this.receipt,
   );
@@ -110,6 +123,12 @@ class AdminDraft {
       body: message['body'],
       goldAmount: message['goldAmount'],
       attachments: List.unmodifiable(gifts),
+      translations: message.containsKey('localization')
+          ? MessageLocalization.fromJson(
+              message['localization'],
+              allowIncompleteDraft: true,
+            ).translations
+          : const {},
       attempted: raw['attempted'] == true,
       receipt: trustReceipt && raw['receipt'] is Map<String, dynamic>
           ? raw['receipt']

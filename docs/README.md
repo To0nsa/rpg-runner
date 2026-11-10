@@ -1,6 +1,13 @@
 # Documentation
 
+- [Equipment and Training](gdd/town_services.md): permanent character catalogues,
+  shared accessories and build comparisons; [technical contract](tdd/town_catalogue.md).
+
 Audit and planning restarted on September 15, 2026. Start here for current work.
+
+- [Localization](tdd/localization.md): English source/default, French using **tu**,
+  device language settings and typed resources; [authoring guide](localization.md),
+  [French glossary](localization-glossary.md) and [local verification](verification/localization-2026-11-09.md).
 
 - [Current audits](audit/README.md).
 - [Character builds](tdd/character_builds.md): three saved configurations per

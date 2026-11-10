@@ -33,7 +33,9 @@ project. Login grants no IAM permissions; the operator needs access separately.
 ## Send and recover
 
 1. Select an environment and verify its displayed project.
-2. Enter one player's UID, title and body, and optional whole gold amount.
+2. Enter one player's UID, English title/body, and optional whole gold amount.
+   For French recipients, fill both optional French fields using **tu**. Leaving
+   both empty retains English fallback. Review all translations before sending.
 3. In an enabled environment, choose up to eight existing items/skills. Gear is
    account-wide. Skills/spells require the displayed character target.
 4. Preview, check destination/contents, then send. The player claims all gifts
@@ -60,7 +62,8 @@ if it may still need retrying. There is no delivery-history dashboard or broadca
 The old browser remains available through `corepack pnpm messages`; its source
 moved to `tools/admin/service`. Its storage stays in the same browser/port. Export
 an old browser draft and import it into Admin to continue it. Browser imports
-reject item/skill attachments so they cannot silently discard gifts. The
+reject item/skill attachments and translated drafts so they cannot silently
+discard gifts or text. Open these drafts in native Admin. The
 `messages:login`, `messages:test` and `messages:test:browser` aliases remain.
 
 ## Verification and rollout

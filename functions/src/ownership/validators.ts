@@ -97,6 +97,9 @@ function validateCommandPayload(
   }
   if (type === "purchaseStoreOffer") {
     requireNonEmptyString(payload.offerId, "command.payload.offerId");
+    if (payload.characterId !== undefined) {
+      requireKnownCharacterId(payload.characterId, "command.payload.characterId");
+    }
     return;
   }
   if (type === "refreshStore") {

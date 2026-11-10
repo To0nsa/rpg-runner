@@ -1,9 +1,16 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:rpg_runner/ui/theme/ui_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
-import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:rpg_runner/ui/components/app_button.dart';
@@ -18,11 +25,57 @@ import 'package:rpg_runner/ui/state/run/run_session_api.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
-import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
-import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
-  for (final action in ['purchase', 'refresh']) {
+  testWidgets(
+    'full catalogue supports category browsing and service switching',
+    (tester) async {
+      if (const bool.fromEnvironment('CAPTURE_TOWN_SERVICES')) {
+        await tester.runAsync(() async {
+          for (final font in {
+            'Cinzel': 'assets/fonts/Cinzel/static/Cinzel-Regular.ttf',
+            'CrimsonText': 'assets/fonts/Crimson_Text/CrimsonText-Regular.ttf',
+            'Inter': 'assets/fonts/Inter/static/Inter_24pt-Regular.ttf',
+            'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
+          }.entries) {
+            await (FontLoader(
+              font.key,
+            )..addFont(rootBundle.load(font.value))).load();
+          }
+        });
+      }
+      tester.view.physicalSize = const Size(1000, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final json = jsonDecode(
+        File('functions/test/fixtures/town_catalogue.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final api = _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          gold: 450,
+          activeOffers: TownStoreState.fromJson(json).catalogOffers,
+        ),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: api);
+      addTearDown(app.dispose);
+      await tester.pumpWidget(_TestApp(appState: app));
+      await tester.pumpAndSettle();
+      await _capture(tester, 'equipment');
+      await tester.tap(find.byKey(const ValueKey('catalogue-slot-accessory')));
+      await tester.pumpAndSettle();
+      expect(find.text('Waspfang'), findsNothing);
+      expect(find.text('Usable by both · One purchase'), findsWidgets);
+      await tester.tap(find.byKey(const ValueKey('service-training')));
+      await tester.tap(
+        find.byKey(const ValueKey('catalogue-character-bountyHunter')),
+      );
+      await tester.pumpAndSettle();
+      await _capture(tester, 'training');
+      expect(find.text('Learn'), findsWidgets);
+      expect(app.selection.selectedCharacterId, PlayerCharacterId.eloise);
+    },
+  );
+  for (final action in ['purchase']) {
     testWidgets(
       '$action explains unconfirmed funds without submitting a command',
       (tester) async {
@@ -137,7 +190,7 @@ void main() {
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
-    expect(find.text('Town Store'), findsOneWidget);
+    expect(find.text('Equipment'), findsNWidgets(2));
     expect(find.text('Current Gold'), findsNothing);
     expect(
       find.descendant(
@@ -146,7 +199,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Store refreshes left: 3'), findsOneWidget);
+    expect(find.text('Refresh'), findsNothing);
     expect(find.text('Waspfang'), findsOneWidget);
     expect(find.text('150'), findsOneWidget);
     expect(find.textContaining('is sold out'), findsNothing);
@@ -230,7 +283,8 @@ void main() {
       find.text('Bleed pressure sword with lower upfront power.'),
       findsOneWidget,
     );
-    expect(find.text('On Hit'), findsOneWidget);
+    expect(find.text('On Hit'), findsWidgets);
+    expect(find.textContaining('Compared with Plainsteel'), findsOneWidget);
 
     await tester.tap(find.text('Waspfang'));
     await tester.pumpAndSettle();
@@ -278,106 +332,111 @@ void main() {
     expect(ownershipApi.purchaseStoreOfferCalls, 0);
   });
 
-  testWidgets('Town disables gold refresh when player has less than 50 gold', (
+  testWidgets('browsing and learning for Willow preserves the run selection', (
     tester,
   ) async {
-    final ownershipApi = _ScriptedOwnershipApi(
-      canonical: _canonicalWithStore(
-        gold: 40,
-        activeOffers: <StoreOfferState>[_swordOffer()],
-      ),
-    );
-    final appState = await _bootstrappedAppState(ownershipApi: ownershipApi);
-
-    await tester.pumpWidget(_TestApp(appState: appState));
-
-    await tester.tap(find.text('Refresh'));
-    await tester.pumpAndSettle();
-    expect(ownershipApi.refreshStoreCalls, 0);
-  });
-
-  testWidgets('Town refresh for gold applies canonical response', (
-    tester,
-  ) async {
-    final ownershipApi = _ScriptedOwnershipApi(
+    final api = _ScriptedOwnershipApi(
       canonical: _canonicalWithStore(
         gold: 500,
-        activeOffers: <StoreOfferState>[_swordOffer()],
+        activeOffers: [_swordOffer(), _willowAbility()],
       ),
     );
-    final appState = await _bootstrappedAppState(ownershipApi: ownershipApi);
-
-    await tester.pumpWidget(_TestApp(appState: appState));
-
-    await tester.tap(find.text('Refresh'));
+    final app = await _bootstrappedAppState(ownershipApi: api);
+    addTearDown(app.dispose);
+    await tester.pumpWidget(_TestApp(appState: app));
+    await tester.tap(find.byKey(const ValueKey('service-training')));
     await tester.pumpAndSettle();
-    expect(find.text('Refresh store?'), findsOneWidget);
-    expect(find.text('Refreshing the store costs'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is GoldDisplay &&
-            widget.gold == 50 &&
-            widget.label == 'Cost' &&
-            widget.variant == GoldDisplayVariant.body,
-      ),
-      findsOneWidget,
+    await tester.tap(
+      find.byKey(const ValueKey('catalogue-character-bountyHunter')),
     );
-    expect(
-      find.text('Are you sure you want to refresh the store?'),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.widgetWithText(AppButton, 'Refresh').last);
     await tester.pumpAndSettle();
-
-    expect(ownershipApi.refreshStoreCalls, 1);
-    expect(find.text('Store refreshed.'), findsOneWidget);
+    expect(find.text('Blink Dash'), findsOneWidget);
+    expect(find.text('Waspfang'), findsNothing);
+    await tester.ensureVisible(find.text('Learn'));
+    await tester.tap(find.text('Learn'));
+    await tester.pumpAndSettle();
+    expect(api.lastPurchase?.characterId, PlayerCharacterId.bountyHunter);
+    expect(app.selection.selectedCharacterId, PlayerCharacterId.eloise);
   });
 
-  testWidgets('Town refresh dialog cancel leaves store unchanged', (
-    tester,
-  ) async {
-    final ownershipApi = _ScriptedOwnershipApi(
-      canonical: _canonicalWithStore(
-        gold: 500,
-        activeOffers: <StoreOfferState>[_swordOffer()],
-      ),
-    );
-    final appState = await _bootstrappedAppState(ownershipApi: ownershipApi);
+  testWidgets(
+    'owned shared accessories stay inspectable without another purchase',
+    (tester) async {
+      final api = _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          gold: 500,
+          activeOffers: [_sharedAccessory()],
+        ),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: api);
+      addTearDown(app.dispose);
+      await tester.pumpWidget(_TestApp(appState: app));
+      expect(find.text('Owned'), findsOneWidget);
+      expect(find.text('Usable by both · One purchase'), findsOneWidget);
+      expect(find.text('Buy'), findsNothing);
+      await tester.tap(
+        find.byKey(const ValueKey('catalogue-character-bountyHunter')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Owned'), findsOneWidget);
+      await tester.tap(find.text('Not yet unlocked'));
+      await tester.pumpAndSettle();
+      expect(find.text('No entries match these filters.'), findsOneWidget);
+      expect(api.purchaseStoreOfferCalls, 0);
+      expect(api.refreshStoreCalls, 0);
+    },
+  );
 
-    await tester.pumpWidget(_TestApp(appState: appState));
-
-    await tester.tap(find.text('Refresh'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(AppButton, 'Cancel'));
-    await tester.pumpAndSettle();
-
-    expect(ownershipApi.refreshStoreCalls, 0);
-    expect(find.text('Refresh store?'), findsNothing);
-  });
-
-  testWidgets('Town disables refresh when no offer can change', (tester) async {
-    final baseMeta = const MetaService().createNew();
-    final allOwnedInventory = baseMeta.inventory.copyWith(
-      unlockedWeaponIds: Set<WeaponId>.from(WeaponId.values),
-      unlockedSpellBookIds: Set<SpellBookId>.from(SpellBookId.values),
-      unlockedAccessoryIds: Set<AccessoryId>.from(AccessoryId.values),
-    );
-    final canonical = _canonicalWithStore(
-      gold: 500,
-      activeOffers: <StoreOfferState>[_swordOffer()],
-    ).copyWith(meta: baseMeta.copyWith(inventory: allOwnedInventory));
-    final ownershipApi = _ScriptedOwnershipApi(canonical: canonical);
-    final appState = await _bootstrappedAppState(ownershipApi: ownershipApi);
-
-    await tester.pumpWidget(_TestApp(appState: appState));
-
-    await tester.tap(find.text('Refresh'));
-    await tester.pumpAndSettle();
-    expect(ownershipApi.refreshStoreCalls, 0);
-  });
+  for (final size in [const Size(360, 640), const Size(640, 360)]) {
+    testWidgets('French catalogue supports large text at $size', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final api = _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          gold: 500,
+          activeOffers: [_swordOffer(), _willowAbility(), _sharedAccessory()],
+        ),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: api);
+      addTearDown(app.dispose);
+      await tester.pumpWidget(
+        _TestApp(appState: app, locale: const Locale('fr'), textScale: 1.8),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('offer-gear:mainWeapon:waspfang')),
+        200,
+      );
+      await tester.tap(find.text('Croc de guêpe'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
+
+StoreOfferState _willowAbility() => const StoreOfferState(
+  offerId: 'ability:mobility:bounty_hunter.blink_dash',
+  bucket: StoreBucket.ability,
+  domain: StoreDomain.ability,
+  slot: StoreSlot.mobility,
+  itemId: 'bounty_hunter.blink_dash',
+  priceGold: 150,
+  characterIds: [PlayerCharacterId.bountyHunter],
+);
+
+StoreOfferState _sharedAccessory() => const StoreOfferState(
+  offerId: 'gear:accessory:strengthBelt',
+  bucket: StoreBucket.accessory,
+  domain: StoreDomain.gear,
+  slot: StoreSlot.accessory,
+  itemId: 'strengthBelt',
+  priceGold: 150,
+  characterIds: [PlayerCharacterId.eloise, PlayerCharacterId.bountyHunter],
+);
 
 Future<AppState> _bootstrappedAppState({
   required _ScriptedOwnershipApi ownershipApi,
@@ -399,6 +458,7 @@ StoreOfferState _swordOffer() {
     slot: StoreSlot.mainWeapon,
     itemId: 'waspfang',
     priceGold: 150,
+    characterIds: [PlayerCharacterId.eloise],
   );
 }
 
@@ -414,18 +474,25 @@ OwnershipCanonicalState _canonicalWithStore({
     progression: ProgressionState(
       gold: gold,
       store: TownStoreState(
-        schemaVersion: 1,
+        schemaVersion: 2,
         generation: 0,
         refreshDayKeyUtc: '2026-03-12',
         refreshesUsedToday: 0,
         activeOffers: activeOffers,
+        catalogOffers: activeOffers,
       ),
     ),
   );
 }
 
 class _TestApp extends StatelessWidget {
-  const _TestApp({required this.appState});
+  const _TestApp({
+    required this.appState,
+    this.locale = const Locale('en'),
+    this.textScale = 1,
+  });
+  final Locale locale;
+  final double textScale;
 
   final AppState appState;
 
@@ -433,15 +500,20 @@ class _TestApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<AppState>.value(
       value: appState,
-      child: MaterialApp(
-        theme: ThemeData(
-          useMaterial3: true,
-          extensions: <ThemeExtension<dynamic>>[
-            UiTokens.standard,
-            UiButtonTheme.standard,
-          ],
+      child: RepaintBoundary(
+        key: const ValueKey('town-preview'),
+        child: MaterialApp(
+          locale: locale,
+          localizationsDelegates: RunnerLocalizations.delegates,
+          supportedLocales: RunnerLocalizations.supportedLocales,
+          theme: createUiTheme(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
+          home: const TownStorePage(),
         ),
-        home: const TownStorePage(),
       ),
     );
   }
@@ -486,6 +558,7 @@ class _ScriptedOwnershipApi extends LoadoutOwnershipApi {
 
   OwnershipCanonicalState _canonical;
 
+  PurchaseStoreOfferCommand? lastPurchase;
   int purchaseStoreOfferCalls = 0;
   int refreshStoreCalls = 0;
 
@@ -532,6 +605,7 @@ class _ScriptedOwnershipApi extends LoadoutOwnershipApi {
   Future<OwnershipCommandResult> purchaseStoreOffer(
     PurchaseStoreOfferCommand command,
   ) async {
+    lastPurchase = command;
     purchaseStoreOfferCalls += 1;
     final offer = _canonical.progression.store.activeOffers
         .where((value) => value.offerId == command.offerId)
@@ -541,6 +615,17 @@ class _ScriptedOwnershipApi extends LoadoutOwnershipApi {
         .toList(growable: false);
     _canonical = _canonical.copyWith(
       revision: _canonical.revision + 1,
+      meta:
+          offer.domain == StoreDomain.gear && offer.slot == StoreSlot.mainWeapon
+          ? _canonical.meta.copyWith(
+              inventory: _canonical.meta.inventory.copyWith(
+                unlockedWeaponIds: {
+                  ..._canonical.meta.inventory.unlockedWeaponIds,
+                  WeaponId.values.byName(offer.itemId),
+                },
+              ),
+            )
+          : _canonical.meta,
       progression: _canonical.progression.copyWith(
         gold: _canonical.progression.gold - offer.priceGold,
         store: _canonical.progression.store.copyWith(activeOffers: nextOffers),
@@ -629,4 +714,27 @@ class _InMemorySpoolStore implements RunSubmissionSpoolStore {
   Future<void> upsert({required PendingRunSubmission submission}) async {
     _entries[submission.runSessionId] = submission;
   }
+}
+
+Future<void> _capture(WidgetTester tester, String name) async {
+  if (!const bool.fromEnvironment('CAPTURE_TOWN_SERVICES')) return;
+  final images = tester.widgetList<Image>(find.byType(Image)).toList();
+  final context = tester.element(find.byType(TownStorePage));
+  await tester.runAsync(() async {
+    await Future.wait(
+      images.map((widget) => precacheImage(widget.image, context)),
+    );
+  });
+  await tester.pump();
+  await tester.runAsync(() async {
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(const ValueKey('town-preview')),
+    );
+    final image = await boundary.toImage();
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    await Directory('.tmp/town-services/previews').create(recursive: true);
+    await File('.tmp/town-services/previews/$name.png')
+        .writeAsBytes(bytes!.buffer.asUint8List());
+    image.dispose();
+  });
 }

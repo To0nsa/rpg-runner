@@ -1,9 +1,12 @@
+import 'package:game_presentation/game_localization.dart';
+
 import 'dart:convert';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_presentation/catalog_gift.dart';
+import 'package:game_presentation/message_localization.dart';
 import 'package:tool_ui/tool_ui.dart';
 
 import 'admin_controller.dart';
@@ -19,6 +22,8 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage> {
   final _uid = TextEditingController(), _title = TextEditingController();
   final _body = TextEditingController(), _gold = TextEditingController();
+  final _frenchTitle = TextEditingController(),
+      _frenchBody = TextEditingController();
   final _search = TextEditingController();
   final _panels = ToolThreePanelController();
   String _category = 'All', _character = '';
@@ -38,6 +43,8 @@ class _AdminPageState extends State<AdminPage> {
       (_uid, c.draft.uid),
       (_title, c.draft.title),
       (_body, c.draft.body),
+      (_frenchTitle, c.draft.translations['fr']?.title ?? ''),
+      (_frenchBody, c.draft.translations['fr']?.body ?? ''),
       (_gold, c.draft.goldAmount == 0 ? '' : '${c.draft.goldAmount}'),
     ]) {
       if (pair.$1.text != pair.$2) {
@@ -56,11 +63,32 @@ class _AdminPageState extends State<AdminPage> {
   @override
   void dispose() {
     c.removeListener(_changed);
-    for (final controller in [_uid, _title, _body, _gold, _search]) {
+    for (final controller in [
+      _uid,
+      _title,
+      _body,
+      _gold,
+      _search,
+      _frenchTitle,
+      _frenchBody,
+    ]) {
       controller.dispose();
     }
     _panels.dispose();
     super.dispose();
+  }
+
+  void _editFrench() {
+    final translations = {...c.draft.translations};
+    if (_frenchTitle.text.isEmpty && _frenchBody.text.isEmpty) {
+      translations.remove('fr');
+    } else {
+      translations['fr'] = MessageText(
+        title: _frenchTitle.text,
+        body: _frenchBody.text,
+      );
+    }
+    c.edit(c.draft.copyWith(translations: translations));
   }
 
   Future<bool> _replaceDraft() async {
@@ -275,7 +303,7 @@ class _AdminPageState extends State<AdminPage> {
           enabled: c.canEdit,
           maxLength: 120,
           decoration: const InputDecoration(
-            labelText: 'Message title',
+            labelText: 'Message title (English)',
             border: OutlineInputBorder(),
           ),
           onChanged: (value) => c.edit(c.draft.copyWith(title: value)),
@@ -289,11 +317,38 @@ class _AdminPageState extends State<AdminPage> {
           minLines: 5,
           maxLines: 10,
           decoration: const InputDecoration(
-            labelText: 'Message body',
+            labelText: 'Message body (English)',
             alignLabelWithHint: true,
             border: OutlineInputBorder(),
           ),
           onChanged: (value) => c.edit(c.draft.copyWith(body: value)),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          key: const Key('message-title-fr'),
+          controller: _frenchTitle,
+          enabled: c.canEdit,
+          maxLength: 120,
+          decoration: const InputDecoration(
+            labelText: 'French title (optional)',
+            border: OutlineInputBorder(),
+          ),
+          onChanged: (_) => _editFrench(),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          key: const Key('message-body-fr'),
+          controller: _frenchBody,
+          enabled: c.canEdit,
+          maxLength: 2000,
+          minLines: 3,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            labelText: 'French body (tu)',
+            helperText: 'Supply both French fields, or leave both empty for English fallback.',
+            border: OutlineInputBorder(),
+          ),
+          onChanged: (_) => _editFrench(),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -376,7 +431,7 @@ class _AdminPageState extends State<AdminPage> {
                   (_category == 'Items'
                       ? item.kind == 'gear'
                       : item.kind != 'gear')) &&
-              '${item.displayName} ${item.itemId} ${item.slot}'
+              '${item.displayName(context.gameL10n)} ${item.itemId} ${item.slot}'
                   .toLowerCase()
                   .contains(query),
         )
@@ -449,15 +504,15 @@ class _AdminPageState extends State<AdminPage> {
                 );
                 return ToolVisualCatalogCard(
                   key: ValueKey(gift.key),
-                  semanticsLabel: 'Gift ${gift.label}',
+                  semanticsLabel: 'Gift ${gift.label(context.gameL10n)}',
                   tooltipMessage:
-                      '${item.displayName}\n${item.itemId} · ${item.slot}',
+                      '${item.displayName(context.gameL10n)}\n${item.itemId} · ${item.slot}',
                   selected: c.draft.attachments.any(
                     (value) => value.key == gift.key,
                   ),
                   enabled: c.canEdit,
                   preview: Center(child: item.icon(size: 48)),
-                  title: item.displayName,
+                  title: item.displayName(context.gameL10n),
                   subtitle: item.kind == 'gear'
                       ? 'Account · ${item.slot}'
                       : '$_character · ${item.slot}',
@@ -490,10 +545,10 @@ class _AdminPageState extends State<AdminPage> {
       children: [
         gift.item.icon(size: 32),
         const SizedBox(width: 10),
-        Expanded(child: Text(gift.label)),
+        Expanded(child: Text(gift.label(context.gameL10n))),
         if (removable)
           IconButton(
-            tooltip: 'Remove ${gift.item.displayName}',
+            tooltip: 'Remove ${gift.item.displayName(context.gameL10n)}',
             icon: const Icon(Icons.close),
             onPressed: () => c.edit(
               c.draft.copyWith(
@@ -532,6 +587,12 @@ class _AdminPageState extends State<AdminPage> {
           ),
           const SizedBox(height: 12),
           SelectableText(c.draft.body.trim()),
+          for (final entry in c.draft.translations.entries) ...[
+            const Divider(height: 24),
+            Text('Translation: ${entry.key}'),
+            SelectableText(entry.value.title.trim()),
+            SelectableText(entry.value.body.trim()),
+          ],
           const Divider(height: 32),
           if (c.draft.goldAmount > 0)
             Text(

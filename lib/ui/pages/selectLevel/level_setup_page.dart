@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -110,9 +112,9 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Unable to navigate to run start right now. Try again.',
+            context.l10n.uiUnableToNavigateToRunStartRightNowTryAgain,
           ),
         ),
       );
@@ -159,7 +161,7 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
       canPop: false,
       onPopInvokedWithResult: _commitDraftSelectionAndPopIfNeeded,
       child: MenuScaffold(
-        title: 'Select Level',
+        title: context.l10n.uiSelectLevel,
         child: MenuLayout(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,8 +174,10 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
                   selected: _draftRunMode,
                   onChanged: _onRunModeChanged,
                   labelBuilder: (context, value) => switch (value) {
-                    RunMode.practice => const Text('PRACTICE'),
-                    RunMode.competitive => const Text('COMPETITIVE'),
+                    RunMode.practice => Text(context.l10n.uiPracticeHeading),
+                    RunMode.competitive => Text(
+                      context.l10n.uiCompetitiveHeading,
+                    ),
                     RunMode.weekly => const SizedBox.shrink(),
                   },
                 ),

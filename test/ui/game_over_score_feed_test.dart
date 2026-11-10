@@ -383,7 +383,7 @@ void main() {
       expect(find.text('+${_expectedTotal ~/ 200} XP'), findsOneWidget);
       expect(find.text('Verifying reward…'), findsNothing);
       expect(find.textContaining('Reward pending:'), findsNothing);
-      expect(find.text('1234'), findsOneWidget);
+      expect(find.text('1,234'), findsOneWidget);
 
       await tester.tap(find.text('Collect Score'));
       await tester.pump();
@@ -391,7 +391,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Verifying reward…'), findsNothing);
-      expect(find.text('1234'), findsOneWidget);
+      expect(find.text('1,234'), findsOneWidget);
     },
   );
 

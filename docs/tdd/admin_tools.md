@@ -115,6 +115,17 @@ rollback; do not roll back schema-2 readers while schema-2 messages remain.
 
 ## Verification
 
+Message drafts and immutable previews include optional version-1 localization.
+English title/body remain fallback; native Admin offers optional French title/body
+fields, preserves additional imported variants and renders every supplied
+translation in Review. Partial French text may be persisted while composing;
+the shared backend parser rejects incomplete pairs at preview. Send receipt
+validation compares normalized translations as well as destination/rewards.
+Changing any translation invalidates preview; attempted drafts remain locked.
+The old browser rejects translated imports rather than silently discarding them.
+See [localized inbox contents](system_inbox.md#localized-content). The operator
+shell stays English and explicitly loads shared English catalog resources.
+
 Backend emulator tests exercise real issue/claim/ownership/retention transactions
 and client-denied configuration. Service tests cover identity isolation, immutable
 previews, HTTP boundaries and uncertain retries. Admin tests run the real child

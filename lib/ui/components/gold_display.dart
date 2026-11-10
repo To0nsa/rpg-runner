@@ -1,3 +1,6 @@
+import '../l10n/app_localization.dart';
+import '../text/number_format.dart';
+
 import 'package:flutter/material.dart';
 
 import 'reward_value_paint.dart';
@@ -56,7 +59,7 @@ class GoldDisplay extends StatelessWidget {
             ),
             SizedBox(width: ui.space.sm),
           ],
-          Text(gold.toString(), style: valueStyle),
+          Text(formatCount(gold, l10n: context.l10n), style: valueStyle),
           SizedBox(width: ui.space.xs),
           Icon(
             Icons.monetization_on,

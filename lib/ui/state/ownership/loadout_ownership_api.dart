@@ -393,16 +393,23 @@ class PurchaseStoreOfferCommand extends OwnershipCommand {
     required super.expectedRevision,
     required super.commandId,
     required this.offerId,
+    this.characterId,
   });
 
   final String offerId;
+
+  /// Explicit purchase recipient; omission preserves older selected-character requests.
+  final PlayerCharacterId? characterId;
 
   @override
   String get type => 'purchaseStoreOffer';
 
   @override
   Map<String, Object?> payloadToJson() {
-    return <String, Object?>{'offerId': offerId};
+    return <String, Object?>{
+      'offerId': offerId,
+      if (characterId != null) 'characterId': characterId!.name,
+    };
   }
 }
 

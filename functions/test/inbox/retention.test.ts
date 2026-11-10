@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { parseMessageLocalization } from "../../src/inbox/localization.js";
 import { after, beforeEach, test } from "node:test";
 import { deleteApp, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
@@ -25,6 +27,30 @@ const deliver = (sourceId: string, goldAmount = 0) => issueSystemMessage({ db, u
   delivery: { sourceId, goldAmount, title: "A message", body: "Private message content" } });
 const remove = (messageId: string) => deleteInboxMessage({ db, uid, messageId, nowMs: nowMs + 20 });
 const messageRef = (id: string) => db.collection(inboxCollections.messages).doc(id);
+
+test("legacy receipt hash stays byte-identical; translated retries bind all text through claim and deletion", async () => {
+  const legacyId = await deliver("legacy-hash", 0);
+  await remove(legacyId);
+  const oldHash = createHash("sha256").update(JSON.stringify([uid, "legacy-hash", "A message", "Private message content", []])).digest("hex");
+  assert.equal((await db.collection(inboxCollections.receipts).doc(legacyId).get()).data()!.contentHash, oldHash);
+  assert.equal(await deliver("legacy-hash", 0), legacyId);
+  const fr = { title: "Cadeau", body: "Récupère ton or." };
+  const localization = parseMessageLocalization({ schemaVersion: 1, translations: { "fr-CA": fr, fr } });
+  const delivery = { sourceId: "translated", title: "Gift", body: "Claim your gold.", goldAmount: 25, localization };
+  const issue = (value = delivery) => issueSystemMessage({ db, uid, nowMs, delivery: value });
+  const id = await issue();
+  assert.deepEqual((await listInbox(db, uid)).messages[0].localization, localization);
+  const changed = { ...delivery, localization: parseMessageLocalization({ schemaVersion: 1, translations: { fr: { ...fr, body: "Different" } } }) };
+  await assert.rejects(issue(changed), { code: "already-exists" });
+  assert.equal(await issue(), id);
+  await claimInboxReward({ db, uid, messageId: id, commandId: "translated-claim", expectedRevision: 0, nowMs });
+  await remove(id);
+  assert.equal(await issue({ ...delivery, localization: parseMessageLocalization({ schemaVersion: 1, translations: { fr, "fr-CA": fr } }) }), id);
+  await assert.rejects(issue(changed), { code: "already-exists" });
+  const receipt = (await db.collection(inboxCollections.receipts).doc(id).get()).data()!;
+  assert.equal(receipt.localization, undefined);
+  assert.equal((await loadOrCreateCanonicalState({ db, uid })).progression.gold, 25);
+});
 
 test("manual deletion protects gold; claimed deletion retains compact replay evidence", async () => {
   const id = await deliver("gift", 25);

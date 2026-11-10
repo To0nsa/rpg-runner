@@ -1,3 +1,5 @@
+import '../../l10n/app_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -68,6 +70,8 @@ class _OffscreenIndicatorOverlayState extends State<OffscreenIndicatorOverlay> {
       child: CustomPaint(
         key: _paintKey,
         painter: _IndicatorPainter(
+          l10n: context.l10n,
+          textDirection: Directionality.of(context),
           frames: widget.frames,
           projector: _projector,
           metrics: widget.metrics,
@@ -85,6 +89,8 @@ class _OffscreenIndicatorOverlayState extends State<OffscreenIndicatorOverlay> {
 
 class _IndicatorPainter extends CustomPainter {
   _IndicatorPainter({
+    required this.l10n,
+    required this.textDirection,
     required this.frames,
     required this.projector,
     required this.metrics,
@@ -97,6 +103,8 @@ class _IndicatorPainter extends CustomPainter {
   }) : super(repaint: frames);
 
   final ValueListenable<OffscreenIndicatorFrame?> frames;
+  final AppLocalizations l10n;
+  final TextDirection textDirection;
   final OffscreenIndicatorProjector projector;
   final ViewportMetrics metrics;
   final EdgeInsets safePadding;
@@ -135,11 +143,12 @@ class _IndicatorPainter extends CustomPainter {
             color: theme.foreground,
           ),
         ),
-        textDirection: TextDirection.ltr,
+        textDirection: textDirection,
         textScaler: textScaler,
       )..layout(),
     );
     final markers = layoutOffscreenIndicators(
+      l10n: l10n,
       indicators: indicators,
       viewport: viewport,
       safeBounds: safePadding.deflateRect(Offset.zero & size),
@@ -200,7 +209,7 @@ class _IndicatorPainter extends CustomPainter {
       } else {
         canvas.drawCircle(symbol, 3, Paint()..color = color);
       }
-      final painter = label(marker.label);
+      final painter = label(marker.label(l10n));
       painter.paint(
         canvas,
         Offset(rect.left + 30, rect.center.dy - painter.height / 2),

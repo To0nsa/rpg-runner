@@ -1,6 +1,8 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/levels/level_id.dart';
+
 import '../../../levels/level_id_ui.dart';
 import 'hub_select_card_body.dart';
 import 'hub_select_card_frame.dart';
@@ -25,8 +27,8 @@ class HubSelectedLevelCard extends StatelessWidget {
       onTap: onChange,
       background: LevelCardArtwork(levelId: levelId),
       child: HubSelectCardBody(
-        label: 'LEVEL SELECTION',
-        title: levelId.displayName.toUpperCase(),
+        label: context.l10n.uiLevelSelection,
+        title: levelId.localizedName(context.l10n).toUpperCase(),
         subtitle: runModeLabel,
       ),
     );

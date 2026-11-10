@@ -9,9 +9,15 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.3
   runner_core:
     path: ../runner_core
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+
+flutter:
+  generate: true

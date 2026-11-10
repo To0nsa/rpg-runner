@@ -18,7 +18,7 @@ test("release pause rejects every new client, including a mistakenly allowed ver
 });
 
 test("newer candidates wait for cutover; obsolete or unknown clients require an update", () => {
-  for (const client of ["2026.11.9", "2026.11.8.7", "2026.12.1", "2027.1.1"]) {
+  for (const client of [`${currentGameCompatVersion}.1`, "2026.11.11", "2026.12.1", "2027.1.1"]) {
     assert.throws(() => assertSupportedGameCompatVersion(client), (error: unknown) => {
       assert.ok(error instanceof HttpsError);
       assert.equal(error.code, "unavailable");
@@ -26,7 +26,7 @@ test("newer candidates wait for cutover; obsolete or unknown clients require an 
       return true;
     });
   }
-  for (const client of ["2026.11.8.5", "2026.11.8.4", "2026.11.8.3", "2026.11.8.2", "2026.11.8.1", "2026.10.21", "2026.11.6", "2026.9.30", "unknown"]) {
+  for (const client of ["2026.11.9", "2026.11.8.6", "2026.11.8.5", "2026.11.8.4", "2026.11.8.3", "2026.11.8.2", "2026.11.8.1", "2026.10.21", "2026.11.6", "2026.9.30", "unknown"]) {
     assert.throws(() => assertSupportedGameCompatVersion(client), (error: unknown) => {
       assert.ok(error instanceof HttpsError);
       assert.equal(error.code, "failed-precondition");
@@ -40,7 +40,7 @@ test("newer candidates wait for cutover; obsolete or unknown clients require an 
 });
 
 test("gameplay release client, board default and worker share one compatibility", () => {
-  assert.equal(currentGameCompatVersion, "2026.11.8.6");
+  assert.equal(currentGameCompatVersion, "2026.11.10");
   assert.throws(() => assertSupportedGameCompatVersion("2026.10.11.1", resolveSupportedGameCompatVersions({})));
 
   assert.deepEqual([...resolveSupportedGameCompatVersions({})], [currentGameCompatVersion]);

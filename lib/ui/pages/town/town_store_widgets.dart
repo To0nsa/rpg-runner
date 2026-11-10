@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_catalog.dart';
@@ -23,122 +25,135 @@ import 'package:game_presentation/gear_text.dart';
 
 import '../../text/semantic_text.dart';
 import '../../theme/ui_tokens.dart';
-import '../../theme/ui_town_store_theme.dart';
 import '../selectCharacter/gear/gear_stats_presenter.dart';
 
-/// Combined town store header and offers list in one card.
-class TownStoreCard extends StatefulWidget {
-  const TownStoreCard({
+import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
+import 'package:runner_core/players/player_character_definition.dart';
+
+/// Compact catalogue entry with expandable authoritative details and build comparison.
+class TownOfferCard extends StatelessWidget {
+  const TownOfferCard({
     super.key,
-    required this.refreshesRemaining,
-    required this.inFlight,
-    required this.canRefresh,
-    required this.onRefreshPressed,
-    required this.selectedProjectileSourceSpellId,
-    required this.activeOffers,
+    required this.offer,
+    required this.owned,
+    required this.expanded,
     required this.currentGold,
     required this.purchaseInFlight,
-    required this.refreshInFlight,
+    required this.selectedLoadout,
+    required this.buildName,
+    required this.characterId,
+    required this.onToggleExpanded,
     required this.onConfirmPurchase,
   });
-
-  final int refreshesRemaining;
-  final bool inFlight;
-  final bool canRefresh;
-  final VoidCallback onRefreshPressed;
-  final ProjectileId? selectedProjectileSourceSpellId;
-  final List<StoreOfferState> activeOffers;
+  final StoreOfferState offer;
+  final bool owned, expanded, purchaseInFlight;
   final int currentGold;
-  final bool purchaseInFlight;
-  final bool refreshInFlight;
+  final EquippedLoadoutDef selectedLoadout;
+  final String buildName;
+  final PlayerCharacterId characterId;
+  final VoidCallback onToggleExpanded;
   final ValueChanged<StoreOfferState> onConfirmPurchase;
-
-  @override
-  State<TownStoreCard> createState() => _TownStoreCardState();
-}
-
-class _TownStoreCardState extends State<TownStoreCard> {
-  String? _expandedOfferId;
-
-  @override
-  void didUpdateWidget(covariant TownStoreCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_expandedOfferId == null) {
-      return;
-    }
-    final stillExists = widget.activeOffers.any(
-      (offer) => offer.offerId == _expandedOfferId,
-    );
-    if (!stillExists) {
-      _expandedOfferId = null;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
+    final training = offer.domain == StoreDomain.ability;
+    final name = townStoreOfferDisplayName(offer, strings: context.gameL10n);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: ui.colors.cardBackground,
         borderRadius: BorderRadius.circular(ui.radii.md),
-        border: Border.all(color: ui.colors.outline),
-        boxShadow: ui.shadows.card,
+        border: Border.all(
+          color: expanded ? ui.colors.accentStrong : ui.colors.outline,
+        ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(ui.space.md),
+        padding: EdgeInsets.all(ui.space.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: Text(
-                    'Store refreshes left: ${widget.refreshesRemaining}',
-                    style: ui.text.body.copyWith(color: ui.colors.textMuted),
+            Semantics(
+              button: true,
+              expanded: expanded,
+              child: InkWell(
+                onTap: onToggleExpanded,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: ui.space.xs),
+                  child: Row(
+                    children: [
+                      _OfferIcon(offer: offer),
+                      SizedBox(width: ui.space.sm),
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: ui.text.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        expanded ? Icons.expand_less : Icons.expand_more,
+                        color: ui.colors.textMuted,
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(width: ui.space.sm),
-                AppButton(
-                  label: widget.inFlight ? 'Refreshing...' : 'Refresh',
-                  variant: AppButtonVariant.secondary,
-                  size: AppButtonSize.xxs,
-                  onPressed: widget.canRefresh ? widget.onRefreshPressed : null,
+              ),
+            ),
+            if (offer.slot == StoreSlot.accessory)
+              Padding(
+                padding: EdgeInsets.only(bottom: ui.space.xs),
+                child: Text(
+                  context.l10n.townSharedAccessory,
+                  style: ui.text.body.copyWith(color: ui.colors.textMuted),
                 ),
+              ),
+            Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: ui.space.sm,
+              runSpacing: ui.space.xs,
+              children: [
+                if (owned)
+                  Text(
+                    training
+                        ? context.l10n.townLearned
+                        : context.l10n.townOwned,
+                    style: ui.text.body.copyWith(color: ui.colors.success),
+                  )
+                else ...[
+                  GoldDisplay(
+                    gold: offer.priceGold,
+                    variant: GoldDisplayVariant.headline,
+                  ),
+                  AppButton(
+                    key: ValueKey('buy-${offer.offerId}'),
+                    label: purchaseInFlight
+                        ? context.l10n.uiBuying
+                        : (training
+                              ? context.l10n.townLearn
+                              : context.l10n.uiBuy),
+                    size: AppButtonSize.xxs,
+                    onPressed:
+                        currentGold >= offer.priceGold && !purchaseInFlight
+                        ? () => onConfirmPurchase(offer)
+                        : null,
+                  ),
+                ],
               ],
             ),
-            SizedBox(height: ui.space.md),
-            if (widget.activeOffers.isEmpty)
-              Text(
-                'No offers available right now.',
-                style: ui.text.body.copyWith(color: ui.colors.textMuted),
-              )
-            else
-              for (
-                var index = 0;
-                index < widget.activeOffers.length;
-                index++
-              ) ...[
-                _TownOfferRow(
-                  offer: widget.activeOffers[index],
-                  expanded:
-                      widget.activeOffers[index].offerId == _expandedOfferId,
-                  currentGold: widget.currentGold,
-                  purchaseInFlight: widget.purchaseInFlight,
-                  refreshInFlight: widget.refreshInFlight,
+            if (expanded)
+              Padding(
+                padding: EdgeInsets.only(top: ui.space.sm),
+                child: _TownOfferDetails(
+                  offer: offer,
                   selectedProjectileSourceSpellId:
-                      widget.selectedProjectileSourceSpellId,
-                  onToggleExpanded: () => setState(() {
-                    final offerId = widget.activeOffers[index].offerId;
-                    _expandedOfferId = _expandedOfferId == offerId
-                        ? null
-                        : offerId;
-                  }),
-                  onConfirmPurchase: widget.onConfirmPurchase,
+                      selectedLoadout.projectileSlotSpellId,
+                  selectedLoadout: selectedLoadout,
+                  buildName: buildName,
+                  characterId: characterId,
                 ),
-                if (index < widget.activeOffers.length - 1)
-                  SizedBox(height: ui.space.xs),
-              ],
+              ),
           ],
         ),
       ),
@@ -147,146 +162,21 @@ class _TownStoreCardState extends State<TownStoreCard> {
 }
 
 const ProjectileCatalog _projectileCatalog = ProjectileCatalog();
-const DefaultAbilityTooltipBuilder _abilityTooltipBuilder =
-    DefaultAbilityTooltipBuilder();
-
-class _TownOfferRow extends StatelessWidget {
-  const _TownOfferRow({
-    required this.offer,
-    required this.expanded,
-    required this.currentGold,
-    required this.purchaseInFlight,
-    required this.refreshInFlight,
-    required this.selectedProjectileSourceSpellId,
-    required this.onToggleExpanded,
-    required this.onConfirmPurchase,
-  });
-
-  final StoreOfferState offer;
-  final bool expanded;
-  final int currentGold;
-  final bool purchaseInFlight;
-  final bool refreshInFlight;
-  final ProjectileId? selectedProjectileSourceSpellId;
-  final VoidCallback onToggleExpanded;
-  final ValueChanged<StoreOfferState> onConfirmPurchase;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = context.ui;
-    final storeTheme = context.townStore;
-    final canAfford = currentGold >= offer.priceGold;
-    final canBuy = canAfford && !purchaseInFlight && !refreshInFlight;
-    final borderColor = expanded
-        ? ui.colors.accentStrong
-        : ui.colors.outline.withValues(
-            alpha: storeTheme.bucketIdleOutlineAlpha,
-          );
-    final fillColor = expanded
-        ? UiBrandPalette.steelBlueInsetBottom
-        : ui.colors.background.withValues(alpha: 0.55);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onToggleExpanded,
-        borderRadius: BorderRadius.circular(ui.radii.md),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          decoration: BoxDecoration(
-            color: fillColor,
-            borderRadius: BorderRadius.circular(ui.radii.md),
-            border: Border.all(color: borderColor),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(ui.space.sm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _OfferIcon(offer: offer),
-                    SizedBox(width: ui.space.sm),
-                    Expanded(
-                      child: Text(
-                        townStoreOfferDisplayName(offer),
-                        style: ui.text.body.copyWith(
-                          color: ui.colors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    SizedBox(width: ui.space.xs),
-                    AnimatedRotation(
-                      turns: expanded ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: Icon(
-                        Icons.expand_more,
-                        size: 18,
-                        color: ui.colors.textMuted,
-                      ),
-                    ),
-                    SizedBox(width: ui.space.xs),
-                    GoldDisplay(
-                      gold: offer.priceGold,
-                      variant: GoldDisplayVariant.headline,
-                    ),
-                    SizedBox(width: ui.space.xs),
-                    AppButton(
-                      label: purchaseInFlight ? 'Buying...' : 'Buy',
-                      variant: AppButtonVariant.primary,
-                      size: AppButtonSize.xxs,
-                      onPressed: canBuy ? () => onConfirmPurchase(offer) : null,
-                    ),
-                  ],
-                ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  switchInCurve: Curves.easeInOut,
-                  switchOutCurve: Curves.easeInOut,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SizeTransition(
-                      sizeFactor: animation,
-                      alignment: Alignment.topLeft,
-                      child: child,
-                    ),
-                  ),
-                  child: expanded
-                      ? Padding(
-                          key: ValueKey<String>('details-${offer.offerId}'),
-                          padding: EdgeInsets.only(top: ui.space.xs),
-                          child: _TownOfferDetails(
-                            offer: offer,
-                            selectedProjectileSourceSpellId:
-                                selectedProjectileSourceSpellId,
-                          ),
-                        )
-                      : const SizedBox.shrink(
-                          key: ValueKey<String>('details-hidden'),
-                        ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _TownOfferDetails extends StatelessWidget {
   const _TownOfferDetails({
     required this.offer,
     required this.selectedProjectileSourceSpellId,
+    required this.selectedLoadout,
+    required this.buildName,
+    required this.characterId,
   });
 
   final StoreOfferState offer;
   final ProjectileId? selectedProjectileSourceSpellId;
+  final EquippedLoadoutDef selectedLoadout;
+  final String buildName;
+  final PlayerCharacterId characterId;
 
   @override
   Widget build(BuildContext context) {
@@ -302,12 +192,34 @@ class _TownOfferDetails extends StatelessWidget {
       child: switch (offer.domain) {
         StoreDomain.gear => _GearOfferDetails(
           offer: offer,
-          resourceLabel:
-              hunterRangedWeaponIds.contains(selectedProjectileSourceSpellId)
-              ? 'Supplies'
-              : 'Mana',
+          selectedLoadout: selectedLoadout,
+          buildName: buildName,
+          manaPresentation: characterId == PlayerCharacterId.bountyHunter
+              ? ManaPresentation.supplies
+              : ManaPresentation.mana,
         ),
-        StoreDomain.projectileSpell => _ProjectileOfferDetails(offer: offer),
+        StoreDomain.projectileSpell => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ProjectileOfferDetails(offer: offer),
+            SizedBox(height: ui.space.sm),
+            Text(
+              context.l10n.townCompareWith(
+                item: projectileDisplayName(
+                  selectedLoadout.projectileSlotSpellId,
+                  strings: context.gameL10n,
+                ),
+                build: buildName,
+              ),
+              style: ui.text.body,
+            ),
+            _ProjectileOfferDetails(
+              offer: offer.copyWith(
+                itemId: selectedLoadout.projectileSlotSpellId.name,
+              ),
+            ),
+          ],
+        ),
         StoreDomain.ability => _AbilityOfferDetails(
           offer: offer,
           selectedProjectileSourceSpellId: selectedProjectileSourceSpellId,
@@ -318,9 +230,16 @@ class _TownOfferDetails extends StatelessWidget {
 }
 
 class _GearOfferDetails extends StatelessWidget {
-  const _GearOfferDetails({required this.offer, required this.resourceLabel});
+  const _GearOfferDetails({
+    required this.offer,
+    required this.manaPresentation,
+    required this.selectedLoadout,
+    required this.buildName,
+  });
 
-  final String resourceLabel;
+  final ManaPresentation manaPresentation;
+  final EquippedLoadoutDef selectedLoadout;
+  final String buildName;
 
   final StoreOfferState offer;
 
@@ -331,31 +250,72 @@ class _GearOfferDetails extends StatelessWidget {
     final typedId = _typedGearId(offer.slot, offer.itemId);
     if (gearSlot == null || typedId == null) {
       return Text(
-        'No details available right now.',
+        context.l10n.uiNoDetailsAvailableRightNow,
         style: ui.text.body.copyWith(color: ui.colors.textMuted),
       );
     }
     final statLines = gearStatsFor(
       gearSlot,
       typedId,
-      resourceLabel: resourceLabel,
+      manaPresentation: manaPresentation,
+      strings: context.gameL10n,
+      l10n: context.l10n,
+    );
+    final equipped = switch (gearSlot) {
+      GearSlot.mainWeapon => selectedLoadout.mainWeaponId,
+      GearSlot.offhandWeapon => selectedLoadout.offhandWeaponId,
+      GearSlot.spellBook => selectedLoadout.spellBookId,
+      GearSlot.accessory => selectedLoadout.accessoryId,
+    };
+    final comparisons = gearCompareStats(
+      gearSlot,
+      equipped: equipped,
+      candidate: typedId,
+      manaPresentation: manaPresentation,
+      strings: context.gameL10n,
+      l10n: context.l10n,
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
+          context.l10n.townCompareWith(
+            item: gearDisplayNameForSlot(
+              gearSlot,
+              equipped,
+              strings: context.gameL10n,
+            ),
+            build: buildName,
+          ),
+          style: ui.text.body,
+        ),
+        SizedBox(height: ui.space.xs),
+        if (comparisons.isEmpty)
+          Text(
+            gearCompareEmptyText(
+              selectedId: typedId,
+              equippedForCompare: equipped,
+              l10n: context.l10n,
+            ),
+            style: ui.text.body.copyWith(color: ui.colors.textMuted),
+          )
+        else
+          for (final line in comparisons) _GearStatLineRow(line: line),
+        SizedBox(height: ui.space.sm),
+        Text(
           gearDescriptionForSlot(
             gearSlot,
             typedId,
-            resourceLabel: resourceLabel,
+            manaPresentation: manaPresentation,
+            strings: context.gameL10n,
           ),
           style: ui.text.body.copyWith(color: ui.colors.textMuted),
         ),
         SizedBox(height: ui.space.xs),
         if (statLines.isEmpty)
           Text(
-            'No non-zero stat bonuses.',
+            context.l10n.uiNoNonZeroStatBonuses,
             style: ui.text.body.copyWith(color: ui.colors.textMuted),
           )
         else
@@ -383,14 +343,14 @@ class _ProjectileOfferDetails extends StatelessWidget {
     );
     if (projectileId == null || projectileId == ProjectileId.unknown) {
       return Text(
-        'No details available right now.',
+        context.l10n.uiNoDetailsAvailableRightNow,
         style: ui.text.body.copyWith(color: ui.colors.textMuted),
       );
     }
     final projectileDef = _projectileCatalog.tryGet(projectileId);
     final statusLines = projectileDef == null
         ? const <String>[]
-        : projectileStatusSummaries(projectileDef);
+        : projectileStatusSummaries(projectileDef, strings: context.gameL10n);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,12 +358,15 @@ class _ProjectileOfferDetails extends StatelessWidget {
       children: [
         if (projectileDef != null)
           _DetailsMetricLine(
-            label: 'Damage: ',
-            value: damageTypeDisplayName(projectileDef.damageType),
+            label: context.l10n.uiDamage,
+            value: damageTypeDisplayName(
+              projectileDef.damageType,
+              strings: context.gameL10n,
+            ),
           ),
         if (projectileDef != null) SizedBox(height: ui.space.xxs),
         Text(
-          projectileDescription(projectileId),
+          projectileDescription(projectileId, strings: context.gameL10n),
           style: ui.text.body.copyWith(color: ui.colors.textMuted),
         ),
         if (statusLines.isNotEmpty) ...[
@@ -435,13 +398,13 @@ class _AbilityOfferDetails extends StatelessWidget {
     final slot = _abilitySlotForStoreSlot(offer.slot);
     if (def == null) {
       return Text(
-        'No details available right now.',
+        context.l10n.uiNoDetailsAvailableRightNow,
         style: ui.text.body.copyWith(color: ui.colors.textMuted),
       );
     }
     final tooltip = slot == null
-        ? _abilityTooltipBuilder.build(def)
-        : _abilityTooltipBuilder.build(
+        ? DefaultAbilityTooltipBuilder.localized(context).build(def)
+        : DefaultAbilityTooltipBuilder.localized(context).build(
             def,
             ctx: AbilityTooltipContext(
               activeProjectileId: slot == AbilitySlot.projectile
@@ -465,8 +428,10 @@ class _AbilityOfferDetails extends StatelessWidget {
       children: [
         if (tooltip.cooldownSeconds != null)
           _DetailsMetricLine(
-            label: 'Cooldown: ',
-            value: '${_formatSeconds(tooltip.cooldownSeconds!)} seconds',
+            label: context.l10n.uiCooldown,
+            value: context.gameL10n.durationSeconds(
+              seconds: (tooltip.cooldownSeconds! * 10).round() / 10,
+            ),
           ),
         for (var index = 0; index < tooltip.costLines.length; index++) ...[
           if (tooltip.cooldownSeconds != null || index > 0)
@@ -480,8 +445,10 @@ class _AbilityOfferDetails extends StatelessWidget {
           if (tooltip.cooldownSeconds != null || tooltip.costLines.isNotEmpty)
             SizedBox(height: ui.space.xxs),
           _DetailsMetricLine(
-            label: 'Max duration: ',
-            value: '${_formatSeconds(tooltip.maxDurationSeconds!)} seconds',
+            label: context.l10n.uiMaxDuration,
+            value: context.gameL10n.durationSeconds(
+              seconds: (tooltip.maxDurationSeconds! * 10).round() / 10,
+            ),
           ),
         ],
         if (hasMetrics) SizedBox(height: ui.space.xxs),
@@ -702,16 +669,14 @@ Color _semanticToneColor(UiTokens ui, UiSemanticTone tone) {
   };
 }
 
-String _formatSeconds(double seconds) {
-  return seconds.toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '');
-}
-
 List<TextSpan> _highlightValues(
   String text, {
   required TextStyle normal,
   required TextStyle highlight,
 }) {
-  final regex = RegExp(r'[+-]?\d+(?:\.\d+)?%?');
+  final regex = RegExp(
+    r'[+-]?\d+(?:[.,\u00a0\u202f]\d+)*(?:[ \u00a0\u202f]?%)?',
+  );
   final spans = <TextSpan>[];
   var index = 0;
   for (final match in regex.allMatches(text)) {
@@ -730,26 +695,29 @@ List<TextSpan> _highlightValues(
 }
 
 /// Human-readable offer label resolved from the typed domain payload.
-String townStoreOfferDisplayName(StoreOfferState offer) {
+String townStoreOfferDisplayName(
+  StoreOfferState offer, {
+  required GameLocalizations strings,
+}) {
   switch (offer.domain) {
     case StoreDomain.gear:
       final gearSlot = _gearSlotForStoreSlot(offer.slot);
       final typedId = _typedGearId(offer.slot, offer.itemId);
       if (gearSlot == null || typedId == null) {
-        return offer.itemId;
+        return strings.unknownItem;
       }
-      return gearDisplayNameForSlot(gearSlot, typedId);
+      return gearDisplayNameForSlot(gearSlot, typedId, strings: strings);
     case StoreDomain.projectileSpell:
       final projectileId = _enumByName(
         playerEquippableProjectileIds,
         offer.itemId,
       );
       if (projectileId == null) {
-        return offer.itemId;
+        return strings.unknownItem;
       }
-      return projectileDisplayName(projectileId);
+      return projectileDisplayName(projectileId, strings: strings);
     case StoreDomain.ability:
-      return abilityDisplayName(offer.itemId);
+      return abilityDisplayName(offer.itemId, strings: strings);
   }
 }
 

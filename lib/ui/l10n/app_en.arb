@@ -1,0 +1,3672 @@
+{
+  "@@locale": "en",
+  "appTitle": "Lothringen: The Long Run",
+  "@appTitle": {
+    "description": "Application title. The product name is not translated."
+  },
+  "languageName": "English",
+  "@languageName": {
+    "description": "This language’s own name, shown in the language picker."
+  },
+  "languageLabel": "Language",
+  "@languageLabel": {
+    "description": "Language preference heading."
+  },
+  "languageSaveFailed": "Could not save the language. Please try again.",
+  "@languageSaveFailed": {
+    "description": "Language preference write failed; the previous language stays selected."
+  },
+  "optionsTitle": "Options",
+  "@optionsTitle": {
+    "description": "Options page title."
+  },
+  "optionsSettingsTab": "SETTINGS",
+  "@optionsSettingsTab": {
+    "description": "Settings tab in the options page."
+  },
+  "optionsControlsTab": "CONTROLS",
+  "@optionsControlsTab": {
+    "description": "Controls tab in the options page."
+  },
+  "movementTitle": "Movement",
+  "@movementTitle": {
+    "description": "Movement control settings heading."
+  },
+  "movementArrows": "Arrows",
+  "@movementArrows": {
+    "description": "Movement control option using two arrow buttons."
+  },
+  "movementFloatingJoystick": "Floating joystick",
+  "@movementFloatingJoystick": {
+    "description": "Joystick positioned around the initial touch."
+  },
+  "movementFixedJoystick": "Fixed joystick",
+  "@movementFixedJoystick": {
+    "description": "Joystick with a fixed position."
+  },
+  "movementHelp": "Choose how to move backward and forward. All controls use the same movement speed.",
+  "@movementHelp": {
+    "description": "Explanation of movement preferences; no option changes gameplay speed."
+  },
+  "movementArrowsHelp": "Hold an arrow to move in that direction.",
+  "@movementArrowsHelp": {
+    "description": "Arrow movement instructions."
+  },
+  "movementFloatingHelp": "The joystick follows your touch within the left third of the screen.",
+  "@movementFloatingHelp": {
+    "description": "Floating joystick instructions."
+  },
+  "movementFixedHelp": "The joystick stays in the lower-left corner. Drag its thumb left or right to move.",
+  "@movementFixedHelp": {
+    "description": "Fixed joystick instructions."
+  },
+  "controlsSaveFailed": "Could not save controls. Please try again.",
+  "@controlsSaveFailed": {
+    "description": "Movement preference write failed."
+  },
+  "developerModeTitle": "Developer mode",
+  "@developerModeTitle": {
+    "description": "Local development profile toggle."
+  },
+  "developerModeHelp": "Local profile with all equipment and abilities. Practice only; no account rewards.",
+  "@developerModeHelp": {
+    "description": "Developer profile has no online rewards."
+  },
+  "developerPracticeHelp": "Developer Practice: local play with all equipment and abilities. Account features are unavailable in this build.",
+  "@developerPracticeHelp": {
+    "description": "Browser build always runs locally."
+  },
+  "developerModeFailed": "Could not open Developer mode. Please try again.",
+  "@developerModeFailed": {
+    "description": "Failure switching to the local development profile."
+  },
+  "accountLoadFailed": "Could not load your account. Check your connection and try again.",
+  "@accountLoadFailed": {
+    "description": "Failure switching back to the online account."
+  },
+  "privacyPolicy": "Privacy policy",
+  "@privacyPolicy": {
+    "description": "Link to the privacy policy."
+  },
+  "contactSupport": "Contact support",
+  "@contactSupport": {
+    "description": "Link that opens the support email."
+  },
+  "openLinkFailed": "Could not open {url}. You can open it manually.",
+  "@openLinkFailed": {
+    "description": "External link could not be opened.",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "https://example.com"
+      }
+    }
+  },
+  "rewardsCorrected": "This run’s rewards could not be confirmed. Your totals have been updated.",
+  "@rewardsCorrected": {
+    "description": "A rejected reward preview has been reconciled with confirmed account totals."
+  },
+  "desktopStartHint": "Click or press Enter to start",
+  "@desktopStartHint": {
+    "description": "Run HUD text. Click or press Enter to start"
+  },
+  "touchStartHint": "Tap to start",
+  "@touchStartHint": {
+    "description": "Run HUD text. Tap to start"
+  },
+  "survivalGoal": "Survive as long as possible",
+  "@survivalGoal": {
+    "description": "Run HUD text. Survive as long as possible"
+  },
+  "exitRunQuestion": "Want to exit?",
+  "@exitRunQuestion": {
+    "description": "Run HUD text. Want to exit?"
+  },
+  "commonResume": "Resume",
+  "@commonResume": {
+    "description": "Run HUD text. Resume"
+  },
+  "commonExit": "Exit",
+  "@commonExit": {
+    "description": "Run HUD text. Exit"
+  },
+  "terrainPreparing": "Preparing the path…",
+  "@terrainPreparing": {
+    "description": "Run HUD text. Preparing the path…"
+  },
+  "terrainFailed": "Unable to prepare the path",
+  "@terrainFailed": {
+    "description": "Run HUD text. Unable to prepare the path"
+  },
+  "terrainRetryHelp": "Your run is held here. Retry to continue.",
+  "@terrainRetryHelp": {
+    "description": "Run HUD text. Your run is held here. Retry to continue."
+  },
+  "commonRetry": "Retry",
+  "@commonRetry": {
+    "description": "Run HUD text. Retry"
+  },
+  "riposteReady": "Riposte ready · release to counter",
+  "@riposteReady": {
+    "description": "Run HUD text. Riposte ready · release to counter"
+  },
+  "commonPlay": "Play",
+  "@commonPlay": {
+    "description": "Run HUD text. Play"
+  },
+  "commonPause": "Pause",
+  "@commonPause": {
+    "description": "Run HUD text. Pause"
+  },
+  "exitGameTooltip": "Exit game",
+  "@exitGameTooltip": {
+    "description": "Run HUD text. Exit game"
+  },
+  "gameOverTitle": "Game Over",
+  "@gameOverTitle": {
+    "description": "Run HUD text. Game Over"
+  },
+  "keyJump": "Space / W / Up",
+  "@keyJump": {
+    "description": "Keyboard/mouse binding shown in the run HUD. Translate key names but preserve the actual letters and assigned inputs."
+  },
+  "keyMobility": "Shift",
+  "@keyMobility": {
+    "description": "Keyboard/mouse binding shown in the run HUD. Translate key names but preserve the actual letters and assigned inputs."
+  },
+  "keyPrimary": "LMB / J",
+  "@keyPrimary": {
+    "description": "Keyboard/mouse binding shown in the run HUD. Translate key names but preserve the actual letters and assigned inputs."
+  },
+  "keySecondary": "Q",
+  "@keySecondary": {
+    "description": "Keyboard/mouse binding shown in the run HUD. Translate key names but preserve the actual letters and assigned inputs."
+  },
+  "keyProjectile": "RMB / K",
+  "@keyProjectile": {
+    "description": "Keyboard/mouse binding shown in the run HUD. Translate key names but preserve the actual letters and assigned inputs."
+  },
+  "keySpell": "E / L",
+  "@keySpell": {
+    "description": "Keyboard/mouse binding shown in the run HUD. Translate key names but preserve the actual letters and assigned inputs."
+  },
+  "abilityUnavailable": "Unavailable",
+  "@abilityUnavailable": {
+    "description": "Run HUD text. Unavailable"
+  },
+  "abilityLowResource": "Low resource",
+  "@abilityLowResource": {
+    "description": "Run HUD text. Low resource"
+  },
+  "abilityFollowUp": "Follow-up",
+  "@abilityFollowUp": {
+    "description": "Run HUD text. Follow-up"
+  },
+  "abilityReady": "Ready",
+  "@abilityReady": {
+    "description": "Run HUD text. Ready"
+  },
+  "desktopControlsHelp": "A / D or arrows: Move | Mouse: Aim | Esc / P: Pause | Enter: Resume",
+  "@desktopControlsHelp": {
+    "description": "Run HUD text. A / D or arrows: Move | Mouse: Aim | Esc / P: Pause | Enter: Resume"
+  },
+  "regenerationIncreased": "Regeneration increased",
+  "@regenerationIncreased": {
+    "description": "Run HUD text. Regeneration increased"
+  },
+  "forestBlessingName": "Bénédiction des Dames de la forêt",
+  "@forestBlessingName": {
+    "description": "Canonical in-world blessing name; keep its French spelling in every language."
+  },
+  "bossEncounterEnded": "Encounter ended",
+  "@bossEncounterEnded": {
+    "description": "Run HUD text. Encounter ended"
+  },
+  "bossAwakens": "{enemy} awakens",
+  "@bossAwakens": {
+    "description": "Boss entrance caption. Enemy is the localized name.",
+    "placeholders": {
+      "enemy": {
+        "type": "String"
+      }
+    }
+  },
+  "bossHealthSemantics": "{caption}, {health} health",
+  "@bossHealthSemantics": {
+    "description": "Screen-reader description of the boss health bar.",
+    "placeholders": {
+      "caption": {
+        "type": "String"
+      },
+      "health": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "bossRestorationSemantics": "{caption}, {percent} percent health, mana and stamina restored",
+  "@bossRestorationSemantics": {
+    "description": "Screen-reader announcement of a boss-victory restoration.",
+    "placeholders": {
+      "caption": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "bossRestoration": "+{percent}% health · mana · stamina",
+  "@bossRestoration": {
+    "description": "Compact boss victory restoration. Percent is a percentage value, not a fraction.",
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "regenerationBlessingSemantics": "Bénédiction des Dames de la forêt: health, mana and stamina regeneration increased until the end of the level",
+  "@regenerationBlessingSemantics": {
+    "description": "Screen-reader description of the persistent blessing; retain the canonical French blessing name."
+  },
+  "riposteCountdown": "Riposte · {seconds}s",
+  "@riposteCountdown": {
+    "description": "Remaining counterattack availability in seconds; always one decimal place.",
+    "placeholders": {
+      "seconds": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "secondsShort": "{seconds}s",
+  "@secondsShort": {
+    "description": "Compact cooldown, in seconds with one decimal place.",
+    "placeholders": {
+      "seconds": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "scoreValue": "Score: {score}",
+  "@scoreValue": {
+    "description": "Final run score.",
+    "placeholders": {
+      "score": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "chargePercent": "Charge {percent}%",
+  "@chargePercent": {
+    "description": "Current charge completion; integer percentage, not a fraction.",
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "abilityBindingSemantics": "{ability}, {binding}, {status}",
+  "@abilityBindingSemantics": {
+    "description": "Screen-reader ability binding status. All parameters are localized labels.",
+    "placeholders": {
+      "ability": {
+        "type": "String"
+      },
+      "binding": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "projectileWeapons": "Weapons",
+  "@projectileWeapons": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "projectileSpellList": "Spell List",
+  "@projectileSpellList": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "gearCompareEquipped": "This gear is currently equipped.",
+  "@gearCompareEquipped": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "gearCompareSame": "No stat differences.",
+  "@gearCompareSame": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "gearOnHit": "On Hit",
+  "@gearOnHit": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "gearOnCrit": "On Crit",
+  "@gearOnCrit": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "gearOnKill": "On Kill",
+  "@gearOnKill": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "gearOnBlock": "On Block",
+  "@gearOnBlock": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "gearOnDamaged": "On Damaged",
+  "@gearOnDamaged": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "gearOnLowHealth": "On Low Health",
+  "@gearOnLowHealth": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data."
+  },
+  "gearCompareLose": "Lose: {effects}",
+  "@gearCompareLose": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "effects": {
+        "type": "String"
+      }
+    }
+  },
+  "gearCompareAdd": "Add: {effects}",
+  "@gearCompareAdd": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "effects": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcDot": "Applies {status}, dealing {damage} damage per second for {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcDot": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "damage": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcSlow": "Applies Slow, reducing move speed by {amount} for {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcSlow": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcStun": "Applies Stun for {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcStun": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcSilence": "Applies Silence for {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcSilence": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcVulnerable": "Applies Vulnerable, increasing damage taken by {amount} for {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcVulnerable": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcWeaken": "Applies Weaken, reducing outgoing damage by {amount} for {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcWeaken": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcDrench": "Applies Drench, reducing attack and cast speed by {amount} for {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcDrench": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcHaste": "Applies Haste, increasing move speed by {amount} for {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcHaste": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcDamageReduction": "Applies Damage Reduction, reducing incoming direct-hit damage by {amount} for {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcDamageReduction": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcRestore": "Restores {resource} by {amount} over {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcRestore": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "resource": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcRestoreInstant": "Restores {resource} by {amount} immediately{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcRestoreInstant": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "resource": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcRestoreBoth": "Restores {resource} by {amount} immediately and another {amount} over {duration}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcRestoreBoth": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "resource": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "gearProcOffense": "{critKind, select, withCrit{Applies an Offense Buff, increasing power by {amount} and critical chance by {crit} for {duration}} other{Applies an Offense Buff, increasing power by {amount} for {duration}}}{chanceKind, select, guaranteed{.} other{ ({chance} chance).}}",
+  "@gearProcOffense": {
+    "description": "Gear and ability selection presentation. Values are formatted from authoritative Core data.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "crit": {
+        "type": "String"
+      },
+      "critKind": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "chance": {
+        "type": "String"
+      },
+      "chanceKind": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityMelee": "{aim, select, aimed{Unleash a sword slash that deals {damage} damage to enemies in aiming direction and in the attack reach.} other{Launch an attack that deals {damage} damage to the closest enemy and all those who are in the attack reach.}}{dotKind, select, withDot{ It causes {status}, dealing {dotDamage} damage per second for {duration} seconds.} other{}}",
+  "@abilityMelee": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "aim": {
+        "type": "String"
+      },
+      "damage": {
+        "type": "String"
+      },
+      "dotKind": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      },
+      "dotDamage": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityGuard": "Keep your guard up and reduce direct-hit damage by {reduction}% from any direction while held. Existing damage-over-time and ground spell impacts bypass the shield.{riposteKind, select, withRiposte{ The first guarded hit grants {riposte}, empowering your next landed melee hit by +{riposteBonus}% damage. It stays ready while this guard is held and expires 1 second after guard ends. Misses do not consume it.} other{}}",
+  "@abilityGuard": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "reduction": {
+        "type": "String"
+      },
+      "riposteKind": {
+        "type": "String"
+      },
+      "riposte": {
+        "type": "String"
+      },
+      "riposteBonus": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityDoubleDash": "Dash a short distance. Tap again within {window} seconds after the first burst to dash again in your chosen direction. Each burst pays the listed cost; cooldown starts with the first. Does not grant invulnerability.",
+  "@abilityDoubleDash": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "window": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityCleave": "Aim and release for {tapDamage} damage. Hold for {chargeTime} seconds to deal {fullDamage} damage, gain +{crit}% critical chance and inflict {status} ({dotDamage} damage per second for {duration} seconds). Only full charge grants this bleed. This attack can be interrupted by taking damage.",
+  "@abilityCleave": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "tapDamage": {
+        "type": "String"
+      },
+      "chargeTime": {
+        "type": "String"
+      },
+      "fullDamage": {
+        "type": "String"
+      },
+      "crit": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      },
+      "dotDamage": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "abilitySnap": "Fire {source, select, spell{the selected spell projectile} other{your equipped projectile}}{projectileName}, it deals {damage} damage to the closest enemy.",
+  "@abilitySnap": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "projectileName": {
+        "type": "String"
+      },
+      "damage": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityQuick": "Aim and fire {source, select, spell{the selected spell projectile} other{your equipped projectile}}{projectileName}. It deals {damage} damage to a single target.",
+  "@abilityQuick": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "projectileName": {
+        "type": "String"
+      },
+      "damage": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityOvercharge": "Charge and release {source, select, spell{the selected spell projectile} other{your equipped projectile}}{projectileName}. It deals {damage} damage to a single target. Charging increases damage (up to +{damageBonus}%) and critical chance (up to +{critBonus}%). Full charge takes {chargeTime} seconds. This attack can be interrupted by taking damage.",
+  "@abilityOvercharge": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "projectileName": {
+        "type": "String"
+      },
+      "damage": {
+        "type": "String"
+      },
+      "damageBonus": {
+        "type": "String"
+      },
+      "critBonus": {
+        "type": "String"
+      },
+      "chargeTime": {
+        "type": "String"
+      }
+    }
+  },
+  "abilitySkewer": "Fire {source, select, spell{the selected spell projectile} other{your equipped projectile}}{projectileName}, piercing through enemies in its path. It deals {damage} damage and can hit up to {maxHits} enemies.",
+  "@abilitySkewer": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "projectileName": {
+        "type": "String"
+      },
+      "damage": {
+        "type": "String"
+      },
+      "maxHits": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityRoll": "Perform a concussive roll. Enemies hit are affected by {status}. Does not grant invulnerability.",
+  "@abilityRoll": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityStrike": "Tap to strike in front of you.",
+  "@abilityStrike": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityCast": "Hold then release to cast a ranged bolt.",
+  "@abilityCast": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityJump": "Tap to jump.",
+  "@abilityJump": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityDoubleJump": "Tap to jump, then tap again in the air for a second jump.",
+  "@abilityDoubleJump": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityUse": "Tap to use this ability.",
+  "@abilityUse": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityDash": "Dash forward quickly. Does not grant invulnerability.",
+  "@abilityDash": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityCostFirstJump": "Cost for first jump: ",
+  "@abilityCostFirstJump": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityCostSecondJump": "Cost for second jump: ",
+  "@abilityCostSecondJump": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityCostSecond": "Cost per second: ",
+  "@abilityCostSecond": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityCost": "Cost: ",
+  "@abilityCost": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBleed": "Bleed",
+  "@abilityBleed": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBurn": "Burn",
+  "@abilityBurn": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityAcid": "Acid",
+  "@abilityAcid": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityStun": "Stun",
+  "@abilityStun": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityDamageOverTime": "damage over time",
+  "@abilityDamageOverTime": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityControl": "Control",
+  "@abilityControl": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityHaste": "Haste",
+  "@abilityHaste": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityWard": "Arcane Ward",
+  "@abilityWard": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityHealthRegen": "Health Regen",
+  "@abilityHealthRegen": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityManaRegen": "Mana Regen",
+  "@abilityManaRegen": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityStaminaRegen": "Stamina Regen",
+  "@abilityStaminaRegen": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityResourceRegen": "Resource Regen",
+  "@abilityResourceRegen": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityFocus": "Focus",
+  "@abilityFocus": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityStatusEffect": "Status Effect",
+  "@abilityStatusEffect": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityMaxHealth": "max Health",
+  "@abilityMaxHealth": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityMaxMana": "max Mana",
+  "@abilityMaxMana": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityMaxStamina": "max Stamina",
+  "@abilityMaxStamina": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityMaxResource": "max resource",
+  "@abilityMaxResource": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeDamage": "DAMAGE",
+  "@abilityBadgeDamage": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeDefense": "DEFENSE",
+  "@abilityBadgeDefense": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeDash": "DASH",
+  "@abilityBadgeDash": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeJump": "JUMP",
+  "@abilityBadgeJump": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeHold": "HOLD",
+  "@abilityBadgeHold": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeUtility": "UTILITY",
+  "@abilityBadgeUtility": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeControl": "CONTROL",
+  "@abilityBadgeControl": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeCharged": "CHARGED",
+  "@abilityBadgeCharged": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeAutoAim": "AUTO-AIM",
+  "@abilityBadgeAutoAim": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBadgeAim": "AIM",
+  "@abilityBadgeAim": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilitySelfHaste": "Increase move speed by {speedBonus}% for {duration} seconds.",
+  "@abilitySelfHaste": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "speedBonus": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "abilitySelfWard": "Reduce direct-hit damage by {mitigation}% and cancel damage-over-time effects for {duration} seconds.",
+  "@abilitySelfWard": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "mitigation": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityRestoreBoth": "Restore {restorePct}% of {resourceLabel} immediately and another {restorePct}% over {duration} seconds.",
+  "@abilityRestoreBoth": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "restorePct": {
+        "type": "String"
+      },
+      "resourceLabel": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityRestoreInstant": "Restore {restorePct}% of {resourceLabel} immediately.",
+  "@abilityRestoreInstant": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "restorePct": {
+        "type": "String"
+      },
+      "resourceLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityRestore": "Restore {restorePct}% of {resourceLabel} over {duration} seconds.",
+  "@abilityRestore": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "restorePct": {
+        "type": "String"
+      },
+      "resourceLabel": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "abilitySelfFocus": "Increase power by {powerBonus}% and critical chance by {critBonus}% for {duration} seconds.",
+  "@abilitySelfFocus": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "powerBonus": {
+        "type": "String"
+      },
+      "critBonus": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "abilitySelfStatus": "Apply {statusLabel} for {duration} seconds.",
+  "@abilitySelfStatus": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "statusLabel": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityCleanse": "Cleanse all active debuffs, including stun, silence, slow, vulnerability, weaken, drench, and damage-over-time effects.",
+  "@abilityCleanse": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "cleanseStun": "stun",
+  "@cleanseStun": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "cleanseSilence": "silence",
+  "@cleanseSilence": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "cleanseSlow": "slow",
+  "@cleanseSlow": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "cleanseVulnerability": "vulnerability",
+  "@cleanseVulnerability": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "cleanseWeaken": "weaken",
+  "@cleanseWeaken": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "cleanseDrench": "drench",
+  "@cleanseDrench": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "cleanseDamageOverTime": "damage-over-time",
+  "@cleanseDamageOverTime": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "abilityBaseDamage": "Base damage: {parts}.",
+  "@abilityBaseDamage": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "parts": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityCostValue": "{value} {resource}",
+  "@abilityCostValue": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "resource": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityRiposte": "Riposte",
+  "@abilityRiposte": {
+    "description": "Ability tooltip. Complete sentences; values are locale-formatted authoritative Core numbers or localized catalog names."
+  },
+  "hunterBomb": "Throw a bomb in an arc at the farthest reachable enemy within {range} units, or lob forward without a target. It explodes on enemy or terrain contact, or {fuse} seconds after release, dealing {damage} damage in a {radius}-unit radius.{effect, select, bleed{ Survivors bleed.} burn{ Survivors burn.} stun{ Stuns susceptible enemies.} other{}} Solid terrain blocks the blast. Uses regenerating Supplies.",
+  "@hunterBomb": {
+    "description": "Willow ability instructions. French addresses the player with tu. Numeric values come from Core delivery and charge definitions.",
+    "placeholders": {
+      "range": {
+        "type": "num",
+        "format": "decimalPattern"
+      },
+      "fuse": {
+        "type": "String"
+      },
+      "damage": {
+        "type": "String"
+      },
+      "radius": {
+        "type": "num",
+        "format": "decimalPattern"
+      },
+      "effect": {
+        "type": "String"
+      }
+    }
+  },
+  "hunterMark": "Mark the nearest visible enemy within {range} units for {duration} seconds. Your direct attacks deal {bonus}% more damage to that target. No target means no cost or cooldown.",
+  "@hunterMark": {
+    "description": "Willow ability instructions. French addresses the player with tu. Numeric values come from Core delivery and charge definitions.",
+    "placeholders": {
+      "range": {
+        "type": "num",
+        "format": "decimalPattern"
+      },
+      "duration": {
+        "type": "num",
+        "format": "decimalPattern"
+      },
+      "bonus": {
+        "type": "num",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "hunterShot": "{aim, select, automatic{Auto-aim and fire at a nearby enemy.} other{Aim, then release to fire.}} Deals {damage} base damage{pellets, plural, =1{} other{ divided across {pellets} pellets}}.{piercing, select, yes{ Each projectile can hit up to {maxHits} enemies.} other{}}{charged, select, yes{ Charging increases damage from {minDamage}% to {maxDamage}%, adds up to {crit}% critical chance, and pierces up to {chargeHits} enemies at full charge. Taking damage interrupts the charge.} other{}} Uses regenerating Supplies.",
+  "@hunterShot": {
+    "description": "Willow ability instructions. French addresses the player with tu. Numeric values come from Core delivery and charge definitions.",
+    "placeholders": {
+      "aim": {
+        "type": "String"
+      },
+      "damage": {
+        "type": "String"
+      },
+      "pellets": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "piercing": {
+        "type": "String"
+      },
+      "maxHits": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "charged": {
+        "type": "String"
+      },
+      "minDamage": {
+        "type": "num",
+        "format": "decimalPattern"
+      },
+      "maxDamage": {
+        "type": "num",
+        "format": "decimalPattern"
+      },
+      "crit": {
+        "type": "num",
+        "format": "decimalPattern"
+      },
+      "chargeHits": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "hunterLunge": "Briefly ready your blade, then automatically rush forward while slashing. Hits each enemy in the blade's path once for {damage} base damage. A short recovery follows. Solid obstacles stop the lunge. You remain vulnerable throughout.",
+  "@hunterLunge": {
+    "description": "Willow ability instructions. French addresses the player with tu. Numeric values come from Core delivery and charge definitions.",
+    "placeholders": {
+      "damage": {
+        "type": "String"
+      }
+    }
+  },
+  "hunterMelee": "Strike in front of you {swings, plural, =1{once} other{{swings} times}}, dealing {damage} damage per swing. Each swing can hit every enemy in reach once.",
+  "@hunterMelee": {
+    "description": "Willow ability instructions. French addresses the player with tu. Numeric values come from Core delivery and charge definitions.",
+    "placeholders": {
+      "swings": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "damage": {
+        "type": "String"
+      }
+    }
+  },
+  "hunterDoubleJump": "Jump, then tap again in the air for a second jump.",
+  "@hunterDoubleJump": {
+    "description": "Willow ability instructions. French addresses the player with tu. Numeric values come from Core delivery and charge definitions."
+  },
+  "hunterBlink": "Blink forward on the ground or in the air, crossing a nearby obstacle up to {width} units wide. Requires a clear landing beyond it. A blocked exit costs nothing. Untouchable only while vanished; damage interrupts preparation and recovery.",
+  "@hunterBlink": {
+    "description": "Willow ability instructions. French addresses the player with tu. Numeric values come from Core delivery and charge definitions.",
+    "placeholders": {
+      "width": {
+        "type": "num",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "hunterDoubleDash": "Dash on the ground or in the air, then tap again within {window} seconds after the first burst ends for a second dash. You can change direction between bursts. Each burst pays the listed cost; cooldown starts with the first. Does not grant invulnerability.",
+  "@hunterDoubleDash": {
+    "description": "Willow ability instructions. French addresses the player with tu. Numeric values come from Core delivery and charge definitions.",
+    "placeholders": {
+      "window": {
+        "type": "String"
+      }
+    }
+  },
+  "hunterDash": "Dash forward on the ground or in the air. Does not grant invulnerability.",
+  "@hunterDash": {
+    "description": "Willow ability instructions. French addresses the player with tu. Numeric values come from Core delivery and charge definitions."
+  },
+  "gearStatusSlow": "Slow",
+  "@gearStatusSlow": {
+    "description": "Status name highlighted in gear effect sentences. Match its spelling in the corresponding full gearProc message."
+  },
+  "gearStatusStun": "Stun",
+  "@gearStatusStun": {
+    "description": "Status name highlighted in gear effect sentences. Match its spelling in the corresponding full gearProc message."
+  },
+  "gearStatusSilence": "Silence",
+  "@gearStatusSilence": {
+    "description": "Status name highlighted in gear effect sentences. Match its spelling in the corresponding full gearProc message."
+  },
+  "gearStatusVulnerable": "Vulnerable",
+  "@gearStatusVulnerable": {
+    "description": "Status name highlighted in gear effect sentences. Match its spelling in the corresponding full gearProc message."
+  },
+  "gearStatusWeaken": "Weaken",
+  "@gearStatusWeaken": {
+    "description": "Status name highlighted in gear effect sentences. Match its spelling in the corresponding full gearProc message."
+  },
+  "gearStatusDrench": "Drench",
+  "@gearStatusDrench": {
+    "description": "Status name highlighted in gear effect sentences. Match its spelling in the corresponding full gearProc message."
+  },
+  "gearStatusHaste": "Haste",
+  "@gearStatusHaste": {
+    "description": "Status name highlighted in gear effect sentences. Match its spelling in the corresponding full gearProc message."
+  },
+  "gearStatusDamageReduction": "Damage Reduction",
+  "@gearStatusDamageReduction": {
+    "description": "Status name highlighted in gear effect sentences. Match its spelling in the corresponding full gearProc message."
+  },
+  "gearStatusOffenseBuff": "Offense Buff",
+  "@gearStatusOffenseBuff": {
+    "description": "Status name highlighted in gear effect sentences. Match its spelling in the corresponding full gearProc message."
+  },
+  "abilityMaxSupplies": "max Supplies",
+  "@abilityMaxSupplies": {
+    "description": "Maximum value of Willow’s regenerating Supplies resource."
+  },
+  "uiChooseYourName": "Choose your name",
+  "@uiChooseYourName": {
+    "description": "Player-facing text on bootstrap/profile_name_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiThisIsRequiredYouCanChangeItLaterInProfile": "This is required. You can change it later in Profile.",
+  "@uiThisIsRequiredYouCanChangeItLaterInProfile": {
+    "description": "Player-facing text on bootstrap/profile_name_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDisplayName": "Display name",
+  "@uiDisplayName": {
+    "description": "Player-facing text on bootstrap/profile_name_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiConfirm": "Confirm",
+  "@uiConfirm": {
+    "description": "Player-facing text on bootstrap/profile_name_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSomethingWentWrong": "Something went wrong.",
+  "@uiSomethingWentWrong": {
+    "description": "Player-facing text on components/app_inline_edit_text.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiEdit": "Edit",
+  "@uiEdit": {
+    "description": "Player-facing text on components/app_inline_edit_text.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSave": "Save",
+  "@uiSave": {
+    "description": "Player-facing text on pages/selectCharacter/build_name_action.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCancel": "Cancel",
+  "@uiCancel": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRank": "#Rank",
+  "@uiRank": {
+    "description": "Player-facing text on components/leaderboard_table.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiName": "Name",
+  "@uiName": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLvl": "Lvl",
+  "@uiLvl": {
+    "description": "Player-facing text on components/leaderboard_table.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCharacter": "Character",
+  "@uiCharacter": {
+    "description": "Player-facing text on components/leaderboard_table.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiScore": "Score",
+  "@uiScore": {
+    "description": "Player-facing text on components/leaderboard_table.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDistance": "Distance",
+  "@uiDistance": {
+    "description": "Player-facing text on components/leaderboard_table.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiTime": "Time",
+  "@uiTime": {
+    "description": "Player-facing text on components/leaderboard_table.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnknown": "Unknown",
+  "@uiUnknown": {
+    "description": "Player-facing text on components/leaderboard_table.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNewActivity": "New activity",
+  "@uiNewActivity": {
+    "description": "Player-facing text on components/menu_icon_column.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiComingSoon": "Coming Soon",
+  "@uiComingSoon": {
+    "description": "Player-facing text on components/placeholder_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiHealth": "Health",
+  "@uiHealth": {
+    "description": "Player-facing text on hud/game/resource_bar.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiMana": "Mana",
+  "@uiMana": {
+    "description": "Player-facing text on hud/game/resource_bar.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSupplies": "Supplies",
+  "@uiSupplies": {
+    "description": "Player-facing text on hud/game/resource_bar.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiStamina": "Stamina",
+  "@uiStamina": {
+    "description": "Player-facing text on hud/game/resource_bar.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiWallet": "Wallet: ",
+  "@uiWallet": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRunReward": "Run reward: +",
+  "@uiRunReward": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSavingReplayKeepThisScreenOpenUntilItIsSaved": "Saving replay. Keep this screen open until it is saved.",
+  "@uiSavingReplayKeepThisScreenOpenUntilItIsSaved": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiReplayCouldNotBeSavedRetryBeforeLeavingOrExitWithoutAVerifiedReward": "Replay could not be saved. Retry before leaving, or exit without a verified reward.",
+  "@uiReplayCouldNotBeSavedRetryBeforeLeavingOrExitWithoutAVerifiedReward": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSavingReplay": "Saving replay",
+  "@uiSavingReplay": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiReplaySaveFailed": "Replay save failed",
+  "@uiReplaySaveFailed": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRetrySaving": "Retry Saving",
+  "@uiRetrySaving": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiVerification": "Verification: ",
+  "@uiVerification": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiVerificationDelayed": "Verification delayed",
+  "@uiVerificationDelayed": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCollectScore": "Collect Score",
+  "@uiCollectScore": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSkip": "Skip",
+  "@uiSkip": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRestart": "Restart",
+  "@uiRestart": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiExit": "Exit",
+  "@uiExit": {
+    "description": "Player-facing text on pages/hub/run_start_bootstrap_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiExitWithoutReward": "Exit Without Reward",
+  "@uiExitWithoutReward": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSavingReplayLabel": "Saving Replay",
+  "@uiSavingReplayLabel": {
+    "description": "Player-facing text on hud/gameover/game_over_overlay.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLoadingRankSummary": "Loading rank summary...",
+  "@uiLoadingRankSummary": {
+    "description": "Player-facing text on hud/gameover/leaderboard_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPractice": "Practice",
+  "@uiPractice": {
+    "description": "Player-facing text on hud/gameover/leaderboard_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCompetitive": "Competitive",
+  "@uiCompetitive": {
+    "description": "Player-facing text on hud/gameover/leaderboard_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiWeekly": "Weekly",
+  "@uiWeekly": {
+    "description": "Player-facing text on hud/gameover/leaderboard_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLoadingLeaderboard": "Loading leaderboard...",
+  "@uiLoadingLeaderboard": {
+    "description": "Player-facing text on hud/gameover/leaderboard_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoRunsYet": "No runs yet.",
+  "@uiNoRunsYet": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiActualRankUnavailableRightNow": "Actual rank unavailable right now.",
+  "@uiActualRankUnavailableRightNow": {
+    "description": "Player-facing text on hud/gameover/leaderboard_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiActualRankUnavailable": "Actual rank unavailable.",
+  "@uiActualRankUnavailable": {
+    "description": "Player-facing text on hud/gameover/leaderboard_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnranked": "Unranked",
+  "@uiUnranked": {
+    "description": "Player-facing text on hud/gameover/leaderboard_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnableToLoadAchievementsReopenThisPageToRetry": "Unable to load achievements. Reopen this page to retry.",
+  "@uiUnableToLoadAchievementsReopenThisPageToRetry": {
+    "description": "Player-facing text on pages/achievements/achievements_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnableToClaimRewardsPleaseTryAgain": "Unable to claim rewards. Please try again.",
+  "@uiUnableToClaimRewardsPleaseTryAgain": {
+    "description": "Player-facing text on pages/achievements/achievements_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiHallOfHonour": "Hall of Honour",
+  "@uiHallOfHonour": {
+    "description": "Player-facing text on pages/town/town_map.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAchievementsAreUnavailableInDeveloperPractice": "Achievements are unavailable in Developer Practice.",
+  "@uiAchievementsAreUnavailableInDeveloperPractice": {
+    "description": "Player-facing text on pages/achievements/achievements_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLoadingAchievements": "Loading achievements…",
+  "@uiLoadingAchievements": {
+    "description": "Player-facing text on pages/achievements/achievements_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAchievementsAreNotAvailableYet": "Achievements are not available yet.",
+  "@uiAchievementsAreNotAvailableYet": {
+    "description": "Player-facing text on pages/achievements/achievements_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiClaimAll": "Claim all",
+  "@uiClaimAll": {
+    "description": "Player-facing text on pages/achievements/achievement_claim_action.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiClaim": "Claim",
+  "@uiClaim": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCompleted": "Completed",
+  "@uiCompleted": {
+    "description": "Player-facing text on pages/achievements/achievement_tile.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiBronze": "Bronze",
+  "@uiBronze": {
+    "description": "Player-facing text on pages/achievements/achievement_tile.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSilver": "Silver",
+  "@uiSilver": {
+    "description": "Player-facing text on pages/achievements/achievement_tile.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiGold": "Gold",
+  "@uiGold": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiClaimed": "Claimed",
+  "@uiClaimed": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAvailable": "Available",
+  "@uiAvailable": {
+    "description": "Player-facing text on pages/achievements/achievement_tile.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNotReached": "Not reached",
+  "@uiNotReached": {
+    "description": "Player-facing text on pages/achievements/achievement_tile.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiTown": "Town",
+  "@uiTown": {
+    "description": "Player-facing text on pages/selectCharacter/gear/gear_picker_candidates_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiProfile": "Profile",
+  "@uiProfile": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiTop": "Top",
+  "@uiTop": {
+    "description": "Player-facing text on pages/hub/components/hub_menu_icon_column.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiMessages": "Messages",
+  "@uiMessages": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnreadMessagesOrUnclaimedGifts": "Unread messages or unclaimed gifts",
+  "@uiUnreadMessagesOrUnclaimedGifts": {
+    "description": "Player-facing text on pages/hub/components/hub_menu_icon_column.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiOptions": "Options",
+  "@uiOptions": {
+    "description": "Player-facing text on pages/hub/components/hub_menu_icon_column.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCharacterSelection": "CHARACTER SELECTION",
+  "@uiCharacterSelection": {
+    "description": "Player-facing text on pages/hub/components/hub_select_character_card.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLevelSelection": "LEVEL SELECTION",
+  "@uiLevelSelection": {
+    "description": "Player-facing text on pages/hub/components/hub_select_level_card.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLeaderboard": "Leaderboard",
+  "@uiLeaderboard": {
+    "description": "Player-facing text on pages/hub/components/weekly_badge_row.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnableToNavigateToRunStartRightNowTryAgain": "Unable to navigate to run start right now. Try again.",
+  "@uiUnableToNavigateToRunStartRightNowTryAgain": {
+    "description": "Player-facing text on pages/selectLevel/level_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiGuest": "Guest",
+  "@uiGuest": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPracticeHeading": "PRACTICE",
+  "@uiPracticeHeading": {
+    "description": "Player-facing text on pages/selectLevel/level_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCompetitiveHeading": "COMPETITIVE",
+  "@uiCompetitiveHeading": {
+    "description": "Player-facing text on pages/selectLevel/level_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiWeeklyHeading": "WEEKLY",
+  "@uiWeeklyHeading": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDeveloperModePracticeOnly": "DEVELOPER MODE • Practice only",
+  "@uiDeveloperModePracticeOnly": {
+    "description": "Player-facing text on pages/hub/play_hub_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiWeeklyUnavailableInThisBuild": "WEEKLY • Unavailable in this build",
+  "@uiWeeklyUnavailableInThisBuild": {
+    "description": "Player-facing text on pages/hub/play_hub_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPreparingRun": "Preparing run...",
+  "@uiPreparingRun": {
+    "description": "Player-facing text on pages/hub/run_start_bootstrap_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRetrying": "Retrying...",
+  "@uiRetrying": {
+    "description": "Player-facing text on pages/hub/run_start_bootstrap_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRetry": "Retry",
+  "@uiRetry": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLoading": "Loading...",
+  "@uiLoading": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiFailedToLoadLeaderboard": "Failed to load leaderboard.",
+  "@uiFailedToLoadLeaderboard": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLoadingOnlineLeaderboard": "Loading online leaderboard.",
+  "@uiLoadingOnlineLeaderboard": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoLeaderboardData": "No leaderboard data.",
+  "@uiNoLeaderboardData": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoValidatedRunsYet": "No validated runs yet.",
+  "@uiNoValidatedRunsYet": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiVsGhost": "VS Ghost",
+  "@uiVsGhost": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRaceThisGhost": "Race this ghost.",
+  "@uiRaceThisGhost": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiGhostUnavailableForThisRun": "Ghost unavailable for this run.",
+  "@uiGhostUnavailableForThisRun": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoRankedPlayersYet": "No ranked players yet.",
+  "@uiNoRankedPlayersYet": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiYouAreNotRankedOnThisBoardYet": "You are not ranked on this board yet.",
+  "@uiYouAreNotRankedOnThisBoardYet": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiYourRank": "Your rank: ",
+  "@uiYourRank": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoActiveLeaderboardBoardForThisModeAndLevel": "No active leaderboard board for this mode and level.",
+  "@uiNoActiveLeaderboardBoardForThisModeAndLevel": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLeaderboardBoardIsNotAvailableRightNow": "Leaderboard board is not available right now.",
+  "@uiLeaderboardBoardIsNotAvailableRightNow": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiFailedToLoadOnlineLeaderboard": "Failed to load online leaderboard.",
+  "@uiFailedToLoadOnlineLeaderboard": {
+    "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiBestiary": "Bestiary",
+  "@uiBestiary": {
+    "description": "Player-facing text on pages/library/library_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiBestiaryBoss": "Bestiary • Boss",
+  "@uiBestiaryBoss": {
+    "description": "Player-facing text on pages/library/codex_entry_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiFieldNotes": "Field notes",
+  "@uiFieldNotes": {
+    "description": "Player-facing text on pages/library/codex_entry_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiEntryLocked": "Entry locked",
+  "@uiEntryLocked": {
+    "description": "Player-facing text on pages/library/codex_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLocations": "Locations",
+  "@uiLocations": {
+    "description": "Player-facing text on pages/library/library_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSummonedCreature": "Summoned creature",
+  "@uiSummonedCreature": {
+    "description": "Player-facing text on pages/library/codex_entry_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiBehaviour": "Behaviour",
+  "@uiBehaviour": {
+    "description": "Player-facing text on pages/library/codex_entry_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAttacks": "Attacks",
+  "@uiAttacks": {
+    "description": "Player-facing text on pages/library/codex_entry_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiResistances": "Resistances",
+  "@uiResistances": {
+    "description": "Player-facing text on pages/library/codex_entry_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoInnateDamageResistances": "No innate damage resistances.",
+  "@uiNoInnateDamageResistances": {
+    "description": "Player-facing text on pages/library/codex_entry_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiWeaknesses": "Weaknesses",
+  "@uiWeaknesses": {
+    "description": "Player-facing text on pages/library/codex_entry_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoInnateDamageWeaknesses": "No innate damage weaknesses.",
+  "@uiNoInnateDamageWeaknesses": {
+    "description": "Player-facing text on pages/library/codex_entry_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiOpen": "Open",
+  "@uiOpen": {
+    "description": "Player-facing text on pages/library/codex_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiJournal": "Journal",
+  "@uiJournal": {
+    "description": "Player-facing text on pages/library/library_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCloseLocation": "Close location",
+  "@uiCloseLocation": {
+    "description": "Player-facing text on pages/library/library_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiResetMap": "Reset map",
+  "@uiResetMap": {
+    "description": "Player-facing text on pages/town/town_map.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnableToMarkThisMessageAsReadPleaseTryAgain": "Unable to mark this message as read. Please try again.",
+  "@uiUnableToMarkThisMessageAsReadPleaseTryAgain": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnableToConfirmTheClaimPleaseTryAgainYourGiftCanOnlyBeClaimedOnce": "Unable to confirm the claim. Please try again. Your gift can only be claimed once.",
+  "@uiUnableToConfirmTheClaimPleaseTryAgainYourGiftCanOnlyBeClaimedOnce": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnableToConfirmDeletionPleaseTryAgain": "Unable to confirm deletion. Please try again.",
+  "@uiUnableToConfirmDeletionPleaseTryAgain": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiMessagesAreUnavailableInThisProfile": "Messages are unavailable in this profile.",
+  "@uiMessagesAreUnavailableInThisProfile": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiGameMessages": "Game messages",
+  "@uiGameMessages": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRefreshMessages": "Refresh messages",
+  "@uiRefreshMessages": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiMoreMessagesAreAvailable": "More messages are available.",
+  "@uiMoreMessagesAreAvailable": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoMessagesYet": "No messages yet.",
+  "@uiNoMessagesYet": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiYourMessagesWillAppearHere": "Your messages will appear here.",
+  "@uiYourMessagesWillAppearHere": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLoadMore": "Load more",
+  "@uiLoadMore": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLoadingLabel": "Loading…",
+  "@uiLoadingLabel": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSelectAMessageToReadIt": "Select a message to read it.",
+  "@uiSelectAMessageToReadIt": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiClaimYourGoldBeforeDeletingThisMessageUnclaimedGoldDoesNotExpire": "Claim your gold before deleting this message. Unclaimed gold does not expire.",
+  "@uiClaimYourGoldBeforeDeletingThisMessageUnclaimedGoldDoesNotExpire": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiClaimYourGiftsBeforeDeletingThisMessageUnclaimedGiftsDoNotExpire": "Claim your gifts before deleting this message. Unclaimed gifts do not expire.",
+  "@uiClaimYourGiftsBeforeDeletingThisMessageUnclaimedGiftsDoNotExpire": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAutomaticallyRemoved30DaysAfterClaiming": "Automatically removed 30 days after claiming.",
+  "@uiAutomaticallyRemoved30DaysAfterClaiming": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAutomaticallyRemoved30DaysAfterReading": "Automatically removed 30 days after reading.",
+  "@uiAutomaticallyRemoved30DaysAfterReading": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAlreadyOwnedGiftsGrantNoDuplicateUnlockOrCompensation": "Already-owned gifts grant no duplicate unlock or compensation.",
+  "@uiAlreadyOwnedGiftsGrantNoDuplicateUnlockOrCompensation": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRetryReading": "Retry reading",
+  "@uiRetryReading": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPleaseWait": "Please wait…",
+  "@uiPleaseWait": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDeleteMessage": "Delete message",
+  "@uiDeleteMessage": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnread": "Unread",
+  "@uiUnread": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiGiftAvailable": "Gift available",
+  "@uiGiftAvailable": {
+    "description": "Player-facing text on pages/messages/messages_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNameIsUnchanged": "Name is unchanged.",
+  "@uiNameIsUnchanged": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNameUpdated": "Name updated",
+  "@uiNameUpdated": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAccountDeletionIsInProgress": "Account deletion is in progress.",
+  "@uiAccountDeletionIsInProgress": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPleaseSignInAgainAndRetryAccountDeletion": "Please sign in again and retry account deletion.",
+  "@uiPleaseSignInAgainAndRetryAccountDeletion": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSessionExpiredPleaseRestartTheGameAndTryAgain": "Session expired. Please restart the game and try again.",
+  "@uiSessionExpiredPleaseRestartTheGameAndTryAgain": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAccountDeletionIsNotAvailableInThisEnvironment": "Account deletion is not available in this environment.",
+  "@uiAccountDeletionIsNotAvailableInThisEnvironment": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAccountDeletionFailedPleaseTryAgain": "Account deletion failed. Please try again.",
+  "@uiAccountDeletionFailedPleaseTryAgain": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAccountDeleted": "Account deleted.",
+  "@uiAccountDeleted": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPlayGamesAccountLinked": "Play Games account linked.",
+  "@uiPlayGamesAccountLinked": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPlayGamesIsAlreadyLinked": "Play Games is already linked.",
+  "@uiPlayGamesIsAlreadyLinked": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPlayGamesSignInCanceled": "Play Games sign-in canceled.",
+  "@uiPlayGamesSignInCanceled": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPlayGamesSignInIsNotAvailableOnThisDevice": "Play Games sign-in is not available on this device.",
+  "@uiPlayGamesSignInIsNotAvailableOnThisDevice": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCouldNotLinkPlayGamesAccountPleaseTryAgain": "Could not link Play Games account. Please try again.",
+  "@uiCouldNotLinkPlayGamesAccountPleaseTryAgain": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDeleteAccountAndData": "Delete account and data?",
+  "@uiDeleteAccountAndData": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiContinue": "Continue",
+  "@uiContinue": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiFinalConfirmation": "Final confirmation",
+  "@uiFinalConfirmation": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiThisActionCannotBeUndoneDeleteThisAccountPermanently": "This action cannot be undone. Delete this account permanently?",
+  "@uiThisActionCannotBeUndoneDeleteThisAccountPermanently": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiKeepAccount": "Keep account",
+  "@uiKeepAccount": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDeleteAccount": "Delete account",
+  "@uiDeleteAccount": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAccountDeletionWasAcceptedDeviceCleanupNeedsAnotherAttempt": "Account deletion was accepted. Device cleanup needs another attempt.",
+  "@uiAccountDeletionWasAcceptedDeviceCleanupNeedsAnotherAttempt": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRetryCleanup": "Retry cleanup",
+  "@uiRetryCleanup": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiEnterName": "Enter name",
+  "@uiEnterName": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPlayerStats": "Player stats",
+  "@uiPlayerStats": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLifetimeXp": "Lifetime XP",
+  "@uiLifetimeXp": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPracticeRunsPlayed": "Practice runs played",
+  "@uiPracticeRunsPlayed": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCompetitiveRunsPlayed": "Competitive runs played",
+  "@uiCompetitiveRunsPlayed": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiEnemiesDefeated": "Enemies defeated",
+  "@uiEnemiesDefeated": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDamageDealt": "Damage dealt",
+  "@uiDamageDealt": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDamageTaken": "Damage taken",
+  "@uiDamageTaken": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDangerZone": "Danger zone",
+  "@uiDangerZone": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDeleteYourAccountAndAllLinkedPlayerDataPermanently": "Delete your account and all linked player data permanently.",
+  "@uiDeleteYourAccountAndAllLinkedPlayerDataPermanently": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUpgradeGuestAccount": "Upgrade guest account",
+  "@uiUpgradeGuestAccount": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLinkPlayGamesToKeepProgressAcrossDevices": "Link Play Games to keep progress across devices.",
+  "@uiLinkPlayGamesToKeepProgressAcrossDevices": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLinking": "Linking...",
+  "@uiLinking": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLinkPlayGames": "Link Play Games",
+  "@uiLinkPlayGames": {
+    "description": "Player-facing text on pages/profile/profile_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRenameBuild": "Rename build",
+  "@uiRenameBuild": {
+    "description": "Player-facing text on pages/selectCharacter/build_name_action.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiEnterABuildName": "Enter a build name.",
+  "@uiEnterABuildName": {
+    "description": "Player-facing text on pages/selectCharacter/build_name_action.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCouldNotSaveTheNamePleaseTryAgain": "Could not save the name. Please try again.",
+  "@uiCouldNotSaveTheNamePleaseTryAgain": {
+    "description": "Player-facing text on pages/selectCharacter/build_name_action.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiBuildName": "Build name",
+  "@uiBuildName": {
+    "description": "Player-facing text on pages/selectCharacter/build_name_action.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSaving": "Saving…",
+  "@uiSaving": {
+    "description": "Player-facing text on pages/selectCharacter/build_name_action.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCouldNotSaveThisSelectionPleaseTryAgain": "Could not save this selection. Please try again.",
+  "@uiCouldNotSaveThisSelectionPleaseTryAgain": {
+    "description": "Player-facing text on pages/selectCharacter/character_selection_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiChooseYourCharacter": "Choose your character",
+  "@uiChooseYourCharacter": {
+    "description": "Player-facing text on pages/selectCharacter/character_selection_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoOptionsForThisSlot": "No options for this slot.",
+  "@uiNoOptionsForThisSlot": {
+    "description": "Player-facing text on pages/selectCharacter/gear/gear_picker_candidates_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSelectAnItemToPreviewStats": "Select an item to preview stats.",
+  "@uiSelectAnItemToPreviewStats": {
+    "description": "Player-facing text on pages/selectCharacter/gear/gear_picker_stats_panel.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoNonZeroStatBonuses": "No non-zero stat bonuses.",
+  "@uiNoNonZeroStatBonuses": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiVisitTownStore": "Visit Town store?",
+  "@uiVisitTownStore": {
+    "description": "Player-facing text on pages/selectCharacter/gears_tab.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiGoToTown": "Go to Town",
+  "@uiGoToTown": {
+    "description": "Player-facing text on pages/selectCharacter/gears_tab.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiEquip": "Equip",
+  "@uiEquip": {
+    "description": "Player-facing text on pages/selectCharacter/gears_tab.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiGear": "Gear",
+  "@uiGear": {
+    "description": "Player-facing text on pages/selectCharacter/loadout_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSkills": "Skills",
+  "@uiSkills": {
+    "description": "Player-facing text on pages/selectCharacter/loadout_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiTrainingField": "Training Field",
+  "@uiTrainingField": {
+    "description": "Player-facing text on pages/selectCharacter/loadout_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoAbilityAvailableForThisSlot": "No ability available for this slot.",
+  "@uiNoAbilityAvailableForThisSlot": {
+    "description": "Player-facing text on pages/selectCharacter/skills/skills_details_pane.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoAbilityDetailsAvailableRightNow": "No ability details available right now.",
+  "@uiNoAbilityDetailsAvailableRightNow": {
+    "description": "Player-facing text on pages/selectCharacter/skills/skills_details_pane.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCooldown": "Cooldown: ",
+  "@uiCooldown": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiMaxDuration": "Max duration: ",
+  "@uiMaxDuration": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnlockThisSkillInTownToViewFullDetails": "Unlock this skill in Town to view full details.",
+  "@uiUnlockThisSkillInTownToViewFullDetails": {
+    "description": "Player-facing text on pages/selectCharacter/skills/skills_details_pane.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiFindInTown": "Find in Town",
+  "@uiFindInTown": {
+    "description": "Player-facing text on pages/selectCharacter/skills/skills_details_pane.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSelectProjectile": "Select Projectile",
+  "@uiSelectProjectile": {
+    "description": "Player-facing text on pages/selectCharacter/skills/skills_list_pane.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDamage": "Damage: ",
+  "@uiDamage": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSelectProjectileSource": "Select Projectile Source",
+  "@uiSelectProjectileSource": {
+    "description": "Player-facing text on pages/selectCharacter/skills_tab.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiClose": "Close",
+  "@uiClose": {
+    "description": "Player-facing text on pages/selectCharacter/training_opponent_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSelectWeapon": "Select Weapon",
+  "@uiSelectWeapon": {
+    "description": "Player-facing text on pages/selectCharacter/skills_tab.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiChooseTrainingOpponent": "Choose training opponent",
+  "@uiChooseTrainingOpponent": {
+    "description": "Player-facing text on pages/selectCharacter/training_field_tab.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiReset": "Reset",
+  "@uiReset": {
+    "description": "Player-facing text on pages/selectCharacter/training_field_tab.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiResume": "Resume",
+  "@uiResume": {
+    "description": "Player-facing text on pages/selectCharacter/training_field_tab.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRetryLoadingTrainingField": "Retry loading Training Field",
+  "@uiRetryLoadingTrainingField": {
+    "description": "Player-facing text on pages/selectCharacter/training_field_tab.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiTrainingOpponent": "Training opponent",
+  "@uiTrainingOpponent": {
+    "description": "Player-facing text on pages/selectCharacter/training_opponent_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiChooseAnOpponentForYourNextFight": "Choose an opponent for your next fight.",
+  "@uiChooseAnOpponentForYourNextFight": {
+    "description": "Player-facing text on pages/selectCharacter/training_opponent_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiUnlockEnemyEntriesInTheLibraryToPractiseAgainstThem": "Unlock enemy entries in the Library to practise against them.",
+  "@uiUnlockEnemyEntriesInTheLibraryToPractiseAgainstThem": {
+    "description": "Player-facing text on pages/selectCharacter/training_opponent_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNone": "None",
+  "@uiNone": {
+    "description": "Player-facing text on pages/selectCharacter/training_opponent_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPractiseWithoutAnOpponent": "Practise without an opponent.",
+  "@uiPractiseWithoutAnOpponent": {
+    "description": "Player-facing text on pages/selectCharacter/training_opponent_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiSelectLevel": "Select Level",
+  "@uiSelectLevel": {
+    "description": "Player-facing text on pages/selectLevel/level_setup_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiYourGoldIsReady": "Your gold is ready",
+  "@uiYourGoldIsReady": {
+    "description": "Player-facing text on pages/town/reward_verification_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiYourRewardsAreOnTheirWay": "Your rewards are on their way",
+  "@uiYourRewardsAreOnTheirWay": {
+    "description": "Player-facing text on pages/town/reward_verification_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiYourBalanceHasChanged": "Your balance has changed",
+  "@uiYourBalanceHasChanged": {
+    "description": "Player-facing text on pages/town/reward_verification_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiYourRunRewardsAreConfirmedYouCanNowSpendYourGold": "Your run rewards are confirmed. You can now spend your gold.",
+  "@uiYourRunRewardsAreConfirmedYouCanNowSpendYourGold": {
+    "description": "Player-facing text on pages/town/reward_verification_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiWeReConfirmingYourLatestRunRewardsBeforeTheyCanBeSpentYouCanKeepPlayingWhileWeFinish": "We’re confirming your latest run rewards before they can be spent. You can keep playing while we finish.",
+  "@uiWeReConfirmingYourLatestRunRewardsBeforeTheyCanBeSpentYouCanKeepPlayingWhileWeFinish": {
+    "description": "Player-facing text on pages/town/reward_verification_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiThereIsnTEnoughGoldForThisPurchaseReturnToTheStoreToSeeYourUpdatedBalance": "There isn’t enough gold for this purchase. Return to the store to see your updated balance.",
+  "@uiThereIsnTEnoughGoldForThisPurchaseReturnToTheStoreToSeeYourUpdatedBalance": {
+    "description": "Player-facing text on pages/town/reward_verification_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiBackToStore": "Back to store",
+  "@uiBackToStore": {
+    "description": "Player-facing text on pages/town/reward_verification_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiGotIt": "Got it",
+  "@uiGotIt": {
+    "description": "Player-facing text on pages/town/reward_verification_dialog.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiStore": "Store",
+  "@uiStore": {
+    "description": "Player-facing text on pages/town/town_map.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLibrary": "Library",
+  "@uiLibrary": {
+    "description": "Player-facing text on pages/town/town_map.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAchievementRewardsAvailable": "Achievement rewards available",
+  "@uiAchievementRewardsAvailable": {
+    "description": "Player-facing text on pages/town/town_map.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiStoreMarker": "Store marker",
+  "@uiStoreMarker": {
+    "description": "Player-facing text on pages/town/town_map.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiLibraryMarker": "Library marker",
+  "@uiLibraryMarker": {
+    "description": "Player-facing text on pages/town/town_map.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiHallOfHonourMarker": "Hall of Honour marker",
+  "@uiHallOfHonourMarker": {
+    "description": "Player-facing text on pages/town/town_map.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiTownStore": "Town Store",
+  "@uiTownStore": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiPurchaseFailedPleaseTryAgain": "Purchase failed. Please try again.",
+  "@uiPurchaseFailedPleaseTryAgain": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRefreshStore": "Refresh store?",
+  "@uiRefreshStore": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRefreshingTheStoreCosts": "Refreshing the store costs",
+  "@uiRefreshingTheStoreCosts": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiCost": "Cost",
+  "@uiCost": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiAreYouSureYouWantToRefreshTheStore": "Are you sure you want to refresh the store?",
+  "@uiAreYouSureYouWantToRefreshTheStore": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRefresh": "Refresh",
+  "@uiRefresh": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiStoreRefreshed": "Store refreshed.",
+  "@uiStoreRefreshed": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRefreshFailedPleaseTryAgain": "Refresh failed. Please try again.",
+  "@uiRefreshFailedPleaseTryAgain": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNotEnoughGoldForThatAction": "Not enough gold for that action.",
+  "@uiNotEnoughGoldForThatAction": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiThatOfferIsNoLongerAvailable": "That offer is no longer available.",
+  "@uiThatOfferIsNoLongerAvailable": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiYouAlreadyOwnThisUnlock": "You already own this unlock.",
+  "@uiYouAlreadyOwnThisUnlock": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiDailyRefreshLimitReached": "Daily refresh limit reached.",
+  "@uiDailyRefreshLimitReached": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRefreshMethodIsNotAvailable": "Refresh method is not available.",
+  "@uiRefreshMethodIsNotAvailable": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoOfferCanChangeRightNow": "No offer can change right now.",
+  "@uiNoOfferCanChangeRightNow": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRewardVerificationIsNotActiveYet": "Reward verification is not active yet.",
+  "@uiRewardVerificationIsNotActiveYet": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRewardHasAlreadyBeenUsed": "Reward has already been used.",
+  "@uiRewardHasAlreadyBeenUsed": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRewardHasExpired": "Reward has expired.",
+  "@uiRewardHasExpired": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiActionRejectedPleaseTryAgain": "Action rejected. Please try again.",
+  "@uiActionRejectedPleaseTryAgain": {
+    "description": "Player-facing text on pages/town/town_store_page.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiRefreshing": "Refreshing...",
+  "@uiRefreshing": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoOffersAvailableRightNow": "No offers available right now.",
+  "@uiNoOffersAvailableRightNow": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiBuying": "Buying...",
+  "@uiBuying": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiBuy": "Buy",
+  "@uiBuy": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "uiNoDetailsAvailableRightNow": "No details available right now.",
+  "@uiNoDetailsAvailableRightNow": {
+    "description": "Player-facing text on pages/town/town_store_widgets.dart. Keep French informal (tu). Do not translate player-authored names."
+  },
+  "bootstrapStartFailed": "Unable to start the game",
+  "@bootstrapStartFailed": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapAccountUnavailable": "Game account unavailable",
+  "@bootstrapAccountUnavailable": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapSignInRequired": "Play Games sign-in required",
+  "@bootstrapSignInRequired": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapDataFailed": "Unable to load player data",
+  "@bootstrapDataFailed": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapAccountDisabled": "This game account is disabled. If you recently deleted it, please wait for deletion to finish before signing in again. This can take several hours. You can then use the same Play Games account to start fresh.",
+  "@bootstrapAccountDisabled": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapUnsupported": "This platform does not support the services required by the game.",
+  "@bootstrapUnsupported": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapServiceFailure": "Game services could not start. Check your connection and try again.",
+  "@bootstrapServiceFailure": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapDataFailure": "Your player data could not be loaded. Check your connection and try again.",
+  "@bootstrapDataFailure": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapRetry": "Try again",
+  "@bootstrapRetry": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapRetrySignIn": "Retry Play Games sign-in",
+  "@bootstrapRetrySignIn": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapSignInBody": "Play Games sign-in is required to continue.",
+  "@bootstrapSignInBody": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "bootstrapFailed": "Bootstrap failed",
+  "@bootstrapFailed": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "loaderGameTitle": "The Long Run",
+  "@loaderGameTitle": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "loaderWorldTitle": "Lothringen",
+  "@loaderWorldTitle": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "playButton": "PLAY",
+  "@playButton": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runUpdateRequired": "Update the game before starting another run. Your account and pending rewards remain available.",
+  "@runUpdateRequired": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runMaintenance": "The game is undergoing maintenance. Please try again later. Your pending runs and rewards will be recovered.",
+  "@runMaintenance": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runInvalidLoadout": "Adjust your equipment and abilities before starting.",
+  "@runInvalidLoadout": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runLevelUnavailable": "This level is unavailable in this build. Return to the hub and select an available level.",
+  "@runLevelUnavailable": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runRequirementsChanged": "Run start requirements changed. Return to hub and try again.",
+  "@runRequirementsChanged": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runStartFailed": "Unable to start run right now. Check your connection and try again.",
+  "@runStartFailed": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runRecorderPreparing": "Preparing replay recorder...",
+  "@runRecorderPreparing": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runTerrainPreparing": "Preparing terrain...",
+  "@runTerrainPreparing": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runGhostPreparing": "Preparing ghost...",
+  "@runGhostPreparing": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runArtLoading": "Loading game art...",
+  "@runArtLoading": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runBuildingLevel": "Building level...",
+  "@runBuildingLevel": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runWorldFailed": "Unable to load the level. Retry or return to the previous screen.",
+  "@runWorldFailed": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "runRecorderFailed": "Unable to prepare replay recording. Check available storage and retry.",
+  "@runRecorderFailed": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameRequired": "Name is required.",
+  "@nameRequired": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameCharacters": "Only letters, numbers, spaces, \"_\" and \"-\" are allowed.",
+  "@nameCharacters": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameReserved": "That name is reserved.",
+  "@nameReserved": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameDisallowed": "That name is not allowed.",
+  "@nameDisallowed": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameTaken": "That name is already taken.",
+  "@nameTaken": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameSaveFailed": "Could not save name. Please try again.",
+  "@nameSaveFailed": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameServerUnavailable": "Could not reach the server. Check your connection and try again.",
+  "@nameServerUnavailable": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameServiceUnavailable": "Name service is unavailable. Please try again later.",
+  "@nameServiceUnavailable": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameInvalid": "Choose a valid display name and try again.",
+  "@nameInvalid": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "updateRequiredTitle": "Update required",
+  "@updateRequiredTitle": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "maintenanceTitle": "Maintenance",
+  "@maintenanceTitle": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "openGooglePlay": "Open Google Play",
+  "@openGooglePlay": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "installCurrentBuild": "Install the current build for this environment.",
+  "@installCurrentBuild": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed."
+  },
+  "nameTooShort": "Name must be at least {min} characters.",
+  "@nameTooShort": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed.",
+    "placeholders": {
+      "min": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "nameTooLong": "Name must be at most {max} characters.",
+  "@nameTooLong": {
+    "description": "Startup or recovery text for the player. Diagnostic and server error strings must not be displayed.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "achievementFirstSteps": "First Steps",
+  "@achievementFirstSteps": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC."
+  },
+  "achievementMarathoner": "Marathoner",
+  "@achievementMarathoner": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC."
+  },
+  "achievementRoadWarrior": "Road Warrior",
+  "@achievementRoadWarrior": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC."
+  },
+  "achievementStillStanding": "Still Standing",
+  "@achievementStillStanding": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC."
+  },
+  "achievementSlayer": "Slayer",
+  "@achievementSlayer": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC."
+  },
+  "achievementQualifying": "Verified Practice, Competitive and Weekly runs count after 100 metres or 30 seconds and must end naturally. Quitting does not count.",
+  "@achievementQualifying": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC."
+  },
+  "achievementAllRuns": "Verified Practice, Competitive and Weekly runs count, including short runs and runs you quit.",
+  "@achievementAllRuns": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC."
+  },
+  "achievementRuns": "{count, plural, =1{1 run} other{{count} runs}}",
+  "@achievementRuns": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "achievementEnemies": "{count, plural, =1{1 enemy} other{{count} enemies}}",
+  "@achievementEnemies": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "achievementDistance": "{count} m",
+  "@achievementDistance": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "achievementFinish": "Finish {count, plural, =1{1 qualifying run} other{{count} qualifying runs}}.",
+  "@achievementFinish": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "achievementReach": "Reach {count} metres in one run.",
+  "@achievementReach": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "achievementTravel": "Travel {count} metres across runs.",
+  "@achievementTravel": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "achievementSurvive": "Survive {duration} across runs.",
+  "@achievementSurvive": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "achievementDefeat": "Defeat {count, plural, =1{1 enemy} other{{count} enemies}} across runs.",
+  "@achievementDefeat": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "durationHours": "{count}h",
+  "@durationHours": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "durationMinutes": "{count}m",
+  "@durationMinutes": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "durationSeconds": "{count}s",
+  "@durationSeconds": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "dateUtc": "{date} (UTC)",
+  "@dateUtc": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "achievementNextReward": "Next reward: {gold} gold",
+  "@achievementNextReward": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "gold": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "achievementTierReward": "{gold} gold · {state, select, claimed{Claimed} achieved{Available} other{Not reached}}",
+  "@achievementTierReward": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "gold": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "achievementAchievedDate": "Achieved {date}",
+  "@achievementAchievedDate": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "goldAmount": "{gold} gold",
+  "@goldAmount": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "gold": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "progressQuantities": "{current} / {target}",
+  "@progressQuantities": {
+    "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "codexOpeningTitle": "The roads of Lothringen",
+  "@codexOpeningTitle": {
+    "description": "Codex world-reference prose: codexOpeningTitle. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexOpening": "Théodonis stands behind old walls, surrounded by farmland and forests. The city has survived wars, raids and disease, and its apparent stability rests on institutions that have weathered many crises.\n\nLong ago, Éloïse founded La Main to confront a hidden threat. After her disappearance, the order continued its work in secret. More recently, an incident at the Villa Twinsen left questions unanswered.\n\nOn the roads of Lothringen, Neyla leads a traveling company of performers. They bring shows to the communities they visit and offer help along the way. Their journey now leads toward Théodonis.",
+  "@codexOpening": {
+    "description": "Codex world-reference prose: codexOpening. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexGrojibLore": "Grojib closes the distance without hesitation. A traveler who holds their ground after the first blow may find another strike already on its way.",
+  "@codexGrojibLore": {
+    "description": "Codex world-reference prose: codexGrojibLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexHashashLore": "Hashash fights from the uncertainty of the forest, appearing where attention has already moved on. In these woods, an apparently empty path is no promise of safe passage.",
+  "@codexHashashLore": {
+    "description": "Codex world-reference prose: codexHashashLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexDerfLore": "Derf’s outward form conceals a transformation that turns a distant spellcaster into a pursuing, tentacled threat.",
+  "@codexDerfLore": {
+    "description": "Codex world-reference prose: codexDerfLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexUnocoLore": "The Unoco demons encountered over the forest carry the threat above the paths, where walls and broken ground offer little protection from a spell cast out of the air.",
+  "@codexUnocoLore": {
+    "description": "Codex world-reference prose: codexUnocoLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexBringerLore": "The Bringer of Death bars the way through a clearing claimed by the darkness. Its scythe and rising pillars leave little room for hesitation. Defeating this guardian opens a way deeper into the forest.",
+  "@codexBringerLore": {
+    "description": "Codex world-reference prose: codexBringerLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexGoddessLore": "The name Voidborn Goddess records the terror of the encounter, not proof of divinity. This presence turns the clearing itself into a threat. What brought it into the forest remains unknown.",
+  "@codexGoddessLore": {
+    "description": "Codex world-reference prose: codexGoddessLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexShoggothLore": "Shoggoth is encountered among the deeper horrors guarding the route. Smaller creatures accompany its assaults, making the fight feel less like a duel than a struggle to keep a patch of ground. Its distant origin remains unrecorded.",
+  "@codexShoggothLore": {
+    "description": "Codex world-reference prose: codexShoggothLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexVoidcallerLore": "The Voidcaller’s presence is marked by beams, erupting claws and summoned tentacles. Its title describes what travelers have witnessed, while the nature of what answers its call remains uncertain.",
+  "@codexVoidcallerLore": {
+    "description": "Codex world-reference prose: codexVoidcallerLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexShoggothMinionLore": "These smaller creatures enter the fight at Shoggoth’s summons. They are part of the same immediate threat, pressing an opponent while the larger creature prepares its next assault. Their appearance is a warning that the ground around Shoggoth will not stay clear.",
+  "@codexShoggothMinionLore": {
+    "description": "Codex world-reference prose: codexShoggothMinionLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexVoidTentacleLore": "A tentacle called into the arena is a local expression of the Voidcaller’s reach. It makes dangerous ground out of a place that was open a moment before. Destroying it removes that threat, but leaves the power calling it forth to be confronted.",
+  "@codexVoidTentacleLore": {
+    "description": "Codex world-reference prose: codexVoidTentacleLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexGrojibTactics": "A ground pursuer with a follow-up melee strike that can stun on hit. Leave room for the second swing.",
+  "@codexGrojibTactics": {
+    "description": "Codex world-reference prose: codexGrojibTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexHashashTactics": "A mobile assassin with a teleporting ambush. Watch for its return before committing.",
+  "@codexHashashTactics": {
+    "description": "Codex world-reference prose: codexHashashTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexDerfTactics": "Transforms from a caster into a melee pursuer. Its extended tentacle gives the strike unusual reach.",
+  "@codexDerfTactics": {
+    "description": "Codex world-reference prose: codexDerfTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexUnocoTactics": "A flying caster that can also strike at close range. Keep moving while its projectile is aimed.",
+  "@codexUnocoTactics": {
+    "description": "Codex world-reference prose: codexUnocoTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexBringerTactics": "A scythe fighter with dark pillars. Read the wind-up and move clear of the marked ground.",
+  "@codexBringerTactics": {
+    "description": "Codex world-reference prose: codexBringerTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexGoddessTactics": "Combines claw attacks, dark orbs and ground eruptions. Reposition when the arena is threatened.",
+  "@codexGoddessTactics": {
+    "description": "Codex world-reference prose: codexGoddessTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexShoggothTactics": "Uses tentacles, dark orbs and summoned creatures. Manage the smaller threats while watching the boss.",
+  "@codexShoggothTactics": {
+    "description": "Codex world-reference prose: codexShoggothTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexVoidcallerTactics": "Uses vertical and diagonal beams, fire claws and tentacle summons. Keep a route out of overlapping attacks.",
+  "@codexVoidcallerTactics": {
+    "description": "Codex world-reference prose: codexVoidcallerTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexShoggothMinionTactics": "A small ground attacker summoned by Shoggoth. Avoid being crowded while the boss attacks.",
+  "@codexShoggothMinionTactics": {
+    "description": "Codex world-reference prose: codexShoggothMinionTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexVoidTentacleTactics": "A summoned melee threat. Move beyond its lash before turning to attack it.",
+  "@codexVoidTentacleTactics": {
+    "description": "Codex world-reference prose: codexVoidTentacleTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexForestLore": "Val Outpost stands beside the road through the Long-Eared Owls’ Forest. Its soldiers patrol the wooded route, train for the forest’s hazards, and carry warnings of danger back to Théodonis. Travelers can rest under their guard before continuing their journey.",
+  "@codexForestLore": {
+    "description": "Codex world-reference prose: codexForestLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "codexFieldLore": "Léonards’ farm is the largest agricultural estate around Théodonis. A powerful family oversees its fields and harvests.",
+  "@codexFieldLore": {
+    "description": "Codex world-reference prose: codexFieldLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+  },
+  "levelForestName": "Val Outpost",
+  "@levelForestName": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "levelFieldName": "Léonards’ farm",
+  "@levelFieldName": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "levelDeprecatedName": "New Level",
+  "@levelDeprecatedName": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "libraryBrand": "Les Soleils d’or • Lothringen",
+  "@libraryBrand": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "townName": "Théodonis",
+  "@townName": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "libraryTitle": "Library · {section}",
+  "@libraryTitle": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "section": {
+        "type": "String"
+      }
+    }
+  },
+  "codexUnlockEnemy": "Defeat {count} to reveal its attacks, resistances and field notes.",
+  "@codexUnlockEnemy": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "codexDefeatedProgress": "{current} / {target} defeated.",
+  "@codexDefeatedProgress": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "target": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "codexUnlockLevel": "Reach {count} points in one Competitive run on {level} to reveal its history.",
+  "@codexUnlockLevel": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "codexScoreProgress": "{current} / {target} best Competitive score.",
+  "@codexScoreProgress": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "target": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "codexResistance": "{type}: {percent}% less damage",
+  "@codexResistance": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "num",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "codexWeakness": "{type}: {percent}% more damage",
+  "@codexWeakness": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "num",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "codexDamageMix": "{type} {percent}%",
+  "@codexDamageMix": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "codexAttack": "{ability} • {category}\n{types} damage",
+  "@codexAttack": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "ability": {
+        "type": "String"
+      },
+      "category": {
+        "type": "String"
+      },
+      "types": {
+        "type": "String"
+      }
+    }
+  },
+  "codexEntrySemantics": "{title}, {state, select, discovered{discovered} other{locked}}",
+  "@codexEntrySemantics": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "codexDefeatToUnlock": "Defeat {progress} to unlock",
+  "@codexDefeatToUnlock": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      }
+    }
+  },
+  "codexLocationSemantics": "{level}, {state, select, open{open} other{locked}}",
+  "@codexLocationSemantics": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "codexMapMarker": "{level} map marker",
+  "@codexMapMarker": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "abilityCategoryMelee": "melee",
+  "@abilityCategoryMelee": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "abilityCategoryRanged": "ranged",
+  "@abilityCategoryRanged": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "abilityCategoryMobility": "mobility",
+  "@abilityCategoryMobility": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "abilityCategoryDefense": "defense",
+  "@abilityCategoryDefense": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "abilityCategoryUtility": "utility",
+  "@abilityCategoryUtility": {
+    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
+  },
+  "runBossFailed": "Boss encounter failed",
+  "@runBossFailed": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runGaveUp": "You gave up the run.",
+  "@runGaveUp": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runFellBehind": "You fell behind.",
+  "@runFellBehind": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runFellIntoGap": "You fell into a gap.",
+  "@runFellIntoGap": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runDied": "You died.",
+  "@runDied": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runPoisonTrap": "You succumbed to Poison from a dart trap.",
+  "@runPoisonTrap": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runSpikeTrap": "Killed by a Spike trap.",
+  "@runSpikeTrap": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runAxeTrap": "Killed by a Swinging Axe trap.",
+  "@runAxeTrap": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runPoisonDart": "Killed by a Poison Dart.",
+  "@runPoisonDart": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runStatusDeath": "You succumbed to a status effect.",
+  "@runStatusDeath": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runTrapDeath": "Killed by a trap.",
+  "@runTrapDeath": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runSpellDeath": "You were consumed by a spell impact.",
+  "@runSpellDeath": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runDerfDeath": "Incinerated by Derf's explosion.",
+  "@runDerfDeath": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "impactBullet": "Bullet",
+  "@impactBullet": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "impactCrossbow": "Crossbow Bolt",
+  "@impactCrossbow": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "impactPellet": "Shotgun Pellet",
+  "@impactPellet": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "scoreEnemy": "Enemy",
+  "@scoreEnemy": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "practiceNoRewards": "Developer Practice\nNo rewards or leaderboard entries.",
+  "@practiceNoRewards": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runProjectileDeath": "Killed by {projectile}{source, select, enemy{ from {enemy}.} other{.}}",
+  "@runProjectileDeath": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts.",
+    "placeholders": {
+      "projectile": {
+        "type": "String"
+      },
+      "source": {
+        "type": "String"
+      },
+      "enemy": {
+        "type": "String"
+      }
+    }
+  },
+  "runMeleeDeath": "Killed by a melee strike from a {enemy}.",
+  "@runMeleeDeath": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts.",
+    "placeholders": {
+      "enemy": {
+        "type": "String"
+      }
+    }
+  },
+  "runEnemySpellDeath": "Killed by a spell impact from {enemy}.",
+  "@runEnemySpellDeath": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts.",
+    "placeholders": {
+      "enemy": {
+        "type": "String"
+      }
+    }
+  },
+  "submissionQueued": "Queued",
+  "@submissionQueued": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionRequestingUploadGrant": "Requesting Upload Grant",
+  "@submissionRequestingUploadGrant": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionUploading": "Uploading Replay",
+  "@submissionUploading": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionFinalizing": "Finalizing",
+  "@submissionFinalizing": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionRetryScheduled": "Retry Scheduled",
+  "@submissionRetryScheduled": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionPendingValidation": "Waiting For Verification",
+  "@submissionPendingValidation": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionValidating": "Validating",
+  "@submissionValidating": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionSettlementPending": "Settling Reward",
+  "@submissionSettlementPending": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionValidated": "Validated",
+  "@submissionValidated": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionRejected": "Rejected",
+  "@submissionRejected": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionExpired": "Expired",
+  "@submissionExpired": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionCancelled": "Cancelled",
+  "@submissionCancelled": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionInternalError": "Internal Error",
+  "@submissionInternalError": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "submissionFailureBody": "Verification could not finish. Return to the hub, or contact support if this continues.",
+  "@submissionFailureBody": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts."
+  },
+  "runRewardXp": "+{xp} XP",
+  "@runRewardXp": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts.",
+    "placeholders": {
+      "xp": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "scoreRowDistance": "Distance: {count}m -> {points}",
+  "@scoreRowDistance": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "points": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "scoreRowCollectibles": "Collectibles: {count} -> {points}",
+  "@scoreRowCollectibles": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "points": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "scoreRowRescue": "NPCs rescued: {count} -> {points}",
+  "@scoreRowRescue": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "points": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "scoreRowTime": "Time: {time} -> {points}",
+  "@scoreRowTime": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "points": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "scoreRowEnemy": "{enemy} x{count} -> {points}",
+  "@scoreRowEnemy": {
+    "description": "Run result presentation. French addresses the player with tu; parameters are localized names and authoritative score counts.",
+    "placeholders": {
+      "enemy": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "points": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "levelMaximumSemantics": "Level {level}, maximum level reached",
+  "@levelMaximumSemantics": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "level": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "levelProgressSemantics": "Level {level}, {earned} of {needed} XP to next level",
+  "@levelProgressSemantics": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "level": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "earned": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "needed": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "levelMaximumLabel": "LEVEL {level}  ·  MAX LEVEL",
+  "@levelMaximumLabel": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "level": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "levelProgressLabel": "LEVEL {level}  ·  {earned} / {needed} XP",
+  "@levelProgressLabel": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "level": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "earned": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "needed": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "scoreDistance": "Distance {meters}m",
+  "@scoreDistance": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "meters": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "scoreCollectibles": "Collectibles {count}",
+  "@scoreCollectibles": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "shortDistance": "{meters}m",
+  "@shortDistance": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "meters": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "healthPoints": "{hp} HP",
+  "@healthPoints": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "hp": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "nameChangeCooldown": "You can change your name again in {hours}h {minutes}m.",
+  "@nameChangeCooldown": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "hours": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "minutes": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "deleteAccountBody": "This will permanently delete your account, profile, and cloud progress for this user.\n\nDeletion can take several hours. You cannot start a new account with the same Play Games profile until it finishes.",
+  "@deleteAccountBody": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "characterLockedSemantics": "{name}, unlocks at level {level}",
+  "@characterLockedSemantics": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "level": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "requiredLevel": "Level {level}",
+  "@requiredLevel": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "level": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "trainingOpponent": "Opponent: {enemy}",
+  "@trainingOpponent": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "enemy": {
+        "type": "String"
+      }
+    }
+  },
+  "storePurchaseComplete": "Purchased {item}.",
+  "@storePurchaseComplete": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "storeRefreshesLeft": "Store refreshes left: {count}",
+  "@storeRefreshesLeft": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "storeBrowseLocked": "Open Town to browse locked {slot, select, mainWeapon{main weapon} offhandWeapon{offhand} spellBook{spellbook} other{accessory}} options?",
+  "@storeBrowseLocked": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "skillHeading": "{slot, select, primary{PRIMARY SKILLS} secondary{SECONDARY SKILLS} projectile{PROJECTILE SKILLS} mobility{MOBILITY SKILLS} spell{SPELL SKILLS} jump{JUMP SKILLS} other{FIELDCRAFT SKILLS}}",
+  "@skillHeading": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "messageHeader": "Game · {date}",
+  "@messageHeader": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "messageGiftCount": "{count, plural, =1{1 item / skill gift} other{{count} item / skill gifts}}",
+  "@messageGiftCount": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "weeklyBadge": "WEEKLY {window} • {level}",
+  "@weeklyBadge": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "window": {
+        "type": "String"
+      },
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreboardTitle": "{level} {mode} Scoreboard",
+  "@scoreboardTitle": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      },
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "leaderboardTitle": "{level} {mode} BOARD",
+  "@leaderboardTitle": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      },
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "rankTotal": " / {count}",
+  "@rankTotal": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "rankSummary": "Actual rank {rank}{position, select, first{ (1st place)} second{ (2nd place, podium)} third{ (3rd place, podium)} topTen{ (top 10)} other{}}{outcome, select, unchanged{, you have not done better this run.} other{.}}",
+  "@rankSummary": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      },
+      "position": {
+        "type": "String"
+      },
+      "outcome": {
+        "type": "String"
+      }
+    }
+  },
+  "controlFollowUp": "{label}, follow-up available",
+  "@controlFollowUp": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "controlSword": "Sword",
+  "@controlSword": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlShield": "Shield",
+  "@controlShield": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlProjectile": "Projectile",
+  "@controlProjectile": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlMobility": "Mobility",
+  "@controlMobility": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlJump": "Jump",
+  "@controlJump": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlSpell": "Spell",
+  "@controlSpell": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlMoveLeft": "Move left",
+  "@controlMoveLeft": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlMoveRight": "Move right",
+  "@controlMoveRight": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlJoystick": "Movement joystick",
+  "@controlJoystick": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlBackward": "Backward",
+  "@controlBackward": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlForward": "Forward",
+  "@controlForward": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "controlNeutral": "Neutral",
+  "@controlNeutral": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "runStartErrorTitle": "Unable to start run",
+  "@runStartErrorTitle": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "studioName": "Luxis Games",
+  "@studioName": {
+    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu."
+  },
+  "defaultBuildName": "Build {number}",
+  "@defaultBuildName": {
+    "description": "Default loadout slot name. Custom names stay exactly as entered; this label never replaces saved default tokens.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "offscreenDistance": "{meters} m",
+  "@offscreenDistance": {
+    "description": "Whole metre distance to an offscreen actor.",
+    "placeholders": {
+      "meters": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "offscreenNearby": "<1 m",
+  "@offscreenNearby": {
+    "description": "Positive offscreen distance smaller than one metre."
+  },
+  "offscreenGroup": "×{count} · {distance}",
+  "@offscreenGroup": {
+    "description": "Offscreen group size and distance.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "supportLinkFailed": "Unable to open the link. Try again or contact {email}.",
+  "@supportLinkFailed": {
+    "description": "Failed store or support link. Email remains a technical address.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "resourceRatio": "{value} / {maximum}",
+  "@resourceRatio": {
+    "description": "Current resource and capacity.",
+    "placeholders": {
+      "value": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "maximum": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "quotedDescription": "“{description}”",
+  "@quotedDescription": {
+    "description": "Quotation marks around a complete translated item description.",
+    "placeholders": {
+      "description": {
+        "type": "String"
+      }
+    }
+  },
+  "developerAppTitle": "rpg Runner (Dev)",
+  "@developerAppTitle": {
+    "description": "Developer-only app title; product identifier retained."
+  },
+  "developerMenu": "Menu",
+  "@developerMenu": {
+    "description": "Developer-only route back to the menu."
+  },
+  "routeRunUnavailableTitle": "Unable to start run",
+  "@routeRunUnavailableTitle": {
+    "description": "Recovery message on the route or inbox loading surface."
+  },
+  "routeRunUnavailableBody": "Return to the hub and start the run again.",
+  "@routeRunUnavailableBody": {
+    "description": "Recovery message on the route or inbox loading surface."
+  },
+  "routeUnavailableTitle": "Page unavailable",
+  "@routeUnavailableTitle": {
+    "description": "Recovery message on the route or inbox loading surface."
+  },
+  "routeUnavailableBody": "This page could not be opened. Go back and try again.",
+  "@routeUnavailableBody": {
+    "description": "Recovery message on the route or inbox loading surface."
+  },
+  "inboxLoadFailed": "Unable to load messages. Please try again.",
+  "@inboxLoadFailed": {
+    "description": "Recovery message on the route or inbox loading surface."
+  },
+  "runCleanupFailed": "Unable to release the previous run. Exit and try again.",
+  "@runCleanupFailed": {
+    "description": "Retry blocked because the previous run could not release its resources."
+  },
+  "developerIdentity": "Developer",
+  "@developerIdentity": {
+    "description": "Default synthetic profile name in local Developer Practice; custom names remain unchanged."
+  },
+  "townEquipment": "Equipment",
+  "@townEquipment": {
+    "description": "Town equipment merchant title and navigation."
+  },
+  "townTraining": "Training Hall",
+  "@townTraining": {
+    "description": "Town service for learning permanent abilities; distinct from Training Field practice."
+  },
+  "townEquipmentMarker": "Equipment merchant marker",
+  "@townEquipmentMarker": {
+    "description": "Accessible equipment building marker."
+  },
+  "townTrainingMarker": "Training hall marker",
+  "@townTrainingMarker": {
+    "description": "Accessible training building marker."
+  },
+  "townEquipmentIntro": "Choose equipment for your next build. Every item is always available.",
+  "@townEquipmentIntro": {
+    "description": "Equipment catalogue introduction; gold is still required to buy unowned entries."
+  },
+  "townTrainingIntro": "Learn permanent techniques for the character you choose.",
+  "@townTrainingIntro": {
+    "description": "Training catalogue introduction. Browsing does not change run selection."
+  },
+  "townAllCategories": "All categories",
+  "@townAllCategories": {
+    "description": "Catalogue category filter showing every slot."
+  },
+  "townUnownedOnly": "Not yet unlocked",
+  "@townUnownedOnly": {
+    "description": "Optional catalogue filter hiding owned entries."
+  },
+  "townOwned": "Owned",
+  "@townOwned": {
+    "description": "Equipment already owned; replaces purchase control."
+  },
+  "townLearned": "Learned",
+  "@townLearned": {
+    "description": "Ability already learned; replaces purchase control."
+  },
+  "townLearn": "Learn",
+  "@townLearn": {
+    "description": "Purchase a permanent ability with earned gold."
+  },
+  "townSharedAccessory": "Usable by both · One purchase",
+  "@townSharedAccessory": {
+    "description": "Accessories are account-wide; no second purchase for the other character."
+  },
+  "townCatalogueUnavailable": "The catalogue is unavailable. Return to town and reconnect to load it.",
+  "@townCatalogueUnavailable": {
+    "description": "Retained schema-1 snapshot cannot safely support explicit-character catalogue purchases."
+  },
+  "townNoMatchingEntries": "No entries match these filters.",
+  "@townNoMatchingEntries": {
+    "description": "Empty filtered catalogue, including when every entry is owned."
+  },
+  "townCompareWith": "Compared with {item} · {build}",
+  "@townCompareWith": {
+    "description": "Expanded equipment comparison; item is currently equipped name, build is selected saved build name for browsed character.",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "townCategory": "{slot, select, mainWeapon{Weapons} offhandWeapon{{character, select, bountyHunter{Bomb kits} other{Shields}}} spellBook{{character, select, bountyHunter{Field kits} other{Spellbooks}}} accessory{Accessories} primary{Primary} secondary{Secondary} projectile{{service, select, training{Ranged techniques} other{{character, select, bountyHunter{Ranged weapons} other{Ranged spells}}}}} mobility{Mobility} jump{Jump} spell{{character, select, bountyHunter{Fieldcraft} other{Spells}}} other{Equipment}}",
+  "@townCategory": {
+    "description": "Catalogue category. character is eloise or bountyHunter; service is equipment or training; slot is the stable StoreSlot name.",
+    "placeholders": {
+      "character": {
+        "type": "String"
+      },
+      "service": {
+        "type": "String"
+      },
+      "slot": {
+        "type": "String"
+      }
+    }
+  }
+}

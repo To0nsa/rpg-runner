@@ -8,6 +8,8 @@ import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/app_segmented_control.dart';
 import '../../controls/movement_control_mode.dart';
+import '../../l10n/app_localization.dart';
+import '../../state/settings/locale_settings.dart';
 import '../../state/settings/control_settings.dart';
 import '../../state/app/app_state.dart';
 import '../../theme/ui_tokens.dart';
@@ -45,7 +47,7 @@ class _OptionsPageState extends State<OptionsPage> {
     if (!opened) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not open $uri. You can open it manually.'),
+          content: Text(context.l10n.openLinkFailed(url: uri.toString())),
         ),
       );
     }
@@ -60,11 +62,21 @@ class _OptionsPageState extends State<OptionsPage> {
     } catch (error, stack) {
       debugPrint('Control settings save failed: $error\n$stack');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not save controls. Please try again.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.controlsSaveFailed)));
+    }
+  }
+
+  Future<void> _setLanguage(LocaleSettings settings, Locale locale) async {
+    try {
+      await settings.setLocale(locale);
+    } catch (error, stack) {
+      debugPrint('Language preference save failed: $error\n$stack');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.languageSaveFailed)));
     }
   }
 
@@ -83,7 +95,9 @@ class _OptionsPageState extends State<OptionsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            enabled ? 'Could not open Developer mode. Please try again.' : 'Could not load your account. Check your connection and try again.',
+            enabled
+                ? context.l10n.developerModeFailed
+                : context.l10n.accountLoadFailed,
           ),
         ),
       );
@@ -98,7 +112,7 @@ class _OptionsPageState extends State<OptionsPage> {
     return PopScope(
       canPop: !services.isSwitchingProfile,
       child: MenuScaffold(
-        title: 'Options',
+        title: context.l10n.optionsTitle,
         centerAppBarTitle: true,
         appBarTitle: AppSegmentedControl<_OptionsTab>(
           values: _OptionsTab.values,
@@ -107,8 +121,8 @@ class _OptionsPageState extends State<OptionsPage> {
           enabled: !services.isSwitchingProfile,
           onChanged: (tab) => setState(() => _tab = tab),
           labelBuilder: (_, tab) => Text(switch (tab) {
-            _OptionsTab.settings => 'SETTINGS',
-            _OptionsTab.controls => 'CONTROLS',
+            _OptionsTab.settings => context.l10n.optionsSettingsTab,
+            _OptionsTab.controls => context.l10n.optionsControlsTab,
           }),
         ),
         child: MenuLayout(
@@ -120,7 +134,10 @@ class _OptionsPageState extends State<OptionsPage> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Movement', style: ui.text.headline),
+                        Text(
+                          context.l10n.movementTitle,
+                          style: ui.text.headline,
+                        ),
                         SizedBox(height: ui.space.md),
                         AppSegmentedControl<MovementControlMode>(
                           values: MovementControlMode.values,
@@ -128,23 +145,24 @@ class _OptionsPageState extends State<OptionsPage> {
                           enabled: !settings.isSaving,
                           onChanged: (mode) => _setMovementMode(settings, mode),
                           labelBuilder: (_, mode) => Text(switch (mode) {
-                            MovementControlMode.arrows => 'Arrows',
-                            MovementControlMode.joystick => 'Floating joystick',
+                            MovementControlMode.arrows =>
+                              context.l10n.movementArrows,
+                            MovementControlMode.joystick =>
+                              context.l10n.movementFloatingJoystick,
                             MovementControlMode.fixedJoystick =>
-                              'Fixed joystick',
+                              context.l10n.movementFixedJoystick,
                           }),
                         ),
                         SizedBox(height: ui.space.md),
-                        Text(
-                          'Choose how to move backward and forward. All controls use the same movement speed.',
-                          style: ui.text.body,
-                        ),
+                        Text(context.l10n.movementHelp, style: ui.text.body),
                         SizedBox(height: ui.space.sm),
                         Text(switch (settings.movementMode) {
                           MovementControlMode.arrows =>
-                            'Hold an arrow to move in that direction.',
-                          MovementControlMode.joystick => 'The joystick follows your touch within the left third of the screen.',
-                          MovementControlMode.fixedJoystick => 'The joystick stays in the lower-left corner. Drag its thumb left or right to move.',
+                            context.l10n.movementArrowsHelp,
+                          MovementControlMode.joystick =>
+                            context.l10n.movementFloatingHelp,
+                          MovementControlMode.fixedJoystick =>
+                            context.l10n.movementFixedHelp,
                         }, style: ui.text.body),
                       ],
                     );
@@ -153,9 +171,33 @@ class _OptionsPageState extends State<OptionsPage> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    ListenableBuilder(
+                      listenable: services.localeSettings,
+                      builder: (context, _) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.l10n.languageLabel,
+                            style: ui.text.headline,
+                          ),
+                          SizedBox(height: ui.space.sm),
+                          AppSegmentedControl<Locale>(
+                            values: AppLocalizations.supportedLocales,
+                            selected: services.localeSettings.locale,
+                            enabled: !services.localeSettings.isSaving,
+                            onChanged: (locale) =>
+                                _setLanguage(services.localeSettings, locale),
+                            labelBuilder: (_, locale) => Text(
+                              lookupAppLocalizations(locale).languageName,
+                            ),
+                          ),
+                          SizedBox(height: ui.space.md),
+                        ],
+                      ),
+                    ),
                     services.isPracticeOnly
                         ? Text(
-                            'Developer Practice: local play with all equipment and abilities. Account features are unavailable in this build.',
+                            context.l10n.developerPracticeHelp,
                             style: ui.text.body,
                           )
                         : services.canSwitchProfiles
@@ -164,11 +206,11 @@ class _OptionsPageState extends State<OptionsPage> {
                             children: [
                               SwitchListTile(
                                 title: Text(
-                                  'Developer mode',
+                                  context.l10n.developerModeTitle,
                                   style: ui.text.headline,
                                 ),
                                 subtitle: Text(
-                                  'Local profile with all equipment and abilities. Practice only; no account rewards.',
+                                  context.l10n.developerModeHelp,
                                   style: ui.text.body,
                                 ),
                                 value: appState.isDeveloperMode,
@@ -183,10 +225,7 @@ class _OptionsPageState extends State<OptionsPage> {
                                 ),
                             ],
                           )
-                        : Text(
-                            'No additional settings available.',
-                            style: ui.text.body,
-                          ),
+                        : const SizedBox.shrink(),
                     SizedBox(height: ui.space.md),
                     Wrap(
                       spacing: ui.space.sm,
@@ -200,7 +239,7 @@ class _OptionsPageState extends State<OptionsPage> {
                                     '/privacy-policy.html',
                                   ),
                                 ),
-                          child: const Text('Privacy policy'),
+                          child: Text(context.l10n.privacyPolicy),
                         ),
                         TextButton(
                           onPressed: _openingLink
@@ -211,7 +250,7 @@ class _OptionsPageState extends State<OptionsPage> {
                                     path: 'lothringen.rpg@gmail.com',
                                   ),
                                 ),
-                          child: const Text('Contact support'),
+                          child: Text(context.l10n.contactSupport),
                         ),
                       ],
                     ),

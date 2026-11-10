@@ -1,3 +1,9 @@
+import '../../text/build_name_text.dart';
+
+import 'package:game_presentation/character_text.dart';
+import 'package:game_presentation/game_localization.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -23,7 +29,7 @@ class CharacterSelectionPage extends StatefulWidget {
 
 class _CharacterSelectionPageState extends State<CharacterSelectionPage> {
   bool _saving = false;
-  String? _error;
+  String Function(AppLocalizations)? _error;
 
   Future<void> _select(PlayerCharacterId id, {int? buildIndex}) async {
     if (_saving) return;
@@ -45,7 +51,7 @@ class _CharacterSelectionPageState extends State<CharacterSelectionPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not save this selection. Please try again.';
+        _error = (l10n) => l10n.uiCouldNotSaveThisSelectionPleaseTryAgain;
       });
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -58,7 +64,7 @@ class _CharacterSelectionPageState extends State<CharacterSelectionPage> {
     final state = context.watch<AppState>();
     final selected = state.selection.selectedCharacterId;
     return MenuScaffold(
-      title: 'Choose your character',
+      title: context.l10n.uiChooseYourCharacter,
       child: MenuLayout(
         maxWidth: 900,
         scrollable: false,
@@ -93,7 +99,7 @@ class _CharacterSelectionPageState extends State<CharacterSelectionPage> {
                 Padding(
                   padding: EdgeInsets.all(ui.space.sm),
                   child: Text(
-                    _error!,
+                    _error!(context.l10n),
                     style: ui.text.body.copyWith(color: ui.colors.danger),
                   ),
                 ),
@@ -188,7 +194,10 @@ class _CharacterCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            character.displayName,
+                            characterDisplayName(
+                              character.id,
+                              strings: context.gameL10n,
+                            ),
                             style: ui.text.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -212,7 +221,11 @@ class _CharacterCard extends StatelessWidget {
                               key: ValueKey(
                                 'build-${character.id.name}-$index',
                               ),
-                              name: builds.builds[index].name,
+                              name: buildDisplayName(
+                                builds.builds[index].name,
+                                index,
+                                context.l10n,
+                              ),
                               selected:
                                   selected && builds.selectedIndex == index,
                               requiredLevel:
@@ -257,7 +270,12 @@ class _BuildButton extends StatelessWidget {
       onTap: unlocked ? onPressed : null,
       enabled: unlocked && onPressed != null,
       selected: selected,
-      label: unlocked ? name : '$name, unlocks at level $requiredLevel',
+      label: unlocked
+          ? name
+          : context.l10n.characterLockedSemantics(
+              name: name,
+              level: requiredLevel,
+            ),
       child: ExcludeSemantics(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -265,7 +283,9 @@ class _BuildButton extends StatelessWidget {
           child: SizedBox(
             width: double.infinity,
             child: AppButton(
-              label: unlocked ? name : 'Level $requiredLevel',
+              label: unlocked
+                  ? name
+                  : context.l10n.requiredLevel(level: requiredLevel),
               icon: unlocked ? null : Icons.lock_outline,
               size: AppButtonSize.xs,
               variant: selected

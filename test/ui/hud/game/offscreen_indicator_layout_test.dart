@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/game/spatial/offscreen_indicators.dart';
@@ -109,6 +110,7 @@ void main() {
       ];
       List<OffscreenMarker> layout(List<OffscreenIndicator> input) =>
           layoutOffscreenIndicators(
+            l10n: appStringsFor(null),
             indicators: input,
             viewport: viewport,
             safeBounds: const Rect.fromLTRB(20, 10, 590, 260),
@@ -120,15 +122,16 @@ void main() {
       expect(markers.first.indicator.isPlayer, isTrue);
       expect(markers.first.count, 1);
       expect(markers.last.count, 2);
-      expect(markers.last.label, '×2 · 1 m');
+      expect(markers.last.label(appStringsFor(null)), '×2 · 1 m');
       expect(markers.first.bounds.overlaps(markers.last.bounds), isFalse);
       for (final marker in markers) {
         expect(marker.bounds.left, greaterThanOrEqualTo(24));
         expect(exclusions.any((rect) => rect.overlaps(marker.bounds)), isFalse);
       }
       expect(
-        layout(indicators.reversed.toList()).map((e) => (e.bounds, e.label)),
-        markers.map((e) => (e.bounds, e.label)),
+        layout(indicators.reversed.toList())
+            .map((e) => (e.bounds, e.label(appStringsFor(null)))),
+        markers.map((e) => (e.bounds, e.label(appStringsFor(null)))),
       );
     },
   );
@@ -145,6 +148,7 @@ void main() {
       hostSize: const Size(600, 270),
     );
     final markers = layoutOffscreenIndicators(
+      l10n: appStringsFor(null),
       indicators: [
         indicator(
           1,
@@ -163,7 +167,7 @@ void main() {
       measure: (_) => const Size(64, 22),
     );
     expect(markers, hasLength(2));
-    expect(markers.first.label, '<1 m');
+    expect(markers.first.label(appStringsFor(null)), '<1 m');
     expect(markers.first.bounds.center.dx, 300);
     expect(markers.first.bounds.top, greaterThanOrEqualTo(134));
     expect(markers.last.bounds.left, 4);

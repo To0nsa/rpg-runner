@@ -56,6 +56,42 @@ The 30-day point is an eligibility deadline; physical removal follows cleanup
 cadence/backlog. Firestore TTL is not enabled, since deletion must update related
 records atomically. Existing single-field indexing supports the expiry query.
 
+## Localized content
+
+Reward schema versions 1/2 retain their existing shapes and gates. Both may carry
+optional `localization: {schemaVersion: 1, translations: {fr: {title, body}}}`.
+The original root `title`/`body` are required English fallback for new content.
+Legacy mail is not rewritten or inferred from English prose. Old clients ignore
+the extra envelope and still read root text; new clients select locally, without
+adding locale to callable requests or changing ownership.
+
+The envelope accepts one to eight canonical `language[-Script][-REGION]` tags,
+excluding `en`, which is represented by root text. Unknown fields, empty text,
+unsupported envelope versions, and title/body lengths over 120/2,000 fail closed.
+Tags are sorted and text is normalized before persistence and hashing. Client
+resolution tries the exact tag, progressively removes rightmost subtags, then
+uses root text. It never replaces placeholders or executes translated content.
+
+Content hashing appends the canonical envelope only when present. Absent
+localization hashes exactly the old five-element array: UID, source, title,
+body, rewards. Both active-document retries and removal-receipt retries reject
+changed translations, including adding/removing the envelope. Removal receipts
+retain the digest, not translated prose. Claim identity, revision, gifts and
+expiration are unchanged. Immutable delivery content must never be backfilled.
+
+`inbox/message_text.ts` owns automatic English/French level text for future
+settlements; settled-run/XP fencing prevents reissuing earlier milestones.
+Admin drafts, immutable previews and receipt validation include all translations.
+Partial drafts can be stored but preview requires complete title/body pairs.
+Additional imported locale variants are preserved. The compatibility browser
+rejects translated drafts instead of dropping data; use native Admin or CLI.
+
+Deploy envelope-aware backend readers/writers and rebuild privileged tools before
+issuing localized mail. Do not roll back to a backend that drops the envelope
+while localized messages remain: it could change their later removal hashes.
+No schema-2 gift gate change or backfill is needed for text localization. Source
+preparation and emulator checks do not authorize deployment or live delivery.
+
 ## Level milestone transaction
 
 `settleAcceptedRunSession` compares XP-derived levels before and after applying

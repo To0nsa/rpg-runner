@@ -1,3 +1,23 @@
+import '../l10n/app_localization.dart';
+
+enum DisplayNameProblem {
+  required,
+  tooShort,
+  tooLong,
+  characters,
+  reserved,
+  disallowed;
+
+  String message(AppLocalizations l10n) => switch (this) {
+    required => l10n.nameRequired,
+    tooShort => l10n.nameTooShort(min: DisplayNamePolicy.minLen),
+    tooLong => l10n.nameTooLong(max: DisplayNamePolicy.maxLen),
+    characters => l10n.nameCharacters,
+    reserved => l10n.nameReserved,
+    disallowed => l10n.nameDisallowed,
+  };
+}
+
 class DisplayNamePolicy {
   const DisplayNamePolicy();
 
@@ -32,21 +52,21 @@ class DisplayNamePolicy {
     return collapsed.toLowerCase();
   }
 
-  String? validate(String raw) {
+  DisplayNameProblem? validate(String raw) {
     final name = raw.trim();
-    if (name.isEmpty) return 'Name is required.';
-    if (name.length < minLen) return 'Name must be at least $minLen characters.';
-    if (name.length > maxLen) return 'Name must be at most $maxLen characters.';
+    if (name.isEmpty) return DisplayNameProblem.required;
+    if (name.length < minLen) return DisplayNameProblem.tooShort;
+    if (name.length > maxLen) return DisplayNameProblem.tooLong;
     if (!allowed.hasMatch(name)) {
-      return 'Only letters, numbers, spaces, "_" and "-" are allowed.';
+      return DisplayNameProblem.characters;
     }
 
     final n = normalize(name);
     if (reservedNormalized.contains(n)) {
-      return 'That name is reserved.';
+      return DisplayNameProblem.reserved;
     }
     for (final bad in bannedSubstringsNormalized) {
-      if (n.contains(bad)) return 'That name is not allowed.';
+      if (n.contains(bad)) return DisplayNameProblem.disallowed;
     }
     return null;
   }

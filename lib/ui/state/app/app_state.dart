@@ -74,7 +74,7 @@ part 'controllers/developer_controller.dart';
 part 'controllers/inbox_controller.dart';
 part 'controllers/achievements_controller.dart';
 
-const String _defaultGameCompatVersion = '2026.11.8.6';
+const String _defaultGameCompatVersion = '2026.11.10';
 
 const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
 const int _runTicketPrefetchCacheMaxEntries = 4;
@@ -473,7 +473,11 @@ class AppState extends ChangeNotifier {
 
   Future<OwnershipCommandResult> purchaseStoreOffer({
     required String offerId,
-  }) => _selectionOwnershipController.purchaseStoreOffer(offerId: offerId);
+    PlayerCharacterId? characterId,
+  }) => _selectionOwnershipController.purchaseStoreOffer(
+    offerId: offerId,
+    characterId: characterId,
+  );
 
   Future<OwnershipCommandResult> refreshStore({
     required StoreRefreshMethod method,

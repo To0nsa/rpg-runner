@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,7 +19,7 @@ class AchievementsPage extends StatefulWidget {
 
 class _AchievementsPageState extends State<AchievementsPage> {
   bool _refreshing = false;
-  String? _error;
+  String Function(AppLocalizations)? _error;
 
   @override
   void initState() {
@@ -41,8 +42,9 @@ class _AchievementsPageState extends State<AchievementsPage> {
     } catch (_) {
       if (mounted && app.authSession.userId == uid) {
         setState(
-          () => _error =
-              'Unable to load achievements. Reopen this page to retry.',
+          () =>
+              _error = (l10n) =>
+                  l10n.uiUnableToLoadAchievementsReopenThisPageToRetry,
         );
       }
     } finally {
@@ -58,8 +60,8 @@ class _AchievementsPageState extends State<AchievementsPage> {
     } catch (_) {
       if (!mounted || app.authSession.userId != uid) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to claim rewards. Please try again.'),
+        SnackBar(
+          content: Text(context.l10n.uiUnableToClaimRewardsPleaseTryAgain),
         ),
       );
     }
@@ -71,7 +73,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
     final ui = context.ui;
     final progress = app.progression.achievements;
     return MenuScaffold(
-      title: 'Hall of Honour',
+      title: context.l10n.uiHallOfHonour,
       appBarActions: [
         Padding(
           padding: EdgeInsets.only(right: ui.space.md),
@@ -105,20 +107,20 @@ class _AchievementsPageState extends State<AchievementsPage> {
                 Padding(
                   padding: EdgeInsets.only(bottom: ui.space.sm),
                   child: Text(
-                    _error!,
+                    _error!(context.l10n),
                     style: ui.text.body.copyWith(color: ui.colors.danger),
                   ),
                 ),
               if (!app.achievementsAvailable)
                 Text(
-                  'Achievements are unavailable in Developer Practice.',
+                  context.l10n.uiAchievementsAreUnavailableInDeveloperPractice,
                   style: ui.text.body,
                 )
               else if (progress.entries.isEmpty)
                 Text(
                   _refreshing
-                      ? 'Loading achievements…'
-                      : 'Achievements are not available yet.',
+                      ? context.l10n.uiLoadingAchievements
+                      : context.l10n.uiAchievementsAreNotAvailableYet,
                   style: ui.text.body,
                 )
               else

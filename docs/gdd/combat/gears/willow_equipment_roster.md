@@ -12,7 +12,7 @@ attacks. Items preserve the action structure of [Willow's abilities](../abilitie
 ## Ownership and progression
 
 Fresh profiles own Hunter Blade, Bomb Kit, Field Kit, Pistol, Crossbow and Shotgun.
-The 28 additions use the existing store rotation and **150 gold** item price.
+The 28 additions use the permanent Equipment catalogue and **150 gold** item price.
 They can also be granted through the existing authorized inbox catalog. Gear
 ownership is account-wide, but blades/bomb kits/field kits are Willow-only;
 ranged ownership is per character. Shared accessories are not duplicated or

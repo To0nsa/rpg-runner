@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -75,7 +77,12 @@ void main() {
         },
       );
 
-      final options = projectileSourceOptions(loadout, abilityOwnership);
+      final options = projectileSourceOptions(
+        loadout,
+        abilityOwnership,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
 
       expect(options, isNotEmpty);
       expect(options.any((o) => o.spellId == ProjectileId.fireBolt), isTrue);
@@ -100,7 +107,12 @@ void main() {
         },
       );
 
-      final model = projectileSourcePanelModel(loadout, abilityOwnership);
+      final model = projectileSourcePanelModel(
+        loadout,
+        abilityOwnership,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
 
       expect(model.abilityOwnershipDisplayName, 'Spell List');
       expect(model.spellOptions, isNotEmpty);

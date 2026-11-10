@@ -1,3 +1,4 @@
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/abilities/ability_def.dart';
@@ -34,12 +35,13 @@ void main() {
           ),
         ],
       );
-      expect(projectileStatusSummaries(tuned), [
+      expect(projectileStatusSummaries(tuned, strings: gameStringsFor(null)), [
         'Weaken: -25% outgoing damage for 3 seconds',
       ]);
       expect(
         projectileStatusSummaries(
           const ProjectileCatalog().get(ProjectileId.darkBolt),
+          strings: gameStringsFor(null),
         ),
         ['Weaken: -50% outgoing damage for 5 seconds'],
       );
@@ -47,41 +49,70 @@ void main() {
 
     test('slot display names are resolved from UI mappings', () {
       expect(
-        gearDisplayNameForSlot(GearSlot.mainWeapon, WeaponId.plainsteel),
+        gearDisplayNameForSlot(
+          GearSlot.mainWeapon,
+          WeaponId.plainsteel,
+          strings: gameStringsFor(null),
+        ),
         equals('Plainsteel'),
       );
       expect(
         gearDisplayNameForSlot(
           GearSlot.spellBook,
           SpellBookId.apprenticePrimer,
+          strings: gameStringsFor(null),
         ),
         equals('Apprentice Primer'),
       );
       expect(
-        gearDisplayNameForSlot(GearSlot.spellBook, SpellBookId.crownOfFocus),
+        gearDisplayNameForSlot(
+          GearSlot.spellBook,
+          SpellBookId.crownOfFocus,
+          strings: gameStringsFor(null),
+        ),
         equals('Crown of Focus'),
       );
       expect(
-        gearDisplayNameForSlot(GearSlot.accessory, AccessoryId.goldenRing),
+        gearDisplayNameForSlot(
+          GearSlot.accessory,
+          AccessoryId.goldenRing,
+          strings: gameStringsFor(null),
+        ),
         equals('Golden Ring'),
       );
       expect(
-        gearDisplayNameForSlot(GearSlot.accessory, AccessoryId.resilienceCape),
+        gearDisplayNameForSlot(
+          GearSlot.accessory,
+          AccessoryId.resilienceCape,
+          strings: gameStringsFor(null),
+        ),
         equals('Resilience Cape'),
       );
       expect(
-        gearDisplayNameForSlot(GearSlot.accessory, AccessoryId.ironBoots),
+        gearDisplayNameForSlot(
+          GearSlot.accessory,
+          AccessoryId.ironBoots,
+          strings: gameStringsFor(null),
+        ),
         equals('Iron Boots'),
       );
     });
 
     test('slot descriptions are resolved from UI mappings', () {
       expect(
-        gearDescriptionForSlot(GearSlot.mainWeapon, WeaponId.nullblade),
+        gearDescriptionForSlot(
+          GearSlot.mainWeapon,
+          WeaponId.nullblade,
+          strings: gameStringsFor(null),
+        ),
         equals('Anti-caster sword that can silence on hit.'),
       );
       expect(
-        gearDescriptionForSlot(GearSlot.spellBook, SpellBookId.emberGrimoire),
+        gearDescriptionForSlot(
+          GearSlot.spellBook,
+          SpellBookId.emberGrimoire,
+          strings: gameStringsFor(null),
+        ),
         equals(
           'Mana, critical chance and faster cooldowns, with slower stamina recovery.',
         ),
@@ -90,19 +121,28 @@ void main() {
         gearDescriptionForSlot(
           GearSlot.spellBook,
           SpellBookId.apprenticePrimer,
+          strings: gameStringsFor(null),
         ),
         equals(
           'Balanced mana reserves, regeneration and critical chance, with less stamina.',
         ),
       );
       expect(
-        gearDescriptionForSlot(GearSlot.accessory, AccessoryId.speedBoots),
+        gearDescriptionForSlot(
+          GearSlot.accessory,
+          AccessoryId.speedBoots,
+          strings: gameStringsFor(null),
+        ),
         equals(
           'Tempo accessory with movement, stamina regen, and cooldown pacing at heavy mana tax.',
         ),
       );
       expect(
-        gearDescriptionForSlot(GearSlot.accessory, AccessoryId.oathBeads),
+        gearDescriptionForSlot(
+          GearSlot.accessory,
+          AccessoryId.oathBeads,
+          strings: gameStringsFor(null),
+        ),
         equals(
           'Caster-tempo beads with cooldown, mana regen, and power at a defense tax.',
         ),
@@ -110,8 +150,20 @@ void main() {
     });
 
     test('projectile source names use the shared projectile mapping', () {
-      expect(projectileDisplayName(ProjectileId.iceBolt), 'Ice Bolt');
-      expect(projectileDisplayName(ProjectileId.fireBolt), 'Fire Bolt');
+      expect(
+        projectileDisplayName(
+          ProjectileId.iceBolt,
+          strings: gameStringsFor(null),
+        ),
+        'Ice Bolt',
+      );
+      expect(
+        projectileDisplayName(
+          ProjectileId.fireBolt,
+          strings: gameStringsFor(null),
+        ),
+        'Fire Bolt',
+      );
     });
   });
 }

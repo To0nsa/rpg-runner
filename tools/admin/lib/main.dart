@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:tool_ui/tool_ui.dart';
 
 import 'src/admin_controller.dart';
@@ -14,6 +15,9 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
     MaterialApp(
+      locale: const Locale('en'),
+      localizationsDelegates: GameLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('en')],
       title: 'Lothringen Admin',
       debugShowCheckedModeBanner: false,
       theme: createToolTheme(),

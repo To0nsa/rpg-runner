@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 
@@ -33,21 +34,21 @@ class DesktopControlsOverlay extends StatelessWidget {
         >[
           (
             slot: AbilitySlot.jump,
-            binding: 'Space / W / Up',
+            binding: context.l10n.keyJump,
             valid: hud.jumpSlotValid,
             affordable: hud.canAffordJump,
             cooldown: null,
           ),
           (
             slot: AbilitySlot.mobility,
-            binding: 'Shift',
+            binding: context.l10n.keyMobility,
             valid: hud.mobilitySlotValid,
             affordable: hud.canAffordMobility,
             cooldown: CooldownGroup.mobility,
           ),
           (
             slot: AbilitySlot.primary,
-            binding: 'LMB / J',
+            binding: context.l10n.keyPrimary,
             valid: hud.meleeSlotValid,
             affordable: hud.canAffordMelee,
             cooldown: CooldownGroup.primary,
@@ -55,7 +56,7 @@ class DesktopControlsOverlay extends StatelessWidget {
           if (hud.hasSecondarySlot)
             (
               slot: AbilitySlot.secondary,
-              binding: 'Q',
+              binding: context.l10n.keySecondary,
               valid: hud.secondarySlotValid,
               affordable: hud.canAffordSecondary,
               cooldown: CooldownGroup.secondary,
@@ -63,14 +64,14 @@ class DesktopControlsOverlay extends StatelessWidget {
           if (hud.hasProjectileSlot)
             (
               slot: AbilitySlot.projectile,
-              binding: 'RMB / K',
+              binding: context.l10n.keyProjectile,
               valid: hud.projectileSlotValid,
               affordable: hud.canAffordProjectile,
               cooldown: CooldownGroup.projectile,
             ),
           (
             slot: AbilitySlot.spell,
-            binding: 'E / L',
+            binding: context.l10n.keySpell,
             valid: hud.spellSlotValid,
             affordable: hud.canAffordSpell,
             cooldown: CooldownGroup.spell0,
@@ -108,14 +109,16 @@ class DesktopControlsOverlay extends StatelessWidget {
                               ? 0
                               : hud.cooldownTicksLeft[item.cooldown!];
                           final status = !item.valid
-                              ? 'Unavailable'
+                              ? context.l10n.abilityUnavailable
                               : !item.affordable
-                              ? 'Low resource'
+                              ? context.l10n.abilityLowResource
                               : recast
-                              ? 'Follow-up'
+                              ? context.l10n.abilityFollowUp
                               : remaining > 0
-                              ? '${(remaining / controller.tickHz).toStringAsFixed(1)}s'
-                              : 'Ready';
+                              ? context.l10n.secondsShort(
+                                  seconds: remaining / controller.tickHz,
+                                )
+                              : context.l10n.abilityReady;
                           final color =
                               !item.valid ||
                                   !item.affordable ||
@@ -126,7 +129,11 @@ class DesktopControlsOverlay extends StatelessWidget {
                             item.slot,
                           );
                           return Semantics(
-                            label: '${spec.label}, ${item.binding}, $status',
+                            label: context.l10n.abilityBindingSemantics(
+                              ability: spec.label(context.l10n),
+                              binding: item.binding,
+                              status: status,
+                            ),
                             excludeSemantics: true,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -163,13 +170,19 @@ class DesktopControlsOverlay extends StatelessWidget {
                   Padding(
                     padding: EdgeInsets.only(top: ui.space.xxs),
                     child: Text(
-                      'Charge ${hud.chargeFullTicks > 0 ? (100 * hud.chargeTicks / hud.chargeFullTicks).clamp(0, 100).round() : 0}%',
+                      context.l10n.chargePercent(
+                        percent: hud.chargeFullTicks > 0
+                            ? (100 * hud.chargeTicks / hud.chargeFullTicks)
+                                  .clamp(0, 100)
+                                  .round()
+                            : 0,
+                      ),
                       style: ui.text.label,
                     ),
                   ),
                 SizedBox(height: ui.space.xxs),
                 Text(
-                  'A / D or arrows: Move | Mouse: Aim | Esc / P: Pause | Enter: Resume',
+                  context.l10n.desktopControlsHelp,
                   textAlign: TextAlign.center,
                   style: ui.text.body.copyWith(color: ui.colors.textMuted),
                 ),

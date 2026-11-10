@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'controls_tuning.dart';
@@ -95,14 +96,14 @@ class _MoveButtonsState extends State<MoveButtons> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _HoldMoveButton(
-              label: 'Move left',
+              label: context.l10n.controlMoveLeft,
               icon: Icons.chevron_left,
               pressed: leftPressed,
               tuning: widget.tuning,
             ),
             SizedBox(width: widget.tuning.gap),
             _HoldMoveButton(
-              label: 'Move right',
+              label: context.l10n.controlMoveRight,
               icon: Icons.chevron_right,
               pressed: rightPressed,
               tuning: widget.tuning,

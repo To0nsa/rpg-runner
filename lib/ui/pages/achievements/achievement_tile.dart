@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../components/progress_meter.dart';
@@ -49,7 +50,10 @@ class AchievementTile extends StatelessWidget {
             ui.space.md,
           ),
           leading: Icon(presentation.icon, color: ui.colors.accentStrong),
-          title: Text(presentation.title, style: ui.text.headline),
+          title: Text(
+            presentation.title(context.l10n),
+            style: ui.text.headline,
+          ),
           subtitle: Padding(
             padding: EdgeInsets.only(top: ui.space.xs),
             child: Column(
@@ -57,23 +61,28 @@ class AchievementTile extends StatelessWidget {
               children: [
                 if (next != null) ...[
                   Text(
-                    presentation.requirement(next.threshold),
+                    presentation.requirement(next.threshold, context.l10n),
                     style: ui.text.body,
                   ),
                   SizedBox(height: ui.space.xs),
                   ProgressMeter(
                     fraction: entry.value / next.threshold,
-                    label:
-                        '${presentation.quantity(entry.value)} / ${presentation.quantity(next.threshold)}',
+                    label: context.l10n.progressQuantities(
+                      current: presentation.quantity(entry.value, context.l10n),
+                      target: presentation.quantity(
+                        next.threshold,
+                        context.l10n,
+                      ),
+                    ),
                   ),
                   SizedBox(height: ui.space.xxs),
                   Text(
-                    'Next reward: ${next.goldAmount} gold',
+                    context.l10n.achievementNextReward(gold: next.goldAmount),
                     style: ui.text.body,
                   ),
                 ] else
                   Text(
-                    'Completed',
+                    context.l10n.uiCompleted,
                     style: ui.text.body.copyWith(color: ui.colors.success),
                   ),
                 if (entry.claimableGold > 0) ...[
@@ -92,7 +101,7 @@ class AchievementTile extends StatelessWidget {
           ),
           children: [
             Text(
-              presentation.eligibility,
+              presentation.eligibility(context.l10n),
               style: ui.text.body.copyWith(color: ui.colors.textMuted),
             ),
             for (var index = 0; index < entry.tiers.length; index += 1)
@@ -121,7 +130,11 @@ class _TierDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    const names = ['Bronze', 'Silver', 'Gold'];
+    final names = [
+      context.l10n.uiBronze,
+      context.l10n.uiSilver,
+      context.l10n.uiGold,
+    ];
     return Padding(
       padding: EdgeInsets.only(top: ui.space.sm),
       child: Column(
@@ -135,19 +148,27 @@ class _TierDetails extends StatelessWidget {
             children: [
               Text(names[index], style: ui.text.headline),
               Text(
-                '${tier.goldAmount} gold · ${tier.claimedAtMs != null
-                    ? 'Claimed'
-                    : tier.achieved
-                    ? 'Available'
-                    : 'Not reached'}',
+                context.l10n.achievementTierReward(
+                  gold: tier.goldAmount,
+                  state: tier.claimedAtMs != null
+                      ? 'claimed'
+                      : tier.achieved
+                      ? 'achieved'
+                      : 'pending',
+                ),
                 style: ui.text.body,
               ),
             ],
           ),
-          Text(presentation.requirement(tier.threshold), style: ui.text.body),
+          Text(
+            presentation.requirement(tier.threshold, context.l10n),
+            style: ui.text.body,
+          ),
           if (tier.achievedAtMs != null)
             Text(
-              'Achieved ${achievementDate(tier.achievedAtMs!)}',
+              context.l10n.achievementAchievedDate(
+                date: achievementDate(tier.achievedAtMs!, context.l10n),
+              ),
               style: ui.text.body.copyWith(color: ui.colors.textMuted),
             ),
         ],

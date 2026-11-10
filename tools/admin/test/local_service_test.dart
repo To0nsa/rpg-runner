@@ -1,3 +1,5 @@
+import 'package:game_presentation/game_localization.dart';
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +29,11 @@ void main() {
       expect(controller.catalog.length, greaterThan(40));
       expect(controller.catalogMessage, isEmpty);
       for (final item in controller.catalog) {
-        expect(GameCatalogItem.fromJson(item.toJson()).displayName, isNotEmpty);
+        expect(
+          GameCatalogItem.fromJson(item.toJson())
+              .displayName(gameStringsFor(null)),
+          isNotEmpty,
+        );
       }
       controller.edit(
         controller.draft.copyWith(

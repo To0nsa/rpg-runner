@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +16,7 @@ import 'package:rpg_runner/ui/pages/library/location_map.dart';
 import 'package:rpg_runner/ui/pages/town/town_page.dart';
 import 'package:rpg_runner/ui/pages/town/town_map.dart';
 import 'package:rpg_runner/ui/pages/town/town_store_page.dart';
+import 'package:rpg_runner/ui/pages/town/town_catalog.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/codex_progress.dart';
@@ -153,7 +155,10 @@ void main() {
       final location = find.byKey(const ValueKey('codex-level-forest'));
       await tester.tap(location);
       await tester.pumpAndSettle();
-      expect(find.text(CodexCatalog.levelLore(LevelId.forest)), findsOneWidget);
+      expect(
+        find.text(CodexCatalog.levelLore(LevelId.forest, appStringsFor(null))),
+        findsOneWidget,
+      );
       await tester.tap(find.byTooltip('Close location'));
       await tester.pumpAndSettle();
 
@@ -184,7 +189,10 @@ void main() {
 
     app.setProgress(CodexProgress(competitiveBestScores: {'forest': 12000}));
     await tester.pumpAndSettle();
-    expect(find.text(CodexCatalog.levelLore(LevelId.forest)), findsOneWidget);
+    expect(
+      find.text(CodexCatalog.levelLore(LevelId.forest, appStringsFor(null))),
+      findsOneWidget,
+    );
     await tester.tap(find.byTooltip('Close location'));
     await tester.pumpAndSettle();
 
@@ -198,7 +206,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('codex-level-field')));
     await tester.pumpAndSettle();
-    expect(find.text(CodexCatalog.levelLore(LevelId.field)), findsOneWidget);
+    expect(
+      find.text(CodexCatalog.levelLore(LevelId.field, appStringsFor(null))),
+      findsOneWidget,
+    );
   });
 
   testWidgets('map dialog reads progress earned away from Library', (
@@ -218,7 +229,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('codex-level-forest')));
     await tester.pumpAndSettle();
-    expect(find.text(CodexCatalog.levelLore(LevelId.forest)), findsOneWidget);
+    expect(
+      find.text(CodexCatalog.levelLore(LevelId.forest, appStringsFor(null))),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byTooltip('Close location'));
     await tester.pumpAndSettle();
@@ -228,7 +242,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('codex-level-forest')));
     await tester.pumpAndSettle();
-    expect(find.text(CodexCatalog.levelLore(LevelId.forest)), findsOneWidget);
+    expect(
+      find.text(CodexCatalog.levelLore(LevelId.forest, appStringsFor(null))),
+      findsOneWidget,
+    );
   });
 
   for (final pair in {
@@ -243,13 +260,22 @@ void main() {
       app.setDefeats({pair.value.name: 10, pair.key.name: 4});
       await tester.pumpWidget(_app(app, CodexEntryPage.enemy(pair.value)));
       expect(find.text('Entry locked'), findsOneWidget);
-      expect(find.text(CodexCatalog.enemyLore(pair.value)), findsNothing);
+      expect(
+        find.text(CodexCatalog.enemyLore(pair.value, appStringsFor(null))),
+        findsNothing,
+      );
       app.setDefeats({pair.key.name: 5});
       await tester.pumpAndSettle();
       expect(find.text('Entry locked'), findsNothing);
       expect(find.text(pair.value.displayName), findsOneWidget);
-      expect(find.text(CodexCatalog.enemyLore(pair.value)), findsOneWidget);
-      expect(find.text(CodexCatalog.enemyLore(pair.key)), findsOneWidget);
+      expect(
+        find.text(CodexCatalog.enemyLore(pair.value, appStringsFor(null))),
+        findsOneWidget,
+      );
+      expect(
+        find.text(CodexCatalog.enemyLore(pair.key, appStringsFor(null))),
+        findsOneWidget,
+      );
     });
   }
 
@@ -263,14 +289,20 @@ void main() {
     );
     expect(find.text('Entry locked'), findsOneWidget);
     expect(find.text('Attacks'), findsNothing);
-    expect(find.text(CodexCatalog.enemyLore(EnemyId.grojib)), findsNothing);
+    expect(
+      find.text(CodexCatalog.enemyLore(EnemyId.grojib, appStringsFor(null))),
+      findsNothing,
+    );
     app.setDefeats({'grojib': 10});
     await tester.pumpAndSettle();
     expect(find.text('Entry locked'), findsNothing);
     expect(find.text('Attacks'), findsOneWidget);
     expect(find.text('Resistances'), findsOneWidget);
     expect(find.text('Weaknesses'), findsOneWidget);
-    expect(find.text(CodexCatalog.enemyLore(EnemyId.grojib)), findsOneWidget);
+    expect(
+      find.text(CodexCatalog.enemyLore(EnemyId.grojib, appStringsFor(null))),
+      findsOneWidget,
+    );
     expect(find.textContaining('Second Strike • melee'), findsOneWidget);
     expect(find.textContaining('can stun on hit'), findsOneWidget);
     expect(find.textContaining('Strike2'), findsNothing);
@@ -310,13 +342,19 @@ void main() {
       expect(find.text('Entry locked'), findsOneWidget);
       app.setProgress(CodexProgress(competitiveBestScores: {'forest': 10000}));
       await tester.pumpAndSettle();
-      expect(find.text(CodexCatalog.levelLore(LevelId.forest)), findsOneWidget);
+      expect(
+        find.text(CodexCatalog.levelLore(LevelId.forest, appStringsFor(null))),
+        findsOneWidget,
+      );
       await tester.tap(find.byTooltip('Close location'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Journal'));
       await tester.pumpAndSettle();
       expect(find.text('Library · Journal'), findsOneWidget);
-      expect(find.text(CodexCatalog.opening), findsOneWidget);
+      expect(
+        find.text(CodexCatalog.opening(appStringsFor(null))),
+        findsOneWidget,
+      );
       expect(find.textContaining('Les Soleils d’or'), findsOneWidget);
     },
   );
@@ -394,11 +432,41 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.byType(TownMap), findsOneWidget);
-      expect(find.byType(MapLabelButton), findsNWidgets(3));
+      expect(find.byType(MapLabelButton), findsNWidgets(4));
+      final labels = [
+        'town-store-marker',
+        'town-training-marker',
+        'town-library-marker',
+        'town-achievements-marker',
+      ];
+      for (var i = 0; i < labels.length; i++) {
+        for (var j = i + 1; j < labels.length; j++) {
+          expect(
+            tester
+                .getRect(find.byKey(ValueKey(labels[i])))
+                .overlaps(tester.getRect(find.byKey(ValueKey(labels[j])))),
+            isFalse,
+            reason: "${labels[i]} overlaps ${labels[j]}",
+          );
+        }
+      }
       await tester.tap(find.byKey(const ValueKey('town-store-marker')));
       await tester.pumpAndSettle();
       expect(find.byType(TownStorePage), findsOneWidget);
+      expect(
+        tester.widget<TownStorePage>(find.byType(TownStorePage)).initialService,
+        TownService.equipment,
+      );
       expect(tester.takeException(), isNull);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('town-training-marker')));
+      await tester.pumpAndSettle();
+      expect(find.text('Training Hall'), findsNWidgets(2));
+      expect(
+        tester.widget<TownStorePage>(find.byType(TownStorePage)).initialService,
+        TownService.training,
+      );
       await tester.pageBack();
       await tester.pumpAndSettle();
       await tester.tap(find.bySemanticsLabel('Library marker'));

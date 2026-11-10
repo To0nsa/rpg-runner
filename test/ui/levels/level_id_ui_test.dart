@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -10,7 +11,10 @@ void main() {
     () {
       for (final levelId in LevelId.values) {
         final metadata = generatedLevelUiMetadataFor(levelId);
-        expect(levelId.displayName, metadata.displayName);
+        expect(
+          levelId.localizedName(appStringsFor(null)),
+          metadata.displayName,
+        );
         expect(
           levelId.isSelectableInStandardUi,
           metadata.isSelectableInStandardUi,

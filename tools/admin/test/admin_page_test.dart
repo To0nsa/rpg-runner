@@ -1,3 +1,5 @@
+import 'package:game_presentation/game_localization.dart';
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -84,6 +86,14 @@ void main() {
         find.byKey(const Key('message-body')),
         'New equipment and a skill are waiting in your inbox.',
       );
+      await tester.enterText(
+        find.byKey(const Key('message-title-fr')),
+        'Un cadeau pour ta prochaine course',
+      );
+      await tester.enterText(
+        find.byKey(const Key('message-body-fr')),
+        'Ton équipement et ta capacité t’attendent dans tes messages.',
+      );
       await tester.enterText(find.byKey(const Key('gold')), '1000');
       final item = c.catalog.firstWhere((e) => e.itemId == 'waspfang');
       await tester.enterText(
@@ -91,7 +101,7 @@ void main() {
         item.itemId,
       );
       await tester.pump();
-      await tester.tap(find.text(item.displayName));
+      await tester.tap(find.text(item.displayName(gameStringsFor(null))));
       await tester.pump();
       await tester.enterText(
         find.byKey(const Key('catalog-search')),
@@ -101,12 +111,16 @@ void main() {
       final skill = c.catalog.firstWhere(
         (e) => e.itemId == 'eloise.arcane_ward',
       );
-      await tester.tap(find.text(skill.displayName));
+      await tester.tap(find.text(skill.displayName(gameStringsFor(null))));
       await tester.pump();
       expect(c.draft.attachments.length, 2);
       await tester.tap(find.byKey(const Key('preview')));
       await tester.pumpAndSettle();
       expect(c.error, isNull);
+      expect(
+        c.preview!['localization']['translations']['fr']['title'],
+        'Un cadeau pour ta prochaine course',
+      );
       expect(find.byKey(const Key('send')), findsOneWidget);
       await tester.enterText(find.byKey(const Key('catalog-search')), '');
       await tester.pump();
@@ -162,7 +176,7 @@ void main() {
         final item = GameCatalogItem.fromJson(
           Map<String, dynamic>.from(raw as Map),
         );
-        expect(item.displayName, isNotEmpty);
+        expect(item.displayName(gameStringsFor(null)), isNotEmpty);
         await tester.pumpWidget(
           DefaultAssetBundle(
             bundle: bundle,

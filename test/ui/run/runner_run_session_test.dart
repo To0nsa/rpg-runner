@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -111,7 +113,7 @@ void main() {
     _readyWorld(session);
     expect(session.isReady, isFalse);
     expect(session.failure, RunStartupFailure.recorder);
-    expect(session.errorMessage, contains('storage'));
+    expect(session.errorMessage(appStringsFor(null)), contains('storage'));
     expect(session.controller.tick, 0);
     await session.stop();
   });

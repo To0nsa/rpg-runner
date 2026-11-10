@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:flame/game.dart';
@@ -86,6 +88,10 @@ import 'viewport/viewport_metrics.dart';
 /// Viewport scaling is applied by [GameViewport] to keep the fixed virtual
 /// resolution fitted to the available screen. During play, left/top off-screen
 /// actor markers use that same fitted/cropped view and ignore pointer input.
+/// Localization follows the inherited locale. Hosts register
+/// RunnerLocalizations.delegates/supportedLocales on their MaterialApp; absent
+/// or unsupported locale configuration falls back to English. Keep this widget's
+/// identity when changing locale so the current run session remains mounted.
 class RunnerGameWidget extends StatefulWidget {
   const RunnerGameWidget({
     super.key,
@@ -760,7 +766,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Close'),
+                child: Text(dialogContext.l10n.uiClose),
               ),
             ],
           ),
@@ -768,7 +774,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       );
       return;
     }
-    final message = RunStartPreparation.messageFor(error);
+    final message = RunStartPreparation.messageFor(error, context.l10n);
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
     messenger.showSnackBar(SnackBar(content: Text(message)));
@@ -902,13 +908,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _restartWithDescriptor(_descriptor);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Unable to release the previous run. Exit and try again.',
-            ),
-          ),
-        );
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(context.l10n.runCleanupFailed)));
       }
     } finally {
       if (mounted) setState(() => _loadingRetryInFlight = false);
@@ -976,8 +978,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                     final uiState = _buildUiState(runLoaded: runLoaded);
                     if (uiState.showLoadingOverlay) {
                       return _RunLoadingView(
-                        message: _session.loadingMessage,
-                        errorMessage: _session.errorMessage,
+                        message: _session.loadingMessage(context.l10n),
+                        errorMessage: _session.errorMessage(context.l10n),
                         onRetry: _loadingRetryInFlight ? null : _retryLoading,
                         onExit: widget.showExitButton ? widget.onExit : null,
                       );
@@ -1104,12 +1106,12 @@ class _RunLoadingView extends StatelessWidget {
       children: [
         LoaderContent(
           loadingMessage: message,
-          errorTitle: 'Unable to start run',
+          errorTitle: context.l10n.runStartErrorTitle,
           errorMessage: errorMessage,
           onContinue: onRetry,
         ),
         if (onExit != null)
-          TextButton(onPressed: onExit, child: const Text('Exit')),
+          TextButton(onPressed: onExit, child: Text(context.l10n.uiExit)),
       ],
     ),
   );

@@ -1,3 +1,6 @@
+import 'package:game_presentation/enemy_text.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:game_presentation/ability_text.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +13,10 @@ import '../../codex/codex_catalog.dart';
 import '../../components/enemy_portrait.dart';
 import '../../components/menu_scaffold.dart';
 import '../../state/app/app_state.dart';
-import '../../text/number_format.dart';
+
+import 'package:game_presentation/gear_text.dart';
+import 'package:runner_core/abilities/ability_def.dart';
+
 import '../../theme/ui_tokens.dart';
 import 'codex_widgets.dart';
 
@@ -29,7 +35,7 @@ class CodexEntryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     if (levelId case final id?) {
       return MenuScaffold(
-        title: CodexCatalog.levelName(id),
+        title: CodexCatalog.levelName(id, context.l10n),
         background: ColoredBox(color: context.ui.colors.background),
         child: SafeArea(top: false, child: CodexLevelDetails(levelId: id)),
       );
@@ -40,31 +46,38 @@ class CodexEntryPage extends StatelessWidget {
     final current = progress.enemyDefeats.byEnemy[enemy.name] ?? 0;
     final target = CodexCatalog.killsRequired(enemy);
     return MenuScaffold(
-      title: unlocked ? enemy.displayName : 'Bestiary',
+      title: unlocked
+          ? enemyDisplayName(enemy, strings: context.gameL10n)
+          : context.l10n.uiBestiary,
       background: ColoredBox(color: context.ui.colors.background),
       child: SafeArea(
         top: false,
         child: unlocked
             ? CodexReadingView(
-                title: enemy.displayName,
-                subtitle: enemy.isBoss ? 'Bestiary • Boss' : 'Bestiary',
+                title: enemyDisplayName(enemy, strings: context.gameL10n),
+                subtitle: enemy.isBoss
+                    ? context.l10n.uiBestiaryBoss
+                    : context.l10n.uiBestiary,
                 paragraphs: const [],
                 children: [
                   _EnemyCombat(enemy: enemy),
                   _ReadingSection(
-                    title: 'Field notes',
-                    text: CodexCatalog.enemyLore(enemy),
+                    title: context.l10n.uiFieldNotes,
+                    text: CodexCatalog.enemyLore(enemy, context.l10n),
                   ),
                   for (final summon in CodexCatalog.summonsFor(enemy))
                     _SummonSection(enemy: summon),
                 ],
               )
             : CodexReadingView(
-                title: 'Entry locked',
-                subtitle: 'Bestiary',
+                title: context.l10n.uiEntryLocked,
+                subtitle: context.l10n.uiBestiary,
                 paragraphs: [
-                  'Defeat ${formatCount(target)} to reveal its attacks, resistances and field notes.',
-                  '${formatCount(current)} / ${formatCount(target)} defeated.',
+                  context.l10n.codexUnlockEnemy(count: target),
+                  context.l10n.codexDefeatedProgress(
+                    current: current,
+                    target: target,
+                  ),
                 ],
               ),
       ),
@@ -81,22 +94,22 @@ class CodexLevelDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = context.watch<AppState>().progression.codex;
-    final title = CodexCatalog.levelName(levelId);
+    final title = CodexCatalog.levelName(levelId, context.l10n);
     final target = CodexCatalog.levelScoreRequirements[levelId]!;
     final current = progress.competitiveBestScores[levelId.name] ?? 0;
     if (CodexCatalog.levelUnlocked(progress, levelId)) {
       return CodexReadingView(
         title: title,
-        subtitle: 'Locations',
-        paragraphs: [CodexCatalog.levelLore(levelId)],
+        subtitle: context.l10n.uiLocations,
+        paragraphs: [CodexCatalog.levelLore(levelId, context.l10n)],
       );
     }
     return CodexReadingView(
-      title: 'Entry locked',
+      title: context.l10n.uiEntryLocked,
       subtitle: title,
       paragraphs: [
-        'Reach ${formatCount(target)} points in one Competitive run on $title to reveal its history.',
-        '${formatCount(current)} / ${formatCount(target)} best Competitive score.',
+        context.l10n.codexUnlockLevel(count: target, level: title),
+        context.l10n.codexScoreProgress(current: current, target: target),
       ],
     );
   }
@@ -119,14 +132,19 @@ class _SummonSection extends StatelessWidget {
           children: [
             SizedBox(width: 56, height: 56, child: EnemyPortrait(enemy: enemy)),
             SizedBox(width: ui.space.sm),
-            Expanded(child: Text(enemy.displayName, style: ui.text.title)),
+            Expanded(
+              child: Text(
+                enemyDisplayName(enemy, strings: context.gameL10n),
+                style: ui.text.title,
+              ),
+            ),
           ],
         ),
-        Text('Summoned creature', style: ui.text.body),
+        Text(context.l10n.uiSummonedCreature, style: ui.text.body),
         _EnemyCombat(enemy: enemy),
         _ReadingSection(
-          title: 'Field notes',
-          text: CodexCatalog.enemyLore(enemy),
+          title: context.l10n.uiFieldNotes,
+          text: CodexCatalog.enemyLore(enemy, context.l10n),
         ),
       ],
     );
@@ -143,17 +161,21 @@ class _EnemyCombat extends StatelessWidget {
     final weaknesses = <String>[];
     for (final type in DamageType.values) {
       final bp = archetype.resistance.modBpFor(type);
-      final percentage = (bp.abs() / 100).toStringAsFixed(
-        bp.abs() % 100 == 0 ? 0 : 1,
-      );
+      final percentage = bp.abs() / 100;
       if (bp < 0) {
         resistances.add(
-          '${CodexCatalog.damageName(type)}: $percentage% less damage',
+          context.l10n.codexResistance(
+            type: damageTypeDisplayName(type, strings: context.gameL10n),
+            percent: percentage,
+          ),
         );
       }
       if (bp > 0) {
         weaknesses.add(
-          '${CodexCatalog.damageName(type)}: $percentage% more damage',
+          context.l10n.codexWeakness(
+            type: damageTypeDisplayName(type, strings: context.gameL10n),
+            percent: percentage,
+          ),
         );
       }
     }
@@ -162,29 +184,45 @@ class _EnemyCombat extends StatelessWidget {
           final types = [
             for (final type in DamageType.values)
               if (ability.baseDamageType.weightOf(type) > 0)
-                '${CodexCatalog.damageName(type)}${ability.baseDamageType is DamageType ? '' : ' ${(100 * ability.baseDamageType.weightOf(type) / ability.baseDamageType.totalWeight).round()}%'}',
+                ability.baseDamageType is DamageType
+                    ? damageTypeDisplayName(type, strings: context.gameL10n)
+                    : context.l10n.codexDamageMix(
+                        type: damageTypeDisplayName(
+                          type,
+                          strings: context.gameL10n,
+                        ),
+                        percent:
+                            (100 *
+                                    ability.baseDamageType.weightOf(type) /
+                                    ability.baseDamageType.totalWeight)
+                                .round(),
+                      ),
           ];
-          return '${abilityDisplayName(ability.id)} • ${ability.category.name}\n${types.join(' + ')} damage';
+          return context.l10n.codexAttack(
+            ability: abilityDisplayName(ability.id, strings: context.gameL10n),
+            category: _categoryName(ability.category, context.l10n),
+            types: types.join(' + '),
+          );
         })
         .join('\n\n');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ReadingSection(
-          title: 'Behaviour',
-          text: CodexCatalog.enemyTactics(enemy),
+          title: context.l10n.uiBehaviour,
+          text: CodexCatalog.enemyTactics(enemy, context.l10n),
         ),
-        _ReadingSection(title: 'Attacks', text: attacks),
+        _ReadingSection(title: context.l10n.uiAttacks, text: attacks),
         _ReadingSection(
-          title: 'Resistances',
+          title: context.l10n.uiResistances,
           text: resistances.isEmpty
-              ? 'No innate damage resistances.'
+              ? context.l10n.uiNoInnateDamageResistances
               : resistances.join('\n'),
         ),
         _ReadingSection(
-          title: 'Weaknesses',
+          title: context.l10n.uiWeaknesses,
           text: weaknesses.isEmpty
-              ? 'No innate damage weaknesses.'
+              ? context.l10n.uiNoInnateDamageWeaknesses
               : weaknesses.join('\n'),
         ),
       ],
@@ -211,3 +249,12 @@ class _ReadingSection extends StatelessWidget {
     );
   }
 }
+
+String _categoryName(AbilityCategory category, AppLocalizations l10n) =>
+    switch (category) {
+      AbilityCategory.melee => l10n.abilityCategoryMelee,
+      AbilityCategory.ranged => l10n.abilityCategoryRanged,
+      AbilityCategory.mobility => l10n.abilityCategoryMobility,
+      AbilityCategory.defense => l10n.abilityCategoryDefense,
+      AbilityCategory.utility => l10n.abilityCategoryUtility,
+    };

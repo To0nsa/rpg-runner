@@ -1,65 +1,26 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import 'package:runner_core/abilities/ability_catalog.dart';
-import 'package:runner_core/abilities/ability_def.dart';
-import 'package:runner_core/accessories/accessory_id.dart';
-import 'package:runner_core/players/character_ability_namespace.dart';
+import 'package:game_presentation/character_text.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:runner_core/players/player_character_definition.dart';
-import 'package:runner_core/projectiles/projectile_id.dart';
-import 'package:runner_core/spellBook/spell_book_id.dart';
-import 'package:runner_core/weapons/weapon_catalog.dart';
-import 'package:runner_core/weapons/weapon_category.dart';
-import 'package:runner_core/weapons/weapon_id.dart';
+import 'package:runner_core/players/player_character_registry.dart';
 
-import '../../components/app_button.dart';
-import '../../components/app_dialog.dart';
 import '../../components/gold_display.dart';
-import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
+import '../../l10n/app_localization.dart';
 import '../../state/app/app_state.dart';
 import '../../state/ownership/loadout_ownership_api.dart';
 import '../../state/ownership/progression_state.dart';
+import '../../text/build_name_text.dart';
 import '../../theme/ui_tokens.dart';
+import 'town_catalog.dart';
 import 'town_store_widgets.dart';
 import 'reward_verification_dialog.dart';
 
-const int _dailyRefreshLimit = 3;
-const int _goldRefreshCost = 50;
-const WeaponCatalog _weaponCatalog = WeaponCatalog();
-
-const List<StoreBucket> _bucketOrder = <StoreBucket>[
-  StoreBucket.sword,
-  StoreBucket.shield,
-  StoreBucket.accessory,
-  StoreBucket.spellBook,
-  StoreBucket.projectileSpell,
-  StoreBucket.spell,
-  StoreBucket.ability,
-];
-
-const Map<StoreBucket, int> _bucketSortOrder = <StoreBucket, int>{
-  StoreBucket.sword: 0,
-  StoreBucket.shield: 1,
-  StoreBucket.accessory: 2,
-  StoreBucket.spellBook: 3,
-  StoreBucket.projectileSpell: 4,
-  StoreBucket.spell: 5,
-  StoreBucket.ability: 6,
-};
-
-const List<AbilitySlot> _nonSpellAbilitySlots = <AbilitySlot>[
-  AbilitySlot.primary,
-  AbilitySlot.secondary,
-  AbilitySlot.projectile,
-  AbilitySlot.mobility,
-  AbilitySlot.jump,
-];
-
+/// The two town entrances share a catalogue UI, with browsing local to this route.
 class TownStorePage extends StatefulWidget {
-  const TownStorePage({super.key});
+  const TownStorePage({super.key, this.initialService = TownService.equipment});
+  final TownService initialService;
 
   @override
   State<TownStorePage> createState() => _TownStorePageState();
@@ -67,56 +28,201 @@ class TownStorePage extends StatefulWidget {
 
 class _TownStorePageState extends State<TownStorePage> {
   bool _purchaseInFlight = false;
-  bool _refreshInFlight = false;
+  late TownService _service;
+  late PlayerCharacterId _characterId;
+  StoreSlot? _slot;
+  String? _expandedOfferId;
+  bool _hideOwned = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = widget.initialService;
+    final active = context.read<AppState>().selection.selectedCharacterId;
+    _characterId = PlayerCharacterRegistry.playable.any((c) => c.id == active)
+        ? active
+        : PlayerCharacterId.eloise;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
-    final store = appState.progression.store;
-    final selectedLoadout = appState.selection.loadoutFor(
-      appState.selection.selectedCharacterId,
-    );
-    final activeOffers = _sortActiveOffers(store.activeOffers);
-    final refreshesRemaining = math.max(
-      0,
-      _dailyRefreshLimit - store.refreshesUsedToday,
-    );
-    final displayedGold = appState.displayedGold;
-    final canAnyOfferChange = _canAnyOfferChange(appState, store.activeOffers);
-    final canRefreshForGold =
-        !_purchaseInFlight &&
-        !_refreshInFlight &&
-        displayedGold >= _goldRefreshCost &&
-        refreshesRemaining > 0 &&
-        canAnyOfferChange;
-
+    final app = context.watch<AppState>();
+    final ui = context.ui;
+    final l10n = context.l10n;
+    final loadout = app.selection.loadoutFor(_characterId);
+    final offers = app.progression.store.catalogOffers
+        .where(
+          (offer) =>
+              offer.characterIds.contains(_characterId) &&
+              _service.includes(offer) &&
+              (_slot == null || offer.slot == _slot) &&
+              (!_hideOwned || !townOfferOwned(app.meta, _characterId, offer)),
+        )
+        .toList();
+    offers.sort((a, b) {
+      final slot = _service.slots
+          .indexOf(a.slot)
+          .compareTo(_service.slots.indexOf(b.slot));
+      return slot != 0
+          ? slot
+          : townStoreOfferDisplayName(a, strings: context.gameL10n).compareTo(
+              townStoreOfferDisplayName(b, strings: context.gameL10n),
+            );
+    });
     return MenuScaffold(
-      title: 'Town Store',
+      title: _service.label(l10n),
       appBarActions: [
         Padding(
-          padding: EdgeInsets.only(right: context.ui.space.md),
-          child: GoldDisplay(gold: displayedGold),
+          padding: EdgeInsets.only(right: ui.space.md),
+          child: GoldDisplay(gold: app.displayedGold),
         ),
       ],
-      child: MenuLayout(
-        maxWidth: 1200,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TownStoreCard(
-              refreshesRemaining: refreshesRemaining,
-              inFlight: _refreshInFlight,
-              canRefresh: canRefreshForGold,
-              onRefreshPressed: () => _confirmRefreshForGold(appState),
-              selectedProjectileSourceSpellId:
-                  selectedLoadout.projectileSlotSpellId,
-              activeOffers: activeOffers,
-              currentGold: displayedGold,
-              purchaseInFlight: _purchaseInFlight,
-              refreshInFlight: _refreshInFlight,
-              onConfirmPurchase: (offer) => _confirmPurchase(appState, offer),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: ListView.builder(
+            key: ValueKey(
+              'catalogue-${_service.name}-${_characterId.name}-${_slot?.name}',
             ),
-          ],
+            padding: EdgeInsets.all(ui.space.md),
+            itemCount: offers.length + 1,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: ui.space.sm,
+                      runSpacing: ui.space.xs,
+                      children: [
+                        for (final service in TownService.values)
+                          ChoiceChip(
+                            key: ValueKey('service-${service.name}'),
+                            label: Text(service.label(l10n)),
+                            selected: _service == service,
+                            onSelected: _purchaseInFlight
+                                ? null
+                                : (_) => setState(() {
+                                    _service = service;
+                                    _slot = null;
+                                    _expandedOfferId = null;
+                                  }),
+                          ),
+                      ],
+                    ),
+                    SizedBox(height: ui.space.sm),
+                    Text(
+                      _service == TownService.equipment
+                          ? l10n.townEquipmentIntro
+                          : l10n.townTrainingIntro,
+                      style: ui.text.body.copyWith(color: ui.colors.textMuted),
+                    ),
+                    SizedBox(height: ui.space.sm),
+                    Wrap(
+                      spacing: ui.space.sm,
+                      runSpacing: ui.space.xs,
+                      children: [
+                        for (final character
+                            in PlayerCharacterRegistry.playable)
+                          ChoiceChip(
+                            key: ValueKey(
+                              'catalogue-character-${character.id.name}',
+                            ),
+                            label: Text(
+                              characterDisplayName(
+                                character.id,
+                                strings: context.gameL10n,
+                              ),
+                            ),
+                            selected: _characterId == character.id,
+                            onSelected: _purchaseInFlight
+                                ? null
+                                : (_) => setState(() {
+                                    _characterId = character.id;
+                                    _expandedOfferId = null;
+                                  }),
+                          ),
+                      ],
+                    ),
+                    SizedBox(height: ui.space.xs),
+                    Wrap(
+                      spacing: ui.space.xs,
+                      runSpacing: ui.space.xxs,
+                      children: [
+                        for (final slot in <StoreSlot?>[
+                          null,
+                          ..._service.slots,
+                        ])
+                          ChoiceChip(
+                            key: ValueKey(
+                              'catalogue-slot-${slot?.name ?? 'all'}',
+                            ),
+                            label: Text(
+                              slot == null
+                                  ? l10n.townAllCategories
+                                  : l10n.townCategory(
+                                      character: _characterId.name,
+                                      service: _service.name,
+                                      slot: slot.name,
+                                    ),
+                            ),
+                            selected: _slot == slot,
+                            onSelected: (_) => setState(() {
+                              _slot = slot;
+                              _expandedOfferId = null;
+                            }),
+                          ),
+                        FilterChip(
+                          label: Text(l10n.townUnownedOnly),
+                          selected: _hideOwned,
+                          onSelected: (value) =>
+                              setState(() => _hideOwned = value),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: ui.space.sm),
+                    if (offers.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.all(ui.space.md),
+                        child: Text(
+                          app.progression.store.schemaVersion < 2
+                              ? l10n.townCatalogueUnavailable
+                              : l10n.townNoMatchingEntries,
+                          style: ui.text.body,
+                        ),
+                      ),
+                  ],
+                );
+              }
+              final offer = offers[index - 1];
+              return Padding(
+                padding: EdgeInsets.only(bottom: ui.space.sm),
+                child: TownOfferCard(
+                  key: ValueKey('offer-${offer.offerId}'),
+                  offer: offer,
+                  owned: townOfferOwned(app.meta, _characterId, offer),
+                  expanded: _expandedOfferId == offer.offerId,
+                  currentGold: app.displayedGold,
+                  purchaseInFlight: _purchaseInFlight,
+                  selectedLoadout: loadout,
+                  buildName: buildDisplayName(
+                    app.selection.buildsFor(_characterId).selected.name,
+                    app.selection.selectedBuildIndexFor(_characterId),
+                    l10n,
+                  ),
+                  characterId: _characterId,
+                  onToggleExpanded: () => setState(
+                    () => _expandedOfferId = _expandedOfferId == offer.offerId
+                        ? null
+                        : offer.offerId,
+                  ),
+                  onConfirmPurchase: (offer) =>
+                      _confirmPurchase(app, offer, _characterId),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -125,8 +231,9 @@ class _TownStorePageState extends State<TownStorePage> {
   Future<void> _confirmPurchase(
     AppState appState,
     StoreOfferState offer,
+    PlayerCharacterId characterId,
   ) async {
-    if (_purchaseInFlight || _refreshInFlight) {
+    if (_purchaseInFlight) {
       return;
     }
     if (appState.goldNeedsVerification(offer.priceGold)) {
@@ -137,126 +244,37 @@ class _TownStorePageState extends State<TownStorePage> {
       _purchaseInFlight = true;
     });
     try {
-      final result = await appState.purchaseStoreOffer(offerId: offer.offerId);
-      if (!mounted) {
-        return;
-      }
-      if (result.accepted) {
-        _showSnackBar('Purchased ${townStoreOfferDisplayName(offer)}.');
-      } else if (result.rejectedReason ==
-              OwnershipRejectedReason.insufficientGold &&
-          appState.goldNeedsVerification(offer.priceGold)) {
-        await _showRewardVerification(appState, offer.priceGold);
-      } else {
-        _showSnackBar(_storeRejectedReasonText(result.rejectedReason));
-      }
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      _showSnackBar('Purchase failed. Please try again.');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _purchaseInFlight = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _confirmRefreshForGold(AppState appState) async {
-    if (_purchaseInFlight || _refreshInFlight) {
-      return;
-    }
-    if (appState.goldNeedsVerification(_goldRefreshCost)) {
-      await _showRewardVerification(appState, _goldRefreshCost);
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        final ui = dialogContext.ui;
-        return AppDialog(
-          title: 'Refresh store?',
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Refreshing the store costs',
-                style: ui.text.body.copyWith(color: ui.colors.textPrimary),
-              ),
-              SizedBox(height: ui.space.xs),
-              const GoldDisplay(
-                gold: _goldRefreshCost,
-                label: 'Cost',
-                variant: GoldDisplayVariant.body,
-              ),
-              SizedBox(height: ui.space.xs),
-              Text(
-                'Are you sure you want to refresh the store?',
-                style: ui.text.body.copyWith(color: ui.colors.textPrimary),
-              ),
-            ],
-          ),
-          actions: [
-            AppButton(
-              label: 'Cancel',
-              variant: AppButtonVariant.secondary,
-              size: AppButtonSize.xs,
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-            ),
-            AppButton(
-              label: 'Refresh',
-              size: AppButtonSize.xs,
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed != true || !mounted) {
-      return;
-    }
-    await _refreshForGold(appState);
-  }
-
-  Future<void> _refreshForGold(AppState appState) async {
-    if (_purchaseInFlight || _refreshInFlight) {
-      return;
-    }
-    if (appState.goldNeedsVerification(_goldRefreshCost)) {
-      await _showRewardVerification(appState, _goldRefreshCost);
-      return;
-    }
-    setState(() {
-      _refreshInFlight = true;
-    });
-    try {
-      final result = await appState.refreshStore(
-        method: StoreRefreshMethod.gold,
+      final result = await appState.purchaseStoreOffer(
+        offerId: offer.offerId,
+        characterId: characterId,
       );
       if (!mounted) {
         return;
       }
       if (result.accepted) {
-        _showSnackBar('Store refreshed.');
+        _showSnackBar(
+          context.l10n.storePurchaseComplete(
+            item: townStoreOfferDisplayName(offer, strings: context.gameL10n),
+          ),
+        );
       } else if (result.rejectedReason ==
               OwnershipRejectedReason.insufficientGold &&
-          appState.goldNeedsVerification(_goldRefreshCost)) {
-        await _showRewardVerification(appState, _goldRefreshCost);
+          appState.goldNeedsVerification(offer.priceGold)) {
+        await _showRewardVerification(appState, offer.priceGold);
       } else {
-        _showSnackBar(_storeRejectedReasonText(result.rejectedReason));
+        _showSnackBar(
+          _storeRejectedReasonText(result.rejectedReason, context.l10n),
+        );
       }
     } catch (_) {
       if (!mounted) {
         return;
       }
-      _showSnackBar('Refresh failed. Please try again.');
+      _showSnackBar(context.l10n.uiPurchaseFailedPleaseTryAgain);
     } finally {
       if (mounted) {
         setState(() {
-          _refreshInFlight = false;
+          _purchaseInFlight = false;
         });
       }
     }
@@ -275,267 +293,26 @@ class _TownStorePageState extends State<TownStorePage> {
       );
 }
 
-String _storeRejectedReasonText(OwnershipRejectedReason? reason) {
+String _storeRejectedReasonText(
+  OwnershipRejectedReason? reason,
+  AppLocalizations l10n,
+) {
   return switch (reason) {
     OwnershipRejectedReason.insufficientGold =>
-      'Not enough gold for that action.',
+      l10n.uiNotEnoughGoldForThatAction,
     OwnershipRejectedReason.offerUnavailable =>
-      'That offer is no longer available.',
-    OwnershipRejectedReason.alreadyOwned => 'You already own this unlock.',
+      l10n.uiThatOfferIsNoLongerAvailable,
+    OwnershipRejectedReason.alreadyOwned => l10n.uiYouAlreadyOwnThisUnlock,
     OwnershipRejectedReason.refreshLimitReached =>
-      'Daily refresh limit reached.',
+      l10n.uiDailyRefreshLimitReached,
     OwnershipRejectedReason.invalidRefreshMethod =>
-      'Refresh method is not available.',
-    OwnershipRejectedReason.nothingToRefresh =>
-      'No offer can change right now.',
+      l10n.uiRefreshMethodIsNotAvailable,
+    OwnershipRejectedReason.nothingToRefresh => l10n.uiNoOfferCanChangeRightNow,
     OwnershipRejectedReason.rewardNotVerified =>
-      'Reward verification is not active yet.',
+      l10n.uiRewardVerificationIsNotActiveYet,
     OwnershipRejectedReason.rewardAlreadyConsumed =>
-      'Reward has already been used.',
-    OwnershipRejectedReason.rewardExpired => 'Reward has expired.',
-    _ => 'Action rejected. Please try again.',
+      l10n.uiRewardHasAlreadyBeenUsed,
+    OwnershipRejectedReason.rewardExpired => l10n.uiRewardHasExpired,
+    _ => l10n.uiActionRejectedPleaseTryAgain,
   };
-}
-
-bool _canAnyOfferChange(AppState appState, List<StoreOfferState> activeOffers) {
-  final characterId = appState.selection.selectedCharacterId;
-  for (final offer in activeOffers) {
-    final candidates = _candidatePoolForBucket(appState, offer.bucket);
-    for (final candidate in candidates) {
-      if (candidate.itemId == offer.itemId) {
-        continue;
-      }
-      if (!_isCandidateOwned(
-        appState: appState,
-        candidate: candidate,
-        characterId: characterId,
-      )) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-List<StoreOfferState> _sortActiveOffers(List<StoreOfferState> activeOffers) {
-  final sorted = activeOffers.toList();
-  sorted.sort((a, b) {
-    final bucketRankA = _bucketSortOrder[a.bucket] ?? _bucketOrder.length;
-    final bucketRankB = _bucketSortOrder[b.bucket] ?? _bucketOrder.length;
-    final bucketOrderCompare = bucketRankA.compareTo(bucketRankB);
-    if (bucketOrderCompare != 0) {
-      return bucketOrderCompare;
-    }
-    return a.offerId.compareTo(b.offerId);
-  });
-  return sorted;
-}
-
-List<_StoreCandidateDefinition> _candidatePoolForBucket(
-  AppState appState,
-  StoreBucket bucket,
-) {
-  final out = <_StoreCandidateDefinition>[];
-  switch (bucket) {
-    case StoreBucket.sword:
-      for (final id in WeaponId.values) {
-        final def = _weaponCatalog.tryGet(id);
-        if (def?.category != WeaponCategory.primary) {
-          continue;
-        }
-        out.add(
-          _StoreCandidateDefinition(
-            domain: StoreDomain.gear,
-            slot: StoreSlot.mainWeapon,
-            itemId: id.name,
-          ),
-        );
-      }
-      return out;
-    case StoreBucket.shield:
-      for (final id in WeaponId.values) {
-        final def = _weaponCatalog.tryGet(id);
-        if (def?.category != WeaponCategory.offHand) {
-          continue;
-        }
-        out.add(
-          _StoreCandidateDefinition(
-            domain: StoreDomain.gear,
-            slot: StoreSlot.offhandWeapon,
-            itemId: id.name,
-          ),
-        );
-      }
-      return out;
-    case StoreBucket.accessory:
-      for (final id in AccessoryId.values) {
-        out.add(
-          _StoreCandidateDefinition(
-            domain: StoreDomain.gear,
-            slot: StoreSlot.accessory,
-            itemId: id.name,
-          ),
-        );
-      }
-      return out;
-    case StoreBucket.spellBook:
-      for (final id in SpellBookId.values) {
-        out.add(
-          _StoreCandidateDefinition(
-            domain: StoreDomain.gear,
-            slot: StoreSlot.spellBook,
-            itemId: id.name,
-          ),
-        );
-      }
-      return out;
-    case StoreBucket.projectileSpell:
-      for (final id in playerEquippableProjectileIds) {
-        out.add(
-          _StoreCandidateDefinition(
-            domain: StoreDomain.projectileSpell,
-            slot: StoreSlot.projectile,
-            itemId: id.name,
-          ),
-        );
-      }
-      return out;
-    case StoreBucket.spell:
-      for (final id in _abilityIdsForCharacterAndSlot(
-        appState.selection.selectedCharacterId,
-        AbilitySlot.spell,
-      )) {
-        out.add(
-          _StoreCandidateDefinition(
-            domain: StoreDomain.ability,
-            slot: StoreSlot.spell,
-            itemId: id,
-          ),
-        );
-      }
-      return out;
-    case StoreBucket.ability:
-      for (final slot in _nonSpellAbilitySlots) {
-        final storeSlot = _storeSlotForAbilitySlot(slot);
-        for (final id in _abilityIdsForCharacterAndSlot(
-          appState.selection.selectedCharacterId,
-          slot,
-        )) {
-          out.add(
-            _StoreCandidateDefinition(
-              domain: StoreDomain.ability,
-              slot: storeSlot,
-              itemId: id,
-            ),
-          );
-        }
-      }
-      return out;
-  }
-}
-
-Iterable<AbilityKey> _abilityIdsForCharacterAndSlot(
-  PlayerCharacterId characterId,
-  AbilitySlot slot,
-) {
-  final namespace = characterAbilityNamespace(characterId);
-  final ids = <AbilityKey>[];
-  for (final entry in AbilityCatalog.abilities.entries) {
-    final id = entry.key;
-    final def = entry.value;
-    if (!id.startsWith('$namespace.')) {
-      continue;
-    }
-    if (!def.allowedSlots.contains(slot)) {
-      continue;
-    }
-    ids.add(id);
-  }
-  ids.sort();
-  return ids;
-}
-
-bool _isCandidateOwned({
-  required AppState appState,
-  required _StoreCandidateDefinition candidate,
-  required PlayerCharacterId characterId,
-}) {
-  final inventory = appState.meta.inventory;
-  switch (candidate.domain) {
-    case StoreDomain.gear:
-      switch (candidate.slot) {
-        case StoreSlot.mainWeapon:
-        case StoreSlot.offhandWeapon:
-          final id = _enumByName(WeaponId.values, candidate.itemId);
-          return id != null && inventory.unlockedWeaponIds.contains(id);
-        case StoreSlot.spellBook:
-          final id = _enumByName(SpellBookId.values, candidate.itemId);
-          return id != null && inventory.unlockedSpellBookIds.contains(id);
-        case StoreSlot.accessory:
-          final id = _enumByName(AccessoryId.values, candidate.itemId);
-          return id != null && inventory.unlockedAccessoryIds.contains(id);
-        default:
-          return false;
-      }
-    case StoreDomain.projectileSpell:
-      final ownership = appState.meta.abilityOwnershipFor(characterId);
-      final id = _enumByName(playerEquippableProjectileIds, candidate.itemId);
-      if (id == null) {
-        return false;
-      }
-      return ownership.learnedProjectileSpellIds.contains(id);
-    case StoreDomain.ability:
-      final abilitySlot = _abilitySlotForStoreSlot(candidate.slot);
-      if (abilitySlot == null) {
-        return false;
-      }
-      final ownership = appState.meta.abilityOwnershipFor(characterId);
-      return ownership
-          .learnedAbilityIdsForSlot(abilitySlot)
-          .contains(candidate.itemId);
-  }
-}
-
-class _StoreCandidateDefinition {
-  const _StoreCandidateDefinition({
-    required this.domain,
-    required this.slot,
-    required this.itemId,
-  });
-
-  final StoreDomain domain;
-  final StoreSlot slot;
-  final String itemId;
-}
-
-AbilitySlot? _abilitySlotForStoreSlot(StoreSlot slot) {
-  return switch (slot) {
-    StoreSlot.primary => AbilitySlot.primary,
-    StoreSlot.secondary => AbilitySlot.secondary,
-    StoreSlot.projectile => AbilitySlot.projectile,
-    StoreSlot.mobility => AbilitySlot.mobility,
-    StoreSlot.jump => AbilitySlot.jump,
-    StoreSlot.spell => AbilitySlot.spell,
-    _ => null,
-  };
-}
-
-StoreSlot _storeSlotForAbilitySlot(AbilitySlot slot) {
-  return switch (slot) {
-    AbilitySlot.primary => StoreSlot.primary,
-    AbilitySlot.secondary => StoreSlot.secondary,
-    AbilitySlot.projectile => StoreSlot.projectile,
-    AbilitySlot.mobility => StoreSlot.mobility,
-    AbilitySlot.jump => StoreSlot.jump,
-    AbilitySlot.spell => StoreSlot.spell,
-  };
-}
-
-T? _enumByName<T extends Enum>(List<T> values, String name) {
-  for (final value in values) {
-    if (value.name == name) {
-      return value;
-    }
-  }
-  return null;
 }

@@ -1,0 +1,64 @@
+name: Localization
+
+on:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'packages/game_presentation/**'
+      - 'packages/runner_core/**'
+      - 'tools/admin/lib/**'
+      - 'test/ui/**'
+      - 'test/tool/localization*'
+      - 'tool/localization*'
+      - 'functions/test/fixtures/localized_message.json'
+      - 'pubspec.*'
+      - 'l10n.yaml'
+      - '.github/workflows/localization.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'lib/**'
+      - 'packages/game_presentation/**'
+      - 'packages/runner_core/**'
+      - 'tools/admin/lib/**'
+      - 'test/ui/**'
+      - 'test/tool/localization*'
+      - 'tool/localization*'
+      - 'functions/test/fixtures/localized_message.json'
+      - 'pubspec.*'
+      - 'l10n.yaml'
+      - '.github/workflows/localization.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: localization-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Check resources, source literals and generated freshness
+        run: dart run tool/localization.dart check
+      - name: Verify locale lifecycle, catalogs, inbox and compact layouts
+        run: >-
+          flutter test --no-pub
+          test/tool/localization_checks_test.dart
+          test/ui/state/locale_settings_test.dart
+          test/ui/bootstrap/localization_test.dart
+          test/ui/pages/options/options_page_test.dart
+          test/ui/text/localized_catalog_test.dart
+          test/ui/text/build_name_text_test.dart
+          test/ui/state/inbox_localization_test.dart
+          test/ui/pages/messages/messages_page_test.dart
+          test/ui/pages/meta/achievements_page_test.dart

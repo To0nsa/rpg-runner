@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -134,7 +136,7 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
                   ),
                   _MapLabel(
                     center: at(.16, .145),
-                    text: 'Théodonis',
+                    text: context.l10n.townName,
                     width: 160,
                   ),
                   for (final place in [
@@ -147,7 +149,7 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
                       visibleMap: Offset.zero & scene,
                       child: MapLabelButton(
                         key: ValueKey('codex-level-${place.$1.name}'),
-                        label: CodexCatalog.levelName(place.$1),
+                        label: CodexCatalog.levelName(place.$1, context.l10n),
                         icon:
                             CodexCatalog.levelUnlocked(
                               widget.progress,
@@ -155,8 +157,16 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
                             )
                             ? Icons.place_outlined
                             : Icons.lock_outline,
-                        semanticsLabel:
-                            '${CodexCatalog.levelName(place.$1)}, ${CodexCatalog.levelUnlocked(widget.progress, place.$1) ? 'open' : 'locked'}',
+                        semanticsLabel: context.l10n.codexLocationSemantics(
+                          level: CodexCatalog.levelName(place.$1, context.l10n),
+                          state:
+                              CodexCatalog.levelUnlocked(
+                                widget.progress,
+                                place.$1,
+                              )
+                              ? 'open'
+                              : 'locked',
+                        ),
                         onPressed: () => widget.onLocationPressed(place.$1),
                       ),
                     ),
@@ -164,7 +174,9 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
                       left: place.$2.dx - 32,
                       top: place.$2.dy - 32,
                       child: Semantics(
-                        label: '${CodexCatalog.levelName(place.$1)} map marker',
+                        label: context.l10n.codexMapMarker(
+                          level: CodexCatalog.levelName(place.$1, context.l10n),
+                        ),
                         button: true,
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
@@ -182,7 +194,7 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
             right: ui.space.xs,
             top: ui.space.xs,
             child: IconButton(
-              tooltip: 'Reset map',
+              tooltip: context.l10n.uiResetMap,
               onPressed: () => _transform.value = _initialTransform,
               icon: const Icon(
                 Icons.center_focus_strong,

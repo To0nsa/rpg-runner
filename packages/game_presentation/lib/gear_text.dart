@@ -1,58 +1,365 @@
+import 'package:intl/intl.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/combat/damage_type.dart';
 import 'package:runner_core/combat/status/status.dart';
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/projectiles/projectile_item_def.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:runner_core/weapons/weapon_proc.dart';
 
-/// User-facing display name for a [WeaponId].
-String weaponDisplayName(WeaponId id) {
-  return _weaponDisplayNameOverrides[id] ?? _titleCaseEnum(id.name);
-}
+import 'game_localization.dart';
 
-/// User-facing short description for a [WeaponId].
-String weaponDescription(WeaponId id) {
-  return _weaponDescriptionOverrides[id] ?? _defaultDescription;
-}
+/// Localized catalog identity; exhaustive mapping makes new enum values explicit.
+String weaponDisplayName(WeaponId id, {required GameLocalizations strings}) =>
+    switch (id) {
+      WeaponId.plainsteel => strings.weaponPlainsteelName,
+      WeaponId.waspfang => strings.weaponWaspfangName,
+      WeaponId.cinderedge => strings.weaponCinderedgeName,
+      WeaponId.basiliskKiss => strings.weaponBasiliskKissName,
+      WeaponId.frostbrand => strings.weaponFrostbrandName,
+      WeaponId.stormneedle => strings.weaponStormneedleName,
+      WeaponId.nullblade => strings.weaponNullbladeName,
+      WeaponId.sunlitVow => strings.weaponSunlitVowName,
+      WeaponId.roadguard => strings.weaponRoadguardName,
+      WeaponId.thornbark => strings.weaponThornbarkName,
+      WeaponId.cinderWard => strings.weaponCinderWardName,
+      WeaponId.tideguardShell => strings.weaponTideguardShellName,
+      WeaponId.frostlockBuckler => strings.weaponFrostlockBucklerName,
+      WeaponId.ironBastion => strings.weaponIronBastionName,
+      WeaponId.stormAegis => strings.weaponStormAegisName,
+      WeaponId.nullPrism => strings.weaponNullPrismName,
+      WeaponId.warbannerGuard => strings.weaponWarbannerGuardName,
+      WeaponId.oathwallRelic => strings.weaponOathwallRelicName,
+      WeaponId.hunterBlade => strings.weaponHunterBladeName,
+      WeaponId.hunterBombKit => strings.weaponHunterBombKitName,
+      WeaponId.hunterNotchknife => strings.weaponHunterNotchknifeName,
+      WeaponId.hunterHookblade => strings.weaponHunterHookbladeName,
+      WeaponId.hunterCausticEdge => strings.weaponHunterCausticEdgeName,
+      WeaponId.hunterCinderpoint => strings.weaponHunterCinderpointName,
+      WeaponId.hunterSappingBlade => strings.weaponHunterSappingBladeName,
+      WeaponId.hunterPursuitBlade => strings.weaponHunterPursuitBladeName,
+      WeaponId.hunterLastWord => strings.weaponHunterLastWordName,
+      WeaponId.hunterSplinterRig => strings.weaponHunterSplinterRigName,
+      WeaponId.hunterPitchRig => strings.weaponHunterPitchRigName,
+      WeaponId.hunterSnareRig => strings.weaponHunterSnareRigName,
+      WeaponId.hunterEtchingRig => strings.weaponHunterEtchingRigName,
+      WeaponId.hunterSapperHarness => strings.weaponHunterSapperHarnessName,
+      WeaponId.hunterKilnwrapRig => strings.weaponHunterKilnwrapRigName,
+      WeaponId.hunterSealedRig => strings.weaponHunterSealedRigName,
+      WeaponId.hunterStormwrapRig => strings.weaponHunterStormwrapRigName,
+      WeaponId.hunterBacktrailRig => strings.weaponHunterBacktrailRigName,
+    };
 
-/// User-facing display name for a [ProjectileId].
-///
-/// Shared by gear picker and projectile source picker.
-String projectileDisplayName(ProjectileId id) {
-  return _projectileDisplayNameOverrides[id] ?? _titleCaseEnum(id.name);
-}
+/// Resolves a complete translated description for the character's resource pool.
+String weaponDescription(
+  WeaponId id, {
+  required GameLocalizations strings,
+  ManaPresentation manaPresentation = ManaPresentation.mana,
+}) => switch (id) {
+  WeaponId.plainsteel => strings.weaponPlainsteelDescription,
+  WeaponId.waspfang => strings.weaponWaspfangDescription,
+  WeaponId.cinderedge => strings.weaponCinderedgeDescription,
+  WeaponId.basiliskKiss => strings.weaponBasiliskKissDescription,
+  WeaponId.frostbrand => strings.weaponFrostbrandDescription,
+  WeaponId.stormneedle => strings.weaponStormneedleDescription,
+  WeaponId.nullblade => strings.weaponNullbladeDescription,
+  WeaponId.sunlitVow => strings.weaponSunlitVowDescription,
+  WeaponId.roadguard => strings.weaponRoadguardDescription,
+  WeaponId.thornbark => strings.weaponThornbarkDescription,
+  WeaponId.cinderWard => strings.weaponCinderWardDescription,
+  WeaponId.tideguardShell => strings.weaponTideguardShellDescription,
+  WeaponId.frostlockBuckler => strings.weaponFrostlockBucklerDescription,
+  WeaponId.ironBastion => strings.weaponIronBastionDescription,
+  WeaponId.stormAegis => strings.weaponStormAegisDescription,
+  WeaponId.nullPrism => strings.weaponNullPrismDescription,
+  WeaponId.warbannerGuard => strings.weaponWarbannerGuardDescription,
+  WeaponId.oathwallRelic => strings.weaponOathwallRelicDescription,
+  WeaponId.hunterBlade => strings.weaponHunterBladeDescription,
+  WeaponId.hunterBombKit => strings.weaponHunterBombKitDescription,
+  WeaponId.hunterNotchknife => strings.weaponHunterNotchknifeDescription,
+  WeaponId.hunterHookblade => strings.weaponHunterHookbladeDescription,
+  WeaponId.hunterCausticEdge => strings.weaponHunterCausticEdgeDescription,
+  WeaponId.hunterCinderpoint => strings.weaponHunterCinderpointDescription,
+  WeaponId.hunterSappingBlade => strings.weaponHunterSappingBladeDescription,
+  WeaponId.hunterPursuitBlade => strings.weaponHunterPursuitBladeDescription,
+  WeaponId.hunterLastWord => strings.weaponHunterLastWordDescription,
+  WeaponId.hunterSplinterRig => strings.weaponHunterSplinterRigDescription,
+  WeaponId.hunterPitchRig => strings.weaponHunterPitchRigDescription,
+  WeaponId.hunterSnareRig => strings.weaponHunterSnareRigDescription,
+  WeaponId.hunterEtchingRig => strings.weaponHunterEtchingRigDescription,
+  WeaponId.hunterSapperHarness => strings.weaponHunterSapperHarnessDescription,
+  WeaponId.hunterKilnwrapRig => strings.weaponHunterKilnwrapRigDescription,
+  WeaponId.hunterSealedRig => strings.weaponHunterSealedRigDescription,
+  WeaponId.hunterStormwrapRig => strings.weaponHunterStormwrapRigDescription,
+  WeaponId.hunterBacktrailRig => strings.weaponHunterBacktrailRigDescription,
+};
 
-/// User-facing short description for a [ProjectileId].
-String projectileDescription(ProjectileId id) {
-  return _projectileDescriptionOverrides[id] ?? _defaultDescription;
-}
+/// Localized catalog identity; exhaustive mapping makes new enum values explicit.
+String projectileDisplayName(
+  ProjectileId id, {
+  required GameLocalizations strings,
+}) => switch (id) {
+  ProjectileId.unknown => strings.projectileUnknownName,
+  ProjectileId.iceBolt => strings.projectileIceBoltName,
+  ProjectileId.fireBolt => strings.projectileFireBoltName,
+  ProjectileId.acidBolt => strings.projectileAcidBoltName,
+  ProjectileId.darkBolt => strings.projectileDarkBoltName,
+  ProjectileId.earthBolt => strings.projectileEarthBoltName,
+  ProjectileId.holyBolt => strings.projectileHolyBoltName,
+  ProjectileId.waterBolt => strings.projectileWaterBoltName,
+  ProjectileId.thunderBolt => strings.projectileThunderBoltName,
+  ProjectileId.poisonDart => strings.projectilePoisonDartName,
+  ProjectileId.npcSpear => strings.projectileNpcSpearName,
+  ProjectileId.npcArrow => strings.projectileNpcArrowName,
+  ProjectileId.goddessOrb => strings.projectileGoddessOrbName,
+  ProjectileId.shoggothOrb => strings.projectileShoggothOrbName,
+  ProjectileId.voidClaw => strings.projectileVoidClawName,
+  ProjectileId.hunterPistol => strings.projectileHunterPistolName,
+  ProjectileId.hunterCrossbow => strings.projectileHunterCrossbowName,
+  ProjectileId.hunterShotgun => strings.projectileHunterShotgunName,
+  ProjectileId.hunterBomb => strings.projectileHunterBombName,
+  ProjectileId.hunterRoadsidePistol =>
+    strings.projectileHunterRoadsidePistolName,
+  ProjectileId.hunterLongbarrelPistol =>
+    strings.projectileHunterLongbarrelPistolName,
+  ProjectileId.hunterLongwatchCrossbow =>
+    strings.projectileHunterLongwatchCrossbowName,
+  ProjectileId.hunterHeavyLimbCrossbow =>
+    strings.projectileHunterHeavyLimbCrossbowName,
+  ProjectileId.hunterBrushgun => strings.projectileHunterBrushgunName,
+};
 
-/// User-facing display name for a [DamageType].
-String damageTypeDisplayName(DamageType type) {
-  return switch (type) {
-    DamageType.physical => 'Physical',
-    DamageType.fire => 'Fire',
-    DamageType.ice => 'Ice',
-    DamageType.water => 'Water',
-    DamageType.thunder => 'Thunder',
-    DamageType.acid => 'Acid',
-    DamageType.poison => 'Poison',
-    DamageType.dark => 'Dark',
-    DamageType.bleed => 'Bleed',
-    DamageType.earth => 'Earth',
-    DamageType.holy => 'Holy',
+/// Description parameters read the same item/status catalogs as gameplay.
+String projectileDescription(
+  ProjectileId id, {
+  required GameLocalizations strings,
+}) {
+  final item = const ProjectileCatalog().tryGet(id);
+  if (item == null) return strings.projectileUnknownDescription;
+  return switch (id) {
+    ProjectileId.unknown => strings.projectileUnknownDescription,
+    ProjectileId.iceBolt => strings.projectileIceBoltDescription,
+    ProjectileId.fireBolt => strings.projectileFireBoltDescription,
+    ProjectileId.acidBolt => strings.projectileAcidBoltDescription,
+    ProjectileId.darkBolt => strings.projectileDarkBoltDescription,
+    ProjectileId.earthBolt => strings.projectileEarthBoltDescription,
+    ProjectileId.holyBolt => strings.projectileHolyBoltDescription(
+      seconds: _silenceSeconds(item),
+    ),
+    ProjectileId.waterBolt => strings.projectileWaterBoltDescription,
+    ProjectileId.thunderBolt => strings.projectileThunderBoltDescription,
+    ProjectileId.poisonDart => strings.projectilePoisonDartDescription,
+    ProjectileId.npcSpear => strings.projectileNpcSpearDescription,
+    ProjectileId.npcArrow => strings.projectileNpcArrowDescription,
+    ProjectileId.goddessOrb => strings.projectileGoddessOrbDescription,
+    ProjectileId.shoggothOrb => strings.projectileShoggothOrbDescription,
+    ProjectileId.voidClaw => strings.projectileVoidClawDescription,
+    ProjectileId.hunterPistol => strings.projectileHunterPistolDescription,
+    ProjectileId.hunterCrossbow => strings.projectileHunterCrossbowDescription(
+      damagePercent: item.damageScaleBp / 100.0,
+    ),
+    ProjectileId.hunterShotgun => strings.projectileHunterShotgunDescription(
+      damagePercent: item.damageScaleBp / 100.0,
+      pellets: item.shotCount,
+    ),
+    ProjectileId.hunterBomb => strings.projectileHunterBombDescription,
+    ProjectileId.hunterRoadsidePistol =>
+      strings.projectileHunterRoadsidePistolDescription(
+        damagePercent: item.damageScaleBp / 100.0,
+      ),
+    ProjectileId.hunterLongbarrelPistol =>
+      strings.projectileHunterLongbarrelPistolDescription(
+        damagePercent: item.damageScaleBp / 100.0,
+      ),
+    ProjectileId.hunterLongwatchCrossbow =>
+      strings.projectileHunterLongwatchCrossbowDescription,
+    ProjectileId.hunterHeavyLimbCrossbow =>
+      strings.projectileHunterHeavyLimbCrossbowDescription(
+        damagePercent: item.damageScaleBp / 100.0,
+      ),
+    ProjectileId.hunterBrushgun => strings.projectileHunterBrushgunDescription(
+      damagePercent: item.damageScaleBp / 100.0,
+      pellets: item.shotCount,
+    ),
   };
 }
 
-/// Returns detailed status effect summaries for a projectile's on-hit procs.
-///
-/// Each entry is a human-readable line with the effect name and numbers,
-/// e.g. "Burn: 5 fire damage/s for 5s" or "Stun: 1s".
+/// Localized catalog identity; exhaustive mapping makes new enum values explicit.
+String spellBookDisplayName(
+  SpellBookId id, {
+  required GameLocalizations strings,
+}) => switch (id) {
+  SpellBookId.apprenticePrimer => strings.spellBookApprenticePrimerName,
+  SpellBookId.bastionCodex => strings.spellBookBastionCodexName,
+  SpellBookId.emberGrimoire => strings.spellBookEmberGrimoireName,
+  SpellBookId.tideAlmanac => strings.spellBookTideAlmanacName,
+  SpellBookId.hexboundLexicon => strings.spellBookHexboundLexiconName,
+  SpellBookId.galeFolio => strings.spellBookGaleFolioName,
+  SpellBookId.nullTestament => strings.spellBookNullTestamentName,
+  SpellBookId.crownOfFocus => strings.spellBookCrownOfFocusName,
+  SpellBookId.hunterFieldKit => strings.spellBookHunterFieldKitName,
+  SpellBookId.hunterLongtrailPack => strings.spellBookHunterLongtrailPackName,
+  SpellBookId.hunterMarksmanRoll => strings.spellBookHunterMarksmanRollName,
+  SpellBookId.hunterQuickAccessSatchel =>
+    strings.spellBookHunterQuickAccessSatchelName,
+  SpellBookId.hunterReserveBandolier =>
+    strings.spellBookHunterReserveBandolierName,
+  SpellBookId.hunterTrackerPouch => strings.spellBookHunterTrackerPouchName,
+  SpellBookId.hunterSurveyorCase => strings.spellBookHunterSurveyorCaseName,
+  SpellBookId.hunterQuarryKit => strings.spellBookHunterQuarryKitName,
+};
+
+/// Resolves a complete translated description for the character's resource pool.
+String spellBookDescription(
+  SpellBookId id, {
+  required GameLocalizations strings,
+  ManaPresentation manaPresentation = ManaPresentation.mana,
+}) => switch (id) {
+  SpellBookId.apprenticePrimer => strings.spellBookApprenticePrimerDescription(
+    resource: manaPresentation.name,
+  ),
+  SpellBookId.bastionCodex => strings.spellBookBastionCodexDescription(
+    resource: manaPresentation.name,
+  ),
+  SpellBookId.emberGrimoire => strings.spellBookEmberGrimoireDescription(
+    resource: manaPresentation.name,
+  ),
+  SpellBookId.tideAlmanac => strings.spellBookTideAlmanacDescription(
+    resource: manaPresentation.name,
+  ),
+  SpellBookId.hexboundLexicon => strings.spellBookHexboundLexiconDescription(
+    resource: manaPresentation.name,
+  ),
+  SpellBookId.galeFolio => strings.spellBookGaleFolioDescription(
+    resource: manaPresentation.name,
+  ),
+  SpellBookId.nullTestament => strings.spellBookNullTestamentDescription(
+    resource: manaPresentation.name,
+  ),
+  SpellBookId.crownOfFocus => strings.spellBookCrownOfFocusDescription(
+    resource: manaPresentation.name,
+  ),
+  SpellBookId.hunterFieldKit => strings.spellBookHunterFieldKitDescription,
+  SpellBookId.hunterLongtrailPack =>
+    strings.spellBookHunterLongtrailPackDescription,
+  SpellBookId.hunterMarksmanRoll =>
+    strings.spellBookHunterMarksmanRollDescription,
+  SpellBookId.hunterQuickAccessSatchel =>
+    strings.spellBookHunterQuickAccessSatchelDescription,
+  SpellBookId.hunterReserveBandolier =>
+    strings.spellBookHunterReserveBandolierDescription,
+  SpellBookId.hunterTrackerPouch =>
+    strings.spellBookHunterTrackerPouchDescription,
+  SpellBookId.hunterSurveyorCase =>
+    strings.spellBookHunterSurveyorCaseDescription,
+  SpellBookId.hunterQuarryKit => strings.spellBookHunterQuarryKitDescription,
+};
+
+/// Localized catalog identity; exhaustive mapping makes new enum values explicit.
+String accessoryDisplayName(
+  AccessoryId id, {
+  required GameLocalizations strings,
+}) => switch (id) {
+  AccessoryId.speedBoots => strings.accessorySpeedBootsName,
+  AccessoryId.goldenRing => strings.accessoryGoldenRingName,
+  AccessoryId.teethNecklace => strings.accessoryTeethNecklaceName,
+  AccessoryId.diamondRing => strings.accessoryDiamondRingName,
+  AccessoryId.ironBoots => strings.accessoryIronBootsName,
+  AccessoryId.oathBeads => strings.accessoryOathBeadsName,
+  AccessoryId.resilienceCape => strings.accessoryResilienceCapeName,
+  AccessoryId.strengthBelt => strings.accessoryStrengthBeltName,
+};
+
+/// Resolves a complete translated description for the character's resource pool.
+String accessoryDescription(
+  AccessoryId id, {
+  required GameLocalizations strings,
+  ManaPresentation manaPresentation = ManaPresentation.mana,
+}) => switch (id) {
+  AccessoryId.speedBoots => strings.accessorySpeedBootsDescription(
+    resource: manaPresentation.name,
+  ),
+  AccessoryId.goldenRing => strings.accessoryGoldenRingDescription,
+  AccessoryId.teethNecklace => strings.accessoryTeethNecklaceDescription,
+  AccessoryId.diamondRing => strings.accessoryDiamondRingDescription(
+    resource: manaPresentation.name,
+  ),
+  AccessoryId.ironBoots => strings.accessoryIronBootsDescription,
+  AccessoryId.oathBeads => strings.accessoryOathBeadsDescription(
+    resource: manaPresentation.name,
+  ),
+  AccessoryId.resilienceCape => strings.accessoryResilienceCapeDescription,
+  AccessoryId.strengthBelt => strings.accessoryStrengthBeltDescription,
+};
+
+/// Resource choice affects wording only; the same Core mana values are used.
+String gearDescriptionForSlot(
+  GearSlot slot,
+  Object id, {
+  required GameLocalizations strings,
+  ManaPresentation manaPresentation = ManaPresentation.mana,
+}) => switch (slot) {
+  GearSlot.mainWeapon || GearSlot.offhandWeapon => weaponDescription(
+    id as WeaponId,
+    strings: strings,
+    manaPresentation: manaPresentation,
+  ),
+  GearSlot.spellBook => spellBookDescription(
+    id as SpellBookId,
+    strings: strings,
+    manaPresentation: manaPresentation,
+  ),
+  GearSlot.accessory => accessoryDescription(
+    id as AccessoryId,
+    strings: strings,
+    manaPresentation: manaPresentation,
+  ),
+};
+
+String gearDisplayNameForSlot(
+  GearSlot slot,
+  Object id, {
+  required GameLocalizations strings,
+}) => switch (slot) {
+  GearSlot.mainWeapon ||
+  GearSlot.offhandWeapon => weaponDisplayName(id as WeaponId, strings: strings),
+  GearSlot.spellBook => spellBookDisplayName(
+    id as SpellBookId,
+    strings: strings,
+  ),
+  GearSlot.accessory => accessoryDisplayName(
+    id as AccessoryId,
+    strings: strings,
+  ),
+};
+
+String damageTypeDisplayName(
+  DamageType type, {
+  required GameLocalizations strings,
+}) => switch (type) {
+  DamageType.physical => strings.damagePhysical,
+  DamageType.fire => strings.damageFire,
+  DamageType.ice => strings.damageIce,
+  DamageType.water => strings.damageWater,
+  DamageType.thunder => strings.damageThunder,
+  DamageType.acid => strings.damageAcid,
+  DamageType.poison => strings.damagePoison,
+  DamageType.dark => strings.damageDark,
+  DamageType.bleed => strings.damageBleed,
+  DamageType.earth => strings.damageEarth,
+  DamageType.holy => strings.damageHoly,
+};
+
+/// Formats fixed-point x100 values for display only. Never use for wire values.
+String formatFixed100(int value100, {required GameLocalizations strings}) =>
+    NumberFormat.decimalPattern(strings.localeName).format(value100 / 100.0);
+
 List<String> projectileStatusSummaries(
   ProjectileItemDef def, {
+  required GameLocalizations strings,
   StatusProfileCatalog statusProfiles = const StatusProfileCatalog(),
 }) {
   final lines = <String>[];
@@ -62,359 +369,87 @@ List<String> projectileStatusSummaries(
       proc.statusProfileId,
       tuning: proc.statusTuning,
     );
-    for (final app in profile.applications) {
-      final line = _statusApplicationSummary(app, proc);
+    for (final application in profile.applications) {
+      final line = _statusSummary(application, proc, strings);
       if (line != null) lines.add(line);
     }
   }
   return lines;
 }
 
-String? _statusApplicationSummary(StatusApplication app, WeaponProc proc) {
-  final duration = _formatDuration(app.durationSeconds);
-  final chance = proc.chanceBp < 10000
-      ? ' (${_formatBp(proc.chanceBp)}% chance)'
-      : '';
+String? _statusSummary(
+  StatusApplication application,
+  WeaponProc proc,
+  GameLocalizations strings,
+) {
+  final duration = strings.durationSeconds(
+    seconds: (application.durationSeconds * 10).round() / 10,
+  );
+  final chance = proc.chanceBp / 100.0;
+  final chanceKind = proc.chanceBp >= 10000 ? 'guaranteed' : 'chance';
+  final percent = application.magnitude / 100.0;
+  return switch (application.type) {
+    StatusEffectType.dot => strings.statusDot(
+      damageType: application.dotDamageType == null
+          ? strings.damageOverTime
+          : damageTypeDisplayName(application.dotDamageType!, strings: strings),
+      damagePerSecond: application.magnitude / 100.0,
+      duration: duration,
+      chance: chance,
+      chanceKind: chanceKind,
+    ),
+    StatusEffectType.slow => strings.statusSlow(
+      percent: percent,
+      duration: duration,
+      chance: chance,
+      chanceKind: chanceKind,
+    ),
+    StatusEffectType.stun => strings.statusStun(
+      duration: duration,
+      chance: chance,
+      chanceKind: chanceKind,
+    ),
+    StatusEffectType.silence => strings.statusSilence(
+      duration: duration,
+      chance: chance,
+      chanceKind: chanceKind,
+    ),
+    StatusEffectType.vulnerable => strings.statusVulnerable(
+      percent: percent,
+      duration: duration,
+      chance: chance,
+      chanceKind: chanceKind,
+    ),
+    StatusEffectType.weaken => strings.statusWeaken(
+      percent: percent,
+      duration: duration,
+      chance: chance,
+      chanceKind: chanceKind,
+    ),
+    StatusEffectType.drench => strings.statusDrench(
+      percent: percent,
+      duration: duration,
+      chance: chance,
+      chanceKind: chanceKind,
+    ),
+    StatusEffectType.haste ||
+    StatusEffectType.damageReduction ||
+    StatusEffectType.resourceOverTime ||
+    StatusEffectType.offenseBuff => null,
+  };
+}
 
-  switch (app.type) {
-    case StatusEffectType.dot:
-      final dps = formatFixed100(app.magnitude);
-      final dmgType = app.dotDamageType != null
-          ? damageTypeDisplayName(app.dotDamageType!)
-          : 'DoT';
-      return '$dmgType: $dps damage per second for $duration$chance';
-    case StatusEffectType.slow:
-      return 'Slow: -${_formatBp(app.magnitude)}% speed for $duration$chance';
-    case StatusEffectType.stun:
-      return 'Stun: $duration$chance';
-    case StatusEffectType.silence:
-      return 'Silence: $duration$chance';
-    case StatusEffectType.vulnerable:
-      return 'Vulnerable: +${_formatBp(app.magnitude)}% damage taken for $duration$chance';
-    case StatusEffectType.weaken:
-      return 'Weaken: -${_formatBp(app.magnitude)}% outgoing damage for $duration$chance';
-    case StatusEffectType.drench:
-      return 'Drench: -${_formatBp(app.magnitude)}% attack/cast speed for $duration$chance';
-    case StatusEffectType.haste:
-    case StatusEffectType.damageReduction:
-    case StatusEffectType.resourceOverTime:
-    case StatusEffectType.offenseBuff:
-      return null;
+double _silenceSeconds(ProjectileItemDef item) {
+  for (final proc in item.procs) {
+    final profile = const StatusProfileCatalog().resolve(
+      proc.statusProfileId,
+      tuning: proc.statusTuning,
+    );
+    for (final application in profile.applications) {
+      if (application.type == StatusEffectType.silence) {
+        return application.durationSeconds;
+      }
+    }
   }
+  throw StateError('Silence description requires a matching catalog effect.');
 }
-
-String _formatDuration(double seconds) {
-  final text = seconds.toStringAsFixed(1);
-  final value = text.replaceFirst(RegExp(r'\.0$'), '');
-  return value == '1' ? '$value second' : '$value seconds';
-}
-
-String _formatBp(int bp) {
-  final percent = bp / 100.0;
-  final text = percent.toStringAsFixed(1);
-  return text.replaceFirst(RegExp(r'\.0$'), '');
-}
-
-/// Formats a fixed-point ×100 integer as a minimal decimal string (e.g. 1500 → "15").
-String formatFixed100(int value100) {
-  final value = (value100 / 100.0).toStringAsFixed(2);
-  return value.replaceFirst(RegExp(r'\.?0+$'), '');
-}
-
-/// User-facing display name for a [SpellBookId].
-String spellBookDisplayName(SpellBookId id) {
-  return _spellBookDisplayNameOverrides[id] ?? _titleCaseEnum(id.name);
-}
-
-/// User-facing short description for a [SpellBookId].
-String spellBookDescription(SpellBookId id) {
-  return _spellBookDescriptionOverrides[id] ?? _defaultDescription;
-}
-
-/// User-facing display name for an [AccessoryId].
-String accessoryDisplayName(AccessoryId id) {
-  return _accessoryDisplayNameOverrides[id] ?? _titleCaseEnum(id.name);
-}
-
-/// User-facing short description for an [AccessoryId].
-String accessoryDescription(AccessoryId id) {
-  return _accessoryDescriptionOverrides[id] ?? _defaultDescription;
-}
-
-/// Returns the display text for a gear item shown in UI.
-///
-/// This is intentionally centralized so call sites can later move to
-/// localization keys without rewriting widget logic.
-String gearDisplayNameForSlot(GearSlot slot, Object id) {
-  return switch (slot) {
-    GearSlot.mainWeapon ||
-    GearSlot.offhandWeapon => weaponDisplayName(id as WeaponId),
-    GearSlot.spellBook => spellBookDisplayName(id as SpellBookId),
-    GearSlot.accessory => accessoryDisplayName(id as AccessoryId),
-  };
-}
-
-/// Returns a short description for a gear item shown in UI.
-String gearDescriptionForSlot(
-  GearSlot slot,
-  Object id, {
-  String resourceLabel = 'Mana',
-}) {
-  final description = switch (slot) {
-    GearSlot.mainWeapon ||
-    GearSlot.offhandWeapon => weaponDescription(id as WeaponId),
-    GearSlot.spellBook => spellBookDescription(id as SpellBookId),
-    GearSlot.accessory => accessoryDescription(id as AccessoryId),
-  };
-  return resourceLabel == 'Mana'
-      ? description
-      : description.replaceAll(
-          RegExp(r'\bmana\b', caseSensitive: false),
-          resourceLabel,
-        );
-}
-
-String _titleCaseEnum(String source) {
-  final normalized = source
-      .replaceAll('_', ' ')
-      .replaceAllMapped(
-        RegExp(r'([a-z0-9])([A-Z])'),
-        (match) => '${match.group(1)} ${match.group(2)}',
-      );
-  final words = normalized.split(RegExp(r'\s+'));
-  return words
-      .where((word) => word.isNotEmpty)
-      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
-      .join(' ');
-}
-
-const String _defaultDescription = 'No description available yet.';
-
-const Map<WeaponId, String> _weaponDisplayNameOverrides = <WeaponId, String>{
-  WeaponId.hunterBlade: "Hunter Blade",
-  WeaponId.hunterNotchknife: "Notchknife",
-  WeaponId.hunterHookblade: "Hookblade",
-  WeaponId.hunterCausticEdge: "Caustic Edge",
-  WeaponId.hunterCinderpoint: "Cinderpoint",
-  WeaponId.hunterSappingBlade: "Sapping Blade",
-  WeaponId.hunterPursuitBlade: "Pursuit Blade",
-  WeaponId.hunterLastWord: "Last Word",
-  WeaponId.hunterBombKit: "Bomb Kit",
-  WeaponId.hunterSplinterRig: "Splinter Rig",
-  WeaponId.hunterPitchRig: "Pitch Rig",
-  WeaponId.hunterSnareRig: "Snare Rig",
-  WeaponId.hunterEtchingRig: "Etching Rig",
-  WeaponId.hunterSapperHarness: "Sapper Harness",
-  WeaponId.hunterKilnwrapRig: "Kilnwrap Rig",
-  WeaponId.hunterSealedRig: "Sealed Rig",
-  WeaponId.hunterStormwrapRig: "Stormwrap Rig",
-  WeaponId.hunterBacktrailRig: "Backtrail Rig",
-
-  WeaponId.plainsteel: 'Plainsteel',
-  WeaponId.waspfang: 'Waspfang',
-  WeaponId.cinderedge: 'Cinderedge',
-  WeaponId.basiliskKiss: 'Basilisk Kiss',
-  WeaponId.frostbrand: 'Frostbrand',
-  WeaponId.stormneedle: 'Stormneedle',
-  WeaponId.nullblade: 'Nullblade',
-  WeaponId.sunlitVow: 'Sunlit Vow',
-  WeaponId.roadguard: 'Roadguard',
-  WeaponId.thornbark: 'Thornbark',
-  WeaponId.cinderWard: 'Cinder Ward',
-  WeaponId.tideguardShell: 'Tideguard Shell',
-  WeaponId.frostlockBuckler: 'Frostlock Buckler',
-  WeaponId.ironBastion: 'Iron Bastion',
-  WeaponId.stormAegis: 'Storm Aegis',
-  WeaponId.nullPrism: 'Null Prism',
-  WeaponId.warbannerGuard: 'Warbanner Guard',
-  WeaponId.oathwallRelic: 'Oathwall Relic',
-};
-
-const Map<WeaponId, String> _weaponDescriptionOverrides = <WeaponId, String>{
-  WeaponId.hunterBlade: "Reliable mixed combat with a small defense tradeoff.",
-  WeaponId.hunterNotchknife:
-      "Bleeding cuts reward disengaging, at the cost of maximum health.",
-  WeaponId.hunterHookblade:
-      "Slowing cuts create room for a shot or bomb, with lower defense.",
-  WeaponId.hunterCausticEdge:
-      "Melee openings expose a target to follow-up damage, with lower health.",
-  WeaponId.hunterCinderpoint:
-      "Critical cuts ignite enemies, at the cost of Supplies regeneration.",
-  WeaponId.hunterSappingBlade:
-      "Cuts can weaken enemy attacks, but maximum health is lower.",
-  WeaponId.hunterPursuitBlade:
-      "Melee kills can grant a short burst of speed, with lower defense.",
-  WeaponId.hunterLastWord:
-      "Strong direct offense and stamina, with less health for mistakes.",
-  WeaponId.hunterBombKit:
-      "A protective bomb rig that trades movement speed for steadiness.",
-  WeaponId.hunterSplinterRig:
-      "Critical blasts cause bleeding, at the cost of global power.",
-  WeaponId.hunterPitchRig:
-      "Critical blasts ignite survivors, with lower critical chance.",
-  WeaponId.hunterSnareRig:
-      "Blasts can slow pursuers, at the cost of global power.",
-  WeaponId.hunterEtchingRig: "Blasts can expose survivors to follow-up damage, with lower critical chance.",
-  WeaponId.hunterSapperHarness: "Physical protection and stamina recovery, with substantially slower movement.",
-  WeaponId.hunterKilnwrapRig:
-      "Preparation for fire-heavy encounters, with lower critical chance.",
-  WeaponId.hunterSealedRig:
-      "Acid and water protection with stamina reserves, at the cost of power.",
-  WeaponId.hunterStormwrapRig:
-      "Thunder protection and stamina recovery, with lower critical chance.",
-  WeaponId.hunterBacktrailRig: "Low-health haste creates an escape opportunity, at a permanent power cost.",
-
-  WeaponId.plainsteel: 'Baseline one-handed sword with consistent output.',
-  WeaponId.waspfang: 'Bleed pressure sword with lower upfront power.',
-  WeaponId.cinderedge: 'Crit-focused blade that ignites on critical strikes.',
-  WeaponId.basiliskKiss:
-      'Anti-tank sword that trades burst for acid vulnerability pressure.',
-  WeaponId.frostbrand: 'Control sword that applies slows for safer tempo.',
-  WeaponId.stormneedle:
-      'Sustained crit/stamina sword with regen and a health tradeoff.',
-  WeaponId.nullblade: 'Anti-caster sword that can silence on hit.',
-  WeaponId.sunlitVow:
-      'Kill-chain sword that can grant Focus and boosts sustained pressure.',
-  WeaponId.roadguard: 'Baseline all-rounder shield with dependable defense.',
-  WeaponId.thornbark: 'Retaliation shield that bleeds attackers on damage.',
-  WeaponId.cinderWard:
-      'Fire-counter shield with defense and a crit-scaling dump.',
-  WeaponId.tideguardShell:
-      'Water-stabilizer shield with stamina support and power tax.',
-  WeaponId.frostlockBuckler:
-      'Cold matchup shield with balanced defense and stamina.',
-  WeaponId.ironBastion:
-      'Heavy face-tank shield with the strongest soak and lower mobility.',
-  WeaponId.stormAegis: 'Thunder counterpick shield with regen and a crit dump.',
-  WeaponId.nullPrism:
-      'Dual dark/holy resist shield that trades mobility for coverage.',
-  WeaponId.warbannerGuard:
-      'Stamina-forward frontline shield with a heavy crit dump.',
-  WeaponId.oathwallRelic:
-      'Clutch survival shield with low-health haste and permanent offense tax.',
-};
-
-const Map<ProjectileId, String> _projectileDisplayNameOverrides =
-    <ProjectileId, String>{
-      ProjectileId.hunterPistol: "Pistol",
-      ProjectileId.hunterCrossbow: "Crossbow",
-      ProjectileId.hunterShotgun: "Shotgun",
-      ProjectileId.hunterRoadsidePistol: "Roadside Pistol",
-      ProjectileId.hunterLongbarrelPistol: "Longbarrel Pistol",
-      ProjectileId.hunterLongwatchCrossbow: "Longwatch Crossbow",
-      ProjectileId.hunterHeavyLimbCrossbow: "Heavy-Limb Crossbow",
-      ProjectileId.hunterBrushgun: "Brushgun",
-
-      ProjectileId.hunterBomb: 'Bomb',
-      ProjectileId.iceBolt: 'Ice Bolt',
-      ProjectileId.fireBolt: 'Fire Bolt',
-      ProjectileId.acidBolt: 'Acid Bolt',
-      ProjectileId.darkBolt: 'Dark Bolt',
-      ProjectileId.earthBolt: 'Earth Bolt',
-      ProjectileId.holyBolt: 'Holy Bolt',
-      ProjectileId.waterBolt: 'Water Bolt',
-      ProjectileId.thunderBolt: 'Thunder Bolt',
-    };
-
-const Map<ProjectileId, String>
-_projectileDescriptionOverrides = <ProjectileId, String>{
-  ProjectileId.hunterPistol:
-      "Fast bullets with balanced range. Uses regenerating Supplies.",
-  ProjectileId.hunterCrossbow: "Long-range bolts with 15% more total damage. Uses regenerating Supplies.",
-  ProjectileId.hunterShotgun: "Short-range shells split into at least three pellets with 30% more total damage. Uses regenerating Supplies.",
-  ProjectileId.hunterRoadsidePistol:
-      "Fast close-range bullets with 10% more damage, but shorter reach.",
-  ProjectileId.hunterLongbarrelPistol:
-      "Fast, long-reaching bullets with 10% less damage.",
-  ProjectileId.hunterLongwatchCrossbow: "Long-reaching, faster bolts with less damage than the standard crossbow.",
-  ProjectileId.hunterHeavyLimbCrossbow:
-      "Heavy bolts with 25% more damage, but slower flight and shorter reach.",
-  ProjectileId.hunterBrushgun: "Five-pellet coverage with 10% more total damage; a wide spread rewards close placement.",
-
-  ProjectileId.hunterBomb: 'A timed blast blocked by solid terrain.',
-  ProjectileId.iceBolt: 'Spell projectile that chills on hit.',
-  ProjectileId.fireBolt: 'Spell projectile that burns on hit.',
-  ProjectileId.acidBolt:
-      'Spell projectile that corrodes and increases damage taken.',
-  ProjectileId.darkBolt:
-      'Spell projectile that weakens enemy outgoing damage on hit.',
-  ProjectileId.earthBolt: 'Spell projectile that stuns enemies on hit.',
-  ProjectileId.holyBolt:
-      'Spell projectile that silences enemy casts for 3 seconds.',
-  ProjectileId.waterBolt:
-      'Spell projectile that drenches and slows attack/cast speed.',
-  ProjectileId.thunderBolt: 'Spell projectile with thunder damage.',
-};
-
-const Map<SpellBookId, String> _spellBookDisplayNameOverrides =
-    <SpellBookId, String>{
-      SpellBookId.hunterFieldKit: "Field Kit",
-      SpellBookId.hunterLongtrailPack: "Longtrail Pack",
-      SpellBookId.hunterMarksmanRoll: "Marksman's Roll",
-      SpellBookId.hunterQuickAccessSatchel: "Quick-Access Satchel",
-      SpellBookId.hunterReserveBandolier: "Reserve Bandolier",
-      SpellBookId.hunterTrackerPouch: "Tracker's Pouch",
-      SpellBookId.hunterSurveyorCase: "Surveyor's Case",
-      SpellBookId.hunterQuarryKit: "Quarry Kit",
-
-      SpellBookId.apprenticePrimer: 'Apprentice Primer',
-      SpellBookId.bastionCodex: 'Bastion Codex',
-      SpellBookId.emberGrimoire: 'Ember Grimoire',
-      SpellBookId.tideAlmanac: 'Tide Almanac',
-      SpellBookId.hexboundLexicon: 'Hexbound Lexicon',
-      SpellBookId.galeFolio: 'Gale Folio',
-      SpellBookId.nullTestament: 'Null Testament',
-      SpellBookId.crownOfFocus: 'Crown of Focus',
-    };
-
-const Map<SpellBookId, String>
-_spellBookDescriptionOverrides = <SpellBookId, String>{
-  SpellBookId.hunterFieldKit:
-      "Balanced Supplies and critical chance, with a smaller stamina reserve.",
-  SpellBookId.hunterLongtrailPack: "Sustained Supplies and faster recovery between actions, with slower health regeneration.",
-  SpellBookId.hunterMarksmanRoll: "Critical-shot preparation and faster cooldowns, with slower stamina recovery.",
-  SpellBookId.hunterQuickAccessSatchel: "Frequent short exchanges, with less stamina and no extra Supplies capacity.",
-  SpellBookId.hunterReserveBandolier: "A large opening reserve and critical chance, with substantially less stamina.",
-  SpellBookId.hunterTrackerPouch: "Offensive pursuit that preserves stamina, at the cost of health recovery.",
-  SpellBookId.hunterSurveyorCase: "A large Supplies reserve and ready utility, with slower stamina recovery.",
-  SpellBookId.hunterQuarryKit: "Critical offensive windows and faster cooldowns, with little stamina headroom.",
-
-  SpellBookId.apprenticePrimer: 'Balanced mana reserves, regeneration and critical chance, with less stamina.',
-  SpellBookId.bastionCodex: 'Large mana reserves, regeneration and faster cooldowns, with slower health recovery.',
-  SpellBookId.emberGrimoire: 'Mana, critical chance and faster cooldowns, with slower stamina recovery.',
-  SpellBookId.tideAlmanac: 'Large mana reserves, regeneration and faster cooldowns, with substantially less stamina.',
-  SpellBookId.hexboundLexicon:
-      'Mana, regeneration and critical chance, with slower health recovery.',
-  SpellBookId.galeFolio: 'Large mana reserves, critical chance and faster cooldowns, with less stamina.',
-  SpellBookId.nullTestament: 'Mana reserves, regeneration and critical chance, with slower stamina recovery.',
-  SpellBookId.crownOfFocus: 'Large mana reserves, critical chance and faster cooldowns, with substantially less stamina.',
-};
-
-const Map<AccessoryId, String> _accessoryDisplayNameOverrides =
-    <AccessoryId, String>{
-      AccessoryId.speedBoots: 'Speed Boots',
-      AccessoryId.goldenRing: 'Golden Ring',
-      AccessoryId.teethNecklace: 'Teeth Necklace',
-      AccessoryId.diamondRing: 'Diamond Ring',
-      AccessoryId.ironBoots: 'Iron Boots',
-      AccessoryId.oathBeads: 'Oath Beads',
-      AccessoryId.resilienceCape: 'Resilience Cape',
-      AccessoryId.strengthBelt: 'Strength Belt',
-    };
-
-const Map<AccessoryId, String>
-_accessoryDescriptionOverrides = <AccessoryId, String>{
-  AccessoryId.speedBoots: 'Tempo accessory with movement, stamina regen, and cooldown pacing at heavy mana tax.',
-  AccessoryId.goldenRing:
-      'Clutch sustain ring with health and emergency low-health healing.',
-  AccessoryId.teethNecklace: 'Stamina ring with low-health stamina restore, traded against max health.',
-  AccessoryId.diamondRing:
-      'Mana ring with low-health mana restore, traded against max stamina.',
-  AccessoryId.ironBoots:
-      'Defensive boots with physical resistance that tax global power.',
-  AccessoryId.oathBeads: 'Caster-tempo beads with cooldown, mana regen, and power at a defense tax.',
-  AccessoryId.resilienceCape:
-      'Elemental counterpick with fire and dark resistance plus defense.',
-  AccessoryId.strengthBelt:
-      'Burst belt with power, crit, and stamina at slower cooldown recovery.',
-};

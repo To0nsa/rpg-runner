@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -21,7 +22,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
   final _controller = TextEditingController();
   final _policy = const DisplayNamePolicy();
 
-  String? _error;
+  String Function(AppLocalizations)? _error;
   bool _saving = false;
 
   @override
@@ -42,7 +43,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = displayNameSaveErrorText(error);
+        _error = (l10n) => displayNameSaveErrorText(error, l10n);
       });
       return;
     }
@@ -54,7 +55,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
   Future<void> _confirm() async {
     final err = _policy.validate(_controller.text);
     if (err != null) {
-      setState(() => _error = err);
+      setState(() => _error = err.message);
       return;
     }
     await _complete();
@@ -74,7 +75,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Choose your name',
+                  context.l10n.uiChooseYourName,
                   style: ui.text.title.copyWith(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
@@ -82,7 +83,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                 ),
                 SizedBox(height: ui.space.xs),
                 Text(
-                  'This is required. You can change it later in Profile.',
+                  context.l10n.uiThisIsRequiredYouCanChangeItLaterInProfile,
                   style: ui.text.body.copyWith(color: ui.colors.textMuted),
                   textAlign: TextAlign.center,
                 ),
@@ -91,11 +92,11 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                   controller: _controller,
                   style: ui.text.body.copyWith(color: ui.colors.textPrimary),
                   decoration: InputDecoration(
-                    labelText: 'Display name',
+                    labelText: context.l10n.uiDisplayName,
                     labelStyle: ui.text.body.copyWith(
                       color: ui.colors.textMuted,
                     ),
-                    errorText: _error,
+                    errorText: _error?.call(context.l10n),
                     filled: true,
                     fillColor: ui.colors.cardBackground.withValues(alpha: 0.8),
                     enabledBorder: OutlineInputBorder(
@@ -119,7 +120,7 @@ class _ProfileNameSetupPageState extends State<ProfileNameSetupPage> {
                 ),
                 SizedBox(height: ui.space.md + ui.space.xxs),
                 AppButton(
-                  label: 'Confirm',
+                  label: context.l10n.uiConfirm,
                   size: AppButtonSize.md,
                   onPressed: _saving ? null : _confirm,
                 ),

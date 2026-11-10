@@ -1,3 +1,5 @@
+import 'package:game_presentation/game_localization.dart';
+
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -113,7 +115,9 @@ void main() {
       await tester.tap(
         find.descendant(
           of: skillList,
-          matching: find.text(abilityDisplayName(lastSkill.id)),
+          matching: find.text(
+            abilityDisplayName(lastSkill.id, strings: gameStringsFor(null)),
+          ),
         ),
       );
       await tester.pumpAndSettle();

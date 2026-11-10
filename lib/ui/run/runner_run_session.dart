@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -122,19 +124,18 @@ class RunnerRunSession extends ChangeNotifier {
     return _recorderError == null ? null : RunStartupFailure.recorder;
   }
 
-  String get loadingMessage => switch (game.loadState.value.phase) {
-    RunLoadPhase.worldReady => 'Preparing replay recorder...',
-    RunLoadPhase.terrainPreparing => 'Preparing terrain...',
-    RunLoadPhase.registriesLoaded => 'Preparing ghost...',
-    RunLoadPhase.playerAnimationsLoaded => 'Loading game art...',
-    _ => 'Building level...',
-  };
+  String loadingMessage(AppLocalizations l10n) =>
+      switch (game.loadState.value.phase) {
+        RunLoadPhase.worldReady => l10n.runRecorderPreparing,
+        RunLoadPhase.terrainPreparing => l10n.runTerrainPreparing,
+        RunLoadPhase.registriesLoaded => l10n.runGhostPreparing,
+        RunLoadPhase.playerAnimationsLoaded => l10n.runArtLoading,
+        _ => l10n.runBuildingLevel,
+      };
 
-  String? get errorMessage => switch (failure) {
-    RunStartupFailure.world =>
-      'Unable to load the level. Retry or return to the previous screen.',
-    RunStartupFailure.recorder =>
-      'Unable to prepare replay recording. Check available storage and retry.',
+  String? errorMessage(AppLocalizations l10n) => switch (failure) {
+    RunStartupFailure.world => l10n.runWorldFailed,
+    RunStartupFailure.recorder => l10n.runRecorderFailed,
     null => null,
   };
 

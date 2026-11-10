@@ -9,12 +9,13 @@ import { boundedText, safeInteger } from "./validators.js";
 import { giftsEnabled, inboxGiftCatalog, inboxGiftCatalogHash, inboxGiftConfigurationPath, parseInboxRewards } from "./gifts.js";
 import { knownCharacterIds } from "../ownership/defaults.js";
 import type { InboxCatalogReward } from "./contracts.js";
+import { parseMessageLocalization } from "./localization.js";
 
 /** Offline validation shared by privileged tools; accepts only existing allowlisted unlocks and gold. */
 export function parseOperatorMessage(input: unknown) {
   assertCallablePayloadBounds(input);
   const raw = requireObject(input, "message");
-  const fields = ["uid", "sourceId", "title", "body", "goldAmount", "attachments"];
+  const fields = ["uid", "sourceId", "title", "body", "goldAmount", "attachments", "localization"];
   if (Object.keys(raw).some((key) => !fields.includes(key))) {
     throw new HttpsError("invalid-argument", "Unknown message field.");
   }
@@ -31,6 +32,7 @@ export function parseOperatorMessage(input: unknown) {
     title: boundedText(raw.title, "title", 120),
     body: boundedText(raw.body, "body", 2000),
     goldAmount: safeInteger(raw.goldAmount ?? 0, "goldAmount"),
+    ...(raw.localization !== undefined ? { localization: parseMessageLocalization(raw.localization) } : {}),
     ...(attachments.length > 0 ? { attachments: attachments as InboxCatalogReward[] } : {}),
   };
   return { uid, delivery, messageId: systemMessageId(uid, delivery.sourceId) };

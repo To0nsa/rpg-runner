@@ -1,57 +1,96 @@
 import 'package:runner_core/abilities/ability_def.dart';
 
-/// User-facing display name for an [AbilityKey].
-///
-/// Kept in one place so call sites can later move to localization keys without
-/// changing widget logic.
-String abilityDisplayName(AbilityKey id) {
-  final override = _displayNameOverrides[id];
-  if (override != null) return override;
-  final dot = id.indexOf('.');
-  final raw = dot >= 0 ? id.substring(dot + 1) : id;
-  return _titleCaseSnake(raw);
-}
+import 'game_localization.dart';
 
-String _titleCaseSnake(String source) {
-  final words = source.split('_');
-  return words
-      .where((word) => word.isNotEmpty)
-      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
-      .join(' ');
-}
-
-const Map<AbilityKey, String> _displayNameOverrides = <AbilityKey, String>{
-  'bounty_hunter.hunters_focus': "Hunter's Focus",
-  'grojib.strike2': 'Second Strike',
-
-  // Primary: sword arts.
-  'eloise.bloodletter_slash': 'Sword Slash',
-  'eloise.bloodletter_cleave': 'Bloodletter Cleave',
-  'eloise.seeker_slash': 'Seeker Slash',
-
-  // Secondary: shield arts.
-  'eloise.aegis_riposte': 'Aegis Riposte',
-  'eloise.shield_block': 'Shield block',
-
-  // Projectile: ranged attacks.
-  'eloise.snap_shot': 'Snap Shot',
-  'eloise.quick_shot': 'Quick Shot',
-  'eloise.skewer_shot': 'Skewer Shot',
-  'eloise.overcharge_shot': 'Overcharge Bolt',
-
-  // Spell: utility and sustain.
-  'eloise.arcane_haste': 'Arcane Haste',
-  'eloise.focus': 'Focus',
-  'eloise.arcane_ward': 'Arcane Ward',
-  'eloise.cleanse': 'Cleanse',
-  'eloise.vital_surge': 'Vital Surge',
-  'eloise.mana_infusion': 'Mana Infusion',
-  'eloise.second_wind': 'Second Wind',
-
-  // Mobility.
-  'eloise.jump': 'Jump',
-  'eloise.double_jump': 'Double Jump',
-  'eloise.dash': 'Dash',
-  'eloise.double_dash': 'Double Dash',
-  'eloise.roll': 'Concussive Roll',
+/// Stable IDs select translated names. Unknown retained IDs use a localized
+/// fallback; completeness tests require a name for every current catalog entry.
+String abilityDisplayName(
+  AbilityKey id, {
+  required GameLocalizations strings,
+}) => switch (id) {
+  'unoco.fire_bolt_cast' => strings.abilityUnocoFireBoltCastName,
+  'unoco.strike' => strings.abilityUnocoStrikeName,
+  'derf.fire_explosion' => strings.abilityDerfFireExplosionName,
+  'derf.tentacle_strike' => strings.abilityDerfTentacleStrikeName,
+  'bringer.scythe_sweep' => strings.abilityBringerScytheSweepName,
+  'bringer.death_pillar' => strings.abilityBringerDeathPillarName,
+  'goddess.reposition_out' => strings.abilityGoddessRepositionOutName,
+  'goddess.reposition_in' => strings.abilityGoddessRepositionInName,
+  'goddess.dodge' => strings.abilityGoddessDodgeName,
+  'goddess.claw_combo' => strings.abilityGoddessClawComboName,
+  'goddess.orb' => strings.abilityGoddessOrbName,
+  'goddess.eruption' => strings.abilityGoddessEruptionName,
+  'shoggoth.tentacle_sweep' => strings.abilityShoggothTentacleSweepName,
+  'shoggoth.spinning_charge' => strings.abilityShoggothSpinningChargeName,
+  'shoggoth.orb' => strings.abilityShoggothOrbName,
+  'shoggoth.summon' => strings.abilityShoggothSummonName,
+  'shoggoth.summon_swarm' => strings.abilityShoggothSummonSwarmName,
+  'shoggoth.summon_horde' => strings.abilityShoggothSummonHordeName,
+  'shoggoth.return_charge' => strings.abilityShoggothReturnChargeName,
+  'shoggoth.teleport' => strings.abilityShoggothTeleportName,
+  'voidcaller.vertical_beam' => strings.abilityVoidcallerVerticalBeamName,
+  'voidcaller.diagonal_beam' => strings.abilityVoidcallerDiagonalBeamName,
+  'voidcaller.claw' => strings.abilityVoidcallerClawName,
+  'voidcaller.summon' => strings.abilityVoidcallerSummonName,
+  'shoggoth_minion.bite' => strings.abilityShoggothMinionBiteName,
+  'void_tentacle.lash' => strings.abilityVoidTentacleLashName,
+  'grojib.strike' => strings.abilityGrojibStrikeName,
+  'grojib.strike2' => strings.abilityGrojibStrike2Name,
+  'hashash.strike' => strings.abilityHashashStrikeName,
+  'hashash.teleport_out' => strings.abilityHashashTeleportOutName,
+  'hashash.ambush' => strings.abilityHashashAmbushName,
+  'eloise.bloodletter_slash' => strings.abilityEloiseBloodletterSlashName,
+  'eloise.bloodletter_cleave' => strings.abilityEloiseBloodletterCleaveName,
+  'eloise.seeker_slash' => strings.abilityEloiseSeekerSlashName,
+  'eloise.aegis_riposte' => strings.abilityEloiseAegisRiposteName,
+  'eloise.shield_block' => strings.abilityEloiseShieldBlockName,
+  'eloise.snap_shot' => strings.abilityEloiseSnapShotName,
+  'eloise.quick_shot' => strings.abilityEloiseQuickShotName,
+  'eloise.skewer_shot' => strings.abilityEloiseSkewerShotName,
+  'eloise.overcharge_shot' => strings.abilityEloiseOverchargeShotName,
+  'eloise.arcane_haste' => strings.abilityEloiseArcaneHasteName,
+  'eloise.focus' => strings.abilityEloiseFocusName,
+  'eloise.arcane_ward' => strings.abilityEloiseArcaneWardName,
+  'eloise.cleanse' => strings.abilityEloiseCleanseName,
+  'eloise.vital_surge' => strings.abilityEloiseVitalSurgeName,
+  'eloise.mana_infusion' => strings.abilityEloiseManaInfusionName,
+  'eloise.second_wind' => strings.abilityEloiseSecondWindName,
+  'eloise.jump' => strings.abilityEloiseJumpName,
+  'eloise.double_jump' => strings.abilityEloiseDoubleJumpName,
+  'eloise.dash' => strings.abilityEloiseDashName,
+  'eloise.double_dash' => strings.abilityEloiseDoubleDashName,
+  'eloise.roll' => strings.abilityEloiseRollName,
+  'bounty_hunter.quick_cut' => strings.abilityBountyHunterQuickCutName,
+  'bounty_hunter.twin_cut' => strings.abilityBountyHunterTwinCutName,
+  'bounty_hunter.lunge_slash' => strings.abilityBountyHunterLungeSlashName,
+  'bounty_hunter.blast_bomb' => strings.abilityBountyHunterBlastBombName,
+  'bounty_hunter.shrapnel_bomb' => strings.abilityBountyHunterShrapnelBombName,
+  'bounty_hunter.fire_bomb' => strings.abilityBountyHunterFireBombName,
+  'bounty_hunter.concussion_bomb' =>
+    strings.abilityBountyHunterConcussionBombName,
+  'bounty_hunter.snap_shot' => strings.abilityBountyHunterSnapShotName,
+  'bounty_hunter.quick_shot' => strings.abilityBountyHunterQuickShotName,
+  'bounty_hunter.piercing_shot' => strings.abilityBountyHunterPiercingShotName,
+  'bounty_hunter.scatter_shot' => strings.abilityBountyHunterScatterShotName,
+  'bounty_hunter.charged_shot' => strings.abilityBountyHunterChargedShotName,
+  'bounty_hunter.dash' => strings.abilityBountyHunterDashName,
+  'bounty_hunter.double_dash' => strings.abilityBountyHunterDoubleDashName,
+  'bounty_hunter.blink_dash' => strings.abilityBountyHunterBlinkDashName,
+  'bounty_hunter.jump' => strings.abilityBountyHunterJumpName,
+  'bounty_hunter.double_jump' => strings.abilityBountyHunterDoubleJumpName,
+  'bounty_hunter.hunters_focus' => strings.abilityBountyHunterHuntersFocusName,
+  'bounty_hunter.mark_quarry' => strings.abilityBountyHunterMarkQuarryName,
+  'bounty_hunter.forced_march' => strings.abilityBountyHunterForcedMarchName,
+  'bounty_hunter.field_dressing' =>
+    strings.abilityBountyHunterFieldDressingName,
+  'bounty_hunter.antidote' => strings.abilityBountyHunterAntidoteName,
+  'bounty_hunter.second_wind' => strings.abilityBountyHunterSecondWindName,
+  'bounty_hunter.prepare_charges' =>
+    strings.abilityBountyHunterPrepareChargesName,
+  'npc_warrior.slash' => strings.abilityNpcWarriorSlashName,
+  'npc_huntress.throw_spear' => strings.abilityNpcHuntressThrowSpearName,
+  'npc_huntress.stab' => strings.abilityNpcHuntressStabName,
+  'npc_huntress.slash' => strings.abilityNpcHuntressSlashName,
+  'npc_huntress2.shoot_arrow' => strings.abilityNpcHuntress2ShootArrowName,
+  _ => strings.unknownAbility,
 };

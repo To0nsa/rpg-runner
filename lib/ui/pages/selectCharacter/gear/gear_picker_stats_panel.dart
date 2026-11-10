@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/meta/gear_slot.dart';
@@ -17,10 +19,10 @@ class GearPickerStatsPanel extends StatelessWidget {
     required this.slot,
     required this.id,
     this.equippedForCompare,
-    this.resourceLabel = 'Mana',
+    this.manaPresentation = ManaPresentation.mana,
   });
 
-  final String resourceLabel;
+  final ManaPresentation manaPresentation;
   final GearSlot slot;
   final Object? id;
   final Object? equippedForCompare;
@@ -30,18 +32,27 @@ class GearPickerStatsPanel extends StatelessWidget {
     final ui = context.ui;
     final lines = id == null
         ? const <GearStatLine>[]
-        : gearStatsFor(slot, id!, resourceLabel: resourceLabel);
+        : gearStatsFor(
+            slot,
+            id!,
+            manaPresentation: manaPresentation,
+            strings: context.gameL10n,
+            l10n: context.l10n,
+          );
     final compareLines = (id == null || equippedForCompare == null)
         ? const <GearStatLine>[]
         : gearCompareStats(
             slot,
             equipped: equippedForCompare!,
             candidate: id!,
-            resourceLabel: resourceLabel,
+            manaPresentation: manaPresentation,
+            strings: context.gameL10n,
+            l10n: context.l10n,
           );
     final compareEmptyText = gearCompareEmptyText(
       selectedId: id,
       equippedForCompare: equippedForCompare,
+      l10n: context.l10n,
     );
     final horizontalPadding = ui.space.xs;
     final verticalPadding = ui.space.xxs;
@@ -59,7 +70,7 @@ class GearPickerStatsPanel extends StatelessWidget {
             Expanded(
               child: Center(
                 child: Text(
-                  'Select an item to preview stats.',
+                  context.l10n.uiSelectAnItemToPreviewStats,
                   style: ui.text.body.copyWith(color: ui.colors.textMuted),
                   textAlign: TextAlign.center,
                   maxLines: 2,
@@ -77,14 +88,25 @@ class GearPickerStatsPanel extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        gearDisplayNameForSlot(slot, id!),
+                        gearDisplayNameForSlot(
+                          slot,
+                          id!,
+                          strings: context.gameL10n,
+                        ),
                         style: ui.text.headline,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        '"${gearDescriptionForSlot(slot, id!, resourceLabel: resourceLabel)}"',
+                        context.l10n.quotedDescription(
+                          description: gearDescriptionForSlot(
+                            slot,
+                            id!,
+                            manaPresentation: manaPresentation,
+                            strings: context.gameL10n,
+                          ),
+                        ),
                         style: ui.text.body.copyWith(
                           color: ui.colors.textMuted,
                         ),
@@ -101,7 +123,7 @@ class GearPickerStatsPanel extends StatelessWidget {
                         Expanded(
                           child: _StatSection(
                             lines: lines,
-                            emptyText: 'No non-zero stat bonuses.',
+                            emptyText: context.l10n.uiNoNonZeroStatBonuses,
                           ),
                         ),
                         if (equippedForCompare != null) ...[
@@ -181,7 +203,7 @@ class _StatLineText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final isProcDetailLine = line.label.startsWith('On ');
+    final isProcDetailLine = line.semanticValue != null;
     final valueColor = switch (line.tone) {
       GearStatLineTone.neutral => ui.colors.textPrimary,
       GearStatLineTone.positive => ui.colors.success,

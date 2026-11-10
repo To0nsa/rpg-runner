@@ -234,6 +234,7 @@ class AdminController extends ChangeNotifier {
         value['title'] != draft.title.trim() ||
         value['body'] != draft.body.trim() ||
         value['goldAmount'] != draft.goldAmount ||
+        !_sameJson(value['localization'], _normalizedLocalization()) ||
         value['messageId'] is! String ||
         !RegExp(r'^[a-f0-9]{64}$').hasMatch(value['messageId']) ||
         !_sameJson(
@@ -246,6 +247,19 @@ class AdminController extends ChangeNotifier {
       throw const FormatException('Invalid delivery destination or contents.');
     }
   }
+
+  Object? _normalizedLocalization() => draft.translations.isEmpty
+      ? null
+      : {
+          'schemaVersion': 1,
+          'translations': {
+            for (final entry in draft.translations.entries)
+              entry.key: {
+                'title': entry.value.title.trim(),
+                'body': entry.value.body.trim(),
+              },
+          },
+        };
 
   Future<void> _run(Future<void> Function() action) async {
     if (busy || _disposed) return;

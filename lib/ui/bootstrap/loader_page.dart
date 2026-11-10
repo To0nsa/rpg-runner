@@ -1,3 +1,5 @@
+import '../l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -109,9 +111,9 @@ class _LoaderPageState extends State<LoaderPage> {
         scrollable: hasError,
         child: hasError
             ? LoaderContent(
-                errorTitle: _result!.errorTitle,
-                errorMessage: _result!.errorMessage,
-                continueLabel: _result!.retryLabel,
+                errorTitle: _result!.errorTitle(context.l10n),
+                errorMessage: _result!.errorMessage(context.l10n),
+                continueLabel: _result!.retryLabel(context.l10n),
                 onContinue: _bootstrapInFlight
                     ? null
                     : () => unawaited(

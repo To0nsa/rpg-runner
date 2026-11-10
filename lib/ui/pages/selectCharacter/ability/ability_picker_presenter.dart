@@ -1,3 +1,7 @@
+import 'package:game_presentation/game_localization.dart';
+
+import '../../../l10n/app_localization.dart';
+
 // Presenter helpers for ability selection UI.
 //
 // This file translates authoritative Core loadout/catalog data into UI-facing
@@ -152,9 +156,34 @@ List<AbilityPickerCandidate> abilityCandidatesForSlot({
 /// Returns projectile source options exposed by the character spell list.
 ProjectileSourcePanelModel projectileSourcePanelModel(
   EquippedLoadoutDef loadout,
+  AbilityOwnershipState abilityOwnership, {
+  required GameLocalizations strings,
+  required AppLocalizations l10n,
+}) {
+  final spellOptions = <ProjectileSpellOption>[];
+  for (final spellId in _compatibleLearnedSources(loadout, abilityOwnership)) {
+    spellOptions.add(
+      ProjectileSpellOption(
+        spellId: spellId,
+        displayName: projectileDisplayName(spellId, strings: strings),
+      ),
+    );
+  }
+  return ProjectileSourcePanelModel(
+    abilityOwnershipDisplayName:
+        loadout.abilityProjectileId.startsWith('bounty_hunter.')
+        ? l10n.projectileWeapons
+        : l10n.projectileSpellList,
+    spellOptions: spellOptions,
+  );
+}
+
+// Selection legality depends only on Core identities, never translated models.
+List<ProjectileId> _compatibleLearnedSources(
+  EquippedLoadoutDef loadout,
   AbilityOwnershipState abilityOwnership,
 ) {
-  final spellOptions = <ProjectileSpellOption>[];
+  final result = <ProjectileId>[];
   final orderedLearned = abilityOwnership.learnedProjectileSpellIds.toList(
     growable: false,
   )..sort((a, b) => a.index.compareTo(b.index));
@@ -168,28 +197,24 @@ ProjectileSourcePanelModel projectileSourcePanelModel(
             !ability.requiredWeaponTypes.contains(spellItem.weaponType))) {
       continue;
     }
-    spellOptions.add(
-      ProjectileSpellOption(
-        spellId: spellId,
-        displayName: projectileDisplayName(spellId),
-      ),
-    );
+    result.add(spellId);
   }
-  return ProjectileSourcePanelModel(
-    abilityOwnershipDisplayName:
-        loadout.abilityProjectileId.startsWith('bounty_hunter.')
-        ? 'Weapons'
-        : 'Spell List',
-    spellOptions: spellOptions,
-  );
+  return result;
 }
 
 /// Returns flat projectile source options for compatibility with existing call sites.
 List<ProjectileSourceOption> projectileSourceOptions(
   EquippedLoadoutDef loadout,
-  AbilityOwnershipState abilityOwnership,
-) {
-  final sourceModel = projectileSourcePanelModel(loadout, abilityOwnership);
+  AbilityOwnershipState abilityOwnership, {
+  required GameLocalizations strings,
+  required AppLocalizations l10n,
+}) {
+  final sourceModel = projectileSourcePanelModel(
+    loadout,
+    abilityOwnership,
+    strings: strings,
+    l10n: l10n,
+  );
   final options = <ProjectileSourceOption>[];
   for (final spell in sourceModel.spellOptions) {
     final spellDef = _projectileCatalog.get(spell.spellId);
@@ -198,9 +223,12 @@ List<ProjectileSourceOption> projectileSourceOptions(
         projectileId: spell.spellId,
         spellId: spell.spellId,
         displayName: spell.displayName,
-        description: projectileDescription(spell.spellId),
-        damageTypeName: damageTypeDisplayName(spellDef.damageType),
-        statusLines: projectileStatusSummaries(spellDef),
+        description: projectileDescription(spell.spellId, strings: strings),
+        damageTypeName: damageTypeDisplayName(
+          spellDef.damageType,
+          strings: strings,
+        ),
+        statusLines: projectileStatusSummaries(spellDef, strings: strings),
       ),
     );
   }
@@ -214,8 +242,10 @@ ProjectileId? normalizeProjectileSourceSelection(
   ProjectileId? selected,
 ) {
   if (selected == null) return null;
-  final options = projectileSourceOptions(loadout, abilityOwnership);
-  final exists = options.any((option) => option.spellId == selected);
+  final exists = _compatibleLearnedSources(
+    loadout,
+    abilityOwnership,
+  ).contains(selected);
   return exists ? selected : null;
 }
 

@@ -1,3 +1,5 @@
+import '../../l10n/app_localization.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,7 +17,7 @@ class TownPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final ui = context.ui;
     return MenuScaffold(
-      title: 'Théodonis',
+      title: context.l10n.townName,
       background: ColoredBox(color: ui.colors.background),
       child: TownMap(
         hasAchievementRewards: context
@@ -26,7 +28,9 @@ class TownPage extends StatelessWidget {
         onAchievementsPressed: () =>
             Navigator.of(context).pushNamed(UiRoutes.achievements),
         onStorePressed: () =>
-            Navigator.of(context).pushNamed(UiRoutes.townStore),
+            Navigator.of(context).pushNamed(UiRoutes.townEquipment),
+        onTrainingPressed: () =>
+            Navigator.of(context).pushNamed(UiRoutes.townTraining),
         onLibraryPressed: () =>
             Navigator.of(context).pushNamed(UiRoutes.library),
       ),

@@ -1,0 +1,701 @@
+[
+  {
+    "file": "lib/ui/app/firebase_app_services.dart",
+    "reason": "Compile-time capability flag and deployed Functions region.",
+    "literals": [
+      "'DEVELOPER_PRACTICE'",
+      "'europe-west1'"
+    ]
+  },
+  {
+    "file": "lib/ui/assets/ui_asset_lifecycle.dart",
+    "reason": "Internal cache sentinel for absent visual theme.",
+    "literals": [
+      "'__null__'"
+    ]
+  },
+  {
+    "file": "lib/ui/components/gold_display.dart",
+    "reason": "Default reward diagnostic surface identifier.",
+    "literals": [
+      "'account'"
+    ]
+  },
+  {
+    "file": "lib/ui/components/level_parallax_preview.dart",
+    "reason": "Internal cache sentinel for absent visual theme.",
+    "literals": [
+      "'__null__'"
+    ]
+  },
+  {
+    "file": "lib/ui/hud/gameover/game_over_overlay.dart",
+    "reason": "ICU selector values, never rendered as player text.",
+    "literals": [
+      "'none'",
+      "'enemy'"
+    ]
+  },
+  {
+    "file": "lib/ui/hud/gameover/leaderboard_panel.dart",
+    "reason": "ICU position/outcome selector values, never rendered directly.",
+    "literals": [
+      "'first'",
+      "'second'",
+      "'third'",
+      "'topTen'",
+      "'none'",
+      "'normal'",
+      "'unchanged'"
+    ]
+  },
+  {
+    "file": "lib/ui/leaderboard/shared_prefs_leaderboard_store.dart",
+    "reason": "Versioned persistent storage keys; translation must not change saved data.",
+    "literals": [
+      "'leaderboard_v3_entries_'",
+      "'leaderboard_v3_next_id_'",
+      "'leaderboard_v2_entries_'",
+      "'leaderboard_v2_next_id_'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/achievements/achievement_tile.dart",
+    "reason": "ICU reward-state selectors.",
+    "literals": [
+      "'claimed'",
+      "'achieved'",
+      "'pending'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/library/codex_widgets.dart",
+    "reason": "ICU discovery-state selectors.",
+    "literals": [
+      "'discovered'",
+      "'locked'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/library/library_page.dart",
+    "reason": "Widget identity and canonical enemy discovery-key prefix.",
+    "literals": [
+      "'codex-bestiary'",
+      "'enemy:${id.name}'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/library/location_map.dart",
+    "reason": "ICU access-state selectors.",
+    "literals": [
+      "'open'",
+      "'locked'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/options/options_page.dart",
+    "reason": "Support URL, mail scheme and contact address.",
+    "literals": [
+      "'rpg-runner-d7add.web.app'",
+      "'mailto'",
+      "'lothringen.rpg@gmail.com'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/profile/profile_page.dart",
+    "reason": "ICU mode selectors for the profile statistics sentence.",
+    "literals": [
+      "'practice'",
+      "'competitive'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/selectCharacter/gear/gear_stats_presenter.dart",
+    "reason": "ICU probability and critical-hit selectors.",
+    "literals": [
+      "'guaranteed'",
+      "'chance'",
+      "'none'",
+      "'withCrit'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/selectCharacter/skills/skills_list_pane.dart",
+    "reason": "Stable ability-family identifier used for filtering.",
+    "literals": [
+      "'fieldcraft'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/town/town_map.dart",
+    "reason": "Widget marker identities; labels come from localized TownPlace entries.",
+    "literals": [
+      "'town-store-marker'",
+      "'town-training-marker'",
+      "'town-library-marker'",
+      "'town-achievements-marker'"
+    ]
+  },
+  {
+    "file": "lib/ui/profile/display_name_policy.dart",
+    "reason": "Existing reserved-name/profanity validation list, not displayed copy.",
+    "literals": [
+      "'admin'",
+      "'moderator'",
+      "'mod'",
+      "'support'",
+      "'staff'",
+      "'developer'",
+      "'dev'",
+      "'system'",
+      "'fuck'",
+      "'shit'",
+      "'bitch'",
+      "'asshole'",
+      "'cunt'",
+      "'nazi'"
+    ]
+  },
+  {
+    "file": "lib/ui/run/runner_run_session.dart",
+    "reason": "Startup phase identifiers and diagnostic labels; localized failure rendering maps semantic stages.",
+    "literals": [
+      "'recorder'",
+      "'Run recorder preparation failed: $error'",
+      "'ready'",
+      "'worldProgress'",
+      "'Run recorder cleanup failed: $error'"
+    ]
+  },
+  {
+    "file": "lib/ui/run/run_release_gate.dart",
+    "reason": "Support mail scheme and contact address.",
+    "literals": [
+      "'lothringen.rpg@gmail.com'",
+      "'mailto'"
+    ]
+  },
+  {
+    "file": "lib/ui/run/run_reward_diagnostics.dart",
+    "reason": "Structured telemetry event/field identifiers.",
+    "literals": [
+      "'RUN_REWARD_TRACE'",
+      "'run_reward_timing'",
+      "'client'",
+      "'started'",
+      "'failed'",
+      "'completed'",
+      "'canonical_applied'",
+      "'${metric}_frame'",
+      "'${metric}_target_frame'"
+    ]
+  },
+  {
+    "file": "lib/ui/run/run_startup_diagnostics.dart",
+    "reason": "Structured startup telemetry log prefix.",
+    "literals": [
+      "'RUN_STARTUP_TRACE ${jsonEncode({'phase' : phase, ...values})}'"
+    ]
+  },
+  {
+    "file": "lib/ui/run/run_start_preparation.dart",
+    "reason": "Startup diagnostic label and phase identifier.",
+    "literals": [
+      "'Run preflight failed: $error'",
+      "'preflight'"
+    ]
+  },
+  {
+    "file": "lib/ui/runner_game_widget.dart",
+    "reason": "Replay trace phases and journal diagnostics; GameOverOverlay renders localized status, never these strings.",
+    "literals": [
+      "'run_end'",
+      "'Replay saving prerequisites were unavailable. Retry before leaving.'",
+      "'Replay submission prerequisites were unavailable.'",
+      "'local_replay_save'",
+      "'local_journal'",
+      "'Replay could not be saved. Retry before leaving.'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/app/app_state.dart",
+    "reason": "Replay MIME type and durable ownership command identity.",
+    "literals": [
+      "'application/octet-stream'",
+      "'cmd_${nowMs.toRadixString(36)}_${salt.toRadixString(36)}'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/app/controllers/developer_controller.dart",
+    "reason": "Synthetic local profile identity; hub/profile translate its default display token, preserving custom names.",
+    "literals": [
+      "'Developer'",
+      "'developer_practice'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/app/controllers/inbox_controller.dart",
+    "reason": "Legacy load-error diagnostic; MessagesPage resolves inboxLoadFailed instead of rendering it.",
+    "literals": [
+      "'Unable to load messages. Please try again.'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/app/controllers/ownership_sync_controller.dart",
+    "reason": "Diagnostic synchronization trace.",
+    "literals": [
+      "'flush:${trigger.name}:$error'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/app/controllers/run_start_controller.dart",
+    "reason": "Startup timing phase identifiers.",
+    "literals": [
+      "'ownershipSync'",
+      "'auth'",
+      "'restartCanonical'",
+      "'ticketCreate'",
+      "'ticketPrefetchJoin'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/app/controllers/run_submission_controller.dart",
+    "reason": "Settlement telemetry fields/phases and replay MIME type.",
+    "literals": [
+      "'goldEarned'",
+      "'score'",
+      "'completion_received'",
+      "'completion_watch_failed'",
+      "'lifecycle'",
+      "'application/octet-stream'",
+      "'local_reward_preview'",
+      "'submission_pump'",
+      "'spool_recovered'",
+      "'canonical_fetch'",
+      "'receipt_acknowledged'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/auth/auth_api.dart",
+    "reason": "Authentication provider wire identifier.",
+    "literals": [
+      "'playGames'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/auth/firebase_auth_api.dart",
+    "reason": "Authentication/platform channel contracts and provider diagnostics; bootstrap/profile render mapped localized errors.",
+    "literals": [
+      "'Play Games sign-in is required to continue.'",
+      "'The game account is disabled.'",
+      "'provider-not-linked'",
+      "'Provider link flow completed without linking the requested provider.'",
+      "'provider-unsupported'",
+      "'link-failed'",
+      "'fb_${snapshot.userId}_${issuedAtMs.toRadixString(36)}_$fingerprint'",
+      "'rpg_runner/play_games_auth'",
+      "'requestServerAuthCode'",
+      "'playgames.google.com'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/boards/firebase_ghost_api.dart",
+    "reason": "Backend callable names; stable wire identifiers, not displayed copy.",
+    "literals": [
+      "'ghostLoadManifest'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/boards/firebase_leaderboard_api.dart",
+    "reason": "Backend callable names; stable wire identifiers, not displayed copy.",
+    "literals": [
+      "'leaderboardLoadActiveBoardData'",
+      "'leaderboardLoadBoard'",
+      "'leaderboardLoadMyRank'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/boards/firebase_run_boards_api.dart",
+    "reason": "Backend callable names; stable wire identifiers, not displayed copy.",
+    "literals": [
+      "'runBoardsLoadActive'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/boards/ghost_api.dart",
+    "reason": "Wire field names passed to strict typed decoders.",
+    "literals": [
+      "'boardId'",
+      "'entryId'",
+      "'runSessionId'",
+      "'uid'",
+      "'replayStorageRef'",
+      "'sourceReplayStorageRef'",
+      "'sourceReplayStorageGeneration'",
+      "'promotedReplayStorageGeneration'",
+      "'replayDigest'",
+      "'downloadUrl'",
+      "'downloadUrlExpiresAtMs'",
+      "'score'",
+      "'distanceMeters'",
+      "'durationSeconds'",
+      "'sortKey'",
+      "'rank'",
+      "'updatedAtMs'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/boards/ghost_replay_cache_io.dart",
+    "reason": "Filesystem cache key prefix.",
+    "literals": [
+      "'ghost_$entryDigest'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/developer/developer_profile_store.dart",
+    "reason": "Versioned device storage keys.",
+    "literals": [
+      "'developer_practice.enabled.v1'",
+      "'developer_practice.selection.v1'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/inbox/firebase_inbox_api.dart",
+    "reason": "Backend callable names; stable wire identifiers, not displayed copy.",
+    "literals": [
+      "'inboxLoadSummary'",
+      "'inboxList'",
+      "'inboxMarkRead'",
+      "'inboxDeleteMessage'",
+      "'inboxClaimReward'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/ownership/firebase_loadout_ownership_api.dart",
+    "reason": "Backend callable names; stable wire identifiers, not displayed copy.",
+    "literals": [
+      "'loadoutOwnershipLoadCanonicalState'",
+      "'loadoutOwnershipExecuteCommand'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/ownership/loadout_ownership_api.dart",
+    "reason": "Canonical profile, command and catalog slot identifiers.",
+    "literals": [
+      "'main'",
+      "'setSelection'",
+      "'setLoadout'",
+      "'setAbilitySlot'",
+      "'setProjectileSpell'",
+      "'equipGear'",
+      "'purchaseStoreOffer'",
+      "'claimAchievements'",
+      "'refreshStore'",
+      "'weapon'",
+      "'spellBook'",
+      "'accessory'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/ownership/ownership_outbox_store.dart",
+    "reason": "Versioned persistent outbox key.",
+    "literals": [
+      "'ui.ownership_outbox.v2'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/ownership/player_progress.dart",
+    "reason": "Run-mode JSON field names, not display labels.",
+    "literals": [
+      "'practice'",
+      "'competitive'",
+      "'weekly'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/ownership/selection_state.dart",
+    "reason": "Persisted selectedIndex key and reserved default build-name token; buildDisplayName localizes only the matching default.",
+    "literals": [
+      "'selectedIndex'",
+      "'Build ${index + 1}'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/profile/account_deletion_api.dart",
+    "reason": "Typed account-deletion diagnostic code and detail; UI maps to localized recovery.",
+    "literals": [
+      "'account-deletion-unsupported'",
+      "'Account deletion is not configured for this environment.'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/profile/firebase_account_deletion_api.dart",
+    "reason": "Callable name and typed account-deletion diagnostics; UI maps to localized recovery.",
+    "literals": [
+      "'account-delete-failed'",
+      "'invalid-response'",
+      "'Account deletion was not confirmed by the server. Please try again.'",
+      "'accountDelete'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/profile/firebase_user_profile_remote_api.dart",
+    "reason": "Backend callable names; stable wire identifiers, not displayed copy.",
+    "literals": [
+      "'playerProfileLoad'",
+      "'playerProfileUpdate'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/profile/user_profile_remote_api.dart",
+    "reason": "Exception diagnostic serialization.",
+    "literals": [
+      "'UserProfileRemoteException($code): $resolvedMessage'",
+      "'UserProfileRemoteException($code)'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/run/firebase_run_completion_source.dart",
+    "reason": "Firestore collection names.",
+    "literals": [
+      "'run_completion_receipts'",
+      "'runs'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/run/firebase_run_session_api.dart",
+    "reason": "Callable/operation identifiers and run identity generation.",
+    "literals": [
+      "'runSessionCreate'",
+      "'runSubmission'",
+      "'grant'",
+      "'finalize'",
+      "'status'",
+      "'run_${timestamp}_$entropy'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/run/pending_run_submission.dart",
+    "reason": "Persistent replay journal field names and MIME type.",
+    "literals": [
+      "'application/octet-stream'",
+      "'ownerUserId'",
+      "'runSessionId'",
+      "'replayFilePath'",
+      "'canonicalSha256'",
+      "'contentLengthBytes'",
+      "'contentType'",
+      "'createdAtMs'",
+      "'updatedAtMs'",
+      "'attemptCount'",
+      "'nextAttemptAtMs'",
+      "'presentationBaseRevision'",
+      "'presentationBaseGrantId'",
+      "'objectPath'",
+      "'uploadCompletedAtMs'",
+      "'finalizedAtMs'",
+      "'lastErrorCode'",
+      "'lastErrorMessage'",
+      "'provisionalSummary'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/run/run_replay_uploader.dart",
+    "reason": "Exception diagnostic serialization.",
+    "literals": [
+      "' statusCode=$statusCode'",
+      "'RunReplayUploadException(code=$code$statusSegment, message=$message)'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/run/run_replay_uploader_io.dart",
+    "reason": "HTTP multipart protocol, error codes and diagnostic detail; game UI renders local generic recovery.",
+    "literals": [
+      "'----RpgRunnerReplay${DateTime.now().microsecondsSinceEpoch}'",
+      "'multipart'",
+      "'form-data'",
+      "'upload-access-denied'",
+      "'upload-rejected'",
+      "'Replay upload denied (HTTP 403): replay upload service account ' 'is missing storage.objects.create permission.'",
+      "'Replay upload denied (HTTP 403): storage access denied.'",
+      "'Replay upload rejected with HTTP $statusCode.'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/run/run_start_remote_exception.dart",
+    "reason": "Exception diagnostic serialization.",
+    "literals": [
+      "'RunStartRemoteException($code): $resolvedMessage'",
+      "'RunStartRemoteException($code)'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/run/run_submission_coordinator.dart",
+    "reason": "Submission timing phases, wire error codes and replay MIME type.",
+    "literals": [
+      "'upload_grant_prepare'",
+      "'upload_grant'",
+      "'upload_grant_reused'",
+      "'spool_write'",
+      "'invalid-argument'",
+      "'failed-precondition'",
+      "'permission-denied'",
+      "'not-found'",
+      "'already-exists'",
+      "'unimplemented'",
+      "'application/octet-stream'",
+      "'upload'",
+      "'finalize'",
+      "'submission_failure'",
+      "'invalid-response'",
+      "'submission-processing-failed'",
+      "'status_poll'",
+      "'status_received'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/run/run_submission_spool_store.dart",
+    "reason": "Versioned journal storage key.",
+    "literals": [
+      "'run_submission_spool_v1_entries'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/settings/control_settings.dart",
+    "reason": "Versioned device preference key.",
+    "literals": [
+      "'controls.movement_mode.v1'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/settings/locale_settings.dart",
+    "reason": "Versioned device preference key.",
+    "literals": [
+      "'ui.language.v1'"
+    ]
+  },
+  {
+    "file": "lib/ui/text/ability_tooltip_builder.dart",
+    "reason": "Highlight-map keys and ICU selectors; complete descriptions live in ARB.",
+    "literals": [
+      "'window'",
+      "'tapDamage'",
+      "'fullDamage'",
+      "'chargeTime'",
+      "'crit'",
+      "'status'",
+      "'dotDamage'",
+      "'duration'",
+      "'projectileName'",
+      "'damage'",
+      "'damageBonus'",
+      "'critBonus'",
+      "'maxHits'",
+      "'aimed'",
+      "'nearest'",
+      "'withDot'",
+      "'none'",
+      "'withRiposte'",
+      "'spell'",
+      "'equipped'"
+    ]
+  },
+  {
+    "file": "lib/ui/text/bounty_hunter_ability_description.dart",
+    "reason": "ICU status/target/charge selectors; complete descriptions live in ARB.",
+    "literals": [
+      "'bleed'",
+      "'burn'",
+      "'stun'",
+      "'none'",
+      "'automatic'",
+      "'aimed'",
+      "'yes'",
+      "'no'"
+    ]
+  },
+  {
+    "file": "lib/game/replay/ghost_playback_runner.dart",
+    "reason": "Replay/loadout decoder field names.",
+    "literals": [
+      "'mask'",
+      "'mainWeaponId'",
+      "'offhandWeaponId'",
+      "'spellBookId'",
+      "'projectileSlotSpellId'",
+      "'accessoryId'",
+      "'abilityPrimaryId'",
+      "'abilitySecondaryId'",
+      "'abilityProjectileId'",
+      "'abilitySpellId'",
+      "'abilityMobilityId'",
+      "'abilityJumpId'"
+    ]
+  },
+  {
+    "file": "lib/game/replay/ghost_playback_source.dart",
+    "reason": "Worker isolate debug identity.",
+    "literals": [
+      "'ghost-playback'"
+    ]
+  },
+  {
+    "file": "lib/game/replay/run_recorder_io.dart",
+    "reason": "Replay artifact identity prefix.",
+    "literals": [
+      "'run_${header.runSessionId}'"
+    ]
+  },
+  {
+    "file": "lib/game/runner_flame/ghost_layer_system.dart",
+    "reason": "Diagnostic event identifiers.",
+    "literals": [
+      "'ghost-player-animation-load-failed'",
+      "'ghost-outline-warmup-failed'"
+    ]
+  },
+  {
+    "file": "lib/game/runner_flame_game.dart",
+    "reason": "Asset-loading progress phases and diagnostic label; UI translates semantic progress/failure.",
+    "literals": [
+      "'Run world loading failed: $error'",
+      "'terrain'",
+      "'scene'",
+      "'player'",
+      "'prefabs'",
+      "'enemies'",
+      "'npcs'",
+      "'projectiles'",
+      "'impacts'",
+      "'pickups'",
+      "'traps'",
+      "'interactions'",
+      "'ghost'"
+    ]
+  },
+  {
+    "file": "lib/game/themes/parallax_theme_registry.dart",
+    "reason": "Canonical visual theme ID.",
+    "literals": [
+      "'field'"
+    ]
+  },
+  {
+    "file": "packages/game_presentation/lib/catalog_gift.dart",
+    "reason": "Allowed gift wire field names.",
+    "literals": [
+      "'kind'",
+      "'slot'",
+      "'itemId'",
+      "'characterId'"
+    ]
+  },
+  {
+    "file": "packages/game_presentation/lib/gear_text.dart",
+    "reason": "ICU probability selector values.",
+    "literals": [
+      "'guaranteed'",
+      "'chance'"
+    ]
+  }
+]

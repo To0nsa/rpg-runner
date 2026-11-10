@@ -1,8 +1,11 @@
+import 'package:game_presentation/enemy_text.dart';
+import 'package:game_presentation/game_localization.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/levels/level_id.dart';
 
 import '../../codex/codex_catalog.dart';
@@ -41,7 +44,7 @@ class _LibraryPageState extends State<LibraryPage> {
     final accountKey = '${app.authSession.userId}:${app.profileId}';
     final ui = context.ui;
     return MenuScaffold(
-      title: 'Library · ${_sectionName(_section)}',
+      title: context.l10n.libraryTitle(section: _sectionName(_section)),
       background: ColoredBox(color: ui.colors.background),
       child: SafeArea(
         top: false,
@@ -79,10 +82,10 @@ class _LibraryPageState extends State<LibraryPage> {
                       accountKey: accountKey,
                     ),
                     _Locations(progress: progress.codex),
-                    const CodexReadingView(
-                      title: CodexCatalog.openingTitle,
-                      subtitle: 'Les Soleils d’or • Lothringen',
-                      paragraphs: [CodexCatalog.opening],
+                    CodexReadingView(
+                      title: CodexCatalog.openingTitle(context.l10n),
+                      subtitle: context.l10n.libraryBrand,
+                      paragraphs: [CodexCatalog.opening(context.l10n)],
                     ),
                   ],
                 ),
@@ -95,9 +98,9 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   String _sectionName(_LibrarySection section) => switch (section) {
-    _LibrarySection.bestiary => 'Bestiary',
-    _LibrarySection.locations => 'Locations',
-    _LibrarySection.journal => 'Journal',
+    _LibrarySection.bestiary => context.l10n.uiBestiary,
+    _LibrarySection.locations => context.l10n.uiLocations,
+    _LibrarySection.journal => context.l10n.uiJournal,
   };
 }
 
@@ -123,11 +126,10 @@ class _Bestiary extends StatelessWidget {
         for (final id in CodexCatalog.bestiaryEntries)
           CodexEntryTile(
             key: ValueKey('codex-enemy-${id.name}'),
-            title: id.displayName,
+            title: enemyDisplayName(id, strings: context.gameL10n),
             portrait: EnemyPortrait(enemy: id),
             current: defeats.byEnemy[id.name] ?? 0,
             requiredProgress: CodexCatalog.killsRequired(id),
-            progressLabel: 'defeated',
             active: active,
             tracker: tracker,
             accountKey: accountKey,
@@ -172,7 +174,7 @@ class _Locations extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: IconButton(
-                  tooltip: 'Close location',
+                  tooltip: context.l10n.uiCloseLocation,
                   onPressed: () => Navigator.of(dialogContext).pop(),
                   icon: const Icon(Icons.close),
                 ),

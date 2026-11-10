@@ -10,7 +10,7 @@ import 'package:rpg_runner/ui/text/ability_tooltip_builder.dart';
 
 void main() {
   final resolver = AbilityTagResolver();
-  const tooltipBuilder = DefaultAbilityTooltipBuilder();
+  final tooltipBuilder = DefaultAbilityTooltipBuilder.forLocale(null);
   String formatFixed100(int value100) {
     final value = (value100 / 100.0).toStringAsFixed(2);
     return value.replaceFirst(RegExp(r'\.?0+$'), '');

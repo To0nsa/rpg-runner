@@ -1,6 +1,8 @@
+import 'package:game_presentation/enemy_text.dart';
+import 'package:game_presentation/game_localization.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:runner_core/snapshots/boss_arena_snapshot.dart';
-import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/snapshots/boss_victory_blessing_snapshot.dart';
 
 import '../../../game/game_controller.dart';
@@ -30,13 +32,17 @@ class BossArenaHud extends StatelessWidget {
       final caption = blessing != null
           ? switch (blessing.id) {
               BossVictoryBlessingId.forestLadies =>
-                'Bénédiction des Dames de la forêt',
+                context.l10n.forestBlessingName,
             }
           : switch (arena!.phase) {
-              BossArenaPhase.introduction =>
-                '${arena.enemyId.displayName} awakens',
-              BossArenaPhase.failed => 'Encounter ended',
-              _ => arena.enemyId.displayName,
+              BossArenaPhase.introduction => context.l10n.bossAwakens(
+                enemy: enemyDisplayName(
+                  arena.enemyId,
+                  strings: context.gameL10n,
+                ),
+              ),
+              BossArenaPhase.failed => context.l10n.bossEncounterEnded,
+              _ => enemyDisplayName(arena.enemyId, strings: context.gameL10n),
             };
       return IgnorePointer(
         child: Align(
@@ -49,8 +55,14 @@ class BossArenaHud extends StatelessWidget {
               ),
               child: Semantics(
                 label: blessing == null
-                    ? '$caption, ${arena!.hp100 ~/ 100} health'
-                    : '$caption, ${blessing.restorationBp ~/ 100} percent health, mana and stamina restored',
+                    ? context.l10n.bossHealthSemantics(
+                        caption: caption,
+                        health: arena!.hp100 ~/ 100,
+                      )
+                    : context.l10n.bossRestorationSemantics(
+                        caption: caption,
+                        percent: blessing.restorationBp ~/ 100,
+                      ),
                 child: HudPanel(
                   key: panelKey,
                   width: 220,
@@ -68,7 +80,9 @@ class BossArenaHud extends StatelessWidget {
                       SizedBox(height: ui.space.xxs),
                       if (blessing != null)
                         Text(
-                          '+${blessing.restorationBp ~/ 100} % santé · mana · endurance',
+                          context.l10n.bossRestoration(
+                            percent: blessing.restorationBp ~/ 100,
+                          ),
                           textAlign: TextAlign.center,
                           style: ui.text.body.copyWith(
                             color: context.hudTheme.highlight,

@@ -1,6 +1,8 @@
 import 'package:runner_core/players/player_character_definition.dart';
 
 import 'catalog_item.dart';
+import 'game_localization.dart';
+import 'character_text.dart';
 
 /// A catalog attachment's display identity, including its explicit skill recipient.
 /// This value describes a gift; ownership and supported destinations are server-owned.
@@ -24,9 +26,15 @@ class CatalogGift {
   final GameCatalogItem item;
   final String? characterId;
   String get key => '${item.key}/${characterId ?? ''}';
-  String get label => characterId == null
-      ? item.displayName
-      : '${item.displayName} · $characterId';
+  String label(GameLocalizations strings) => characterId == null
+      ? item.displayName(strings)
+      : strings.giftCharacterLabel(
+          item: item.displayName(strings),
+          character: characterDisplayName(
+            PlayerCharacterId.values.byName(characterId!),
+            strings: strings,
+          ),
+        );
   factory CatalogGift.fromJson(Map<String, dynamic> raw) {
     final allowed = {
       'kind',

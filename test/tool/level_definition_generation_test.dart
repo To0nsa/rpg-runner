@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:io';
 
 import 'package:runner_core/track/chunk_pattern_tier.dart';
@@ -39,7 +41,10 @@ void main() {
         final authored = byLevelId[levelId.name];
         expect(authored, isNotNull);
 
-        expect(authored!.displayName, levelId.displayName);
+        expect(
+          authored!.displayName,
+          levelId.localizedName(appStringsFor(null)),
+        );
         expect(LevelRegistry.isAvailable(levelId), authored.includeInBuild);
         if (authored.includeInBuild) {
           final runtime = LevelRegistry.byId(levelId);

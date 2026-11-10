@@ -99,7 +99,8 @@ the archetype's ability namespace. Lore/tactical prose remains UI content.
 Routes:
 
 - `/meta/town`: city map with city-service callouts, pan/zoom and reset.
-- `/meta/town/store`: the existing store, preserving purchase/refresh behavior.
+- `/meta/town/equipment` and `/meta/town/training`: [permanent purchase catalogues](town_catalogue.md).
+- `/meta/town/store`: retained alias opening Equipment.
 - `/meta/town/hall-of-honour`: [achievements and direct gold claims](achievements.md).
 - `/meta/town/library`: Bestiary, Locations and opening Journal sections on a
   left-side icon rail.
@@ -168,15 +169,19 @@ can reveal the full scene. Resize and reset restore the centered transform.
 The map extends to the screen edges below the app bar. Decode width is capped
 at 2048 pixels to bound display memory.
 
-Service anchors use image coordinates: Store `(0.35, 0.49)` in the market
-streets and Library `(0.47, 0.405)` at the northeastern courtyard complex.
+Service anchors use image coordinates: Equipment `(0.35, 0.49)` in the market
+streets, Library `(0.47, 0.405)` at the northeastern courtyard complex,
+Training Hall `(0.465, 0.60)` at the long southeastern building, and Hall of
+Honour `(0.395, 0.708)` at the southern courtyard.
 Separate callout lines connect to those anchors and transform with the image.
 `MapCallout` lays out each label before painting its leader. The line finishes
 horizontally at the nearer side of the measured label, leaving the button's
 transparent padding as a small visual gap. Pins above/below a label route around
 its bounds instead of crossing the icon/text. Labels are clamped to the initial
 visible map area; the same geometry handles font loading and enlarged text.
-Only the label receives taps, so the surrounding map remains draggable.
+Portrait labels occupy four lanes around the central pins; landscape uses two
+columns with bounded widths. Labels and pins receive taps, with label controls
+above pin hit areas; the surrounding map remains draggable.
 Compact transparent text buttons use Mist/Ink palette tokens and retain
 minimum touch targets. Pinch zoom remains; only a reset button is shown.
 No bottom instructions or plus/minus controls consume map space.

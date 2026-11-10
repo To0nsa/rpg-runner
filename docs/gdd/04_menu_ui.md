@@ -518,13 +518,13 @@ Provide a dedicated, full-page experience to browse **Competitive/Weekly leaderb
 
 ### Purpose
 
-Keep the Play Hub focused on starting runs. Town groups the Store and Library
+Keep the Play Hub focused on starting runs. Town groups Equipment, Training and Library
 around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 
 ### Layout / Navigation
 
 - `Town` on the Play Hub opens the city map.
-- `Town Store` and `Library` markers around Théodonis open their respective
+- `Equipment`, `Training Hall` and `Library` markers around Théodonis open their respective
   screens. They indicate services in the city, not precise street addresses.
 - The map fills the view. Drag and pinch gestures allow inspection; only a
   reset control is shown. Compact service markers have no border/background.
@@ -536,12 +536,14 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 
 **Scope**
 
-- Buy **gears/items** (weapons / offhand / utility / projectile) using gold
-- Refresh the store through the existing earned-gold refresh flow.
+- Buy **equipment** (weapons / offhand / utility / ranged sources / accessories)
+  or learn **techniques** at Training Hall using gold.
+- Both use [permanent catalogues](town_services.md), independent character browsing
+  and 150-gold unlocks. Owned entries remain inspectable. No paid refreshes.
 - Codex discoveries are earned through runs and are never sold here.
 
 Gold displays include journaled run rewards immediately, without a pending badge
-or separate balance. Purchases and paid refreshes still require confirmed funds.
+or separate balance. Purchases still require confirmed funds.
 If the displayed balance can afford an action but its confirmed balance cannot,
 show a dismissible "Your rewards are on their way" modal. Players can continue
 playing. If confirmation arrives while the modal is open, it changes to "Your

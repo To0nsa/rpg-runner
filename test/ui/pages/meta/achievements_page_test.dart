@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -28,6 +30,41 @@ const _capture = bool.fromEnvironment('CAPTURE_ACHIEVEMENTS');
 final _boundary = GlobalKey();
 
 void main() {
+  testWidgets('French achievements fit a compact screen with enlarged text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(640, 360);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    if (_capture) await _fonts();
+    final app = await _boot();
+    addTearDown(app.dispose);
+    await tester.pumpWidget(
+      _host(app, locale: const Locale('fr'), textScale: 1.4),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Premiers pas'), findsOneWidget);
+    await tester.tap(find.text('Premiers pas'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('30 oct. 2026'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _screenshot(tester, 'french-expanded-640');
+    for (final element
+        in find
+            .descendant(
+              of: find.byType(AchievementClaimAction),
+              matching: find.byType(RichText),
+            )
+            .evaluate()) {
+      final paragraph = element.renderObject as RenderParagraph;
+      expect(
+        paragraph.didExceedMaxLines,
+        isFalse,
+        reason:
+            'French claim action must stay readable: ${paragraph.text.toPlainText()} in ${paragraph.size}',
+      );
+    }
+  });
   testWidgets('verified progress updates the open hall without a refresh tap', (
     tester,
   ) async {
@@ -92,7 +129,7 @@ void main() {
     expect(find.text('Claim all'), findsOneWidget);
     expect(find.byKey(const ValueKey('claim-firstSteps')), findsOneWidget);
     expect(find.text('Bronze'), findsOneWidget);
-    expect(find.text('Achieved 30 Oct 2026 (UTC)'), findsOneWidget);
+    expect(find.text('Achieved Oct 30, 2026 (UTC)'), findsOneWidget);
     expect(app.progression.gold, 0);
     expect(app.latestVerifiedReward?.runSessionId, 'achievement_run');
     expect(ownershipReads, readsBeforeCompletion);
@@ -145,7 +182,7 @@ void main() {
       expect(find.text('Silver'), findsOneWidget);
       expect(find.text('Gold'), findsOneWidget);
       expect(find.text('Reach 500 metres in one run.'), findsOneWidget);
-      expect(find.text('Achieved 30 Oct 2026 (UTC)'), findsNWidgets(2));
+      expect(find.text('Achieved Oct 30, 2026 (UTC)'), findsNWidgets(2));
       expect(
         find.textContaining('including short runs and runs you quit'),
         findsOneWidget,
@@ -188,7 +225,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('25 gold · Claimed'), findsOneWidget);
     expect(find.text('75 gold · Claimed'), findsOneWidget);
-    expect(find.text('Achieved 30 Oct 2026 (UTC)'), findsNWidgets(2));
+    expect(find.text('Achieved Oct 30, 2026 (UTC)'), findsNWidgets(2));
   });
   testWidgets('final tier stays claimable until its reward is collected', (
     tester,
@@ -322,11 +359,15 @@ Widget _host(
   AppState app, {
   Widget home = const AchievementsPage(),
   double textScale = 1,
+  Locale locale = const Locale('en'),
 }) => ChangeNotifierProvider<AppState>.value(
   value: app,
   child: RepaintBoundary(
     key: _boundary,
     child: MaterialApp(
+      locale: locale,
+      localizationsDelegates: RunnerLocalizations.delegates,
+      supportedLocales: RunnerLocalizations.supportedLocales,
       theme: createUiTheme(),
       debugShowCheckedModeBanner: false,
       onGenerateRoute: UiRouter.onGenerateRoute,

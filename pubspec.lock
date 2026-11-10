@@ -18,7 +18,7 @@ packages:
     source: hosted
     version: "1.3.79"
   analyzer:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: analyzer
       sha256: "61c04d0c1bfed555c681ea079519933f071a5a026578ff73c4ff0df2d3462e5e"
@@ -435,6 +435,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
+  flutter_localizations:
+    dependency: "direct main"
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   flutter_native_splash:
     dependency: "direct dev"
     description:
@@ -527,6 +532,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  intl:
+    dependency: "direct main"
+    description:
+      name: intl
+      sha256: "1ca20c894b1717686a2319b8548763d812bc0aabdac580420a44c5178c57a867"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.20.3"
   io:
     dependency: transitive
     description:
@@ -1125,7 +1138,7 @@ packages:
     source: hosted
     version: "7.1.0"
   yaml:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: yaml
       sha256: f67cdd8e07d3c6329146aaef1ba043542b3134c12489f553ca9a7435d1068aea

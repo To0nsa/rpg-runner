@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/meta/gear_slot.dart';
@@ -10,20 +12,26 @@ void main() {
     final field = gearStatsFor(
       GearSlot.spellBook,
       SpellBookId.hunterFieldKit,
-      resourceLabel: 'Supplies',
+      manaPresentation: ManaPresentation.supplies,
+      strings: gameStringsFor(null),
+      l10n: appStringsFor(null),
     );
     expect(field.any((line) => line.label.contains('Supplies')), isTrue);
     final comparison = gearCompareStats(
       GearSlot.spellBook,
       equipped: SpellBookId.hunterFieldKit,
       candidate: SpellBookId.hunterLongtrailPack,
-      resourceLabel: 'Supplies',
+      manaPresentation: ManaPresentation.supplies,
+      strings: gameStringsFor(null),
+      l10n: appStringsFor(null),
     );
     expect(comparison.any((line) => line.label.contains('Supplies')), isTrue);
     final lines = gearStatsFor(
       GearSlot.accessory,
       AccessoryId.diamondRing,
-      resourceLabel: 'Supplies',
+      manaPresentation: ManaPresentation.supplies,
+      strings: gameStringsFor(null),
+      l10n: appStringsFor(null),
     );
     final text = [
       for (final line in lines)
@@ -35,6 +43,8 @@ void main() {
       gearStatsFor(
         GearSlot.accessory,
         AccessoryId.diamondRing,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
       ).any((line) => line.label.contains('Mana')),
       isTrue,
     );
@@ -42,7 +52,12 @@ void main() {
 
   group('gear stats presenter', () {
     test('main weapon shows proc hook and hides type line', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.cinderedge);
+      final lines = gearStatsFor(
+        GearSlot.mainWeapon,
+        WeaponId.cinderedge,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final typeLine = lines.where((line) => line.label == 'Type');
       final procHookLine = lines.where((line) => line.label == 'On Crit');
       expect(typeLine, isEmpty);
@@ -55,13 +70,20 @@ void main() {
       final lines = gearStatsFor(
         GearSlot.spellBook,
         SpellBookId.apprenticePrimer,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
       );
       final hasBallistic = lines.any((line) => line.label == 'Ballistic');
       expect(hasBallistic, isFalse);
     });
 
     test('hides ballistic line for alternate spellbook', () {
-      final lines = gearStatsFor(GearSlot.spellBook, SpellBookId.emberGrimoire);
+      final lines = gearStatsFor(
+        GearSlot.spellBook,
+        SpellBookId.emberGrimoire,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final hasBallistic = lines.any((line) => line.label == 'Ballistic');
       expect(hasBallistic, isFalse);
     });
@@ -70,13 +92,20 @@ void main() {
       final lines = gearStatsFor(
         GearSlot.spellBook,
         SpellBookId.apprenticePrimer,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
       );
       final hasType = lines.any((line) => line.label == 'Type');
       expect(hasType, isFalse);
     });
 
     test('on kill line shows effect details', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.sunlitVow);
+      final lines = gearStatsFor(
+        GearSlot.mainWeapon,
+        WeaponId.sunlitVow,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final onKillLine = lines.where((line) => line.label == 'On Kill');
       expect(onKillLine.single.value, contains('Offense Buff'));
       expect(onKillLine.single.value, contains('35% chance'));
@@ -87,10 +116,14 @@ void main() {
       final onDamagedLines = gearStatsFor(
         GearSlot.offhandWeapon,
         WeaponId.thornbark,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
       );
       final onLowHealthLines = gearStatsFor(
         GearSlot.offhandWeapon,
         WeaponId.oathwallRelic,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
       );
 
       final onDamagedLine = onDamagedLines.where(
@@ -105,7 +138,12 @@ void main() {
     });
 
     test('bleed proc uses semantic status naming', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.waspfang);
+      final lines = gearStatsFor(
+        GearSlot.mainWeapon,
+        WeaponId.waspfang,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final onHitLine = lines.firstWhere((line) => line.label == 'On Hit');
 
       expect(onHitLine.value, contains('Applies Bleed'));
@@ -113,7 +151,12 @@ void main() {
     });
 
     test('base stat tone is positive for positive values', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.plainsteel);
+      final lines = gearStatsFor(
+        GearSlot.mainWeapon,
+        WeaponId.plainsteel,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final powerLine = lines.firstWhere((line) => line.label == 'Power');
 
       expect(powerLine.value, equals('+15%'));
@@ -121,7 +164,12 @@ void main() {
     });
 
     test('base stat tone is negative for negative values', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.plainsteel);
+      final lines = gearStatsFor(
+        GearSlot.mainWeapon,
+        WeaponId.plainsteel,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final defenseLine = lines.firstWhere((line) => line.label == 'Defense');
 
       expect(defenseLine.value, equals('-5%'));
@@ -129,7 +177,12 @@ void main() {
     });
 
     test('base stats place negative lines before positive lines', () {
-      final lines = gearStatsFor(GearSlot.offhandWeapon, WeaponId.roadguard);
+      final lines = gearStatsFor(
+        GearSlot.offhandWeapon,
+        WeaponId.roadguard,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final firstPositiveIndex = lines.indexWhere(
         (line) => line.tone == GearStatLineTone.positive,
       );
@@ -143,7 +196,12 @@ void main() {
     });
 
     test('negative status lines expose negative highlight tokens', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.cinderedge);
+      final lines = gearStatsFor(
+        GearSlot.mainWeapon,
+        WeaponId.cinderedge,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final onCritLine = lines.firstWhere((line) => line.label == 'On Crit');
 
       expect(onCritLine.highlights, isNotEmpty);
@@ -164,7 +222,12 @@ void main() {
     });
 
     test('positive status lines expose positive highlight tokens', () {
-      final lines = gearStatsFor(GearSlot.mainWeapon, WeaponId.sunlitVow);
+      final lines = gearStatsFor(
+        GearSlot.mainWeapon,
+        WeaponId.sunlitVow,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final onKillLine = lines.firstWhere((line) => line.label == 'On Kill');
 
       expect(onKillLine.highlights, isNotEmpty);
@@ -186,7 +249,12 @@ void main() {
     });
 
     test('accessory base lines include regen stats', () {
-      final lines = gearStatsFor(GearSlot.accessory, AccessoryId.oathBeads);
+      final lines = gearStatsFor(
+        GearSlot.accessory,
+        AccessoryId.oathBeads,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final manaRegenLine = lines.firstWhere(
         (line) => line.label == 'Mana Regen',
       );
@@ -200,6 +268,8 @@ void main() {
         GearSlot.accessory,
         equipped: AccessoryId.speedBoots,
         candidate: AccessoryId.oathBeads,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
       );
       final manaRegenLine = lines.firstWhere(
         (line) => line.label == 'Mana Regen',
@@ -210,7 +280,12 @@ void main() {
     });
 
     test('accessory can show reactive low-health proc hook labels', () {
-      final lines = gearStatsFor(GearSlot.accessory, AccessoryId.goldenRing);
+      final lines = gearStatsFor(
+        GearSlot.accessory,
+        AccessoryId.goldenRing,
+        strings: gameStringsFor(null),
+        l10n: appStringsFor(null),
+      );
       final onLowHealthLine = lines.where(
         (line) => line.label == 'On Low Health',
       );

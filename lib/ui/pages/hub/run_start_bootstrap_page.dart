@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -45,7 +46,10 @@ class _RunStartBootstrapPageState extends State<RunStartBootstrapPage> {
     } catch (error) {
       if (mounted) {
         setState(
-          () => _navigationError = RunStartPreparation.messageFor(error),
+          () => _navigationError = RunStartPreparation.messageFor(
+            error,
+            context.l10n,
+          ),
         );
       }
     }
@@ -70,15 +74,18 @@ class _RunStartBootstrapPageState extends State<RunStartBootstrapPage> {
             RunReleaseGate(error: error, onRetry: _prepareAndNavigate)
           else
             LoaderContent(
-              loadingMessage: 'Preparing run...',
-              errorMessage: _navigationError ?? _preparation.errorMessage,
+              loadingMessage: context.l10n.uiPreparingRun,
+              errorMessage:
+                  _navigationError ?? _preparation.errorMessage(context.l10n),
               onContinue: _preparation.inFlight ? null : _prepareAndNavigate,
-              continueLabel: _preparation.inFlight ? 'Retrying...' : 'Retry',
+              continueLabel: _preparation.inFlight
+                  ? context.l10n.uiRetrying
+                  : context.l10n.uiRetry,
             ),
           if (Navigator.of(context).canPop())
             TextButton(
               onPressed: () => Navigator.of(context).maybePop(),
-              child: const Text('Exit'),
+              child: Text(context.l10n.uiExit),
             ),
         ],
       ),

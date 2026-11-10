@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -70,7 +72,10 @@ void main() {
       fixture.auth.error = const PlayGamesAuthRequiredException();
       const bootstrapper = AppBootstrapper();
       final failed = await bootstrapper.run(fixture.services, force: false);
-      expect(failed.retryLabel, 'Retry Play Games sign-in');
+      expect(
+        failed.retryLabel(appStringsFor(null)),
+        'Retry Play Games sign-in',
+      );
       fixture.auth.error = null;
       expect(
         (await bootstrapper.run(fixture.services, force: false)).ok,

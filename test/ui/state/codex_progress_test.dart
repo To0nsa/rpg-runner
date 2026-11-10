@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/levels/level_id.dart';
@@ -82,7 +83,7 @@ void main() {
         expect(CodexCatalog.enemyUnlocked(defeats, other), isFalse);
       }
       expect(CodexCatalog.attacks(id), isNotEmpty);
-      expect(CodexCatalog.enemyLore(id), isNotEmpty);
+      expect(CodexCatalog.enemyLore(id, appStringsFor(null)), isNotEmpty);
     }
   });
 

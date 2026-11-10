@@ -12,15 +12,17 @@ class MapCallout extends SingleChildRenderObjectWidget {
     required this.anchor,
     required this.labelCenter,
     required this.visibleMap,
+    this.maxLabelWidth,
     required super.child,
   });
 
   final Offset anchor, labelCenter;
   final Rect visibleMap;
+  final double? maxLabelWidth;
 
   @override
   RenderObject createRenderObject(BuildContext context) =>
-      _RenderMapCallout(anchor, labelCenter, visibleMap);
+      _RenderMapCallout(anchor, labelCenter, visibleMap, maxLabelWidth);
 
   @override
   void updateRenderObject(
@@ -31,26 +33,39 @@ class MapCallout extends SingleChildRenderObjectWidget {
       anchor,
       labelCenter,
       visibleMap,
+      maxLabelWidth,
     );
   }
 }
 
 class _RenderMapCallout extends RenderShiftedBox {
-  _RenderMapCallout(this._anchor, this._labelCenter, this._visibleMap)
-    : super(null);
+  _RenderMapCallout(
+    this._anchor,
+    this._labelCenter,
+    this._visibleMap,
+    this._maxLabelWidth,
+  ) : super(null);
 
   Offset _anchor, _labelCenter;
   Rect _visibleMap;
+  double? _maxLabelWidth;
 
-  void updatePositions(Offset anchor, Offset labelCenter, Rect visibleMap) {
+  void updatePositions(
+    Offset anchor,
+    Offset labelCenter,
+    Rect visibleMap,
+    double? maxLabelWidth,
+  ) {
     if (_anchor == anchor &&
         _labelCenter == labelCenter &&
-        _visibleMap == visibleMap) {
+        _visibleMap == visibleMap &&
+        _maxLabelWidth == maxLabelWidth) {
       return;
     }
     _anchor = anchor;
     _labelCenter = labelCenter;
     _visibleMap = visibleMap;
+    _maxLabelWidth = maxLabelWidth;
     markNeedsLayout();
   }
 
@@ -58,7 +73,12 @@ class _RenderMapCallout extends RenderShiftedBox {
   void performLayout() {
     size = constraints.biggest;
     final label = child!;
-    label.layout(BoxConstraints.loose(_visibleMap.size), parentUsesSize: true);
+    label.layout(
+      BoxConstraints.loose(
+        Size(_maxLabelWidth ?? _visibleMap.width, _visibleMap.height),
+      ),
+      parentUsesSize: true,
+    );
     final desired = _labelCenter - label.size.center(Offset.zero);
     (label.parentData! as BoxParentData).offset = Offset(
       desired.dx.clamp(_visibleMap.left, _visibleMap.right - label.size.width),

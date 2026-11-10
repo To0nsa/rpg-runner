@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -72,9 +74,11 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
       size: AppSegmentedControlSize.sm,
       onChanged: (value) => setState(() => _runFilter = value),
       labelBuilder: (context, value) => switch (value) {
-        LeaderboardsRunFilter.practice => const Text('PRACTICE'),
-        LeaderboardsRunFilter.competitive => const Text('COMPETITIVE'),
-        LeaderboardsRunFilter.weekly => const Text('WEEKLY'),
+        LeaderboardsRunFilter.practice => Text(context.l10n.uiPracticeHeading),
+        LeaderboardsRunFilter.competitive => Text(
+          context.l10n.uiCompetitiveHeading,
+        ),
+        LeaderboardsRunFilter.weekly => Text(context.l10n.uiWeeklyHeading),
       },
     );
 
@@ -133,7 +137,7 @@ class _PerLevelLeaderboards extends StatelessWidget {
             indicatorColor: ui.colors.accent,
             tabs: [
               for (final levelId in levels)
-                Tab(text: levelId.displayName.toUpperCase()),
+                Tab(text: levelId.localizedName(context.l10n).toUpperCase()),
             ],
           ),
           Expanded(
@@ -206,17 +210,24 @@ class _LeaderboardListState extends State<_LeaderboardList> {
       builder: (context, snapshot) {
         final entries = snapshot.data;
         if (snapshot.connectionState != ConnectionState.done) {
-          return Center(child: Text('Loading...', style: ui.text.body));
+          return Center(
+            child: Text(context.l10n.uiLoading, style: ui.text.body),
+          );
         }
 
         if (snapshot.hasError) {
           return Center(
-            child: Text('Failed to load leaderboard.', style: ui.text.body),
+            child: Text(
+              context.l10n.uiFailedToLoadLeaderboard,
+              style: ui.text.body,
+            ),
           );
         }
 
         if (entries == null || entries.isEmpty) {
-          return Center(child: Text('No runs yet.', style: ui.text.body));
+          return Center(
+            child: Text(context.l10n.uiNoRunsYet, style: ui.text.body),
+          );
         }
 
         return LeaderboardTable(entries: entries, scrollable: true);
@@ -252,7 +263,7 @@ class _OnlinePerLevelLeaderboards extends StatelessWidget {
             indicatorColor: ui.colors.accent,
             tabs: [
               for (final levelId in levels)
-                Tab(text: levelId.displayName.toUpperCase()),
+                Tab(text: levelId.localizedName(context.l10n).toUpperCase()),
             ],
           ),
           Expanded(
@@ -377,7 +388,10 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Loading online leaderboard.', style: ui.text.body),
+                Text(
+                  context.l10n.uiLoadingOnlineLeaderboard,
+                  style: ui.text.body,
+                ),
                 SizedBox(height: ui.space.sm),
                 SizedBox(
                   width: ui.sizes.iconSize.md,
@@ -399,14 +413,14 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _onlineErrorMessage(snapshot.error),
+                    _onlineErrorMessage(snapshot.error, context.l10n),
                     style: ui.text.body,
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: ui.space.sm),
                   OutlinedButton(
                     onPressed: _reload,
-                    child: const Text('Retry'),
+                    child: Text(context.l10n.uiRetry),
                   ),
                 ],
               ),
@@ -417,7 +431,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
         final data = snapshot.data;
         if (data == null) {
           return Center(
-            child: Text('No leaderboard data.', style: ui.text.body),
+            child: Text(context.l10n.uiNoLeaderboardData, style: ui.text.body),
           );
         }
 
@@ -428,7 +442,14 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
           children: [
             SizedBox(height: ui.space.sm),
             Text(
-              '${widget.levelId.displayName.toUpperCase()} ${widget.runMode.name.toUpperCase()} BOARD',
+              context.l10n.leaderboardTitle(
+                level: widget.levelId.localizedName(context.l10n).toUpperCase(),
+                mode: switch (widget.runMode) {
+                  RunMode.practice => context.l10n.uiPracticeHeading,
+                  RunMode.competitive => context.l10n.uiCompetitiveHeading,
+                  RunMode.weekly => context.l10n.uiWeeklyHeading,
+                },
+              ),
               style: ui.text.body.copyWith(
                 color: ui.colors.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -441,7 +462,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
               child: entries.isEmpty
                   ? Center(
                       child: Text(
-                        'No validated runs yet.',
+                        context.l10n.uiNoValidatedRunsYet,
                         style: ui.text.body,
                         textAlign: TextAlign.center,
                       ),
@@ -450,7 +471,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
                       entries: entries,
                       scrollable: true,
                       showPlayerLevelColumn: true,
-                      trailingHeaderLabel: 'VS Ghost',
+                      trailingHeaderLabel: context.l10n.uiVsGhost,
                       trailingBuilder: (context, rank, _) {
                         final source = topEntries[rank - 1];
                         final sourceEntryId = source.entryId.trim();
@@ -475,8 +496,8 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
                           iconSize: 18,
                           visualDensity: VisualDensity.compact,
                           tooltip: source.ghostAvailable
-                              ? 'Race this ghost.'
-                              : 'Ghost unavailable for this run.',
+                              ? context.l10n.uiRaceThisGhost
+                              : context.l10n.uiGhostUnavailableForThisRun,
                           onPressed: enabled
                               ? () => unawaited(_startGhostRun(source))
                               : null,
@@ -512,8 +533,8 @@ class _MyRankLabel extends StatelessWidget {
 
     if (rank == null) {
       final label = myRank.totalPlayers <= 0
-          ? 'No ranked players yet.'
-          : 'You are not ranked on this board yet.';
+          ? context.l10n.uiNoRankedPlayersYet
+          : context.l10n.uiYouAreNotRankedOnThisBoardYet;
       return Text(label, style: baseStyle, textAlign: TextAlign.center);
     }
 
@@ -521,7 +542,7 @@ class _MyRankLabel extends StatelessWidget {
       TextSpan(
         style: baseStyle,
         children: [
-          const TextSpan(text: 'Your rank: '),
+          TextSpan(text: context.l10n.uiYourRank),
           TextSpan(
             text: '#$rank',
             style: baseStyle.copyWith(
@@ -529,7 +550,7 @@ class _MyRankLabel extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          TextSpan(text: ' / ${myRank.totalPlayers}'),
+          TextSpan(text: context.l10n.rankTotal(count: myRank.totalPlayers)),
         ],
       ),
       textAlign: TextAlign.center,
@@ -555,15 +576,15 @@ List<RunResult> _toRunResults(List<LeaderboardEntry> entries) {
   }, growable: false);
 }
 
-String _onlineErrorMessage(Object? error) {
+String _onlineErrorMessage(Object? error, AppLocalizations l10n) {
   if (error is RunStartRemoteException) {
     if (error.code == 'not-found') {
-      return 'No active leaderboard board for this mode and level.';
+      return l10n.uiNoActiveLeaderboardBoardForThisModeAndLevel;
     }
     if (error.code == 'failed-precondition') {
-      return error.message ?? 'Leaderboard board is not available right now.';
+      return error.message ?? l10n.uiLeaderboardBoardIsNotAvailableRightNow;
     }
-    return error.message ?? 'Failed to load online leaderboard.';
+    return error.message ?? l10n.uiFailedToLoadOnlineLeaderboard;
   }
-  return 'Failed to load online leaderboard.';
+  return l10n.uiFailedToLoadOnlineLeaderboard;
 }

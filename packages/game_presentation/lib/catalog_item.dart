@@ -12,6 +12,7 @@ import 'package:runner_core/players/character_equipment_policy.dart';
 import 'ability_text.dart';
 import 'game_icon.dart';
 import 'gear_text.dart';
+import 'game_localization.dart';
 
 /// Presentation of an existing catalog entry. This never grants ownership.
 /// Server catalog validation remains authoritative for environment availability.
@@ -72,10 +73,10 @@ class GameCatalogItem {
   ProjectileId? get projectileId => playerEquippableProjectileIds
       .where((id) => id.name == itemId)
       .firstOrNull;
-  String get displayName => switch (kind) {
-    'gear' => gearDisplayNameForSlot(gearSlot!, gearId!),
-    'ability' => abilityDisplayName(itemId),
-    _ => projectileDisplayName(projectileId!),
+  String displayName(GameLocalizations strings) => switch (kind) {
+    'gear' => gearDisplayNameForSlot(gearSlot!, gearId!, strings: strings),
+    'ability' => abilityDisplayName(itemId, strings: strings),
+    _ => projectileDisplayName(projectileId!, strings: strings),
   };
 
   /// Uses the same icon renderers and asset keys as the game loadout/store.

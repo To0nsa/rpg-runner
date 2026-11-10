@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/ui_inline_edit_text_theme.dart';
@@ -42,7 +43,7 @@ class _AppInlineEditTextState extends State<AppInlineEditText> {
 
   bool _editing = false;
   bool _saving = false;
-  String? _error;
+  String? Function()? _error;
 
   @override
   void initState() {
@@ -93,7 +94,7 @@ class _AppInlineEditTextState extends State<AppInlineEditText> {
     final raw = _controller.text.trim();
     final err = widget.validator?.call(raw);
     if (err != null) {
-      setState(() => _error = err);
+      setState(() => _error = () => widget.validator?.call(raw));
       return;
     }
 
@@ -114,8 +115,9 @@ class _AppInlineEditTextState extends State<AppInlineEditText> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error =
-            widget.errorTextFromError?.call(error) ?? 'Something went wrong.';
+        _error = () =>
+            widget.errorTextFromError?.call(error) ??
+            context.l10n.uiSomethingWentWrong;
       });
     }
   }
@@ -137,7 +139,7 @@ class _AppInlineEditTextState extends State<AppInlineEditText> {
           ),
           AppInlineIconButton(
             icon: Icons.edit,
-            tooltip: 'Edit',
+            tooltip: context.l10n.uiEdit,
             variant: spec.editButtonVariant,
             size: spec.editButtonSize,
             onPressed: widget.enabled ? _startEditing : null,
@@ -148,7 +150,7 @@ class _AppInlineEditTextState extends State<AppInlineEditText> {
 
     final decoration = spec.fieldDecoration.copyWith(
       hintText: widget.hintText,
-      errorText: _error,
+      errorText: _error?.call(),
     );
 
     return Row(
@@ -168,7 +170,7 @@ class _AppInlineEditTextState extends State<AppInlineEditText> {
         ),
         AppInlineIconButton(
           icon: Icons.check,
-          tooltip: 'Save',
+          tooltip: context.l10n.uiSave,
           variant: spec.saveButtonVariant,
           size: spec.actionButtonSize,
           loading: _saving,
@@ -176,7 +178,7 @@ class _AppInlineEditTextState extends State<AppInlineEditText> {
         ),
         AppInlineIconButton(
           icon: Icons.close,
-          tooltip: 'Cancel',
+          tooltip: context.l10n.uiCancel,
           variant: spec.cancelButtonVariant,
           size: spec.actionButtonSize,
           onPressed: _saving ? null : _cancelEditing,

@@ -18,6 +18,8 @@ Instructions for AI coding agents working in `lib/ui/`.
 
 Widgets should stay focused on presentation and orchestration, not backend or gameplay internals.
 
+Player text follows [localization](../../.agent/workflows/change-localization.md).
+
 ## Current Important Areas
 
 - `lib/ui/app/`: `UiApp`, routes, navigation shell, `AppServices` lifetime owner,

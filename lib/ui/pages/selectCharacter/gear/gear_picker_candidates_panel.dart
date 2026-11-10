@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -5,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:game_presentation/game_icon.dart';
+
 import '../../../theme/ui_tokens.dart';
 import 'gear_picker_parts.dart';
 
@@ -38,7 +41,7 @@ class GearPickerCandidatesPanel extends StatelessWidget {
     if (candidates.isEmpty) {
       return Center(
         child: Text(
-          'No options for this slot.',
+          context.l10n.uiNoOptionsForThisSlot,
           style: ui.text.body.copyWith(color: ui.colors.textMuted),
         ),
       );
@@ -130,7 +133,7 @@ class _TownShortcutTile extends StatelessWidget {
                   Icon(Icons.add, color: ui.colors.accentStrong, size: 20),
                   SizedBox(height: ui.space.xxs),
                   Text(
-                    'Town',
+                    context.l10n.uiTown,
                     style: ui.text.label.copyWith(
                       color: ui.colors.textPrimary,
                       fontSize: 10,

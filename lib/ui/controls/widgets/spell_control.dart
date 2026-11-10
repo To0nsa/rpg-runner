@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
@@ -37,7 +38,7 @@ class SpellControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final slot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell);
-    final resolvedLabel = label ?? slot.label;
+    final resolvedLabel = label ?? slot.label(context.l10n);
     final action = tuning.style.actionButton;
     final cooldownRing = tuning.style.cooldownRing;
     return ActionButton(

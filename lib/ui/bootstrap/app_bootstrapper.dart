@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/foundation.dart';
 
 import '../app/app_services.dart';
@@ -37,35 +38,32 @@ class BootstrapResult {
 
   bool get _needsSignIn => error is PlayGamesAuthRequiredException;
 
-  String get errorTitle => switch (stage) {
-    BootstrapStage.services => 'Unable to start the game',
+  String errorTitle(AppLocalizations l10n) => switch (stage) {
+    BootstrapStage.services => l10n.bootstrapStartFailed,
     BootstrapStage.playerData => switch (error) {
-      GameAccountDisabledException() => 'Game account unavailable',
-      PlayGamesAuthRequiredException() => 'Play Games sign-in required',
-      _ => 'Unable to load player data',
+      GameAccountDisabledException() => l10n.bootstrapAccountUnavailable,
+      PlayGamesAuthRequiredException() => l10n.bootstrapSignInRequired,
+      _ => l10n.bootstrapDataFailed,
     },
   };
 
-  String get errorMessage {
+  String errorMessage(AppLocalizations l10n) {
     if (error is GameAccountDisabledException) {
-      return 'This game account is disabled. If you recently deleted it, '
-          'please wait for deletion to finish before signing in again. '
-          'This can take several hours. You can then use the same Play Games '
-          'account to start fresh.';
+      return l10n.bootstrapAccountDisabled;
     }
-    if (_needsSignIn) return (error as PlayGamesAuthRequiredException).message;
+    if (_needsSignIn) return l10n.bootstrapSignInBody;
     if (error is UnsupportedError) {
-      return 'This platform does not support the services required by the game.';
+      return l10n.bootstrapUnsupported;
     }
     return stage == BootstrapStage.services
-        ? 'Game services could not start. Check your connection and try again.'
-        : 'Your player data could not be loaded. Check your connection and try again.';
+        ? l10n.bootstrapServiceFailure
+        : l10n.bootstrapDataFailure;
   }
 
-  String get retryLabel => switch (error) {
-    GameAccountDisabledException() => 'Try again',
-    PlayGamesAuthRequiredException() => 'Retry Play Games sign-in',
-    _ => 'Retry',
+  String retryLabel(AppLocalizations l10n) => switch (error) {
+    GameAccountDisabledException() => l10n.bootstrapRetry,
+    PlayGamesAuthRequiredException() => l10n.bootstrapRetrySignIn,
+    _ => l10n.uiRetry,
   };
 }
 

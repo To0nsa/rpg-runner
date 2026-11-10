@@ -1,3 +1,6 @@
+import '../../text/build_name_text.dart';
+
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -63,9 +66,9 @@ class _PlayHubPageState extends State<PlayHubPage> {
       debugPrint('Run start preparation failed: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Unable to navigate to run start right now. Try again.',
+              context.l10n.uiUnableToNavigateToRunStartRightNowTryAgain,
             ),
           ),
         );
@@ -131,7 +134,10 @@ class _PlayHubPageState extends State<PlayHubPage> {
                 children: [
                   HubTopRow(
                     displayName: profile.displayName.isEmpty
-                        ? 'Guest'
+                        ? context.l10n.uiGuest
+                        : appState.isDeveloperMode &&
+                              profile.displayName == 'Developer'
+                        ? context.l10n.developerIdentity
                         : profile.displayName,
                     gold: gold,
                     rewardRevision: appState.rewardDisplayRevision,
@@ -142,7 +148,11 @@ class _PlayHubPageState extends State<PlayHubPage> {
                   ),
                   SizedBox(height: ui.space.sm),
                   WeeklyBadgeRow(
-                    title: _weeklyBadgeTitle(progression, appState),
+                    title: _weeklyBadgeTitle(
+                      progression,
+                      appState,
+                      context.l10n,
+                    ),
                     isWeeklyLoading:
                         _preparingRunStart &&
                         _runStartSource == _RunStartSource.weekly,
@@ -169,6 +179,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
                           levelId: selection.selectedLevelId,
                           runModeLabel: _runModeLabel(
                             selection.selectedRunMode,
+                            context.l10n,
                           ),
                           onChange: () =>
                               Navigator.of(context)
@@ -176,7 +187,13 @@ class _PlayHubPageState extends State<PlayHubPage> {
                         ),
                         HubSelectCharacterCard(
                           characterId: selection.selectedCharacterId,
-                          buildName: selection.buildName,
+                          buildName: buildDisplayName(
+                            selection.buildName,
+                            selection.selectedBuildIndexFor(
+                              selection.selectedCharacterId,
+                            ),
+                            context.l10n,
+                          ),
                           onChange: () =>
                               Navigator.of(context)
                                   .pushNamed(UiRoutes.selectCharacter),
@@ -206,24 +223,32 @@ class _PlayHubPageState extends State<PlayHubPage> {
 
 enum _RunStartSource { main, weekly }
 
-String _runModeLabel(RunMode runMode) {
+String _runModeLabel(RunMode runMode, AppLocalizations l10n) {
   switch (runMode) {
     case RunMode.practice:
-      return 'PRACTICE';
+      return l10n.uiPracticeHeading;
     case RunMode.competitive:
-      return 'COMPETITIVE';
+      return l10n.uiCompetitiveHeading;
     case RunMode.weekly:
-      return 'WEEKLY';
+      return l10n.uiWeeklyHeading;
   }
 }
 
-String _weeklyBadgeTitle(ProgressionState progression, AppState appState) {
-  if (appState.isDeveloperMode) return 'DEVELOPER MODE • Practice only';
+String _weeklyBadgeTitle(
+  ProgressionState progression,
+  AppState appState,
+  AppLocalizations l10n,
+) {
+  if (appState.isDeveloperMode) return l10n.uiDeveloperModePracticeOnly;
   if (!appState.weeklyFeaturedLevelAvailable) {
-    return 'WEEKLY • Unavailable in this build';
+    return l10n.uiWeeklyUnavailableInThisBuild;
   }
-  final weeklyLevelName = appState.weeklyFeaturedLevelId.displayName
+  final weeklyLevelName = appState.weeklyFeaturedLevelId
+      .localizedName(l10n)
       .toUpperCase();
   final weekly = progression.weekly;
-  return 'WEEKLY ${weekly.currentWindowId} • $weeklyLevelName';
+  return l10n.weeklyBadge(
+    window: weekly.currentWindowId,
+    level: weeklyLevelName,
+  );
 }

@@ -1,3 +1,5 @@
+import '../../l10n/app_localization.dart';
+
 import 'package:flutter/widgets.dart';
 
 import '../../../game/spatial/offscreen_indicators.dart';
@@ -59,13 +61,18 @@ class OffscreenMarker {
   final Rect bearingBounds;
   final int count;
 
-  String get label => offscreenDistanceLabel(indicator.distanceMeters, count);
+  String label(AppLocalizations l10n) =>
+      offscreenDistanceLabel(indicator.distanceMeters, count, l10n);
 }
 
 /// Whole metres avoid busy decimals; positive sub-metre gaps never read as zero.
-String offscreenDistanceLabel(double meters, int count) {
-  final distance = meters < 1 ? '<1 m' : '${meters.floor()} m';
-  return count > 1 ? '×$count · $distance' : distance;
+String offscreenDistanceLabel(double meters, int count, AppLocalizations l10n) {
+  final distance = meters < 1
+      ? l10n.offscreenNearby
+      : l10n.offscreenDistance(meters: meters.floor());
+  return count > 1
+      ? l10n.offscreenGroup(count: count, distance: distance)
+      : distance;
 }
 
 /// Keeps labels inside [safeBounds] and clear of measured HUD/control bounds.
@@ -78,6 +85,7 @@ List<OffscreenMarker> layoutOffscreenIndicators({
   required Rect safeBounds,
   required List<Rect> exclusions,
   required Size Function(String label) measure,
+  required AppLocalizations l10n,
 }) {
   final area = safeBounds.intersect(viewport.visible).deflate(4);
   if (area.isEmpty) return const [];
@@ -90,7 +98,9 @@ List<OffscreenMarker> layoutOffscreenIndicators({
   final placed = <OffscreenMarker>[];
   for (final indicator in sorted) {
     final point = viewport.toScreen(indicator.anchor);
-    final size = measure(offscreenDistanceLabel(indicator.distanceMeters, 1));
+    final size = measure(
+      offscreenDistanceLabel(indicator.distanceMeters, 1, l10n),
+    );
     final ideal = _idealRect(indicator.edge, point, size, area);
     final desired = _findSlot(ideal, area, exclusions);
     var groupIndex = -1;
@@ -121,8 +131,9 @@ List<OffscreenMarker> layoutOffscreenIndicators({
       final expanded = Rect.fromLTWH(
         group.bounds.left,
         group.bounds.top,
-        measure(offscreenDistanceLabel(group.indicator.distanceMeters, count))
-            .width,
+        measure(
+          offscreenDistanceLabel(group.indicator.distanceMeters, count, l10n),
+        ).width,
         group.bounds.height,
       );
       final groupSlot = _findSlot(expanded, area, [

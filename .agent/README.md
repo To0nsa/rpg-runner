@@ -49,6 +49,7 @@ rules even when the source owner's instructions are outside that path's ancestry
 | Multiple milestones, resuming work, or authorized collaboration | [Coordinate work](workflows/coordinate-work.md) |
 | Wire payload, callable, persistence or settlement change | [Change a cross-layer contract](workflows/change-cross-layer-contract.md) |
 | Shared editor/Admin presentation or operator gifts | [Change shared tools](workflows/change-shared-tools.md) |
+| Player text, translations or language behavior | [Change localization](workflows/change-localization.md) |
 | Add/reorder a simulation system | [Add Core system](workflows/add-core-system.md) |
 | Add persistent ECS state | [Create ECS component](workflows/create-ecs-component.md) |
 | Command/tick/order/determinism change | [Change simulation contract](workflows/change-core-simulation-contract.md) |

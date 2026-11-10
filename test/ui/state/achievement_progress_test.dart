@@ -1,10 +1,13 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:rpg_runner/ui/pages/achievements/achievement_presentation.dart';
 import 'package:rpg_runner/ui/state/ownership/achievement_progress.dart';
 
 import '../../support/achievement_fixtures.dart';
 
 void main() {
+  setUpAll(() => initializeDateFormatting());
   test(
     'decodes producer fixtures and preserves confirmation dates after claims',
     () {
@@ -23,12 +26,18 @@ void main() {
         earned.entries[1].tiers.first.achievedAtMs,
       );
       expect(
-        achievementDate(claimed.entries[1].tiers.first.achievedAtMs!),
-        '30 Oct 2026 (UTC)',
+        achievementDate(
+          claimed.entries[1].tiers.first.achievedAtMs!,
+          appStringsFor(null),
+        ),
+        'Oct 30, 2026 (UTC)',
       );
       expect(
-        achievementDate(claimed.entries[1].tiers.first.claimedAtMs!),
-        '31 Oct 2026 (UTC)',
+        achievementDate(
+          claimed.entries[1].tiers.first.claimedAtMs!,
+          appStringsFor(null),
+        ),
+        'Oct 31, 2026 (UTC)',
       );
       expect(claimed.toJson(), achievementFixture('claimed'));
     },

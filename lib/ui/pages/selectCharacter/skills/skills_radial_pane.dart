@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -111,7 +113,7 @@ class _ActionSlotButton extends StatelessWidget {
       ),
     );
     final button = ActionButton(
-      label: slotVisual.label,
+      label: slotVisual.label(context.l10n),
       icon: abilityRadialLayoutSpec.iconFor(slot, abilityId: abilityId),
       resources: resources,
       onPressed: () => onSelectSlot(slot),

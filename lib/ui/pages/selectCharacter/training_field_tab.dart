@@ -1,3 +1,6 @@
+import 'package:game_presentation/enemy_text.dart';
+import 'package:game_presentation/game_localization.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -338,8 +341,13 @@ class _TrainingFieldTabState extends State<TrainingFieldTab>
                   resourcesTrailing: IconButton(
                     key: const ValueKey('training-enemy-settings'),
                     tooltip: _selectedEnemy == null
-                        ? 'Choose training opponent'
-                        : 'Opponent: ${_selectedEnemy!.displayName}',
+                        ? context.l10n.uiChooseTrainingOpponent
+                        : context.l10n.trainingOpponent(
+                            enemy: enemyDisplayName(
+                              _selectedEnemy!,
+                              strings: context.gameL10n,
+                            ),
+                          ),
                     onPressed: snapshot.gameOver ? null : _chooseEnemy,
                     icon: const Icon(LucideIcons.skull),
                   ),
@@ -350,14 +358,14 @@ class _TrainingFieldTabState extends State<TrainingFieldTab>
                     key: const ValueKey('training-reset'),
                     onPressed: _reset,
                     icon: const Icon(Icons.restart_alt),
-                    label: const Text('Reset'),
+                    label: Text(context.l10n.uiReset),
                   ),
                 )
               else if (session.ready && snapshot.paused && !_modal)
                 Center(
                   child: FilledButton(
                     onPressed: _resume,
-                    child: const Text('Resume'),
+                    child: Text(context.l10n.uiResume),
                   ),
                 ),
               if (!session.ready && !session.failed && !_hostFailed)
@@ -366,7 +374,7 @@ class _TrainingFieldTabState extends State<TrainingFieldTab>
                 Center(
                   child: FilledButton(
                     onPressed: _reset,
-                    child: const Text('Retry loading Training Field'),
+                    child: Text(context.l10n.uiRetryLoadingTrainingField),
                   ),
                 ),
             ],

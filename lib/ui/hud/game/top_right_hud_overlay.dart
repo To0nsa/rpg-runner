@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../game/game_controller.dart';
@@ -45,7 +46,7 @@ class TopRightHudOverlay extends StatelessWidget {
             HudIconButton(
               onPressed: onExit,
               icon: Icons.close,
-              tooltip: 'Exit game',
+              tooltip: context.l10n.exitGameTooltip,
             ),
           ],
         ],

@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/projectiles/projectile_id.dart';
@@ -13,7 +14,7 @@ Future<void> showProjectileSourceDialog(
   required List<ProjectileSourceOption> options,
   required ProjectileId? initialSelection,
   required ValueChanged<ProjectileId?> onSelect,
-  String title = 'Select Projectile Source',
+  String? title,
 }) {
   return showDialog<void>(
     context: context,
@@ -29,7 +30,7 @@ Future<void> showProjectileSourceDialog(
           .toDouble();
 
       return _ProjectileSourceDialog(
-        title: title,
+        title: title ?? dialogContext.l10n.uiSelectProjectileSource,
         options: options,
         initialSelection: initialSelection,
         maxWidth: maxWidth,
@@ -143,7 +144,7 @@ class _ProjectileSourceDialogState extends State<_ProjectileSourceDialog> {
               Align(
                 alignment: Alignment.centerRight,
                 child: AppButton(
-                  label: 'Close',
+                  label: context.l10n.uiClose,
                   variant: AppButtonVariant.secondary,
                   size: AppButtonSize.xs,
                   onPressed: () => Navigator.of(context).pop(),

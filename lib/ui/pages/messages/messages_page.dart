@@ -1,3 +1,6 @@
+import 'package:intl/intl.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:game_presentation/catalog_gift.dart';
 
 import 'dart:async';
@@ -45,7 +48,7 @@ class _MessagesPageState extends State<MessagesPage> {
       if (mounted && _selectedId == message.id) {
         setState(
           () => _actionError =
-              'Unable to mark this message as read. Please try again.',
+              context.l10n.uiUnableToMarkThisMessageAsReadPleaseTryAgain,
         );
       }
     }
@@ -58,7 +61,9 @@ class _MessagesPageState extends State<MessagesPage> {
     } catch (_) {
       if (mounted && _selectedId == message.id) {
         setState(
-          () => _actionError = 'Unable to confirm the claim. Please try again. Your gift can only be claimed once.',
+          () => _actionError = context
+              .l10n
+              .uiUnableToConfirmTheClaimPleaseTryAgainYourGiftCanOnlyBeClaimedOnce,
         );
       }
     }
@@ -77,7 +82,8 @@ class _MessagesPageState extends State<MessagesPage> {
     } catch (_) {
       if (mounted && _selectedId == message.id) {
         setState(
-          () => _actionError = 'Unable to confirm deletion. Please try again.',
+          () => _actionError =
+              context.l10n.uiUnableToConfirmDeletionPleaseTryAgain,
         );
       }
     }
@@ -91,7 +97,7 @@ class _MessagesPageState extends State<MessagesPage> {
         .where((message) => message.id == _selectedId)
         .firstOrNull;
     return MenuScaffold(
-      title: 'Messages',
+      title: context.l10n.uiMessages,
       child: SafeArea(
         top: false,
         child: Padding(
@@ -104,7 +110,7 @@ class _MessagesPageState extends State<MessagesPage> {
           child: !app.inboxAvailable
               ? Center(
                   child: Text(
-                    'Messages are unavailable in this profile.',
+                    context.l10n.uiMessagesAreUnavailableInThisProfile,
                     style: ui.text.body,
                   ),
                 )
@@ -113,13 +119,16 @@ class _MessagesPageState extends State<MessagesPage> {
                     Row(
                       children: [
                         Expanded(
-                          child: Text('Game messages', style: ui.text.headline),
+                          child: Text(
+                            context.l10n.uiGameMessages,
+                            style: ui.text.headline,
+                          ),
                         ),
                         GoldDisplay(gold: app.displayedGold),
                         SizedBox(width: ui.space.sm),
                         AppIconButton(
                           icon: Icons.refresh,
-                          tooltip: 'Refresh messages',
+                          tooltip: context.l10n.uiRefreshMessages,
                           onPressed: app.inboxLoading
                               ? null
                               : () => app.loadInbox(),
@@ -133,12 +142,12 @@ class _MessagesPageState extends State<MessagesPage> {
                           children: [
                             Expanded(
                               child: Text(
-                                app.inboxLoadError!,
+                                context.l10n.inboxLoadFailed,
                                 style: ui.text.body,
                               ),
                             ),
                             AppButton(
-                              label: 'Retry',
+                              label: context.l10n.uiRetry,
                               size: AppButtonSize.sm,
                               onPressed: app.inboxLoading
                                   ? null
@@ -157,15 +166,19 @@ class _MessagesPageState extends State<MessagesPage> {
                                       children: [
                                         Text(
                                           app.inboxHasMore
-                                              ? 'More messages are available.'
+                                              ? context
+                                                    .l10n
+                                                    .uiMoreMessagesAreAvailable
                                               : app.inboxLoadError == null
-                                              ? 'No messages yet.'
-                                              : 'Your messages will appear here.',
+                                              ? context.l10n.uiNoMessagesYet
+                                              : context
+                                                    .l10n
+                                                    .uiYourMessagesWillAppearHere,
                                           style: ui.text.body,
                                         ),
                                         if (app.inboxHasMore)
                                           AppButton(
-                                            label: 'Load more',
+                                            label: context.l10n.uiLoadMore,
                                             onPressed: () =>
                                                 app.loadInbox(more: true),
                                           ),
@@ -186,8 +199,8 @@ class _MessagesPageState extends State<MessagesPage> {
                                       if (index == app.inboxMessages.length) {
                                         return AppButton(
                                           label: app.inboxLoading
-                                              ? 'Loading…'
-                                              : 'Load more',
+                                              ? context.l10n.uiLoadingLabel
+                                              : context.l10n.uiLoadMore,
                                           onPressed: app.inboxLoading
                                               ? null
                                               : () => app.loadInbox(more: true),
@@ -214,7 +227,9 @@ class _MessagesPageState extends State<MessagesPage> {
                                     child: selected == null
                                         ? Center(
                                             child: Text(
-                                              'Select a message to read it.',
+                                              context
+                                                  .l10n
+                                                  .uiSelectAMessageToReadIt,
                                               style: ui.text.body,
                                             ),
                                           )
@@ -230,14 +245,27 @@ class _MessagesPageState extends State<MessagesPage> {
                                                             .start,
                                                     children: [
                                                       Text(
-                                                        selected.title,
+                                                        selected
+                                                            .textFor(
+                                                              context
+                                                                  .l10n
+                                                                  .localeName,
+                                                            )
+                                                            .title,
                                                         style: ui.text.headline,
                                                       ),
                                                       SizedBox(
                                                         height: ui.space.xxs,
                                                       ),
                                                       Text(
-                                                        'Game · ${_messageDate(selected.createdAtMs)}',
+                                                        context.l10n
+                                                            .messageHeader(
+                                                              date: _messageDate(
+                                                                selected
+                                                                    .createdAtMs,
+                                                                context.l10n,
+                                                              ),
+                                                            ),
                                                         style: ui
                                                             .text
                                                             .cardSubtitle,
@@ -246,7 +274,13 @@ class _MessagesPageState extends State<MessagesPage> {
                                                         height: ui.space.md,
                                                       ),
                                                       Text(
-                                                        selected.body,
+                                                        selected
+                                                            .textFor(
+                                                              context
+                                                                  .l10n
+                                                                  .localeName,
+                                                            )
+                                                            .body,
                                                         style: ui.text.body,
                                                       ),
                                                       SizedBox(
@@ -257,11 +291,19 @@ class _MessagesPageState extends State<MessagesPage> {
                                                             ? selected
                                                                       .attachments
                                                                       .isEmpty
-                                                                  ? 'Claim your gold before deleting this message. Unclaimed gold does not expire.'
-                                                                  : 'Claim your gifts before deleting this message. Unclaimed gifts do not expire.'
+                                                                  ? context
+                                                                        .l10n
+                                                                        .uiClaimYourGoldBeforeDeletingThisMessageUnclaimedGoldDoesNotExpire
+                                                                  : context
+                                                                        .l10n
+                                                                        .uiClaimYourGiftsBeforeDeletingThisMessageUnclaimedGiftsDoNotExpire
                                                             : selected.hasReward
-                                                            ? 'Automatically removed 30 days after claiming.'
-                                                            : 'Automatically removed 30 days after reading.',
+                                                            ? context
+                                                                  .l10n
+                                                                  .uiAutomaticallyRemoved30DaysAfterClaiming
+                                                            : context
+                                                                  .l10n
+                                                                  .uiAutomaticallyRemoved30DaysAfterReading,
                                                         style: ui
                                                             .text
                                                             .cardSubtitle,
@@ -274,7 +316,9 @@ class _MessagesPageState extends State<MessagesPage> {
                                                           .attachments
                                                           .isNotEmpty)
                                                         Text(
-                                                          'Already-owned gifts grant no duplicate unlock or compensation.',
+                                                          context
+                                                              .l10n
+                                                              .uiAlreadyOwnedGiftsGrantNoDuplicateUnlockOrCompensation,
                                                           style: ui
                                                               .text
                                                               .cardSubtitle,
@@ -290,8 +334,9 @@ class _MessagesPageState extends State<MessagesPage> {
                                                         ),
                                                         if (selected.isUnread)
                                                           AppButton(
-                                                            label:
-                                                                'Retry reading',
+                                                            label: context
+                                                                .l10n
+                                                                .uiRetryReading,
                                                             size: AppButtonSize
                                                                 .sm,
                                                             onPressed:
@@ -328,9 +373,15 @@ class _MessagesPageState extends State<MessagesPage> {
                                                           ? app.inboxMessageBusy(
                                                                   selected.id,
                                                                 )
-                                                                ? 'Please wait…'
-                                                                : 'Claim'
-                                                          : 'Claimed',
+                                                                ? context
+                                                                      .l10n
+                                                                      .uiPleaseWait
+                                                                : context
+                                                                      .l10n
+                                                                      .uiClaim
+                                                          : context
+                                                                .l10n
+                                                                .uiClaimed,
                                                       size: AppButtonSize.sm,
                                                       onPressed:
                                                           selected.canClaim &&
@@ -342,7 +393,9 @@ class _MessagesPageState extends State<MessagesPage> {
                                                           : null,
                                                     ),
                                                   AppButton(
-                                                    label: 'Delete message',
+                                                    label: context
+                                                        .l10n
+                                                        .uiDeleteMessage,
                                                     size: AppButtonSize.sm,
                                                     variant: AppButtonVariant
                                                         .secondary,
@@ -385,9 +438,9 @@ class _MessageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final state = [
-      if (message.isUnread) 'Unread',
-      if (message.canClaim) 'Gift available',
-      if (message.hasReward && !message.canClaim) 'Claimed',
+      if (message.isUnread) context.l10n.uiUnread,
+      if (message.canClaim) context.l10n.uiGiftAvailable,
+      if (message.hasReward && !message.canClaim) context.l10n.uiClaimed,
     ].join(' · ');
     return Semantics(
       selected: selected,
@@ -409,7 +462,7 @@ class _MessageTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  message.title,
+                  message.textFor(context.l10n.localeName).title,
                   style: ui.text.body.copyWith(
                     fontWeight: message.isUnread
                         ? FontWeight.w700
@@ -420,14 +473,19 @@ class _MessageTile extends StatelessWidget {
                 ),
                 SizedBox(height: ui.space.xxs),
                 Text(
-                  _messageDate(message.createdAtMs),
+                  _messageDate(message.createdAtMs, context.l10n),
                   style: ui.text.cardSubtitle,
                 ),
                 if (message.goldAmount > 0)
-                  Text('${message.goldAmount} gold', style: ui.text.body),
+                  Text(
+                    context.l10n.goldAmount(gold: message.goldAmount),
+                    style: ui.text.body,
+                  ),
                 if (message.attachments.isNotEmpty)
                   Text(
-                    '${message.attachments.length} item / skill gifts',
+                    context.l10n.messageGiftCount(
+                      count: message.attachments.length,
+                    ),
                     style: ui.text.body,
                   ),
                 if (state.isNotEmpty)
@@ -464,9 +522,9 @@ class _MessagePanel extends StatelessWidget {
   }
 }
 
-String _messageDate(int milliseconds) {
+String _messageDate(int milliseconds, AppLocalizations l10n) {
   final date = DateTime.fromMillisecondsSinceEpoch(milliseconds).toLocal();
-  return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  return DateFormat.yMd(l10n.localeName).format(date);
 }
 
 /// Attachment artwork and names are shared with loadout screens and Admin.
@@ -480,7 +538,12 @@ class _GiftRow extends StatelessWidget {
       children: [
         gift.item.icon(size: 32),
         SizedBox(width: context.ui.space.sm),
-        Expanded(child: Text(gift.label, style: context.ui.text.body)),
+        Expanded(
+          child: Text(
+            gift.label(context.gameL10n),
+            style: context.ui.text.body,
+          ),
+        ),
       ],
     ),
   );

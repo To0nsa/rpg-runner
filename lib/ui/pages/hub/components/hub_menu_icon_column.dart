@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../components/menu_icon_column.dart';
@@ -26,29 +27,29 @@ class HubMenuIconColumn extends StatelessWidget {
     final actions = <MenuIconAction>[
       MenuIconAction(
         icon: Icons.castle,
-        tooltip: 'Town',
+        tooltip: context.l10n.uiTown,
         onPressed: onTownPressed,
       ),
       MenuIconAction(
         icon: Icons.person,
-        tooltip: 'Profile',
+        tooltip: context.l10n.uiProfile,
         onPressed: onProfilePressed,
       ),
       MenuIconAction(
         icon: Icons.leaderboard,
-        tooltip: 'Top',
+        tooltip: context.l10n.uiTop,
         onPressed: onLeaderboardsPressed,
       ),
       MenuIconAction(
         icon: Icons.message,
-        tooltip: 'Messages',
+        tooltip: context.l10n.uiMessages,
         needsAttention: messagesNeedAttention,
-        attentionLabel: 'Unread messages or unclaimed gifts',
+        attentionLabel: context.l10n.uiUnreadMessagesOrUnclaimedGifts,
         onPressed: onMessagesPressed,
       ),
       MenuIconAction(
         icon: Icons.settings,
-        tooltip: 'Options',
+        tooltip: context.l10n.uiOptions,
         onPressed: onOptionsPressed,
       ),
     ];

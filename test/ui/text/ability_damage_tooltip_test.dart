@@ -7,7 +7,7 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:rpg_runner/ui/text/ability_tooltip_builder.dart';
 
 void main() {
-  const builder = DefaultAbilityTooltipBuilder();
+  final builder = DefaultAbilityTooltipBuilder.forLocale(null);
 
   test('bombs explain farthest-target throws, contact/fuse and Supplies', () {
     for (final name in [

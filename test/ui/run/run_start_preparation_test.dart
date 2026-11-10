@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -82,7 +84,7 @@ void main() {
       addTearDown(app.dispose);
       addTearDown(preparation.dispose);
       expect(await preparation.prepare(), isNull);
-      expect(preparation.errorMessage, isNotNull);
+      expect(preparation.errorMessage(appStringsFor(null)), isNotNull);
       app.fail = false;
       expect(await preparation.prepare(), same(_descriptor));
       expect(preparation.error, isNull);

@@ -2,6 +2,14 @@
 
 A Flutter + Flame action runner focused on deterministic gameplay architecture.
 
+Player presentation supports English (source/default/fallback) and French,
+using **tu**. Options persists language per device independently of accounts.
+See [localization authoring](docs/localization.md), the
+[French glossary](docs/localization-glossary.md) and
+[architecture](docs/tdd/localization.md). After changing text, run
+`dart run tool/localization.dart generate` and
+`dart run tool/localization.dart check` from the root workspace.
+
 The game checkout lives at `C:\dev\Lothringen\long-run`. Shared world and brand
 references live in `..\Brand`, and the tabletop line lives in
 `..\les-soleils-dor`. The game keeps its own Git repository inside the parent
@@ -61,7 +69,7 @@ dev, staging and production apps. Its final candidate and Play release are pendi
 - Reusable world interactions with a Forest regeneration shrine, persistent fire,
   and level-duration resource bonuses; [manual configuration](docs/tdd/world_interactions.md)
 - Gear/loadout setup flow before runs
-- Théodonis Town map with Store and [Library/Codex](docs/gdd/codex.md): enemy
+- Théodonis Town map with [Equipment and Training](docs/gdd/town_services.md) and [Library/Codex](docs/gdd/codex.md): enemy
   discoveries after 10 kills (5 for bosses), level lore at 10,000 Competitive
   points per level, and Éloïse's opening journal; progress is replay-validated
   and saved to the account

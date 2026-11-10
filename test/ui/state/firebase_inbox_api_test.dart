@@ -1,3 +1,4 @@
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/ui/state/inbox/firebase_inbox_api.dart';
 import 'package:rpg_runner/ui/state/inbox/inbox_models.dart';
@@ -72,9 +73,9 @@ void main() {
       ],
     });
     expect(decoded.goldAmount, 20);
-    expect(decoded.attachments.map((e) => e.label), [
+    expect(decoded.attachments.map((e) => e.label(gameStringsFor(null))), [
       'Waspfang',
-      'Arcane Ward · eloiseWip',
+      'Arcane Ward · Éloïse',
     ]);
     expect(decoded.canClaim, isTrue);
     expect(

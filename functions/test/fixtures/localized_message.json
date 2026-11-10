@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "localized-level-2",
+  "uid": "player",
+  "sourceId": "level:2",
+  "title": "Level 2 reached",
+  "body": "You have reached level 2. Your gold reward is ready to claim.",
+  "localization": {
+    "schemaVersion": 1,
+    "translations": {
+      "fr": {"title": "Niveau 2 atteint", "body": "Tu as atteint le niveau 2. Tu peux récupérer ta récompense en or."}
+    }
+  },
+  "createdAtMs": 1793404800000,
+  "readAtMs": null,
+  "claimedAtMs": null,
+  "rewards": [{"kind": "gold", "amount": 25}]
+}

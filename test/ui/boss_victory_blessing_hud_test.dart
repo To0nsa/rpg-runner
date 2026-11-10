@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 import 'package:rpg_runner/ui/hud/game/boss_arena_hud.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 
 import '../../packages/runner_core/test/test_support/boss_victory_fixture.dart';
 
@@ -14,14 +15,28 @@ void main() {
     final controller = GameController(core: core);
     addTearDown(controller.dispose);
     final duration = controller.snapshot.bossVictoryBlessing!.durationTicks;
+    final locale = ValueNotifier(const Locale('en'));
+    addTearDown(locale.dispose);
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: BossArenaHud(controller: controller)),
+      ValueListenableBuilder(
+        valueListenable: locale,
+        builder: (context, value, _) => MaterialApp(
+          locale: value,
+          localizationsDelegates: RunnerLocalizations.delegates,
+          supportedLocales: RunnerLocalizations.supportedLocales,
+          home: Scaffold(body: BossArenaHud(controller: controller)),
+        ),
       ),
     );
     const title = 'Bénédiction des Dames de la forêt';
     expect(find.text(title), findsOneWidget);
-    expect(find.text('+100 % santé · mana · endurance'), findsOneWidget);
+    expect(find.text('+100% health · mana · stamina'), findsOneWidget);
+    final beforeLanguageChange = core.tick;
+    locale.value = const Locale('fr');
+    await tester.pumpAndSettle();
+    expect(find.text('+100 % santé · mana · endurance'), findsOneWidget);
+    expect(core.tick, beforeLanguageChange);
+    expect(controller.snapshot.bossVictoryBlessing, isNotNull);
     expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(tester.takeException(), isNull);
 

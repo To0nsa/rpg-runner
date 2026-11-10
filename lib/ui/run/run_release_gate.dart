@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -64,7 +65,9 @@ class _RunReleaseGateState extends State<RunReleaseGate> {
     setState(() {
       _opening = false;
       if (!opened) {
-        _linkError = 'Unable to open the link. Try again or contact lothringen.rpg@gmail.com.';
+        _linkError = context.l10n.supportLinkFailed(
+          email: 'lothringen.rpg@gmail.com',
+        );
       }
     });
   }
@@ -77,17 +80,23 @@ class _RunReleaseGateState extends State<RunReleaseGate> {
       mainAxisSize: MainAxisSize.min,
       children: [
         LoaderContent(
-          errorTitle: update ? 'Update required' : 'Maintenance',
-          errorMessage: RunStartPreparation.messageFor(widget.error),
-          continueLabel: update ? 'Open Google Play' : 'Try again',
+          errorTitle: update
+              ? context.l10n.updateRequiredTitle
+              : context.l10n.maintenanceTitle,
+          errorMessage: RunStartPreparation.messageFor(
+            widget.error,
+            context.l10n,
+          ),
+          continueLabel: update
+              ? context.l10n.openGooglePlay
+              : context.l10n.bootstrapRetry,
           onContinue: _opening
               ? null
               : update
               ? (store == null ? null : () => _open(store))
               : widget.onRetry,
         ),
-        if (update && store == null)
-          const Text('Install the current build for this environment.'),
+        if (update && store == null) Text(context.l10n.installCurrentBuild),
         if (_linkError != null) Text(_linkError!, textAlign: TextAlign.center),
         TextButton(
           onPressed: _opening
@@ -95,7 +104,7 @@ class _RunReleaseGateState extends State<RunReleaseGate> {
               : () => _open(
                   Uri(scheme: 'mailto', path: 'lothringen.rpg@gmail.com'),
                 ),
-          child: const Text('Contact support'),
+          child: Text(context.l10n.contactSupport),
         ),
       ],
     );

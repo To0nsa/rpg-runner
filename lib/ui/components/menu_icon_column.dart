@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'app_icon_button.dart';
@@ -18,11 +19,11 @@ class MenuIconColumn extends StatelessWidget {
           selected: action.selected,
           child: AttentionMarker(
             visible: action.needsAttention,
-            semanticLabel: action.attentionLabel,
+            semanticLabel: action.attentionLabel ?? context.l10n.uiNewActivity,
             child: AppIconButton(
-            icon: action.icon,
-            tooltip: action.tooltip,
-            onPressed: action.onPressed,
+              icon: action.icon,
+              tooltip: action.tooltip,
+              onPressed: action.onPressed,
             ),
           ),
         ),
@@ -37,12 +38,12 @@ class MenuIconAction {
     required this.onPressed,
     this.selected,
     this.needsAttention = false,
-    this.attentionLabel = 'New activity',
+    this.attentionLabel,
   });
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
   final bool? selected;
   final bool needsAttention;
-  final String attentionLabel;
+  final String? attentionLabel;
 }

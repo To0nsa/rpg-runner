@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../components/app_button.dart';
@@ -33,7 +34,7 @@ class PauseOverlay extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Want to exit?',
+                        context.l10n.exitRunQuestion,
                         style: ui.text.title.copyWith(
                           color: ui.colors.textPrimary,
                           fontSize: 22,
@@ -45,14 +46,14 @@ class PauseOverlay extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           AppButton(
-                            label: 'Resume',
+                            label: context.l10n.commonResume,
                             variant: AppButtonVariant.secondary,
                             size: AppButtonSize.xs,
                             onPressed: onResume,
                           ),
                           SizedBox(width: ui.space.sm),
                           AppButton(
-                            label: 'Exit',
+                            label: context.l10n.commonExit,
                             variant: AppButtonVariant.secondary,
                             size: AppButtonSize.xs,
                             onPressed: onExit,

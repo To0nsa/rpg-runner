@@ -10,6 +10,7 @@ import '../../firebase_crash_reporting.dart';
 import '../state/app/app_state.dart';
 import '../state/inbox/firebase_inbox_api.dart';
 import '../state/settings/control_settings.dart';
+import '../state/settings/locale_settings.dart';
 import '../state/developer/developer_profile_store.dart';
 import '../state/auth/firebase_auth_api.dart';
 import '../state/boards/firebase_ghost_api.dart';
@@ -28,6 +29,7 @@ import 'app_services.dart';
 /// the saved mode. Online clients require Firebase and App Check initialization.
 AppServices createAppServices() => AppServices(
   controlSettingsStore: SharedPrefsControlSettingsStore(),
+  localeSettingsStore: SharedPrefsLocaleSettingsStore(),
   developerProfileStore: kDebugMode ? SharedPrefsDeveloperProfileStore() : null,
   startInDeveloperMode:
       kDebugMode && const bool.fromEnvironment('DEVELOPER_PRACTICE'),

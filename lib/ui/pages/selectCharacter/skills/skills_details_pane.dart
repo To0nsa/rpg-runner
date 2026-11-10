@@ -1,9 +1,14 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
+
 import '../../../components/app_button.dart';
+
 import 'package:game_presentation/game_icon.dart';
 import 'package:game_presentation/ability_text.dart';
+
 import '../../../text/ability_tooltip_builder.dart';
 import '../../../text/semantic_text.dart';
 import '../../../theme/ui_tokens.dart';
@@ -61,7 +66,7 @@ class _AbilityDetailsPane extends StatelessWidget {
         children: [
           if (selectedCandidate == null) ...[
             Text(
-              'No ability available for this slot.',
+              context.l10n.uiNoAbilityAvailableForThisSlot,
               style: ui.text.body.copyWith(color: ui.colors.textMuted),
             ),
           ] else if (!selectedCandidate!.isOwned) ...[
@@ -71,7 +76,7 @@ class _AbilityDetailsPane extends StatelessWidget {
             ),
           ] else if (tooltip == null) ...[
             Text(
-              'No ability details available right now.',
+              context.l10n.uiNoAbilityDetailsAvailableRightNow,
               style: ui.text.body.copyWith(color: ui.colors.textMuted),
             ),
           ] else ...[
@@ -87,9 +92,10 @@ class _AbilityDetailsPane extends StatelessWidget {
             if (tooltip!.cooldownSeconds != null) ...[
               SizedBox(height: ui.space.xxs),
               _DetailsMetricLine(
-                label: 'Cooldown: ',
-                value:
-                    '${_formatCooldownSeconds(tooltip!.cooldownSeconds!)} seconds',
+                label: context.l10n.uiCooldown,
+                value: context.gameL10n.durationSeconds(
+                  seconds: (tooltip!.cooldownSeconds! * 10).round() / 10,
+                ),
               ),
             ],
             if (tooltip!.costLines.isNotEmpty) ...[
@@ -104,9 +110,10 @@ class _AbilityDetailsPane extends StatelessWidget {
             if (tooltip!.maxDurationSeconds != null) ...[
               SizedBox(height: ui.space.xxs),
               _DetailsMetricLine(
-                label: 'Max duration: ',
-                value:
-                    '${_formatCooldownSeconds(tooltip!.maxDurationSeconds!)} seconds',
+                label: context.l10n.uiMaxDuration,
+                value: context.gameL10n.durationSeconds(
+                  seconds: (tooltip!.maxDurationSeconds! * 10).round() / 10,
+                ),
               ),
             ],
             SizedBox(height: ui.space.xxs),
@@ -167,7 +174,7 @@ class _LockedAbilityDetailsPane extends StatelessWidget {
             SizedBox(width: ui.space.sm),
             Expanded(
               child: Text(
-                abilityDisplayName(abilityId),
+                abilityDisplayName(abilityId, strings: context.gameL10n),
                 style: ui.text.headline.copyWith(color: ui.colors.textPrimary),
               ),
             ),
@@ -175,14 +182,14 @@ class _LockedAbilityDetailsPane extends StatelessWidget {
         ),
         SizedBox(height: ui.space.xs),
         Text(
-          'Unlock this skill in Town to view full details.',
+          context.l10n.uiUnlockThisSkillInTownToViewFullDetails,
           style: ui.text.body.copyWith(color: ui.colors.textMuted),
         ),
         SizedBox(height: ui.space.sm),
         Align(
           alignment: Alignment.centerLeft,
           child: AppButton(
-            label: 'Find in Town',
+            label: context.l10n.uiFindInTown,
             variant: AppButtonVariant.secondary,
             size: AppButtonSize.sm,
             onPressed: onFindInTown,
@@ -218,10 +225,6 @@ class _DetailsMetricLine extends StatelessWidget {
       ),
     );
   }
-}
-
-String _formatCooldownSeconds(double seconds) {
-  return seconds.toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '');
 }
 
 class _AbilityBadge extends StatelessWidget {

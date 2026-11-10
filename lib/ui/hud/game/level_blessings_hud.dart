@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:runner_core/interactions/level_blessing.dart';
 
@@ -26,7 +27,8 @@ class LevelBlessingsHud extends StatelessWidget {
         for (final blessing in blessings)
           Semantics(
             label: switch (blessing.id) {
-              LevelBlessingId.regeneration => 'Bénédiction des Dames de la forêt : régénération de santé, de mana et d’endurance augmentée jusqu’à la fin du niveau',
+              LevelBlessingId.regeneration =>
+                context.l10n.regenerationBlessingSemantics,
             },
             child: ExcludeSemantics(
               child: Row(
@@ -42,8 +44,8 @@ class LevelBlessingsHud extends StatelessWidget {
                     switch (blessing.id) {
                       LevelBlessingId.regeneration =>
                         tick - blessing.grantedAtTick < tickHz * 2
-                            ? 'Regeneration increased'
-                            : 'Bénédiction des Dames de la forêt',
+                            ? context.l10n.regenerationIncreased
+                            : context.l10n.forestBlessingName,
                     },
                     style: ui.text.body.copyWith(
                       fontSize: 11,

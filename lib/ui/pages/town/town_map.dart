@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -13,11 +15,13 @@ class TownMap extends StatelessWidget {
   const TownMap({
     super.key,
     required this.onStorePressed,
+    required this.onTrainingPressed,
     required this.onLibraryPressed,
     required this.onAchievementsPressed,
     this.hasAchievementRewards = false,
   });
   final VoidCallback onStorePressed;
+  final VoidCallback onTrainingPressed;
   final VoidCallback onLibraryPressed;
   final VoidCallback onAchievementsPressed;
   final bool hasAchievementRewards;
@@ -28,6 +32,7 @@ class TownMap extends StatelessWidget {
     builder: (context, constraints) => _TownMapViewport(
       viewport: constraints.biggest,
       onStorePressed: onStorePressed,
+      onTrainingPressed: onTrainingPressed,
       onLibraryPressed: onLibraryPressed,
       onAchievementsPressed: onAchievementsPressed,
       hasAchievementRewards: hasAchievementRewards,
@@ -39,12 +44,13 @@ class _TownMapViewport extends StatefulWidget {
   const _TownMapViewport({
     required this.viewport,
     required this.onStorePressed,
+    required this.onTrainingPressed,
     required this.onLibraryPressed,
     required this.onAchievementsPressed,
     required this.hasAchievementRewards,
   });
   final Size viewport;
-  final VoidCallback onStorePressed, onLibraryPressed;
+  final VoidCallback onStorePressed, onLibraryPressed, onTrainingPressed;
   final VoidCallback onAchievementsPressed;
   final bool hasAchievementRewards;
 
@@ -94,13 +100,20 @@ class _TownMapViewportState extends State<_TownMapViewport> {
     final ui = context.ui;
     final scene = _scene;
     Offset at(double x, double y) => Offset(scene.width * x, scene.height * y);
-    final store = at(.25, .61);
-    final library = at(.64, .41);
     final visibleMap = Rect.fromCenter(
       center: scene.center(Offset.zero),
       width: widget.viewport.width,
       height: widget.viewport.height,
     ).deflate(ui.space.xs);
+    // Keep the middle of the artwork free for building pins. Shallow viewports
+    // use two columns; portrait labels have the full width for localized text.
+    final wide = widget.viewport.width > widget.viewport.height;
+    Offset labelAt(double x, double y) => Offset(
+      visibleMap.left + visibleMap.width * x,
+      visibleMap.top + visibleMap.height * y,
+    );
+    final store = wide ? labelAt(.23, .12) : labelAt(.5, .27);
+    final library = wide ? labelAt(.77, .12) : labelAt(.5, .09);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -126,54 +139,23 @@ class _TownMapViewportState extends State<_TownMapViewport> {
                 ),
                 for (final service in [
                   (
-                    store,
-                    'Store',
-                    Icons.storefront,
-                    widget.onStorePressed,
-                    'town-store-marker',
                     at(.35, .49),
+                    context.l10n.townEquipmentMarker,
+                    widget.onStorePressed,
                   ),
                   (
-                    library,
-                    'Library',
-                    Icons.menu_book,
-                    widget.onLibraryPressed,
-                    'town-library-marker',
+                    at(.465, .60),
+                    context.l10n.townTrainingMarker,
+                    widget.onTrainingPressed,
+                  ),
+                  (
                     at(.47, .405),
+                    context.l10n.uiLibraryMarker,
+                    widget.onLibraryPressed,
                   ),
                   (
-                    at(.22, .77),
-                    'Hall of Honour',
-                    Icons.account_balance,
-                    widget.onAchievementsPressed,
-                    'town-achievements-marker',
-                    // Southern courtyard building selected by the owner.
                     at(.395, .708),
-                  ),
-                ])
-                  MapCallout(
-                    anchor: service.$6,
-                    labelCenter: service.$1,
-                    visibleMap: visibleMap,
-                    child: AttentionMarker(
-                      visible:
-                          service.$5 == 'town-achievements-marker' &&
-                          widget.hasAchievementRewards,
-                      semanticLabel: 'Achievement rewards available',
-                      child: MapLabelButton(
-                        key: ValueKey(service.$5),
-                        label: service.$2,
-                        icon: service.$3,
-                        onPressed: service.$4,
-                      ),
-                    ),
-                  ),
-                for (final service in [
-                  (at(.35, .49), 'Store marker', widget.onStorePressed),
-                  (at(.47, .405), 'Library marker', widget.onLibraryPressed),
-                  (
-                    at(.395, .708),
-                    'Hall of Honour marker',
+                    context.l10n.uiHallOfHonourMarker,
                     widget.onAchievementsPressed,
                   ),
                 ])
@@ -193,6 +175,59 @@ class _TownMapViewportState extends State<_TownMapViewport> {
                       ),
                     ),
                   ),
+                for (final service in [
+                  (
+                    store,
+                    context.l10n.townEquipment,
+                    Icons.storefront,
+                    widget.onStorePressed,
+                    'town-store-marker',
+                    at(.35, .49),
+                  ),
+                  (
+                    wide ? labelAt(.77, .88) : labelAt(.5, .94),
+                    context.l10n.townTraining,
+                    Icons.school_outlined,
+                    widget.onTrainingPressed,
+                    'town-training-marker',
+                    at(.465, .60),
+                  ),
+                  (
+                    library,
+                    context.l10n.uiLibrary,
+                    Icons.menu_book,
+                    widget.onLibraryPressed,
+                    'town-library-marker',
+                    at(.47, .405),
+                  ),
+                  (
+                    wide ? labelAt(.23, .88) : labelAt(.5, .79),
+                    context.l10n.uiHallOfHonour,
+                    Icons.account_balance,
+                    widget.onAchievementsPressed,
+                    'town-achievements-marker',
+                    // Southern courtyard building selected by the owner.
+                    at(.395, .708),
+                  ),
+                ])
+                  MapCallout(
+                    anchor: service.$6,
+                    labelCenter: service.$1,
+                    visibleMap: visibleMap,
+                    maxLabelWidth: wide ? visibleMap.width * .44 : null,
+                    child: AttentionMarker(
+                      visible:
+                          service.$5 == 'town-achievements-marker' &&
+                          widget.hasAchievementRewards,
+                      semanticLabel: context.l10n.uiAchievementRewardsAvailable,
+                      child: MapLabelButton(
+                        key: ValueKey(service.$5),
+                        label: service.$2,
+                        icon: service.$3,
+                        onPressed: service.$4,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -203,7 +238,7 @@ class _TownMapViewportState extends State<_TownMapViewport> {
           child: SafeArea(
             top: false,
             child: IconButton(
-              tooltip: 'Reset map',
+              tooltip: context.l10n.uiResetMap,
               onPressed: () => _transform.value = _initialTransform,
               icon: const Icon(
                 Icons.center_focus_strong,

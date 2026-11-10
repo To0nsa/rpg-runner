@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'menu_layout.dart';
@@ -9,17 +10,13 @@ import '../theme/ui_tokens.dart';
 /// Displays the page title and "Coming Soon" text with consistent styling.
 /// Use this for any menu pages that are placeholders for future features.
 class PlaceholderPage extends StatelessWidget {
-  const PlaceholderPage({
-    super.key,
-    required this.title,
-    this.message = 'Coming Soon',
-  });
+  const PlaceholderPage({super.key, required this.title, this.message});
 
   /// The title shown in the AppBar.
   final String title;
 
   /// The placeholder message shown in the center. Defaults to "Coming Soon".
-  final String message;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +27,7 @@ class PlaceholderPage extends StatelessWidget {
         alignment: Alignment.center,
         scrollable: false,
         child: Text(
-          message,
+          message ?? context.l10n.uiComingSoon,
           style: ui.text.title.copyWith(color: ui.colors.textMuted),
         ),
       ),

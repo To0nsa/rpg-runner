@@ -1,4 +1,10 @@
+import 'package:intl/intl.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:runner_core/abilities/ability_def.dart';
+import 'package:flutter/widgets.dart';
+
+import '../l10n/app_localization.dart';
+
 import 'package:runner_core/combat/damage_type.dart';
 import 'package:runner_core/combat/middleware/parry_middleware.dart';
 import 'package:runner_core/combat/status/status.dart';
@@ -64,41 +70,29 @@ abstract interface class AbilityTooltipBuilder {
 
 class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   static const double _authoredTicksPerSecond = 60.0;
-  static const String _templateMeleeDamage =
-      '{action} that deals {damage} damage to {targets}.';
-  static const String _templateMeleeDot =
-      '{action} that deals {damage} damage to {targets}. '
-      'It causes {status}, dealing {dotDamage} damage per second for {dotDuration} seconds.';
-  static const String _templateChargedBonus =
-      ' Charging increases damage (up to +{damageBonus}%) '
-      'and critical chance (up to +{critBonus}%).';
-  static const String _templateInterruptible =
-      ' This attack can be interrupted by taking damage.';
-  static const String _templateGuard =
-      'Keep your guard up and reduce direct-hit damage by {reduction}% from any direction while held. Existing damage-over-time and ground spell impacts bypass the shield.';
-  static const String _templateRiposteGrant =
-      ' The first guarded hit grants {riposte}, empowering your next landed melee hit by +{riposteBonus}% damage. It stays ready while this guard is held and expires 1 second after guard ends. Misses do not consume it.';
-  static const String _templateSnapShot =
-      'Fire {projectileSource}{projectileName}, it deals {damage} damage to the closest enemy.';
-  static const String _templateQuickShot =
-      'Aim and fire {projectileSource}{projectileName}. It deals {damage} damage to a single target.';
-  static const String _templateOverchargeShot =
-      'Charge and release {projectileSource}{projectileName}. '
-      'It deals {damage} damage to a single target.';
-  static const String _templateSkewerShot =
-      'Fire {projectileSource}{projectileName}, piercing through enemies in its path. '
-      'It deals {damage} damage and can hit up to {maxHits} enemies.';
-  static const String _riposteLabel = 'Riposte';
-  static const String _targetClosestAndReach =
-      'the closest enemy and all those who are in the attack reach';
-  static const String _targetAimingDirectionAndReach =
-      'enemies in aiming direction and in the attack reach';
-
   const DefaultAbilityTooltipBuilder({
+    required this.strings,
+    required this.l10n,
     AbilityTagResolver tagResolver = const AbilityTagResolver(),
     StatusProfileCatalog statusProfiles = const StatusProfileCatalog(),
   }) : _tagResolver = tagResolver,
        _statusProfiles = statusProfiles;
+
+  /// Bind a presenter to this build's locale; do not retain it across changes.
+  factory DefaultAbilityTooltipBuilder.localized(BuildContext context) =>
+      DefaultAbilityTooltipBuilder(
+        strings: context.gameL10n,
+        l10n: context.l10n,
+      );
+
+  factory DefaultAbilityTooltipBuilder.forLocale(Locale? locale) =>
+      DefaultAbilityTooltipBuilder(
+        strings: gameStringsFor(locale),
+        l10n: appStringsFor(locale),
+      );
+
+  final GameLocalizations strings;
+  final AppLocalizations l10n;
 
   final AbilityTagResolver _tagResolver;
   final StatusProfileCatalog _statusProfiles;
@@ -119,16 +113,11 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         _damageBreakdown(impact.damage100, impact.damageType),
     ];
     final descriptionWithHighlights = _DescriptionWithHighlights(
-      description: [baseDescription.description, ...breakdowns]
-          .join(' ')
-          .replaceAll(
-            'Mana',
-            def.id.startsWith('bounty_hunter.') ? 'Supplies' : 'Mana',
-          ),
+      description: [baseDescription.description, ...breakdowns].join(' '),
       dynamicValues: [...baseDescription.dynamicValues, ...breakdowns],
     );
     return AbilityTooltip(
-      title: abilityDisplayName(def.id),
+      title: abilityDisplayName(def.id, strings: strings),
       description: descriptionWithHighlights.description,
       dynamicDescriptionValues: List<String>.unmodifiable(
         descriptionWithHighlights.dynamicValues,
@@ -144,17 +133,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       tags: tags,
       cooldownSeconds: _cooldownSeconds(def),
       maxDurationSeconds: _maxDurationSeconds(def),
-      costLines: List<AbilityCostLine>.unmodifiable(
-        _costLines(def, ctx).map(
-          (line) => AbilityCostLine(
-            label: line.label,
-            value: line.value.replaceAll(
-              'Mana',
-              def.id.startsWith('bounty_hunter.') ? 'Supplies' : 'Mana',
-            ),
-          ),
-        ),
-      ),
+      costLines: List<AbilityCostLine>.unmodifiable(_costLines(def, ctx)),
     );
   }
 
@@ -165,6 +144,8 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     final hunterDescription = bountyHunterAbilityDescription(
       def,
       ctx.activeProjectileId,
+      strings: strings,
+      l10n: l10n,
     );
     if (hunterDescription != null) {
       return _DescriptionWithHighlights(description: hunterDescription);
@@ -193,15 +174,13 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       case 'eloise.dash':
         return _dashDescription(def);
       case 'eloise.double_dash':
-        return _descriptionFromTemplate(
-          template:
-              'Dash a short distance. Tap again within {window} seconds '
-              'after the first burst to dash again in your chosen direction. '
-              'Each burst pays the listed cost; cooldown starts with the first. Does not grant invulnerability.',
+        return _description(
+          message: (values) =>
+              l10n.abilityDoubleDash(window: values['window']!),
           values: {
-            'window':
-                (def.mobilityRecast!.windowTicks / _authoredTicksPerSecond)
-                    .toStringAsFixed(1),
+            'window': _formatOneDecimal(
+              def.mobilityRecast!.windowTicks / _authoredTicksPerSecond,
+            ),
           },
           dynamicKeys: ['window'],
         );
@@ -222,9 +201,9 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         .split(amount100)
         .map(
           (part) =>
-              '${formatFixed100(part.amount100)} ${damageTypeDisplayName(part.type)}',
+              '${formatFixed100(part.amount100, strings: strings)} ${damageTypeDisplayName(part.type, strings: strings)}',
         );
-    return 'Base damage: ${parts.join(' + ')}.';
+    return l10n.abilityBaseDamage(parts: parts.join(' + '));
   }
 
   double? _cooldownSeconds(AbilityDef def) {
@@ -239,20 +218,24 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   List<AbilityCostLine> _costLines(AbilityDef def, AbilityTooltipContext ctx) {
+    final resource = def.id.startsWith('bounty_hunter.')
+        ? ManaPresentation.supplies
+        : ManaPresentation.mana;
     if (def.allowedSlots.contains(AbilitySlot.jump) && def.maxAirJumps > 0) {
       final lines = <AbilityCostLine>[];
       final firstJump = _formatCostValue(
         def.resolveCostForWeaponType(ctx.payloadWeaponType),
+        resource,
       );
       if (firstJump != null) {
         lines.add(
-          AbilityCostLine(label: 'Cost for first jump: ', value: firstJump),
+          AbilityCostLine(label: l10n.abilityCostFirstJump, value: firstJump),
         );
       }
-      final secondJump = _formatCostValue(def.airJumpCost);
+      final secondJump = _formatCostValue(def.airJumpCost, resource);
       if (secondJump != null) {
         lines.add(
-          AbilityCostLine(label: 'Cost for second jump: ', value: secondJump),
+          AbilityCostLine(label: l10n.abilityCostSecondJump, value: secondJump),
         );
       }
       return lines;
@@ -263,31 +246,56 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         def.holdStaminaDrainPerSecond100 > 0) {
       lines.add(
         AbilityCostLine(
-          label: 'Cost per second: ',
-          value: '${formatFixed100(def.holdStaminaDrainPerSecond100)} Stamina',
+          label: l10n.abilityCostSecond,
+          value: l10n.abilityCostValue(
+            value: formatFixed100(
+              def.holdStaminaDrainPerSecond100,
+              strings: strings,
+            ),
+            resource: strings.statStamina,
+          ),
         ),
       );
     }
 
     final regular = _formatCostValue(
       def.resolveCostForWeaponType(ctx.payloadWeaponType),
+      resource,
     );
     if (regular != null) {
-      lines.add(AbilityCostLine(label: 'Cost: ', value: regular));
+      lines.add(AbilityCostLine(label: l10n.abilityCost, value: regular));
     }
     return lines;
   }
 
-  String? _formatCostValue(AbilityResourceCost cost) {
+  String? _formatCostValue(
+    AbilityResourceCost cost,
+    ManaPresentation resource,
+  ) {
     final parts = <String>[];
     if (cost.healthCost100 > 0) {
-      parts.add('${formatFixed100(cost.healthCost100)} Health');
+      parts.add(
+        l10n.abilityCostValue(
+          value: formatFixed100(cost.healthCost100, strings: strings),
+          resource: strings.statHealth,
+        ),
+      );
     }
     if (cost.staminaCost100 > 0) {
-      parts.add('${formatFixed100(cost.staminaCost100)} Stamina');
+      parts.add(
+        l10n.abilityCostValue(
+          value: formatFixed100(cost.staminaCost100, strings: strings),
+          resource: strings.statStamina,
+        ),
+      );
     }
     if (cost.manaCost100 > 0) {
-      parts.add('${formatFixed100(cost.manaCost100)} Mana');
+      parts.add(
+        l10n.abilityCostValue(
+          value: formatFixed100(cost.manaCost100, strings: strings),
+          resource: strings.statMana(resource: resource.name),
+        ),
+      );
     }
     if (parts.isEmpty) return null;
     return parts.join(' / ');
@@ -313,59 +321,52 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     switch (def.id) {
       case 'grojib.strike':
       case 'grojib.strike2':
-        return 'Tap to strike in front of you.';
+        return l10n.abilityStrike;
       case 'unoco.fire_bolt_cast':
-        return 'Hold then release to cast a ranged bolt.';
+        return l10n.abilityCast;
       case 'eloise.jump':
-        return 'Tap to jump.';
+        return l10n.abilityJump;
       case 'eloise.double_jump':
-        return 'Tap to jump, then tap again in the air for a second jump.';
+        return l10n.abilityDoubleJump;
       default:
-        return 'Tap to use this ability.';
+        return l10n.abilityUse;
     }
   }
 
-  _DescriptionWithHighlights _seekerSlashDescription(AbilityDef def) {
-    return _buildMeleeDescription(
-      def: def,
-      action: 'Launch an attack',
-      damage: formatFixed100(def.baseDamage),
-      targets: _targetClosestAndReach,
-    );
-  }
-
-  _DescriptionWithHighlights _bloodletterSlashDescription(AbilityDef def) {
-    return _buildMeleeDescription(
-      def: def,
-      action: 'Unleash a sword slash',
-      damage: formatFixed100(def.baseDamage),
-      targets: _targetAimingDirectionAndReach,
-    );
-  }
+  _DescriptionWithHighlights _seekerSlashDescription(AbilityDef def) =>
+      _meleeDescription(def, aimed: false);
+  _DescriptionWithHighlights _bloodletterSlashDescription(AbilityDef def) =>
+      _meleeDescription(def, aimed: true);
 
   _DescriptionWithHighlights _bloodletterCleaveDescription(AbilityDef def) {
     final tier = def.chargeProfile!.tiers.last;
     final tap = def.chargeProfile!.tiers.first;
     final dot = _firstDotEffect(def);
-    return _descriptionFromTemplate(
-      template:
-          'Aim and release for {tapDamage} damage. Hold for {chargeTime} '
-          'seconds to deal {fullDamage} damage, gain +{crit}% critical chance '
-          'and inflict {status} ({dotDamage} damage per second for {duration} seconds). '
-          'Only full charge grants this bleed.$_templateInterruptible',
+    return _description(
+      message: (values) => l10n.abilityCleave(
+        tapDamage: values['tapDamage']!,
+        chargeTime: values['chargeTime']!,
+        fullDamage: values['fullDamage']!,
+        crit: values['crit']!,
+        status: values['status']!,
+        dotDamage: values['dotDamage']!,
+        duration: values['duration']!,
+      ),
       values: {
         'tapDamage': formatFixed100(
           def.baseDamage * tap.damageScaleBp ~/ 10000,
+          strings: strings,
         ),
         'fullDamage': formatFixed100(
           def.baseDamage * tier.damageScaleBp ~/ 10000,
+          strings: strings,
         ),
         'chargeTime': _formatDecimal(
           tier.minHoldTicks60 / _authoredTicksPerSecond,
         ),
         'crit': _formatDecimal(tier.critBonusBp / 100.0),
         'status': dot.name,
-        'dotDamage': formatFixed100(dot.damage100),
+        'dotDamage': formatFixed100(dot.damage100, strings: strings),
         'duration': _formatDecimal(dot.durationSeconds),
       },
       dynamicKeys: [
@@ -384,12 +385,16 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     AbilityDef def,
     AbilityTooltipContext ctx,
   ) {
-    return _descriptionFromTemplate(
-      template: _templateSnapShot,
+    return _description(
+      message: (values) => l10n.abilitySnap(
+        source: values['projectileSource']!,
+        projectileName: values['projectileName']!,
+        damage: values['damage']!,
+      ),
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
-        'damage': formatFixed100(def.baseDamage),
+        'damage': formatFixed100(def.baseDamage, strings: strings),
       },
       dynamicKeys: <String>['projectileName', 'damage'],
     );
@@ -399,12 +404,16 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     AbilityDef def,
     AbilityTooltipContext ctx,
   ) {
-    return _descriptionFromTemplate(
-      template: _templateQuickShot,
+    return _description(
+      message: (values) => l10n.abilityQuick(
+        source: values['projectileSource']!,
+        projectileName: values['projectileName']!,
+        damage: values['damage']!,
+      ),
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
-        'damage': formatFixed100(def.baseDamage),
+        'damage': formatFixed100(def.baseDamage, strings: strings),
       },
       dynamicKeys: <String>['projectileName', 'damage'],
     );
@@ -418,14 +427,19 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     final damageBonus = _formatDecimal(charge.damageBonusBp / 100.0);
     final critBonus = _formatDecimal(charge.critBonusBp / 100.0);
 
-    return _descriptionFromTemplate(
-      template:
-          '$_templateOverchargeShot$_templateChargedBonus'
-          ' Full charge takes {chargeTime} seconds.$_templateInterruptible',
+    return _description(
+      message: (values) => l10n.abilityOvercharge(
+        source: values['projectileSource']!,
+        projectileName: values['projectileName']!,
+        damage: values['damage']!,
+        damageBonus: values['damageBonus']!,
+        critBonus: values['critBonus']!,
+        chargeTime: values['chargeTime']!,
+      ),
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
-        'damage': formatFixed100(def.baseDamage),
+        'damage': formatFixed100(def.baseDamage, strings: strings),
         'chargeTime': _formatDecimal(
           def.chargeProfile!.tiers.last.minHoldTicks60 /
               _authoredTicksPerSecond,
@@ -451,12 +465,17 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
     final maxHits = hitDelivery is ProjectileHitDelivery
         ? hitDelivery.chainCount.toString()
         : '?';
-    return _descriptionFromTemplate(
-      template: _templateSkewerShot,
+    return _description(
+      message: (values) => l10n.abilitySkewer(
+        source: values['projectileSource']!,
+        projectileName: values['projectileName']!,
+        damage: values['damage']!,
+        maxHits: values['maxHits']!,
+      ),
       values: <String, String>{
         'projectileSource': _projectileSourceLabel(ctx),
         'projectileName': _projectileName(ctx),
-        'damage': formatFixed100(def.baseDamage),
+        'damage': formatFixed100(def.baseDamage, strings: strings),
         'maxHits': maxHits,
       },
       dynamicKeys: <String>['projectileName', 'damage', 'maxHits'],
@@ -464,16 +483,13 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   }
 
   _DescriptionWithHighlights _dashDescription(AbilityDef def) {
-    return const _DescriptionWithHighlights(
-      description: 'Dash forward quickly. Does not grant invulnerability.',
-    );
+    return _DescriptionWithHighlights(description: l10n.abilityDash);
   }
 
   _DescriptionWithHighlights _concussiveRollDescription(AbilityDef def) {
     final control = _mobilityControlEffect(def);
-    return _descriptionFromTemplate(
-      template:
-          'Perform a concussive roll. Enemies hit are affected by {status}. Does not grant invulnerability.',
+    return _description(
+      message: (values) => l10n.abilityRoll(status: values['status']!),
       values: <String, String>{'status': control.name},
       dynamicKeys: <String>['status'],
     );
@@ -485,15 +501,18 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       tuning: def.selfStatusTuning,
     );
     if (profile.applications.isEmpty) {
-      return const _DescriptionWithHighlights(
-        description: 'Tap to use this ability.',
-      );
+      return _DescriptionWithHighlights(description: l10n.abilityUse);
     }
 
     final parts = <String>[];
     final dynamicValues = <String>[];
     for (final application in profile.applications) {
-      final detail = _selfStatusEffectDescription(application);
+      final detail = _selfStatusEffectDescription(
+        application,
+        def.id.startsWith('bounty_hunter.')
+            ? ManaPresentation.supplies
+            : ManaPresentation.mana,
+      );
       parts.add(detail.description);
       dynamicValues.addAll(detail.dynamicValues);
     }
@@ -506,36 +525,51 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
 
   _DescriptionWithHighlights _selfStatusEffectDescription(
     StatusApplication application,
+    ManaPresentation resource,
   ) {
     final duration = _formatOneDecimal(application.durationSeconds);
     switch (application.type) {
       case StatusEffectType.haste:
         final speedBonus = _formatDecimal(application.magnitude / 100.0);
         return _DescriptionWithHighlights(
-          description:
-              'Increase move speed by $speedBonus% for $duration seconds.',
+          description: l10n.abilitySelfHaste(
+            speedBonus: speedBonus,
+            duration: duration,
+          ),
           dynamicValues: <String>[speedBonus, duration],
         );
       case StatusEffectType.damageReduction:
         final mitigation = _formatDecimal(application.magnitude / 100.0);
         return _DescriptionWithHighlights(
-          description:
-              'Reduce direct-hit damage by $mitigation% and cancel damage-over-time effects for $duration seconds.',
+          description: l10n.abilitySelfWard(
+            mitigation: mitigation,
+            duration: duration,
+          ),
           dynamicValues: <String>[mitigation, duration],
         );
       case StatusEffectType.resourceOverTime:
         final restorePct = _formatDecimal(application.magnitude / 100.0);
         final resourceLabel = switch (application.resourceType) {
-          StatusResourceType.health => 'max Health',
-          StatusResourceType.mana => 'max Mana',
-          StatusResourceType.stamina => 'max Stamina',
-          null => 'max resource',
+          StatusResourceType.health => l10n.abilityMaxHealth,
+          StatusResourceType.mana =>
+            resource == ManaPresentation.supplies
+                ? l10n.abilityMaxSupplies
+                : l10n.abilityMaxMana,
+          StatusResourceType.stamina => l10n.abilityMaxStamina,
+          null => l10n.abilityMaxResource,
         };
         if (application.applyOnApply) {
           return _DescriptionWithHighlights(
             description: application.durationSeconds > 0
-                ? 'Restore $restorePct% of $resourceLabel immediately and another $restorePct% over $duration seconds.'
-                : 'Restore $restorePct% of $resourceLabel immediately.',
+                ? l10n.abilityRestoreBoth(
+                    restorePct: restorePct,
+                    resourceLabel: resourceLabel,
+                    duration: duration,
+                  )
+                : l10n.abilityRestoreInstant(
+                    restorePct: restorePct,
+                    resourceLabel: resourceLabel,
+                  ),
             dynamicValues: <String>[
               restorePct,
               resourceLabel,
@@ -544,8 +578,11 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
           );
         }
         return _DescriptionWithHighlights(
-          description:
-              'Restore $restorePct% of $resourceLabel over $duration seconds.',
+          description: l10n.abilityRestore(
+            restorePct: restorePct,
+            resourceLabel: resourceLabel,
+            duration: duration,
+          ),
           dynamicValues: <String>[restorePct, resourceLabel, duration],
         );
       case StatusEffectType.offenseBuff:
@@ -554,8 +591,11 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
           (application.critBonusBp ?? 0) / 100.0,
         );
         return _DescriptionWithHighlights(
-          description:
-              'Increase power by $powerBonus% and critical chance by $critBonus% for $duration seconds.',
+          description: l10n.abilitySelfFocus(
+            powerBonus: powerBonus,
+            critBonus: critBonus,
+            duration: duration,
+          ),
           dynamicValues: <String>[powerBonus, critBonus, duration],
         );
       case StatusEffectType.dot:
@@ -567,7 +607,10 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       case StatusEffectType.silence:
         final statusLabel = _selfStatusLabel(application);
         return _DescriptionWithHighlights(
-          description: 'Apply $statusLabel for $duration seconds.',
+          description: l10n.abilitySelfStatus(
+            statusLabel: statusLabel,
+            duration: duration,
+          ),
           dynamicValues: <String>[statusLabel, duration],
         );
     }
@@ -576,130 +619,71 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   _DescriptionWithHighlights _selfPurgeDescription(AbilityDef def) {
     switch (def.selfPurgeProfileId) {
       case PurgeProfileId.none:
-        return const _DescriptionWithHighlights(
-          description: 'Tap to use this ability.',
-        );
+        return _DescriptionWithHighlights(description: l10n.abilityUse);
       case PurgeProfileId.cleanse:
-        return const _DescriptionWithHighlights(
-          description: 'Cleanse all active debuffs, including stun, silence, slow, vulnerability, weaken, drench, and damage-over-time effects.',
+        return _DescriptionWithHighlights(
+          description: l10n.abilityCleanse,
           dynamicValues: <String>[
-            'stun',
-            'silence',
-            'slow',
-            'vulnerability',
-            'weaken',
-            'drench',
-            'damage-over-time',
+            l10n.cleanseStun,
+            l10n.cleanseSilence,
+            l10n.cleanseSlow,
+            l10n.cleanseVulnerability,
+            l10n.cleanseWeaken,
+            l10n.cleanseDrench,
+            l10n.cleanseDamageOverTime,
           ],
         );
     }
   }
 
-  _DescriptionWithHighlights _buildMeleeDotDescription({
-    required String action,
-    required String damage,
-    required String targets,
-    required _StatusDotSummary dot,
-    String? damageBonus,
-    String? critBonus,
-    bool includeInterruptibleLine = false,
-  }) {
-    final values = <String, String>{
-      'action': action,
-      'damage': damage,
-      'targets': targets,
-      'status': dot.name,
-      'dotDamage': formatFixed100(dot.damage100),
-      'dotDuration': _formatDecimal(dot.durationSeconds),
-      'damageBonus': ?damageBonus,
-      'critBonus': ?critBonus,
-    };
-
-    var template = _templateMeleeDot;
-    final dynamicKeys = <String>[
-      'damage',
-      'status',
-      'dotDamage',
-      'dotDuration',
-    ];
-
-    if (damageBonus != null && critBonus != null) {
-      template += _templateChargedBonus;
-      dynamicKeys
-        ..add('damageBonus')
-        ..add('critBonus');
-    }
-    if (includeInterruptibleLine) {
-      template += _templateInterruptible;
-    }
-
-    return _descriptionFromTemplate(
-      template: template,
-      values: values,
-      dynamicKeys: dynamicKeys,
-    );
-  }
-
-  _DescriptionWithHighlights _buildMeleeDescription({
-    required AbilityDef def,
-    required String action,
-    required String damage,
-    required String targets,
+  _DescriptionWithHighlights _meleeDescription(
+    AbilityDef def, {
+    required bool aimed,
   }) {
     final dot = _firstDotEffect(def);
-    if (dot.damage100 <= 0 || dot.durationSeconds <= 0) {
-      return _descriptionFromTemplate(
-        template: _templateMeleeDamage,
-        values: <String, String>{
-          'action': action,
-          'damage': damage,
-          'targets': targets,
-        },
-        dynamicKeys: <String>['damage'],
-      );
-    }
-    return _buildMeleeDotDescription(
-      action: action,
-      damage: damage,
-      targets: targets,
-      dot: dot,
+    final damage = formatFixed100(def.baseDamage, strings: strings);
+    final dotDamage = formatFixed100(dot.damage100, strings: strings);
+    final duration = _formatDecimal(dot.durationSeconds);
+    final hasDot = dot.damage100 > 0 && dot.durationSeconds > 0;
+    return _DescriptionWithHighlights(
+      description: l10n.abilityMelee(
+        aim: aimed ? 'aimed' : 'nearest',
+        damage: damage,
+        dotKind: hasDot ? 'withDot' : 'none',
+        status: dot.name,
+        dotDamage: dotDamage,
+        duration: duration,
+      ),
+      dynamicValues: [
+        damage,
+        if (hasDot) ...[dot.name, dotDamage, duration],
+      ],
     );
   }
 
   _DescriptionWithHighlights _guardDescription(AbilityDef def) {
     final reduction = _formatDecimal(def.damageIgnoredBp / 100.0);
-    final riposteBonus = _formatDecimal(
-      ParryMiddleware.defaultRiposteBonusBp / 100.0,
-    );
-    final values = <String, String>{
-      'reduction': reduction,
-      if (def.grantsRiposteOnGuardedHit) 'riposte': _riposteLabel,
-      if (def.grantsRiposteOnGuardedHit) 'riposteBonus': riposteBonus,
-    };
-    var template = _templateGuard;
-    final dynamicKeys = <String>['reduction'];
-    if (def.grantsRiposteOnGuardedHit) {
-      template += _templateRiposteGrant;
-      dynamicKeys
-        ..add('riposte')
-        ..add('riposteBonus');
-    }
-    return _descriptionFromTemplate(
-      template: template,
-      values: values,
-      dynamicKeys: dynamicKeys,
+    final bonus = _formatDecimal(ParryMiddleware.defaultRiposteBonusBp / 100.0);
+    return _DescriptionWithHighlights(
+      description: l10n.abilityGuard(
+        reduction: reduction,
+        riposteKind: def.grantsRiposteOnGuardedHit ? 'withRiposte' : 'none',
+        riposte: l10n.abilityRiposte,
+        riposteBonus: bonus,
+      ),
+      dynamicValues: [
+        reduction,
+        if (def.grantsRiposteOnGuardedHit) ...[l10n.abilityRiposte, bonus],
+      ],
     );
   }
 
-  _DescriptionWithHighlights _descriptionFromTemplate({
-    required String template,
+  _DescriptionWithHighlights _description({
+    required String Function(Map<String, String>) message,
     required Map<String, String> values,
     required List<String> dynamicKeys,
   }) {
-    var description = template;
-    for (final entry in values.entries) {
-      description = description.replaceAll('{${entry.key}}', entry.value);
-    }
+    final description = message(values);
     final dynamicValues = _orderedUniqueNonEmpty(<String>[
       for (final key in dynamicKeys) values[key] ?? '',
     ]);
@@ -725,13 +709,20 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
         );
       }
     }
-    return const _StatusDotSummary.none();
+    return _StatusDotSummary(
+      name: l10n.abilityDamageOverTime,
+      damage100: 0,
+      durationSeconds: 0,
+    );
   }
 
   _StatusControlSummary _mobilityControlEffect(AbilityDef def) {
     final profileId = def.mobilityImpact.statusProfileId;
     if (profileId == StatusProfileId.none) {
-      return const _StatusControlSummary.none();
+      return _StatusControlSummary(
+        name: l10n.abilityControl,
+        durationSeconds: 0,
+      );
     }
     final profile = _statusProfiles.resolve(
       profileId,
@@ -757,7 +748,7 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
           continue;
       }
     }
-    return const _StatusControlSummary.none();
+    return _StatusControlSummary(name: l10n.abilityControl, durationSeconds: 0);
   }
 
   _ChargeBonusSummary _maxChargeBonuses(AbilityDef def) {
@@ -790,49 +781,47 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   String _statusDisplayName(StatusProfileId id) {
     switch (id) {
       case StatusProfileId.meleeBleed:
-        return 'Bleed';
+        return l10n.abilityBleed;
       case StatusProfileId.burnOnHit:
-        return 'Burn';
+        return l10n.abilityBurn;
       case StatusProfileId.acidOnHit:
-        return 'Acid';
+        return l10n.abilityAcid;
       case StatusProfileId.stunOnHit:
-        return 'Stun';
+        return l10n.abilityStun;
       default:
-        return 'damage over time';
+        return l10n.abilityDamageOverTime;
     }
   }
 
   String _projectileSourceLabel(AbilityTooltipContext ctx) {
-    return ctx.payloadWeaponType == WeaponType.spell
-        ? 'the selected spell projectile'
-        : 'your equipped projectile';
+    return ctx.payloadWeaponType == WeaponType.spell ? 'spell' : 'equipped';
   }
 
   String _projectileName(AbilityTooltipContext ctx) {
     final activeProjectileId = ctx.activeProjectileId;
     if (activeProjectileId == null) return '';
-    return ' (${projectileDisplayName(activeProjectileId)})';
+    return ' (${projectileDisplayName(activeProjectileId, strings: strings)})';
   }
 
   String _selfStatusLabel(StatusApplication application) {
     switch (application.type) {
       case StatusEffectType.haste:
-        return 'Haste';
+        return l10n.abilityHaste;
       case StatusEffectType.damageReduction:
-        return 'Arcane Ward';
+        return l10n.abilityWard;
       case StatusEffectType.resourceOverTime:
         switch (application.resourceType) {
           case StatusResourceType.health:
-            return 'Health Regen';
+            return l10n.abilityHealthRegen;
           case StatusResourceType.mana:
-            return 'Mana Regen';
+            return l10n.abilityManaRegen;
           case StatusResourceType.stamina:
-            return 'Stamina Regen';
+            return l10n.abilityStaminaRegen;
           case null:
-            return 'Resource Regen';
+            return l10n.abilityResourceRegen;
         }
       case StatusEffectType.offenseBuff:
-        return 'Focus';
+        return l10n.abilityFocus;
       case StatusEffectType.dot:
       case StatusEffectType.slow:
       case StatusEffectType.stun:
@@ -840,17 +829,18 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
       case StatusEffectType.weaken:
       case StatusEffectType.drench:
       case StatusEffectType.silence:
-        return 'Status Effect';
+        return l10n.abilityStatusEffect;
     }
   }
 
   String _formatOneDecimal(double value) {
-    return value.toStringAsFixed(1);
+    return NumberFormat('0.0', l10n.localeName).format(value);
   }
 
   String _formatDecimal(double value) {
-    final text = value.toStringAsFixed(2);
-    return text.replaceFirst(RegExp(r'\.?0+$'), '');
+    return (NumberFormat.decimalPattern(
+      l10n.localeName,
+    )..maximumFractionDigits = 2).format(value);
   }
 
   List<String> _orderedUniqueNonEmpty(List<String> values) {
@@ -866,25 +856,25 @@ class DefaultAbilityTooltipBuilder implements AbilityTooltipBuilder {
   String? _badgeLabel(AbilityUiTag tag) {
     switch (tag) {
       case AbilityUiTag.damage:
-        return 'DAMAGE';
+        return l10n.abilityBadgeDamage;
       case AbilityUiTag.defense:
-        return 'DEFENSE';
+        return l10n.abilityBadgeDefense;
       case AbilityUiTag.dash:
-        return 'DASH';
+        return l10n.abilityBadgeDash;
       case AbilityUiTag.jump:
-        return 'JUMP';
+        return l10n.abilityBadgeJump;
       case AbilityUiTag.hold:
-        return 'HOLD';
+        return l10n.abilityBadgeHold;
       case AbilityUiTag.utility:
-        return 'UTILITY';
+        return l10n.abilityBadgeUtility;
       case AbilityUiTag.crowdControl:
-        return 'CONTROL';
+        return l10n.abilityBadgeControl;
       case AbilityUiTag.charged:
-        return 'CHARGED';
+        return l10n.abilityBadgeCharged;
       case AbilityUiTag.autoTarget:
-        return 'AUTO-AIM';
+        return l10n.abilityBadgeAutoAim;
       case AbilityUiTag.aimed:
-        return 'AIM';
+        return l10n.abilityBadgeAim;
     }
   }
 }
@@ -896,11 +886,6 @@ class _StatusDotSummary {
     required this.durationSeconds,
   });
 
-  const _StatusDotSummary.none()
-    : name = 'damage over time',
-      damage100 = 0,
-      durationSeconds = 0;
-
   final String name;
   final int damage100;
   final double durationSeconds;
@@ -911,8 +896,6 @@ class _StatusControlSummary {
     required this.name,
     required this.durationSeconds,
   });
-
-  const _StatusControlSummary.none() : name = 'Control', durationSeconds = 0;
 
   final String name;
   final double durationSeconds;

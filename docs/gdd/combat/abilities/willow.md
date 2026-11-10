@@ -10,7 +10,9 @@ buttons show their required level, including in Developer Practice.
 Both cards fit on one screen, with illustration/name on the left, build buttons
 on the right, and a dark overlay marking the unselected character. Builds start
 as Build 1/2/3 and can be renamed from the builder header using up to 28
-characters. Start, Restart and Training Field use the remembered build.
+characters. The rename button shows an edit icon for the slot's default name;
+after renaming, the custom name itself is the button, without an edit icon.
+Start, Restart and Training Field use the remembered build.
 
 
 Willow and Éloïse share the same apparent body size in menus and gameplay.
@@ -141,10 +143,10 @@ finite inventory. Their existing cooldowns still apply.
 
 Fresh profiles own the Hunter Blade, Bomb Kit, Field Kit and the three starter
 guns. The 28 additional equipment items each use the existing 150-gold store
-price and normal offer rotation.
+price in the permanent Equipment catalogue.
 Starter abilities are Quick Cut, Blast Bomb, Snap Shot, Dash, Jump, Hunter's
 Focus and Prepare Charges. Other abilities use the existing store price of
-150 gold and normal store offer rotation. Developer Practice unlocks all 24.
+150 gold and the permanent Training catalogue. Developer Practice unlocks all 24.
 Gear and skills remain character-specific; accessories are shared.
 
 The imported base/add-on sprites provide gameplay animations, gun variants and

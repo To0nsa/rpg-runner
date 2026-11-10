@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/abilities/ability_def.dart';
@@ -45,7 +47,14 @@ class SkillsListPane extends StatelessWidget {
           Align(
             alignment: Alignment.center,
             child: Text(
-              '${(selectedSlot == AbilitySlot.spell && (selectedAbilityId?.startsWith('bounty_hunter.') ?? false) ? 'Fieldcraft' : _slotTitle(selectedSlot)).toUpperCase()} SKILLS',
+              context.l10n.skillHeading(
+                slot:
+                    selectedSlot == AbilitySlot.spell &&
+                        (selectedAbilityId?.startsWith('bounty_hunter.') ??
+                            false)
+                    ? 'fieldcraft'
+                    : selectedSlot.name,
+              ),
               style: ui.text.headline.copyWith(
                 color: ui.colors.textPrimary,
                 fontSize: 14,
@@ -67,7 +76,7 @@ class SkillsListPane extends StatelessWidget {
             Align(
               alignment: Alignment.center,
               child: AppButton(
-                label: 'Select Projectile',
+                label: context.l10n.uiSelectProjectile,
                 variant: AppButtonVariant.secondary,
                 size: AppButtonSize.sm,
                 onPressed: onSelectProjectileSource,
@@ -84,7 +93,10 @@ class SkillsListPane extends StatelessWidget {
                 final selected = candidate.id == selectedAbilityId;
                 return _AbilityListTile(
                   abilityId: candidate.id,
-                  title: abilityDisplayName(candidate.id),
+                  title: abilityDisplayName(
+                    candidate.id,
+                    strings: context.gameL10n,
+                  ),
                   selected: selected,
                   isOwned: candidate.isOwned,
                   isLegal: candidate.isEnabled,
@@ -257,7 +269,7 @@ class _ExpandedDetails extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  'Damage: ',
+                  context.l10n.uiDamage,
                   style: ui.text.body.copyWith(
                     color: ui.colors.textMuted,
                     fontWeight: FontWeight.w600,
@@ -325,7 +337,9 @@ List<TextSpan> _highlightValues(
   required TextStyle highlight,
 }) {
   // Matches numbers with optional leading sign and optional trailing %.
-  final regex = RegExp(r'[+-]?\d+(?:\.\d+)?%?');
+  final regex = RegExp(
+    r'[+-]?\d+(?:[.,\u00a0\u202f]\d+)*(?:[ \u00a0\u202f]?%)?',
+  );
   final spans = <TextSpan>[];
   var index = 0;
   for (final match in regex.allMatches(text)) {
@@ -511,22 +525,5 @@ class _StatusIconBadge extends StatelessWidget {
         child: Icon(icon, size: 11, color: color),
       ),
     );
-  }
-}
-
-String _slotTitle(AbilitySlot slot) {
-  switch (slot) {
-    case AbilitySlot.primary:
-      return 'Primary';
-    case AbilitySlot.secondary:
-      return 'Secondary';
-    case AbilitySlot.projectile:
-      return 'Projectile';
-    case AbilitySlot.mobility:
-      return 'Mobility';
-    case AbilitySlot.spell:
-      return 'Spell';
-    case AbilitySlot.jump:
-      return 'Jump';
   }
 }

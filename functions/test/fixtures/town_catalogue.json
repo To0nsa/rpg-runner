@@ -1,0 +1,1405 @@
+{
+  "schemaVersion": 2,
+  "generation": 0,
+  "refreshDayKeyUtc": "",
+  "refreshesUsedToday": 0,
+  "activeOffers": [
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "basiliskKiss",
+      "offerId": "gear:mainWeapon:basiliskKiss",
+      "priceGold": 150
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "cinderWard",
+      "offerId": "gear:offhandWeapon:cinderWard",
+      "priceGold": 150
+    },
+    {
+      "bucket": "accessory",
+      "domain": "gear",
+      "slot": "accessory",
+      "itemId": "diamondRing",
+      "offerId": "gear:accessory:diamondRing",
+      "priceGold": 150
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "bastionCodex",
+      "offerId": "gear:spellBook:bastionCodex",
+      "priceGold": 150
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "darkBolt",
+      "offerId": "projectileSpell:projectile:darkBolt",
+      "priceGold": 150
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "eloise.arcane_ward",
+      "offerId": "ability:spell:eloise.arcane_ward",
+      "priceGold": 150
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "jump",
+      "itemId": "eloise.double_jump",
+      "offerId": "ability:jump:eloise.double_jump",
+      "priceGold": 150
+    }
+  ],
+  "catalogOffers": [
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "basiliskKiss",
+      "offerId": "gear:mainWeapon:basiliskKiss",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "cinderedge",
+      "offerId": "gear:mainWeapon:cinderedge",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "frostbrand",
+      "offerId": "gear:mainWeapon:frostbrand",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterBlade",
+      "offerId": "gear:mainWeapon:hunterBlade",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterCausticEdge",
+      "offerId": "gear:mainWeapon:hunterCausticEdge",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterCinderpoint",
+      "offerId": "gear:mainWeapon:hunterCinderpoint",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterHookblade",
+      "offerId": "gear:mainWeapon:hunterHookblade",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterLastWord",
+      "offerId": "gear:mainWeapon:hunterLastWord",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterNotchknife",
+      "offerId": "gear:mainWeapon:hunterNotchknife",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterPursuitBlade",
+      "offerId": "gear:mainWeapon:hunterPursuitBlade",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "hunterSappingBlade",
+      "offerId": "gear:mainWeapon:hunterSappingBlade",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "nullblade",
+      "offerId": "gear:mainWeapon:nullblade",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "plainsteel",
+      "offerId": "gear:mainWeapon:plainsteel",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "stormneedle",
+      "offerId": "gear:mainWeapon:stormneedle",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "sunlitVow",
+      "offerId": "gear:mainWeapon:sunlitVow",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "sword",
+      "domain": "gear",
+      "slot": "mainWeapon",
+      "itemId": "waspfang",
+      "offerId": "gear:mainWeapon:waspfang",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "cinderWard",
+      "offerId": "gear:offhandWeapon:cinderWard",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "frostlockBuckler",
+      "offerId": "gear:offhandWeapon:frostlockBuckler",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterBacktrailRig",
+      "offerId": "gear:offhandWeapon:hunterBacktrailRig",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterBombKit",
+      "offerId": "gear:offhandWeapon:hunterBombKit",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterEtchingRig",
+      "offerId": "gear:offhandWeapon:hunterEtchingRig",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterKilnwrapRig",
+      "offerId": "gear:offhandWeapon:hunterKilnwrapRig",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterPitchRig",
+      "offerId": "gear:offhandWeapon:hunterPitchRig",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterSapperHarness",
+      "offerId": "gear:offhandWeapon:hunterSapperHarness",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterSealedRig",
+      "offerId": "gear:offhandWeapon:hunterSealedRig",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterSnareRig",
+      "offerId": "gear:offhandWeapon:hunterSnareRig",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterSplinterRig",
+      "offerId": "gear:offhandWeapon:hunterSplinterRig",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "hunterStormwrapRig",
+      "offerId": "gear:offhandWeapon:hunterStormwrapRig",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "ironBastion",
+      "offerId": "gear:offhandWeapon:ironBastion",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "nullPrism",
+      "offerId": "gear:offhandWeapon:nullPrism",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "oathwallRelic",
+      "offerId": "gear:offhandWeapon:oathwallRelic",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "roadguard",
+      "offerId": "gear:offhandWeapon:roadguard",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "stormAegis",
+      "offerId": "gear:offhandWeapon:stormAegis",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "thornbark",
+      "offerId": "gear:offhandWeapon:thornbark",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "tideguardShell",
+      "offerId": "gear:offhandWeapon:tideguardShell",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "shield",
+      "domain": "gear",
+      "slot": "offhandWeapon",
+      "itemId": "warbannerGuard",
+      "offerId": "gear:offhandWeapon:warbannerGuard",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "accessory",
+      "domain": "gear",
+      "slot": "accessory",
+      "itemId": "diamondRing",
+      "offerId": "gear:accessory:diamondRing",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise",
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "accessory",
+      "domain": "gear",
+      "slot": "accessory",
+      "itemId": "goldenRing",
+      "offerId": "gear:accessory:goldenRing",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise",
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "accessory",
+      "domain": "gear",
+      "slot": "accessory",
+      "itemId": "ironBoots",
+      "offerId": "gear:accessory:ironBoots",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise",
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "accessory",
+      "domain": "gear",
+      "slot": "accessory",
+      "itemId": "oathBeads",
+      "offerId": "gear:accessory:oathBeads",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise",
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "accessory",
+      "domain": "gear",
+      "slot": "accessory",
+      "itemId": "resilienceCape",
+      "offerId": "gear:accessory:resilienceCape",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise",
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "accessory",
+      "domain": "gear",
+      "slot": "accessory",
+      "itemId": "speedBoots",
+      "offerId": "gear:accessory:speedBoots",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise",
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "accessory",
+      "domain": "gear",
+      "slot": "accessory",
+      "itemId": "strengthBelt",
+      "offerId": "gear:accessory:strengthBelt",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise",
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "accessory",
+      "domain": "gear",
+      "slot": "accessory",
+      "itemId": "teethNecklace",
+      "offerId": "gear:accessory:teethNecklace",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise",
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "apprenticePrimer",
+      "offerId": "gear:spellBook:apprenticePrimer",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "bastionCodex",
+      "offerId": "gear:spellBook:bastionCodex",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "crownOfFocus",
+      "offerId": "gear:spellBook:crownOfFocus",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "emberGrimoire",
+      "offerId": "gear:spellBook:emberGrimoire",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "galeFolio",
+      "offerId": "gear:spellBook:galeFolio",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "hexboundLexicon",
+      "offerId": "gear:spellBook:hexboundLexicon",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterFieldKit",
+      "offerId": "gear:spellBook:hunterFieldKit",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterLongtrailPack",
+      "offerId": "gear:spellBook:hunterLongtrailPack",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterMarksmanRoll",
+      "offerId": "gear:spellBook:hunterMarksmanRoll",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterQuarryKit",
+      "offerId": "gear:spellBook:hunterQuarryKit",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterQuickAccessSatchel",
+      "offerId": "gear:spellBook:hunterQuickAccessSatchel",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterReserveBandolier",
+      "offerId": "gear:spellBook:hunterReserveBandolier",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterSurveyorCase",
+      "offerId": "gear:spellBook:hunterSurveyorCase",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "hunterTrackerPouch",
+      "offerId": "gear:spellBook:hunterTrackerPouch",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "nullTestament",
+      "offerId": "gear:spellBook:nullTestament",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spellBook",
+      "domain": "gear",
+      "slot": "spellBook",
+      "itemId": "tideAlmanac",
+      "offerId": "gear:spellBook:tideAlmanac",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "acidBolt",
+      "offerId": "projectileSpell:projectile:acidBolt",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "darkBolt",
+      "offerId": "projectileSpell:projectile:darkBolt",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "earthBolt",
+      "offerId": "projectileSpell:projectile:earthBolt",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "fireBolt",
+      "offerId": "projectileSpell:projectile:fireBolt",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "holyBolt",
+      "offerId": "projectileSpell:projectile:holyBolt",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterBrushgun",
+      "offerId": "projectileSpell:projectile:hunterBrushgun",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterCrossbow",
+      "offerId": "projectileSpell:projectile:hunterCrossbow",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterHeavyLimbCrossbow",
+      "offerId": "projectileSpell:projectile:hunterHeavyLimbCrossbow",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterLongbarrelPistol",
+      "offerId": "projectileSpell:projectile:hunterLongbarrelPistol",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterLongwatchCrossbow",
+      "offerId": "projectileSpell:projectile:hunterLongwatchCrossbow",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterPistol",
+      "offerId": "projectileSpell:projectile:hunterPistol",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterRoadsidePistol",
+      "offerId": "projectileSpell:projectile:hunterRoadsidePistol",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "hunterShotgun",
+      "offerId": "projectileSpell:projectile:hunterShotgun",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "iceBolt",
+      "offerId": "projectileSpell:projectile:iceBolt",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "thunderBolt",
+      "offerId": "projectileSpell:projectile:thunderBolt",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "projectileSpell",
+      "domain": "projectileSpell",
+      "slot": "projectile",
+      "itemId": "waterBolt",
+      "offerId": "projectileSpell:projectile:waterBolt",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.antidote",
+      "offerId": "ability:spell:bounty_hunter.antidote",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.field_dressing",
+      "offerId": "ability:spell:bounty_hunter.field_dressing",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.forced_march",
+      "offerId": "ability:spell:bounty_hunter.forced_march",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.hunters_focus",
+      "offerId": "ability:spell:bounty_hunter.hunters_focus",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.mark_quarry",
+      "offerId": "ability:spell:bounty_hunter.mark_quarry",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.prepare_charges",
+      "offerId": "ability:spell:bounty_hunter.prepare_charges",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "bounty_hunter.second_wind",
+      "offerId": "ability:spell:bounty_hunter.second_wind",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "eloise.arcane_haste",
+      "offerId": "ability:spell:eloise.arcane_haste",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "eloise.arcane_ward",
+      "offerId": "ability:spell:eloise.arcane_ward",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "eloise.cleanse",
+      "offerId": "ability:spell:eloise.cleanse",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "eloise.focus",
+      "offerId": "ability:spell:eloise.focus",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "eloise.mana_infusion",
+      "offerId": "ability:spell:eloise.mana_infusion",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "eloise.second_wind",
+      "offerId": "ability:spell:eloise.second_wind",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "spell",
+      "domain": "ability",
+      "slot": "spell",
+      "itemId": "eloise.vital_surge",
+      "offerId": "ability:spell:eloise.vital_surge",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "jump",
+      "itemId": "bounty_hunter.double_jump",
+      "offerId": "ability:jump:bounty_hunter.double_jump",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "jump",
+      "itemId": "bounty_hunter.jump",
+      "offerId": "ability:jump:bounty_hunter.jump",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "jump",
+      "itemId": "eloise.double_jump",
+      "offerId": "ability:jump:eloise.double_jump",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "jump",
+      "itemId": "eloise.jump",
+      "offerId": "ability:jump:eloise.jump",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "mobility",
+      "itemId": "bounty_hunter.blink_dash",
+      "offerId": "ability:mobility:bounty_hunter.blink_dash",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "mobility",
+      "itemId": "bounty_hunter.dash",
+      "offerId": "ability:mobility:bounty_hunter.dash",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "mobility",
+      "itemId": "bounty_hunter.double_dash",
+      "offerId": "ability:mobility:bounty_hunter.double_dash",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "mobility",
+      "itemId": "eloise.dash",
+      "offerId": "ability:mobility:eloise.dash",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "mobility",
+      "itemId": "eloise.double_dash",
+      "offerId": "ability:mobility:eloise.double_dash",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "mobility",
+      "itemId": "eloise.roll",
+      "offerId": "ability:mobility:eloise.roll",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "primary",
+      "itemId": "bounty_hunter.lunge_slash",
+      "offerId": "ability:primary:bounty_hunter.lunge_slash",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "primary",
+      "itemId": "bounty_hunter.quick_cut",
+      "offerId": "ability:primary:bounty_hunter.quick_cut",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "primary",
+      "itemId": "bounty_hunter.twin_cut",
+      "offerId": "ability:primary:bounty_hunter.twin_cut",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "primary",
+      "itemId": "eloise.bloodletter_cleave",
+      "offerId": "ability:primary:eloise.bloodletter_cleave",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "primary",
+      "itemId": "eloise.bloodletter_slash",
+      "offerId": "ability:primary:eloise.bloodletter_slash",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "primary",
+      "itemId": "eloise.seeker_slash",
+      "offerId": "ability:primary:eloise.seeker_slash",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.charged_shot",
+      "offerId": "ability:projectile:bounty_hunter.charged_shot",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.piercing_shot",
+      "offerId": "ability:projectile:bounty_hunter.piercing_shot",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.quick_shot",
+      "offerId": "ability:projectile:bounty_hunter.quick_shot",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.scatter_shot",
+      "offerId": "ability:projectile:bounty_hunter.scatter_shot",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "projectile",
+      "itemId": "bounty_hunter.snap_shot",
+      "offerId": "ability:projectile:bounty_hunter.snap_shot",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "projectile",
+      "itemId": "eloise.overcharge_shot",
+      "offerId": "ability:projectile:eloise.overcharge_shot",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "projectile",
+      "itemId": "eloise.quick_shot",
+      "offerId": "ability:projectile:eloise.quick_shot",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "projectile",
+      "itemId": "eloise.skewer_shot",
+      "offerId": "ability:projectile:eloise.skewer_shot",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "projectile",
+      "itemId": "eloise.snap_shot",
+      "offerId": "ability:projectile:eloise.snap_shot",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "secondary",
+      "itemId": "bounty_hunter.blast_bomb",
+      "offerId": "ability:secondary:bounty_hunter.blast_bomb",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "secondary",
+      "itemId": "bounty_hunter.concussion_bomb",
+      "offerId": "ability:secondary:bounty_hunter.concussion_bomb",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "secondary",
+      "itemId": "bounty_hunter.fire_bomb",
+      "offerId": "ability:secondary:bounty_hunter.fire_bomb",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "secondary",
+      "itemId": "bounty_hunter.shrapnel_bomb",
+      "offerId": "ability:secondary:bounty_hunter.shrapnel_bomb",
+      "priceGold": 150,
+      "characterIds": [
+        "bountyHunter"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "secondary",
+      "itemId": "eloise.aegis_riposte",
+      "offerId": "ability:secondary:eloise.aegis_riposte",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    },
+    {
+      "bucket": "ability",
+      "domain": "ability",
+      "slot": "secondary",
+      "itemId": "eloise.shield_block",
+      "offerId": "ability:secondary:eloise.shield_block",
+      "priceGold": 150,
+      "characterIds": [
+        "eloise"
+      ]
+    }
+  ]
+}

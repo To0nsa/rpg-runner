@@ -1,0 +1,9 @@
+arb-dir: lib/l10n
+template-arb-file: game_en.arb
+output-dir: lib/l10n/generated
+output-localization-file: game_localizations.dart
+output-class: GameLocalizations
+preferred-supported-locales: [en]
+required-resource-attributes: true
+use-named-parameters: true
+untranslated-messages-file: lib/l10n/untranslated.json

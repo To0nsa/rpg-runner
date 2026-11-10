@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../game/game_controller.dart';
@@ -29,7 +30,7 @@ class TerrainLoadingOverlay extends StatelessWidget {
           child: Semantics(
             liveRegion: true,
             child: Text(
-              'Preparing the path…',
+              context.l10n.terrainPreparing,
               style: ui.text.body.copyWith(
                 color: ui.colors.textPrimary,
                 shadows: [Shadow(color: ui.colors.shadow, blurRadius: 4)],
@@ -55,12 +56,12 @@ class TerrainLoadingOverlay extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Unable to prepare the path',
+                    context.l10n.terrainFailed,
                     style: ui.text.title.copyWith(color: ui.colors.textPrimary),
                   ),
                   SizedBox(height: ui.space.sm),
                   Text(
-                    'Your run is held here. Retry to continue.',
+                    context.l10n.terrainRetryHelp,
                     style: ui.text.body.copyWith(color: ui.colors.textPrimary),
                     textAlign: TextAlign.center,
                   ),
@@ -69,14 +70,14 @@ class TerrainLoadingOverlay extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       AppButton(
-                        label: 'Retry',
+                        label: context.l10n.commonRetry,
                         size: AppButtonSize.xs,
                         onPressed: onRetry,
                       ),
                       if (onExit != null) ...[
                         SizedBox(width: ui.space.sm),
                         AppButton(
-                          label: 'Exit',
+                          label: context.l10n.commonExit,
                           size: AppButtonSize.xs,
                           variant: AppButtonVariant.secondary,
                           onPressed: onExit,

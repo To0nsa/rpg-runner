@@ -1,3 +1,5 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -174,18 +176,22 @@ class _ResourceBarState extends State<ResourceBar>
   Widget build(BuildContext context) {
     final (label, icon, color) = switch (widget.resource) {
       HudResource.health => (
-        'Health',
+        context.l10n.uiHealth,
         LucideIcons.heart,
         UiResourceColors.health,
       ),
-      HudResource.mana => ('Mana', LucideIcons.droplet, UiResourceColors.mana),
+      HudResource.mana => (
+        context.l10n.uiMana,
+        LucideIcons.droplet,
+        UiResourceColors.mana,
+      ),
       HudResource.supplies => (
-        'Supplies',
+        context.l10n.uiSupplies,
         LucideIcons.backpack,
         UiResourceColors.supplies,
       ),
       HudResource.stamina => (
-        'Stamina',
+        context.l10n.uiStamina,
         LucideIcons.zap,
         UiResourceColors.stamina,
       ),
@@ -204,8 +210,10 @@ class _ResourceBarState extends State<ResourceBar>
     final border = Color.lerp(theme.border, color, math.max(low, warning))!;
     return Semantics(
       label: widget.label ?? label,
-      value:
-          '${widget.value.clamp(0, math.max(0, widget.maximum)).toStringAsFixed(0)} / ${math.max(0, widget.maximum).toStringAsFixed(0)}',
+      value: context.l10n.resourceRatio(
+        value: widget.value.clamp(0, math.max(0, widget.maximum)).round(),
+        maximum: math.max(0, widget.maximum).round(),
+      ),
       child: ExcludeSemantics(
         child: RepaintBoundary(
           child: SizedBox(

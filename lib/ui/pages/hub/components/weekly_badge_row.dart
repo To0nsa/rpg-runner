@@ -1,3 +1,4 @@
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../components/app_button.dart';
@@ -51,7 +52,7 @@ class WeeklyBadgeRow extends StatelessWidget {
           ),
           SizedBox(width: ui.space.xs),
           AppButton(
-            label: 'Leaderboard',
+            label: context.l10n.uiLeaderboard,
             size: AppButtonSize.sm,
             onPressed: onWeeklyLeaderboardPressed,
           ),

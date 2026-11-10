@@ -152,7 +152,7 @@ void main() {
     await tester.pumpWidget(_TestApp(appState: appState));
 
     expect(find.text('LEVEL 30  ·  MAX LEVEL'), findsOneWidget);
-    expect(find.text('212995'), findsOneWidget);
+    expect(find.text('212,995'), findsOneWidget);
   });
 
   testWidgets('hides Play Games upgrade action for non-anonymous account', (
