@@ -21,6 +21,7 @@ coverage/
 .flutter-plugins-dependencies
 
 # Flutter tool state
+.flutter_tool_state
 # .metadata
 
 # =========================
