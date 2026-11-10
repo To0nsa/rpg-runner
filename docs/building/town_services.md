@@ -27,14 +27,14 @@ the actual source and record all included work without altering unrelated stagin
 - [x] Add services, character/category browsing, ownership and comparisons.
 - [x] Verify backend boundaries and client/widget/localization behavior.
 - [x] Update implemented GDD/TDD and review task-only diff.
-- [ ] Freeze source; Plan/Prepare the dev release with reusable evidence.
-- [ ] Deploy authorized dev backend scope and verify live state.
-- [ ] Build/inspect matching dev Android APK and record artifact identity.
+- [x] Freeze source; Plan/Prepare the dev release with reusable evidence.
+- [x] Deploy authorized dev backend scope and verify live state.
+- [x] Build/inspect matching dev Android APK and record artifact identity.
 
 Owners: `functions/src/ownership`, `lib/ui/state`, `lib/ui/pages/town`, app routes,
-app localization, focused Functions/Flutter tests and documentation. No Core or
-replay contract change is planned. Release scope is decided by the canonical
-release tool against the actual verified dev baseline, not assumed from history.
+app localization, focused Functions/Flutter tests and documentation. Town services
+do not change Core simulation or replay wire schemas. Release scope was decided
+by the canonical release tool against the verified dev baseline.
 
 Optional future rotating discounts are outside this initial catalogue release.
 The current price is a baseline; economy/playtesting is not implied by unit tests.
@@ -52,6 +52,13 @@ The existing localization tool changes affect tracked simulation inputs, so the
 candidate uses `2026.11.10` consistently across app, Functions and validator.
 Current/next ranked route windows are regenerated. The release snapshot includes
 the existing completed localization/inbox/Admin work; the user's branch and
-index remain untouched. Prepare must validate the combined frozen source before
-any deployment. Native-device acceptance and full French editorial acceptance
+index remain untouched. Prepare validated the combined frozen source before
+deployment. Native-device acceptance and full French editorial acceptance
 remain outside the local test evidence.
+
+Implementation, full preparation, dev deployment and Android version code 7 are
+complete. Dev issuance is restored. See the
+[verification record](../verification/town-services-2026-11-10.md) for the frozen
+source, check counts, APK identity and live readback. This checklist remains
+current because the linked Play Games/device end-to-end acceptance described
+in that record is still outstanding; artifact and emulator checks do not replace it.

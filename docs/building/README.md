@@ -1,7 +1,8 @@
 # Current Implementation Plans
 
 - [Equipment and Training town services](town_services.md): permanent catalogues,
-  independent character browsing, protected purchases, dev backend release and Android build.
+  independent character browsing and protected purchases. Implementation, dev
+  deployment and Android v7 are complete; device end-to-end acceptance remains open.
 
 - [Completed English source and French localization](../archive/2026-11-09/building/localization.md):
   typed resources, device language settings, complete player text migration,
