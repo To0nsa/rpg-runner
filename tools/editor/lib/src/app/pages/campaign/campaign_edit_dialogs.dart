@@ -84,6 +84,22 @@ class _CampaignMissionSettingsDialogState
                 },
                 onSaved: (v) => data['firstClearXp'] = int.parse(v!),
               ),
+              DropdownButtonFormField<String>(
+                initialValue: data['rewardAbilityId'] as String? ?? '',
+                decoration: const InputDecoration(
+                  labelText: 'First-clear ability',
+                  helperText: 'Unlocks once on successful completion.',
+                ),
+                items: const [
+                  DropdownMenuItem(value: '', child: Text('None')),
+                  DropdownMenuItem(
+                    value: 'eloise.double_jump',
+                    child: Text('Éloïse — Double Jump'),
+                  ),
+                ],
+                onChanged: (v) =>
+                    data['rewardAbilityId'] = v == null || v.isEmpty ? null : v,
+              ),
               SwitchListTile(
                 title: const Text('Allow combat content'),
                 value: data['combatAllowed'] as bool,
@@ -97,7 +113,6 @@ class _CampaignMissionSettingsDialogState
                 value: data['includeInBuild'] as bool,
                 onChanged: (v) => setState(() => data['includeInBuild'] = v),
               ),
-              Text('First-clear ability: ${data['rewardAbilityId'] ?? 'none'}'),
             ],
           ),
         ),
@@ -124,6 +139,67 @@ class _CampaignMissionSettingsDialogState
 
 String? _required(String? v) =>
     v == null || v.trim().isEmpty ? 'Required.' : null;
+
+/// Returns a record even when clearing the reward, so Cancel remains distinct
+/// from applying None. The page commits through the campaign plugin.
+class CampaignChapterRewardsDialog extends StatefulWidget {
+  const CampaignChapterRewardsDialog({super.key, required this.chapter});
+  final CampaignChapterSource chapter;
+
+  @override
+  State<CampaignChapterRewardsDialog> createState() =>
+      _CampaignChapterRewardsDialogState();
+}
+
+class _CampaignChapterRewardsDialogState
+    extends State<CampaignChapterRewardsDialog> {
+  late String reward = widget.chapter.rewardCharacterId ?? '';
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Chapter rewards'),
+    content: SizedBox(
+      width: 420,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.chapter.title['en']!),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: reward,
+              decoration: const InputDecoration(
+                labelText: 'Completion character',
+                helperText:
+                    'Unlocks after completing every mission in this chapter. '
+                    'None grants no character unlock.',
+                helperMaxLines: 3,
+              ),
+              items: const [
+                DropdownMenuItem(value: '', child: Text('None')),
+                DropdownMenuItem(value: 'bountyHunter', child: Text('Willow')),
+              ],
+              onChanged: (v) => reward = v ?? '',
+            ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, (
+          characterId: reward.isEmpty ? null : reward,
+        )),
+        child: const Text('Apply'),
+      ),
+    ],
+  );
+}
 
 /// Point/region and target editing uses typed fields, never raw JSON. Target
 /// choices come from the compiled source marker identities used by simulation.

@@ -90,6 +90,112 @@ void main() {
       'height': 270,
     };
 
+  AuthoringCommand chapterReward(CampaignDocument d, String? reward) =>
+      AuthoringCommand(
+        kind: CampaignDomainPlugin.setChapterReward,
+        payload: {
+          'id': d.catalog.chapters.first.id,
+          'expectedRewardCharacterId':
+              d.catalog.chapters.first.rewardCharacterId,
+          'rewardCharacterId': reward,
+        },
+      );
+
+  test('reward edits reject unsupported IDs and stale chapter forms', () async {
+    final original = await plugin.loadFromRepo(workspace) as CampaignDocument;
+    expect(
+      plugin.applyEdit(original, chapterReward(original, 'bountyHunter')),
+      same(original),
+    );
+    expect(
+      () => plugin.applyEdit(original, chapterReward(original, 'eloise')),
+      throwsFormatException,
+    );
+    expect(
+      () => plugin.applyEdit(
+        original,
+        edit(original, original.selected.toJson()..['rewardAbilityId'] = 'bad'),
+      ),
+      throwsFormatException,
+    );
+    final clear = chapterReward(original, null);
+    final changed = plugin.applyEdit(original, clear) as CampaignDocument;
+    expect(changed.catalog.chapters.first.rewardCharacterId, isNull);
+    expect(
+      changed.catalog.missions.map((m) => m.toJson()),
+      original.catalog.missions.map((m) => m.toJson()),
+    );
+    expect(() => plugin.applyEdit(changed, clear), throwsStateError);
+    expect(original.catalog.chapters.first.rewardCharacterId, 'bountyHunter');
+    expect(
+      () => plugin.applyEdit(
+        original,
+        AuthoringCommand(
+          kind: CampaignDomainPlugin.setChapterReward,
+          payload: {...clear.payload, 'id': 'missing'},
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('reward settings survive Save, reopen and Undo after Save', () async {
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+      initialPluginId: plugin.id,
+      initialWorkspacePath: fixture.path,
+    );
+    addTearDown(controller.dispose);
+    await controller.loadWorkspace();
+    final original = controller.document as CampaignDocument;
+    controller.applyCommand(
+      edit(
+        original,
+        original.selected.toJson()
+          ..['firstClearXp'] = 55
+          ..['rewardAbilityId'] = null,
+      ),
+    );
+    controller.applyCommand(
+      chapterReward(controller.document as CampaignDocument, null),
+    );
+    await controller.exportDirectWrite();
+    expect(controller.exportError, isNull);
+    expect(controller.pendingChanges.hasChanges, isFalse);
+    final reopened = await plugin.loadFromRepo(workspace) as CampaignDocument;
+    expect(reopened.selected.firstClearXp, 55);
+    expect(reopened.selected.rewardAbilityId, isNull);
+    expect(reopened.catalog.chapters.first.rewardCharacterId, isNull);
+    expect(
+      reopened.catalog.chapters.first.title,
+      original.catalog.chapters.first.title,
+    );
+    expect(
+      reopened.catalog.missions.skip(1).map((m) => m.toJson()),
+      original.catalog.missions.skip(1).map((m) => m.toJson()),
+    );
+    controller.undo();
+    var restored = controller.document as CampaignDocument;
+    expect(restored.catalog.chapters.first.rewardCharacterId, 'bountyHunter');
+    expect(restored.selected.rewardAbilityId, isNull);
+    controller.undo();
+    restored = controller.document as CampaignDocument;
+    expect(restored.selected.rewardAbilityId, 'eloise.double_jump');
+    expect(restored.selected.firstClearXp, 40);
+    controller.redo();
+    controller.redo();
+    restored = controller.document as CampaignDocument;
+    expect(restored.catalog.chapters.first.rewardCharacterId, isNull);
+    expect(restored.selected.rewardAbilityId, isNull);
+    // Reward-only edits retain the same drift protection as route edits.
+    final source = File(workspace.resolve(campaignSourcePath));
+    final external = '${source.readAsStringSync()}\n';
+    source.writeAsStringSync(external);
+    final rejected = await plugin.exportToRepo(workspace, document: restored);
+    expect(rejected.outcome, ExportOutcome.sourceDrift);
+    expect(source.readAsStringSync(), external);
+  });
+
   test(
     'Save/reopen, Undo after Save, source drift and captured mission Play',
     () async {
@@ -285,4 +391,79 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets(
+    'reward selectors apply, clear and cancel through the workspace',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1100, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: CampaignPage(controller: controller)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      CampaignDocument document() => controller.document as CampaignDocument;
+
+      Future<void> open(String button) async {
+        await tester.tap(find.text(button));
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> choose(String label, String choice) async {
+        final field = find.ancestor(
+          of: find.text(label),
+          matching: find.byType(DropdownButtonFormField<String>),
+        );
+        await tester.ensureVisible(field);
+        await tester.tap(field);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(choice).last);
+        await tester.pumpAndSettle();
+      }
+
+      await open('Mission settings');
+      await choose('First-clear ability', 'None');
+      await open('Cancel');
+      expect(document().selected.rewardAbilityId, 'eloise.double_jump');
+      expect(controller.pendingChanges.hasChanges, isFalse);
+
+      await open('Mission settings');
+      await choose('First-clear ability', 'None');
+      await open('Apply');
+      expect(document().selected.rewardAbilityId, isNull);
+      await open('Mission settings');
+      await choose('First-clear ability', 'Éloïse — Double Jump');
+      await open('Apply');
+      expect(document().selected.rewardAbilityId, 'eloise.double_jump');
+
+      final beforeCancel = document();
+      await open('Chapter rewards');
+      await choose('Completion character', 'None');
+      await open('Cancel');
+      expect(document(), same(beforeCancel));
+      await open('Chapter rewards');
+      await choose('Completion character', 'None');
+      await open('Apply');
+      expect(document().catalog.chapters.first.rewardCharacterId, isNull);
+      expect(find.text('Chapter reward: None · 224 XP'), findsOneWidget);
+      await open('Chapter rewards');
+      await choose('Completion character', 'Willow');
+      await open('Apply');
+      expect(
+        document().catalog.chapters.first.rewardCharacterId,
+        'bountyHunter',
+      );
+      expect(find.text('Chapter reward: Willow · 224 XP'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 }

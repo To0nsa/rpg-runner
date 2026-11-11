@@ -85,6 +85,14 @@ shared-source where-used labels, continuous geometry overview, bilingual setting
 and typed start/exit/objective/pickup fields. Geometry opens in Chunk Creator through
 guarded navigation. Back reloads dependencies and restores mission selection.
 
+Mission settings edits first-clear XP and the optional Double Jump reward. Chapter
+rewards edits the optional Willow unlock independently of mission settings. Both
+selectors offer None; clearing a chapter reward removes that chapter's unlock,
+without making Willow available by default. Apply dispatches semantic edits, while
+Cancel changes nothing. The chapter command checks the expected previous reward
+and changes only that field. Shared source decoding rejects unsupported reward
+IDs; edits retain transactional Save, source-drift guards and Undo/Redo after Save.
+
 Copy to Campaign / Copy to Runner extends the existing stale-checked chunk lifecycle
 transaction. It allocates a fresh key/revision and preserves terrain, prefabs,
 materials, water, traps, markers, rescues and bosses. Prefab/atlas/material assets

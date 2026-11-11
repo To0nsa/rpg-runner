@@ -42,6 +42,8 @@ attempt. Double Jump is Éloïse's existing skill; Willow unlocks on four clears
 
 - [x] Campaign library, exact route/occurrence ordering, duplicate/remove,
   continuous preview, typed markers, bilingual settings and inclusion controls.
+- [x] Mission ability and chapter character reward selectors, including None,
+  Cancel, stale-form rejection and Save/reopen/Undo coverage.
 - [x] Semantic edits, revision/history, transactional Save, Undo after Save,
   dependency drift, shared-source navigation and captured F5 Play.
 - [x] Bidirectional independent chunk copies preserve supported geometry,
@@ -98,6 +100,8 @@ retain their independent package configs. Flutter checks use `--no-pub`.
 | Worker: AOT `tool/aot_protocol_probe.dart` | Compiled and ran successfully with campaign malformed binding/board controls |
 | `packages/runner_content_pipeline`: `campaign_source_test.dart training_field_source_test.dart` | 8 passed |
 | `tools/editor`: `flutter test test/campaign_authoring_test.dart` | 4 passed: Save/Undo/drift/captured Play, bidirectional copy, reference deletion, workspace controls |
+| `tools/editor`: reward-controls follow-up `flutter test --no-pub test/campaign_authoring_test.dart --reporter expanded` | 7 passed, including reward selection/clearing/Cancel, Save/reopen/Undo/Redo and unsupported/stale edit rejection; local automated checks, no native manual pass |
+| `tools/editor`: reward-controls `dart analyze lib/src/app/pages/campaign lib/src/campaign test/campaign_authoring_test.dart` | No issues; formatting and task diff checks passed. Sandboxed checks stalled and were stopped; successful checks used normal SDK/cache access |
 | `tools/editor`: chunk-v2, Play preparation and home-plugin-switch targets | 47 passed |
 | `services/replay_validator`: cached runner `test` | 367 passed before the added campaign integration cases; final focused rejection cases 2 passed |
 | Root: generator campaign-to-worker target | Passed generated trusted registry, continuous return and exact outcome/tick/gold at 30 and 120 Hz |

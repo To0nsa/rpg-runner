@@ -166,6 +166,25 @@ class _CampaignPageState extends State<CampaignPage>
     if (mounted && value != null && identical(d, _doc)) _edit(value.toJson());
   }
 
+  Future<void> _chapterRewards(CampaignChapterSource chapter) async {
+    final d = _doc!;
+    final value = await showDialog<({String? characterId})>(
+      context: context,
+      builder: (_) => CampaignChapterRewardsDialog(chapter: chapter),
+    );
+    if (!mounted || value == null || !identical(d, _doc)) return;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: CampaignDomainPlugin.setChapterReward,
+        payload: {
+          'id': chapter.id,
+          'expectedRewardCharacterId': chapter.rewardCharacterId,
+          'rewardCharacterId': value.characterId,
+        },
+      ),
+    );
+  }
+
   Future<void> _marker() async {
     final d = _doc!;
     final value = await showDialog<({String kind, Object value})>(
@@ -266,7 +285,11 @@ class _CampaignPageState extends State<CampaignPage>
                     ),
                     Text(chapter.description['en']!),
                     Text(
-                      'Chapter reward: ${chapter.rewardCharacterId ?? 'none'} · ${chapter.missions.fold<int>(0, (sum, m) => sum + m.firstClearXp)} XP',
+                      'Chapter reward: ${chapter.rewardCharacterId == null ? 'None' : 'Willow'} · ${chapter.missions.fold<int>(0, (sum, m) => sum + m.firstClearXp)} XP',
+                    ),
+                    OutlinedButton(
+                      onPressed: () => _chapterRewards(chapter),
+                      child: const Text('Chapter rewards'),
                     ),
                     for (var i = 0; i < chapter.missions.length; i++)
                       ListTile(

@@ -70,6 +70,9 @@ final class CampaignDomainPlugin
   static const selectMission = 'campaign_select_mission';
   static const replaceMission = 'campaign_replace_mission';
   static const reorderMission = 'campaign_reorder_mission';
+
+  /// Sets only the chapter reward; expectedRewardCharacterId guards stale forms.
+  static const setChapterReward = 'campaign_set_chapter_reward';
   @override
   String get id => pluginId;
 
@@ -158,6 +161,27 @@ final class CampaignDomainPlugin
     final json = doc.catalog.toJson();
     final chapters = json['chapters'] as List;
     final id = command.payload['id'];
+    if (command.kind == setChapterReward) {
+      final chapter = chapters
+          .cast<Map>()
+          .where((c) => c['id'] == id)
+          .firstOrNull;
+      if (chapter == null) throw ArgumentError('Unknown chapter $id.');
+      if (!command.payload.containsKey('expectedRewardCharacterId') ||
+          command.payload['expectedRewardCharacterId'] !=
+              chapter['rewardCharacterId']) {
+        throw StateError('Chapter reward changed; reload this form.');
+      }
+      if (!command.payload.containsKey('rewardCharacterId')) {
+        throw ArgumentError('A chapter reward or explicit null is required.');
+      }
+      if (chapter['rewardCharacterId'] ==
+          command.payload['rewardCharacterId']) {
+        return doc;
+      }
+      chapter['rewardCharacterId'] = command.payload['rewardCharacterId'];
+      return doc.withCatalog(CampaignCatalogSource.decode(jsonEncode(json)));
+    }
     final chapter = chapters.cast<Map>().firstWhere(
       (c) => (c['missions'] as List).any((m) => m['id'] == id),
     );

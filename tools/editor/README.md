@@ -929,6 +929,15 @@ make an independent layout before changing it. Copying preserves encounters;
 remove unwanted content yourself for Reporting for Duty. **Copy to Runner** makes
 an inactive runner draft. Shared prefabs and materials remain shared references.
 
+Set **First-clear XP** and **First-clear ability** in **Mission settings**.
+The ability selector currently offers **None** or **Éloïse — Double Jump**.
+Use **Chapter rewards** beneath the chapter description to choose **Willow** or
+**None** as the character unlocked by completing every mission. None removes that
+chapter's unlock; it does not make Willow available by default. **Apply** accepts
+the dialog edit into Undo/Redo; **Cancel** leaves the reward unchanged. Save then
+Build to regenerate the shared reward policy. Gold remains authored separately
+through **Place start / exit / objective → Gold pickup** (one gold per pickup).
+
 Save and Undo use the normal workspace transaction. F5 captures the current mission
 for local Play; Build publishes only missions explicitly included in their settings.
 The four Val Outpost missions start as excluded drafts for manual layout authoring.
