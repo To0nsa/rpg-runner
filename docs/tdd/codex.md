@@ -134,6 +134,7 @@ fills the screen behind the transparent app bar and icon rail, cropping edges
 when needed. Initial location labels and reset respect the toolbar, rail and
 system insets; geographic pins retain image coordinates.
 The noninteractive Théodonis label also uses a callout to clear the toolbar.
+The farm label has a bounded width so enlarged text wraps clear of Théodonis.
 Panning reveals cropped areas, and reset restores the initial framing.
 The modal reuses the location reading surface and its live unlock gate.
 Entry details and lists scroll; Library and `HubMenuIconColumn` share

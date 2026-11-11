@@ -62,7 +62,8 @@ screen, including behind the transparent AppBar and left navigation icons.
 The map crops to fill the screen; dragging reveals its edges. Location buttons
 start clear of the toolbar and rail.
 Only Théodonis and the two discoverable locations have Flutter labels, with
-lines to their map positions. Léonards’ farm and Val
+lines to their map positions. Théodonis sits close below its marker; Léonards’
+farm sits farther to the right, near its marker's height. Léonards’ farm and Val
 Outpost have clickable map labels and markers. Their icons show locked or open
 status; tapping either opens a modal with the current Competitive best score
 and discovery requirement, or the full location lore after unlock. The map can

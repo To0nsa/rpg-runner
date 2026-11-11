@@ -135,7 +135,7 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
                   ),
                   MapCallout(
                     anchor: at(.16, .145),
-                    labelCenter: at(.16, .35),
+                    labelCenter: at(.16, .28),
                     visibleMap: visibleMap,
                     child: IgnorePointer(
                       child: SizedBox(
@@ -149,13 +149,17 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
                     ),
                   ),
                   for (final place in [
-                    (LevelId.field, at(.34, .145), at(.43, .22)),
+                    (LevelId.field, at(.34, .145), at(.60, .14)),
                     (LevelId.forest, at(.80, .595), at(.68, .52)),
                   ]) ...[
                     MapCallout(
                       anchor: place.$2,
                       labelCenter: place.$3,
                       visibleMap: visibleMap,
+                      // Keep enlarged farm text clear of the nearby city label.
+                      maxLabelWidth: place.$1 == LevelId.field
+                          ? math.min(visibleMap.width, scene.width * .36)
+                          : null,
                       child: MapLabelButton(
                         key: ValueKey('codex-level-${place.$1.name}'),
                         label: CodexCatalog.levelName(place.$1, context.l10n),
