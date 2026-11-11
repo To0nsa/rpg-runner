@@ -134,6 +134,7 @@ final List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
         CampaignPage(
           key: key,
           controller: controller,
+          initialLocation: navigation.initialLocation as CampaignLocation?,
           onOpenChunk: navigation.onOpenCampaignChunk,
           onShellStateChanged: navigation.onShellStateChanged,
         ),

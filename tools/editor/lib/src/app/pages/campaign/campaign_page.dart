@@ -7,20 +7,38 @@ import 'package:tool_ui/tool_ui.dart';
 
 import '../../../campaign/campaign_domain_plugin.dart';
 import '../../../chunks/chunk_v2_file_codec.dart';
+import '../../../chunks/chunk_v2_file_data.dart';
+import '../../../parallax/parallax_domain_models.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../playtest/authored_playtest_preparation.dart';
 import '../../../session/editor_session_controller.dart';
 import '../chunkCreator/chunk_creator_location.dart';
+import '../chunkCreator/v2/chunk_composition_preview.dart';
 import '../shared/authored_playtest_session.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_page_navigation_state.dart';
 import 'campaign_chapter_dialog.dart';
 import 'campaign_chapter_section.dart';
 import 'campaign_edit_dialogs.dart';
+import 'campaign_contents.dart';
+import 'campaign_route.dart';
+import 'campaign_inspector.dart';
+import 'campaign_overview.dart';
+
+enum CampaignTab { contents, route, markers }
 
 final class CampaignLocation extends EditorPageLocation {
-  const CampaignLocation(this.missionId);
+  const CampaignLocation(
+    this.missionId, {
+    this.tab = CampaignTab.contents,
+    this.chunkSearch = '',
+    this.selectedChunkKey,
+    this.selectedOccurrenceId,
+  });
   final String missionId;
+  final CampaignTab tab;
+  final String chunkSearch;
+  final String? selectedChunkKey, selectedOccurrenceId;
   @override
   AuthoringDocument restoreDocumentSelection(
     AuthoringDomainPlugin plugin,
@@ -43,9 +61,11 @@ class CampaignPage extends StatefulWidget {
     super.key,
     required this.controller,
     this.onOpenChunk,
+    this.initialLocation,
     this.onShellStateChanged,
   });
   final EditorSessionController controller;
+  final CampaignLocation? initialLocation;
   final Future<bool> Function(ChunkCreatorLocation)? onOpenChunk;
   final VoidCallback? onShellStateChanged;
   @override
@@ -60,10 +80,24 @@ class _CampaignPageState extends State<CampaignPage>
   final _play = AuthoredPlaytestSession();
   CampaignDocument? _doc;
   final _compiled = <String, PolygonTerrainRuntimeChunk>{};
-  String _search = '';
+  final _panels = ToolThreePanelController();
+  late final _search = TextEditingController(
+    text: widget.initialLocation?.chunkSearch ?? '',
+  );
+  late CampaignTab _tab = widget.initialLocation?.tab ?? CampaignTab.contents;
+  late String? _selectedChunkKey = widget.initialLocation?.selectedChunkKey;
+  late String? _selectedOccurrenceId =
+      widget.initialLocation?.selectedOccurrenceId;
   @override
-  EditorPageLocation? get navigationLocation =>
-      _doc == null ? null : CampaignLocation(_doc!.selectedMissionId);
+  EditorPageLocation? get navigationLocation => _doc == null
+      ? null
+      : CampaignLocation(
+          _doc!.selectedMissionId,
+          tab: _tab,
+          chunkSearch: _search.text,
+          selectedChunkKey: _selectedChunkKey,
+          selectedOccurrenceId: _selectedOccurrenceId,
+        );
   @override
   bool get locksEditorShell => _play.locksEditor;
   @override
@@ -93,6 +127,7 @@ class _CampaignPageState extends State<CampaignPage>
   @override
   void initState() {
     super.initState();
+    _search.addListener(_viewChanged);
     widget.controller.addListener(_changed);
     _play.addListener(_changed);
     _refresh();
@@ -108,6 +143,21 @@ class _CampaignPageState extends State<CampaignPage>
   void _refresh() {
     final d = widget.controller.document;
     if (d is! CampaignDocument || identical(d, _doc)) return;
+    final previousMissionId =
+        _doc?.selectedMissionId ?? widget.initialLocation?.missionId;
+    if ((previousMissionId != null &&
+            previousMissionId != d.selectedMissionId) ||
+        !d.selected.route.any((o) => o.id == _selectedOccurrenceId)) {
+      _selectedOccurrenceId = null;
+    }
+    if (_selectedOccurrenceId != null) {
+      _selectedChunkKey = d.selected.route
+          .firstWhere((o) => o.id == _selectedOccurrenceId)
+          .chunkKey;
+    }
+    if (!d.chunks.chunks.any((c) => c.chunkKey == _selectedChunkKey)) {
+      _selectedChunkKey = null;
+    }
     _doc = d;
     _play.reconcileSource(d);
     _compiled.clear();
@@ -142,6 +192,8 @@ class _CampaignPageState extends State<CampaignPage>
     widget.controller.removeListener(_changed);
     _play.removeListener(_changed);
     _play.dispose();
+    _search.dispose();
+    _panels.dispose();
     super.dispose();
   }
 
@@ -241,6 +293,10 @@ class _CampaignPageState extends State<CampaignPage>
       'chunkKey': c.chunkKey,
     });
     _edit(json);
+    if (_doc!.selected.route.any((o) => o.id == 'occurrence_$index')) {
+      _tab = CampaignTab.route;
+      _selectOccurrence('occurrence_$index');
+    }
   }
 
   void _move(int from, int to) {
@@ -287,204 +343,101 @@ class _CampaignPageState extends State<CampaignPage>
     );
   }
 
+  void _viewChanged() {
+    if (!mounted) return;
+    setState(() {});
+    widget.onShellStateChanged?.call();
+  }
+
+  void _selectTab(CampaignTab tab) {
+    _tab = tab;
+    _viewChanged();
+  }
+
+  void _selectChunk(ChunkV2FileData chunk) {
+    _selectedChunkKey = chunk.chunkKey;
+    _selectedOccurrenceId = null;
+    _viewChanged();
+  }
+
+  void _selectOccurrence(String id) {
+    _selectedOccurrenceId = id;
+    _selectedChunkKey = _doc!.selected.route
+        .firstWhere((o) => o.id == id)
+        .chunkKey;
+    _viewChanged();
+  }
+
+  Future<void> _openChunk(ChunkV2FileData chunk) async {
+    if (_selectedChunkKey != chunk.chunkKey) _selectChunk(chunk);
+    await widget.onOpenChunk?.call(
+      ChunkCreatorLocation(levelId: chunk.levelId, chunkKey: chunk.chunkKey),
+    );
+  }
+
+  Widget _chunkPreview(ChunkV2FileData chunk) => ChunkCompositionPreview(
+    workspaceRootPath: widget.controller.workspacePath,
+    chunk: chunk,
+    prefabData: _doc!.chunks.prefabData,
+    tileData: _doc!.chunks.tileData,
+    visualBoundsByPrefabKey: _doc!.chunks.visualBoundsByPrefabKey,
+    parallaxTheme: findParallaxThemeById(
+      _doc!.chunks.parallaxThemes,
+      _doc!.selected.visualThemeId,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final d = _doc;
     if (d == null) return const Center(child: Text('Loading campaign…'));
-    final m = d.selected;
-    final route = m.route;
+    final chunk = d.chunks.chunks
+        .where((c) => c.chunkKey == _selectedChunkKey)
+        .firstOrNull;
     return Stack(
+      fit: StackFit.expand,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: 280,
-              child: ListView(
-                key: const ValueKey('campaign_library'),
-                padding: const EdgeInsets.all(12),
-                children: [
-                  FilledButton.icon(
-                    onPressed: d.catalog.chapters.length < 32
-                        ? () => _chapterSettings()
-                        : null,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Create chapter'),
+        Offstage(
+          offstage: _play.locksEditor,
+          child: TickerMode(
+            enabled: !_play.locksEditor,
+            child: ExcludeFocus(
+              excluding: _play.locksEditor,
+              child: ToolWorkspaceCard(
+                child: ToolThreePanelLayout(
+                  key: const ValueKey('campaign_workspace_layout'),
+                  controller: _panels,
+                  firstLabel: 'Chapters',
+                  secondLabel: 'Workspace',
+                  thirdLabel: 'Settings',
+                  firstFlex: 3,
+                  secondFlex: 8,
+                  thirdFlex: 4,
+                  minimumWideWidth: 1180,
+                  first: _library(d),
+                  second: _workspace(d, chunk),
+                  third: CampaignInspector(
+                    mission: d.selected,
+                    chunk: chunk,
+                    occurrenceId: _selectedOccurrenceId,
+                    usedBy: chunk == null
+                        ? const []
+                        : d.whereUsed(chunk.chunkKey),
+                    onSettings: _settings,
+                    onEditChunk: chunk == null || widget.onOpenChunk == null
+                        ? null
+                        : () => _openChunk(chunk),
+                    diagnostics: [
+                      for (final issue in widget.controller.issues.where(
+                        (i) => i.ownerKey == d.selected.id,
+                      ))
+                        issue.message,
+                    ],
                   ),
-                  for (var i = 0; i < d.catalog.chapters.length; i++)
-                    CampaignChapterSection(
-                      key: ValueKey(d.catalog.chapters[i].id),
-                      chapter: d.catalog.chapters[i],
-                      number: i + 1,
-                      selectedMissionId: m.id,
-                      onSettings: () => _chapterSettings(d.catalog.chapters[i]),
-                      onRewards: () => _chapterRewards(d.catalog.chapters[i]),
-                      onAddMission: () => widget.controller.applyCommand(
-                        AuthoringCommand(
-                          kind: CampaignDomainPlugin.addMission,
-                          payload: {'id': d.catalog.chapters[i].id},
-                        ),
-                      ),
-                      onSelectMission: (id) => widget.controller.applyCommand(
-                        AuthoringCommand(
-                          kind: CampaignDomainPlugin.selectMission,
-                          payload: {'id': id},
-                        ),
-                      ),
-                      onMoveEarlier: (id, target) =>
-                          widget.controller.applyCommand(
-                            AuthoringCommand(
-                              kind: CampaignDomainPlugin.reorderMission,
-                              payload: {'id': id, 'targetIndex': target},
-                            ),
-                          ),
-                    ),
-                  const Divider(),
-                  const Text('Chunk library'),
-                  TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Owner, group, tier or key',
-                    ),
-                    onChanged: (v) => setState(() => _search = v.toLowerCase()),
-                  ),
-                  for (final c in d.chunks.chunks.where(
-                    (c) =>
-                        '${c.levelId} ${c.assemblyGroupId} ${c.difficulty} ${c.chunkKey} ${c.usage}'
-                            .toLowerCase()
-                            .contains(_search),
-                  ))
-                    ListTile(
-                      dense: true,
-                      title: Text(c.chunkKey),
-                      subtitle: Text(
-                        '${c.usage} · ${c.difficulty} · ${c.status}',
-                      ),
-                      trailing: IconButton(
-                        tooltip: 'Append occurrence',
-                        onPressed: route.length >= 16
-                            ? null
-                            : () => _add(c.chunkKey),
-                        icon: const Icon(Icons.add),
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(12),
-                children: [
-                  ToolPanelCard(
-                    title: m.title['en']!,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(m.description['en']!),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            OutlinedButton(
-                              onPressed: _settings,
-                              child: const Text('Mission settings'),
-                            ),
-                            OutlinedButton(
-                              onPressed: route.isEmpty ? null : _marker,
-                              child: const Text(
-                                'Place start / exit / objective',
-                              ),
-                            ),
-                            FilledButton.icon(
-                              onPressed: _startPlay,
-                              icon: const Icon(Icons.play_arrow),
-                              label: const Text('Play mission (F5)'),
-                            ),
-                          ],
-                        ),
-                        const Text(
-                          'Exact route order · camera follows both directions · no random assembly. Edit shared geometry in Chunk Creator; Copy to Campaign creates an independent layout.',
-                        ),
-                        SizedBox(
-                          height: 150,
-                          child: CustomPaint(
-                            painter: _CampaignOverview(m, Map.of(_compiled)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  for (var i = 0; i < route.length; i++)
-                    Card(
-                      child: ListTile(
-                        title: Text('${i + 1}. ${route[i].chunkKey}'),
-                        subtitle: Text(
-                          '${route[i].id} · used by ${d.whereUsed(route[i].chunkKey).join(', ')}',
-                        ),
-                        trailing: Wrap(
-                          children: [
-                            IconButton(
-                              tooltip: 'Move left',
-                              onPressed: i == 0 ? null : () => _move(i, i - 1),
-                              icon: const Icon(Icons.arrow_back),
-                            ),
-                            IconButton(
-                              tooltip: 'Move right',
-                              onPressed: i == route.length - 1
-                                  ? null
-                                  : () => _move(i, i + 1),
-                              icon: const Icon(Icons.arrow_forward),
-                            ),
-                            IconButton(
-                              tooltip: 'Duplicate occurrence',
-                              onPressed: route.length >= 16
-                                  ? null
-                                  : () => _add(route[i].chunkKey, after: i),
-                              icon: const Icon(Icons.copy),
-                            ),
-                            IconButton(
-                              tooltip: 'Edit shared chunk / copy mode',
-                              onPressed: widget.onOpenChunk == null
-                                  ? null
-                                  : () => widget.onOpenChunk!(
-                                      ChunkCreatorLocation(
-                                        levelId: route[i].levelId,
-                                        chunkKey: route[i].chunkKey,
-                                      ),
-                                    ),
-                              icon: const Icon(Icons.edit),
-                            ),
-                            IconButton(
-                              tooltip: 'Remove occurrence',
-                              onPressed: () => _remove(i),
-                              icon: const Icon(Icons.remove_circle_outline),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  const Text(
-                    'Mission markers',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  for (final key in [
-                    'start',
-                    'exit',
-                    'collectibles',
-                    'requiredRegions',
-                    'requiredEnemies',
-                    'requiredRescues',
-                  ])
-                    ..._markers(key, m.toJson()[key]),
-                  for (final issue in widget.controller.issues.where(
-                    (i) => i.ownerKey == m.id,
-                  ))
-                    ListTile(
-                      leading: const Icon(Icons.info_outline),
-                      title: Text(issue.message),
-                    ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
         if (_play.locksEditor)
           Positioned.fill(
@@ -499,6 +452,196 @@ class _CampaignPageState extends State<CampaignPage>
             ),
           ),
       ],
+    );
+  }
+
+  Widget _library(CampaignDocument d) => ToolPanelCard(
+    title: 'Campaign',
+    bodyMode: ToolPanelBodyMode.expanded,
+    child: ListView(
+      key: const ValueKey('campaign_library'),
+      children: [
+        FilledButton.icon(
+          onPressed: d.catalog.chapters.length < 32
+              ? () => _chapterSettings()
+              : null,
+          icon: const Icon(Icons.add),
+          label: const Text('Create chapter'),
+        ),
+        for (var i = 0; i < d.catalog.chapters.length; i++)
+          CampaignChapterSection(
+            key: ValueKey(d.catalog.chapters[i].id),
+            chapter: d.catalog.chapters[i],
+            number: i + 1,
+            selectedMissionId: d.selected.id,
+            onSettings: () => _chapterSettings(d.catalog.chapters[i]),
+            onRewards: () => _chapterRewards(d.catalog.chapters[i]),
+            onAddMission: () => widget.controller.applyCommand(
+              AuthoringCommand(
+                kind: CampaignDomainPlugin.addMission,
+                payload: {'id': d.catalog.chapters[i].id},
+              ),
+            ),
+            onSelectMission: (id) => widget.controller.applyCommand(
+              AuthoringCommand(
+                kind: CampaignDomainPlugin.selectMission,
+                payload: {'id': id},
+              ),
+            ),
+            onMoveEarlier: (id, target) => widget.controller.applyCommand(
+              AuthoringCommand(
+                kind: CampaignDomainPlugin.reorderMission,
+                payload: {'id': id, 'targetIndex': target},
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+
+  Widget _workspace(CampaignDocument d, ChunkV2FileData? chunk) {
+    final m = d.selected;
+    return ToolPreviewWorkspace(
+      scrollKey: const PageStorageKey('campaign_workspace_scroll'),
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  m.title['en']!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Show mission settings',
+                onPressed: () => _panels.revealPanel(2),
+                icon: const Icon(Icons.tune),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: _startPlay,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Play mission (F5)'),
+              ),
+              Text('${m.route.length} / 16 chunks'),
+            ],
+          ),
+        ],
+      ),
+      preview: ToolPanelCard(
+        key: const ValueKey('campaign_persistent_preview'),
+        title: _tab == CampaignTab.contents && chunk != null
+            ? 'Chunk preview · ${chunk.chunkKey}'
+            : 'Mission route preview',
+        bodyMode: ToolPanelBodyMode.expanded,
+        child: _tab == CampaignTab.contents && chunk != null
+            ? _chunkPreview(chunk)
+            : m.route.isEmpty
+            ? const Center(
+                child: Text('Add chunks from Contents to build this mission.'),
+              )
+            : CustomPaint(painter: CampaignOverview(m, Map.of(_compiled))),
+      ),
+      tabs: SegmentedButton<CampaignTab>(
+        key: const ValueKey('campaign_workspace_tabs'),
+        segments: const [
+          ButtonSegment(
+            value: CampaignTab.contents,
+            icon: Icon(Icons.grid_view),
+            label: Text('Contents'),
+          ),
+          ButtonSegment(
+            value: CampaignTab.route,
+            icon: Icon(Icons.view_timeline_outlined),
+            label: Text('Route'),
+          ),
+          ButtonSegment(
+            value: CampaignTab.markers,
+            icon: Icon(Icons.flag_outlined),
+            label: Text('Markers'),
+          ),
+        ],
+        selected: {_tab},
+        showSelectedIcon: false,
+        onSelectionChanged: (values) => _selectTab(values.single),
+      ),
+      content: IndexedStack(
+        index: _tab.index,
+        children: [
+          TickerMode(
+            enabled: _tab == CampaignTab.contents,
+            child: ExcludeFocus(
+              excluding: _tab != CampaignTab.contents,
+              child: CampaignContents(
+                chunks: d.chunks.chunks,
+                searchController: _search,
+                selectedChunkKey: _selectedChunkKey,
+                onSelected: _selectChunk,
+                onAppend: m.route.length >= 16
+                    ? null
+                    : (chunk) => _add(chunk.chunkKey),
+                onEdit: widget.onOpenChunk == null ? null : _openChunk,
+                previewBuilder: _chunkPreview,
+              ),
+            ),
+          ),
+          CampaignRoute(
+            mission: m,
+            selectedOccurrenceId: _selectedOccurrenceId,
+            onSelected: _selectOccurrence,
+            onMove: _move,
+            onDuplicate: (i) => _add(m.route[i].chunkKey, after: i),
+            onRemove: _remove,
+            onEdit: widget.onOpenChunk == null
+                ? null
+                : (i) {
+                    _selectOccurrence(m.route[i].id);
+                    widget.onOpenChunk!(
+                      ChunkCreatorLocation(
+                        levelId: m.route[i].levelId,
+                        chunkKey: m.route[i].chunkKey,
+                      ),
+                    );
+                  },
+            onBrowse: () => _selectTab(CampaignTab.contents),
+          ),
+          ListView(
+            key: const PageStorageKey('campaign_markers_scroll'),
+            padding: const EdgeInsets.all(12),
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: m.route.isEmpty ? null : _marker,
+                  icon: const Icon(Icons.add_location_alt_outlined),
+                  label: const Text('Place start / exit / objective'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text('Mission markers'),
+              for (final key in [
+                'start',
+                'exit',
+                'collectibles',
+                'requiredRegions',
+                'requiredEnemies',
+                'requiredRescues',
+              ])
+                ..._markers(key, m.toJson()[key]),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -525,83 +668,4 @@ class _CampaignPageState extends State<CampaignPage>
         ),
     ];
   }
-}
-
-/// Read-only assembled overview. Detailed geometry input stays in the shared
-/// Chunk Creator viewport, including its established pan/zoom/grid controls.
-class _CampaignOverview extends CustomPainter {
-  _CampaignOverview(this.mission, this.chunks);
-  final CampaignMissionSource mission;
-  final Map<String, PolygonTerrainRuntimeChunk> chunks;
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (mission.route.isEmpty) return;
-    final scale = (size.width / (mission.route.length * 600)).clamp(
-      0.01,
-      size.height / 270,
-    );
-    canvas.save();
-    canvas.scale(scale);
-    for (var i = 0; i < mission.route.length; i++) {
-      final chunk = chunks[mission.route[i].chunkKey];
-      for (final polygon in chunk?.compiled.geometry.polygons ?? []) {
-        final path = Path();
-        for (var j = 0; j < polygon.vertices.length; j++) {
-          final v = polygon.vertices[j];
-          final x = v.xTicks / 1024 + i * 600;
-          final y = v.yTicks / 1024;
-          if (j == 0) {
-            path.moveTo(x, y);
-          } else {
-            path.lineTo(x, y);
-          }
-        }
-        canvas.drawPath(path..close(), Paint()..color = Colors.blueGrey);
-      }
-      canvas.drawLine(
-        Offset(i * 600.0, 0),
-        Offset(i * 600.0, 270),
-        Paint()
-          ..color = Colors.grey
-          ..strokeWidth = 1 / scale,
-      );
-    }
-    for (final region in [
-      if (mission.exit != null) mission.exit!,
-      ...mission.requiredRegions,
-    ]) {
-      final i = mission.route.indexWhere(
-        (o) => o.id == region.origin.occurrenceId,
-      );
-      if (i >= 0) {
-        canvas.drawRect(
-          Rect.fromLTWH(
-            i * 600 + region.origin.x,
-            region.origin.y,
-            region.width,
-            region.height,
-          ),
-          Paint()..color = Colors.green.withValues(alpha: .3),
-        );
-      }
-    }
-    for (final point in [
-      if (mission.start != null) mission.start!,
-      ...mission.collectibles,
-    ]) {
-      final i = mission.route.indexWhere((o) => o.id == point.occurrenceId);
-      if (i >= 0) {
-        canvas.drawCircle(
-          Offset(i * 600 + point.x, point.y),
-          5 / scale,
-          Paint()..color = Colors.amber,
-        );
-      }
-    }
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _CampaignOverview oldDelegate) =>
-      !identical(mission, oldDelegate.mission) || chunks != oldDelegate.chunks;
 }

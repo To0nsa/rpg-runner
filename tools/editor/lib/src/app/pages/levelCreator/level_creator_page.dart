@@ -24,7 +24,9 @@ import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_page_navigation_state.dart';
 import '../shared/authored_playtest_session.dart';
 import '../parallaxEditor/widgets/parallax_preview_view.dart';
+
 import 'package:tool_ui/tool_ui.dart';
+
 import '../chunkCreator/v2/chunk_composition_preview.dart';
 import 'level_appearance.dart';
 import 'level_contents.dart';
@@ -131,8 +133,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   );
   String? _previewSeedError;
   final AuthoredPlaytestSession _playtest = AuthoredPlaytestSession();
-  final ToolThreePanelController _panelController =
-      ToolThreePanelController();
+  final ToolThreePanelController _panelController = ToolThreePanelController();
   String? _diagnosticFieldKey;
   bool _showSample = false;
   bool _preparingSample = false;
@@ -857,308 +858,282 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     final themeId = _visualThemeIdController.text.trim();
     final themes =
         document.parallaxDocument?.themes ?? const <ParallaxThemeDef>[];
-    final workspace = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                level.displayName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            IconButton(
-              tooltip: 'Level settings',
-              onPressed: () => unawaited(_showLevelInspector()),
-              icon: const Icon(Icons.tune),
-            ),
-            PopupMenuButton<String>(
-              tooltip: 'Level actions',
-              onSelected: (action) {
-                if (action == 'copy') {
-                  unawaited(_showCreateLevelDialog(copySource: level));
-                }
-                if (action == 'status') {
-                  level.status == levelStatusActive
-                      ? _deprecateActiveLevel()
-                      : _reactivateActiveLevel();
-                }
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: 'copy',
-                  child: Text('Copy level settings'),
-                ),
-                PopupMenuItem(
-                  value: 'status',
-                  child: Text(
-                    level.status == levelStatusActive
-                        ? 'Deprecate'
-                        : 'Reactivate',
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Tooltip(
-              message: _playtestUnavailableReason ?? 'Play level — seeded run from current edits. F5 Play/Stop · F6 Restart · P Pause · Enter Start',
-              child: FilledButton.icon(
-                key: const ValueKey<String>('level_play_button'),
-                onPressed: _playtestUnavailableReason == null
-                    ? () => unawaited(_requestPlaytest())
-                    : null,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Play'),
-              ),
-            ),
-            SizedBox(
-              width: 140,
-              child: TextField(
-                key: const ValueKey<String>('level_preview_seed'),
-                controller: _previewSeedController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Preview seed',
-                  isDense: true,
-                  errorText: _previewSeedError,
-                ),
-                onSubmitted: (_) => _acceptPreviewSeed(),
-              ),
-            ),
-            OutlinedButton.icon(
-              key: const ValueKey('level_sample_button'),
-              onPressed: _preparingSample
-                  ? null
-                  : () => unawaited(_prepareSample()),
-              icon: const Icon(Icons.view_carousel_outlined),
-              label: const Text('Sample run'),
-            ),
-            if (_showSample)
-              TextButton(
-                onPressed: () => setState(() => _showSample = false),
-                child: const Text('Show chunk'),
-              ),
-            TextButton(
-              key: const ValueKey('level_new_variation'),
-              onPressed: _preparingSample
-                  ? null
-                  : () {
-                      _previewSeedController.text = '${_previewSeed + 1}';
-                      unawaited(_prepareSample());
-                    },
-              child: const Text('New variation'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Flexible(
-          flex: 4,
-          child: ToolPanelCard(
-            key: const ValueKey<String>('level_persistent_preview'),
-            title: _showSample
-                ? 'Sampled run'
-                : selectedChunk == null
-                ? 'Level preview'
-                : 'Chunk preview · ${selectedChunk.chunkKey}',
-            bodyMode: ToolPanelBodyMode.expanded,
-            trailing: IconButton(
-              tooltip: 'Refresh content',
-              onPressed: _loadingContent
-                  ? null
-                  : () => unawaited(_refreshContent()),
-              icon: const Icon(Icons.refresh),
-            ),
-            child: _showSample
-                ? _buildSamplePreview()
-                : _loadingContent && _content == null
-                ? const Center(child: CircularProgressIndicator())
-                : _contentError != null
-                ? Center(
-                    child: Text('Content preview unavailable. $_contentError'),
-                  )
-                : selectedChunk == null
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'No chunks yet. Add a starter or create a chunk.',
-                        ),
-                        const SizedBox(height: 8),
-                        FilledButton.tonal(
-                          onPressed: widget.onOpenChunk == null
-                              ? null
-                              : () => unawaited(
-                                  _openChunk(
-                                    LevelCreatorChunkIntent.flatStarter,
-                                  ),
-                                ),
-                          child: const Text('Add flat starter'),
-                        ),
-                      ],
-                    ),
-                  )
-                : _chunkPreview(selectedChunk, themeId: themeId),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SegmentedButton<LevelCreatorTab>(
-          key: const ValueKey<String>('level_workspace_tabs'),
-          segments: const [
-            ButtonSegment(
-              value: LevelCreatorTab.contents,
-              icon: Icon(Icons.grid_view),
-              label: Text('Contents'),
-            ),
-            ButtonSegment(
-              value: LevelCreatorTab.flow,
-              icon: Icon(Icons.view_timeline_outlined),
-              label: Text('Flow'),
-            ),
-            ButtonSegment(
-              value: LevelCreatorTab.appearance,
-              icon: Icon(Icons.layers_outlined),
-              label: Text('Appearance'),
-            ),
-          ],
-          selected: {_workspaceTab},
-          showSelectedIcon: false,
-          onSelectionChanged: (values) => unawaited(_selectTab(values.single)),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          flex: 5,
-          child: IndexedStack(
-            index: _workspaceTab.index,
+    return ToolPreviewWorkspace(
+      scrollKey: const PageStorageKey('level_workspace_scroll'),
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              LevelContents(
-                chunks: chunks,
-                groups: _chunkThemeGroupsDraft,
-                groupFilter: _groupFilter,
-                selectedChunkKey: _selectedChunkKey,
-                firstChunkKey: level.firstChunkKey,
-                searchController: _chunkSearch,
-                onFilter: (group) {
-                  setState(() => _groupFilter = group);
-                  _persistView();
-                },
-                onSelected: (key) => unawaited(_selectChunk(key)),
-                onAddGroup: () => unawaited(_showAddGroupDialog()),
-                onRemoveGroup: (group) => unawaited(
-                  _changeAssemblyStructure(
-                    () => _removeChunkThemeGroup(scene, group),
-                  ),
+              Expanded(
+                child: Text(
+                  level.displayName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                onAddChunk: widget.onOpenChunk == null
-                    ? null
-                    : () =>
-                          unawaited(_openChunk(LevelCreatorChunkIntent.create)),
-                onEditChunk: widget.onOpenChunk == null
-                    ? null
-                    : (chunk) => unawaited(
-                        _openChunk(LevelCreatorChunkIntent.edit, chunk: chunk),
-                      ),
-                onAssignChunk: widget.onOpenChunk == null
-                    ? null
-                    : (chunk) => unawaited(
-                        _openChunk(
-                          LevelCreatorChunkIntent.assignGroup,
-                          chunk: chunk,
-                        ),
-                      ),
-                previewBuilder: _chunkPreview,
               ),
-              LevelFlow(
-                connectionIssues: _connectionScene?.seamAnalysis.issues,
-                onInspectConnection: (issue) =>
-                    unawaited(_inspectConnection(issue)),
-                onCreateConnection: (issue) =>
-                    unawaited(_createConnectionForIssue(issue)),
-                level: level,
-                chunks: chunks,
-                segments: _assemblySegmentsDraft,
-                selectedSegmentId: _selectedAssemblySegment?.segmentId,
-                loopSegments: _assemblyLoopSegments,
-                onModeChanged: (ordered) =>
-                    unawaited(_changeSelectionMode(ordered)),
-                onSelected: (index) => unawaited(_selectAssemblySegment(index)),
-                onAdd: () => unawaited(
-                  _changeAssemblyStructure(() => _addAssemblySegment(scene)),
-                ),
-                onReorder: (oldIndex, newIndex) =>
-                    unawaited(_reorderSections(oldIndex, newIndex)),
-                onLoopChanged: (value) {
-                  setState(() {
-                    _assemblyLoopSegments = value;
-                    _invalidateHandoff();
-                  });
-                  _flushInspectorEdits();
-                },
-                previewForGroup: (group) {
-                  final chunk = chunks
-                      .where((chunk) => chunk.assemblyGroupId == group)
-                      .firstOrNull;
-                  return chunk == null
-                      ? const Icon(Icons.grid_view_outlined)
-                      : _chunkPreview(chunk);
-                },
+              IconButton(
+                tooltip: 'Level settings',
+                onPressed: () => unawaited(_showLevelInspector()),
+                icon: const Icon(Icons.tune),
               ),
-              LevelAppearance(
-                themeId: themeId,
-                themes: themes,
-                usedByNames: scene.levels
-                    .where((candidate) => candidate.visualThemeId == themeId)
-                    .map((candidate) => candidate.displayName)
-                    .toList(growable: false),
-                onThemeSelected: (id) {
-                  _visualThemeIdController.text = id;
-                  _flushInspectorEdits();
+              PopupMenuButton<String>(
+                tooltip: 'Level actions',
+                onSelected: (action) {
+                  if (action == 'copy') {
+                    unawaited(_showCreateLevelDialog(copySource: level));
+                  }
+                  if (action == 'status') {
+                    level.status == levelStatusActive
+                        ? _deprecateActiveLevel()
+                        : _reactivateActiveLevel();
+                  }
                 },
-                onCreateTheme: () => unawaited(
-                  _showCreateAndAssignThemeDialog(
-                    scene,
-                    initialThemeId:
-                        themes.any((theme) => theme.parallaxThemeId == themeId)
-                        ? null
-                        : themeId,
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'copy',
+                    child: Text('Copy level settings'),
                   ),
-                ),
-                onEditTheme: widget.onOpenInParallax == null
-                    ? null
-                    : () => unawaited(_openBackground()),
-                onCopyTheme:
-                    themes.any((theme) => theme.parallaxThemeId == themeId)
-                    ? _copyAssignedTheme
-                    : null,
+                  PopupMenuItem(
+                    value: 'status',
+                    child: Text(
+                      level.status == levelStatusActive
+                          ? 'Deprecate'
+                          : 'Reactivate',
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ),
-      ],
-    );
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final minimumHeight = 680 * MediaQuery.textScalerOf(context).scale(1);
-        return SingleChildScrollView(
-          key: const PageStorageKey('level_workspace_scroll'),
-          child: SizedBox(
-            height: constraints.maxHeight < minimumHeight
-                ? minimumHeight
-                : constraints.maxHeight,
-            child: workspace,
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Tooltip(
+                message: _playtestUnavailableReason ?? 'Play level — seeded run from current edits. F5 Play/Stop · F6 Restart · P Pause · Enter Start',
+                child: FilledButton.icon(
+                  key: const ValueKey<String>('level_play_button'),
+                  onPressed: _playtestUnavailableReason == null
+                      ? () => unawaited(_requestPlaytest())
+                      : null,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Play'),
+                ),
+              ),
+              SizedBox(
+                width: 140,
+                child: TextField(
+                  key: const ValueKey<String>('level_preview_seed'),
+                  controller: _previewSeedController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Preview seed',
+                    isDense: true,
+                    errorText: _previewSeedError,
+                  ),
+                  onSubmitted: (_) => _acceptPreviewSeed(),
+                ),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('level_sample_button'),
+                onPressed: _preparingSample
+                    ? null
+                    : () => unawaited(_prepareSample()),
+                icon: const Icon(Icons.view_carousel_outlined),
+                label: const Text('Sample run'),
+              ),
+              if (_showSample)
+                TextButton(
+                  onPressed: () => setState(() => _showSample = false),
+                  child: const Text('Show chunk'),
+                ),
+              TextButton(
+                key: const ValueKey('level_new_variation'),
+                onPressed: _preparingSample
+                    ? null
+                    : () {
+                        _previewSeedController.text = '${_previewSeed + 1}';
+                        unawaited(_prepareSample());
+                      },
+                child: const Text('New variation'),
+              ),
+            ],
           ),
-        );
-      },
+        ],
+      ),
+      preview: ToolPanelCard(
+        key: const ValueKey<String>('level_persistent_preview'),
+        title: _showSample
+            ? 'Sampled run'
+            : selectedChunk == null
+            ? 'Level preview'
+            : 'Chunk preview · ${selectedChunk.chunkKey}',
+        bodyMode: ToolPanelBodyMode.expanded,
+        trailing: IconButton(
+          tooltip: 'Refresh content',
+          onPressed: _loadingContent
+              ? null
+              : () => unawaited(_refreshContent()),
+          icon: const Icon(Icons.refresh),
+        ),
+        child: _showSample
+            ? _buildSamplePreview()
+            : _loadingContent && _content == null
+            ? const Center(child: CircularProgressIndicator())
+            : _contentError != null
+            ? Center(child: Text('Content preview unavailable. $_contentError'))
+            : selectedChunk == null
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'No chunks yet. Add a starter or create a chunk.',
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.tonal(
+                      onPressed: widget.onOpenChunk == null
+                          ? null
+                          : () => unawaited(
+                              _openChunk(LevelCreatorChunkIntent.flatStarter),
+                            ),
+                      child: const Text('Add flat starter'),
+                    ),
+                  ],
+                ),
+              )
+            : _chunkPreview(selectedChunk, themeId: themeId),
+      ),
+      tabs: SegmentedButton<LevelCreatorTab>(
+        key: const ValueKey<String>('level_workspace_tabs'),
+        segments: const [
+          ButtonSegment(
+            value: LevelCreatorTab.contents,
+            icon: Icon(Icons.grid_view),
+            label: Text('Contents'),
+          ),
+          ButtonSegment(
+            value: LevelCreatorTab.flow,
+            icon: Icon(Icons.view_timeline_outlined),
+            label: Text('Flow'),
+          ),
+          ButtonSegment(
+            value: LevelCreatorTab.appearance,
+            icon: Icon(Icons.layers_outlined),
+            label: Text('Appearance'),
+          ),
+        ],
+        selected: {_workspaceTab},
+        showSelectedIcon: false,
+        onSelectionChanged: (values) => unawaited(_selectTab(values.single)),
+      ),
+      content: IndexedStack(
+        index: _workspaceTab.index,
+        children: [
+          LevelContents(
+            chunks: chunks,
+            groups: _chunkThemeGroupsDraft,
+            groupFilter: _groupFilter,
+            selectedChunkKey: _selectedChunkKey,
+            firstChunkKey: level.firstChunkKey,
+            searchController: _chunkSearch,
+            onFilter: (group) {
+              setState(() => _groupFilter = group);
+              _persistView();
+            },
+            onSelected: (key) => unawaited(_selectChunk(key)),
+            onAddGroup: () => unawaited(_showAddGroupDialog()),
+            onRemoveGroup: (group) => unawaited(
+              _changeAssemblyStructure(
+                () => _removeChunkThemeGroup(scene, group),
+              ),
+            ),
+            onAddChunk: widget.onOpenChunk == null
+                ? null
+                : () => unawaited(_openChunk(LevelCreatorChunkIntent.create)),
+            onEditChunk: widget.onOpenChunk == null
+                ? null
+                : (chunk) => unawaited(
+                    _openChunk(LevelCreatorChunkIntent.edit, chunk: chunk),
+                  ),
+            onAssignChunk: widget.onOpenChunk == null
+                ? null
+                : (chunk) => unawaited(
+                    _openChunk(
+                      LevelCreatorChunkIntent.assignGroup,
+                      chunk: chunk,
+                    ),
+                  ),
+            previewBuilder: _chunkPreview,
+          ),
+          LevelFlow(
+            connectionIssues: _connectionScene?.seamAnalysis.issues,
+            onInspectConnection: (issue) =>
+                unawaited(_inspectConnection(issue)),
+            onCreateConnection: (issue) =>
+                unawaited(_createConnectionForIssue(issue)),
+            level: level,
+            chunks: chunks,
+            segments: _assemblySegmentsDraft,
+            selectedSegmentId: _selectedAssemblySegment?.segmentId,
+            loopSegments: _assemblyLoopSegments,
+            onModeChanged: (ordered) =>
+                unawaited(_changeSelectionMode(ordered)),
+            onSelected: (index) => unawaited(_selectAssemblySegment(index)),
+            onAdd: () => unawaited(
+              _changeAssemblyStructure(() => _addAssemblySegment(scene)),
+            ),
+            onReorder: (oldIndex, newIndex) =>
+                unawaited(_reorderSections(oldIndex, newIndex)),
+            onLoopChanged: (value) {
+              setState(() {
+                _assemblyLoopSegments = value;
+                _invalidateHandoff();
+              });
+              _flushInspectorEdits();
+            },
+            previewForGroup: (group) {
+              final chunk = chunks
+                  .where((chunk) => chunk.assemblyGroupId == group)
+                  .firstOrNull;
+              return chunk == null
+                  ? const Icon(Icons.grid_view_outlined)
+                  : _chunkPreview(chunk);
+            },
+          ),
+          LevelAppearance(
+            themeId: themeId,
+            themes: themes,
+            usedByNames: scene.levels
+                .where((candidate) => candidate.visualThemeId == themeId)
+                .map((candidate) => candidate.displayName)
+                .toList(growable: false),
+            onThemeSelected: (id) {
+              _visualThemeIdController.text = id;
+              _flushInspectorEdits();
+            },
+            onCreateTheme: () => unawaited(
+              _showCreateAndAssignThemeDialog(
+                scene,
+                initialThemeId:
+                    themes.any((theme) => theme.parallaxThemeId == themeId)
+                    ? null
+                    : themeId,
+              ),
+            ),
+            onEditTheme: widget.onOpenInParallax == null
+                ? null
+                : () => unawaited(_openBackground()),
+            onCopyTheme: themes.any((theme) => theme.parallaxThemeId == themeId)
+                ? _copyAssignedTheme
+                : null,
+          ),
+        ],
+      ),
     );
   }
 

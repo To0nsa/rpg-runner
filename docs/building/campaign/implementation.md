@@ -46,6 +46,9 @@ attempt. Double Jump is Éloïse's existing skill; Willow unlocks on four clears
   Cancel, stale-form rejection and Save/reopen/Undo coverage.
 - [x] Expandable chapter bars, chapter creation/settings and additional mission
   drafts, with stable identity, selection and creation history coverage.
+- [x] Align Campaign with Level Creator's responsive library/preview/settings
+  layout; share preview sizing, chunk cards and visual rendering. Preserve tab,
+  search and occurrence selection across panels, resizing and guarded return.
 - [x] Semantic edits, revision/history, transactional Save, Undo after Save,
   dependency drift, shared-source navigation and captured F5 Play.
 - [x] Bidirectional independent chunk copies preserve supported geometry,
@@ -105,6 +108,11 @@ retain their independent package configs. Flutter checks use `--no-pub`.
 | `tools/editor`: reward-controls follow-up `flutter test --no-pub test/campaign_authoring_test.dart --reporter expanded` | 7 passed, including reward selection/clearing/Cancel, Save/reopen/Undo/Redo and unsupported/stale edit rejection; local automated checks, no native manual pass |
 | `tools/editor`: reward-controls `dart analyze lib/src/app/pages/campaign lib/src/campaign test/campaign_authoring_test.dart` | No issues; formatting and task diff checks passed. Sandboxed checks stalled and were stopped; successful checks used normal SDK/cache access |
 | `tools/editor`: chapter-authoring follow-up, same focused analyzer and `flutter test --no-pub test/campaign_authoring_test.dart --reporter expanded` | No analysis issues; 10 tests passed. Covers expandable sections, creation/settings, unique draft IDs, mission append limits, Save/reopen, selection fallback and saved-identity history boundaries. UI test interactions wait for scrolling/layout; no native manual pass claimed |
+| `tools/editor`: layout follow-up, targeted `dart analyze` on Campaign, shared chunk card, changed Level files, home routes and Campaign tests | No issues; view state remains outside source/history |
+| `tools/editor`: `flutter test --no-pub test/campaign_authoring_test.dart test/home_route_plugin_switch_test.dart --reporter expanded` | 30 passed; final Campaign-only rerun 11 passed after focus/ticker and handoff checks. Covers responsive panels, retained preview/search/selection, return context, marker dialogs, route edits and chapter/reward regressions |
+| `tools/editor`: `test/level_creator_page_test.dart` in the initial combined layout run | All 32 Level tests passed. Initial Campaign widget waits timed out on continuous terrain animation; bounded UI-frame advancement replaced those waits. A newly covered narrow marker-dropdown overflow was fixed and Campaign reruns passed |
+| `packages/tool_ui`: `dart analyze packages/tool_ui` from root; `flutter test --no-pub --reporter expanded` from package | No issues; 12 passed, including short-window/larger-text preview layout and mounted panel state |
+| `tools/admin`: `flutter test --no-pub test/admin_page_test.dart --reporter expanded` | 2 passed against local fixture services; no cloud sends. Layout checks are automated, with no native manual pass claimed |
 | `tools/editor`: chunk-v2, Play preparation and home-plugin-switch targets | 47 passed |
 | `services/replay_validator`: cached runner `test` | 367 passed before the added campaign integration cases; final focused rejection cases 2 passed |
 | Root: generator campaign-to-worker target | Passed generated trusted registry, continuous return and exact outcome/tick/gold at 30 and 120 Hz |

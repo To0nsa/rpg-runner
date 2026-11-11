@@ -81,10 +81,19 @@ Undo after Save retains current baselines; dependency drift blocks overwrites.
 Mission reordering changes prerequisites explicitly. Route reordering preserves
 occurrence identity; the workspace blocks removing an occurrence with markers.
 
-The workspace provides a mission library, chunk search, exact route ordering,
-shared-source where-used labels, continuous geometry overview, bilingual settings
-and typed start/exit/objective/pickup fields. Geometry opens in Chunk Creator through
-guarded navigation. Back reloads dependencies and restores mission selection.
+The workspace follows Level Creator's 3:8:4 library/workspace/settings layout,
+using the same responsive panel shell and `ToolPreviewWorkspace` preview/tab
+sizing. The left panel owns chapters and missions. Contents reuses
+`AuthoredChunkCard` and `ChunkCompositionPreview` for searchable authored chunks;
+Route owns exact occurrence ordering, while Markers owns typed
+start/exit/objective/pickup controls. The persistent preview shows selected chunk
+art in Contents or the assembled geometry in Route/Markers. The right inspector
+shows mission/reward status, selected chunk usage and validation, with the existing
+revision-checked settings dialogs. Narrow panels remain mounted behind tabs.
+Geometry opens in Chunk Creator through guarded navigation. Back reloads
+dependencies and restores mission, workspace tab, search and valid chunk/occurrence
+selections. These view values never enter content history. Play hides and excludes
+the editing workspace from focus until the shared session returns to editing.
 
 Chapter bars expand independently and contain their mission list, settings and
 reward controls. Expansion is presentation state, never content history. Restored

@@ -48,18 +48,24 @@ class _CampaignMissionSettingsDialogState
                 ),
               ],
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: data['levelId'] as String,
                 decoration: const InputDecoration(labelText: 'Region level'),
                 items: [
                   for (final l in widget.document.chunks.levels)
                     DropdownMenuItem(
                       value: l.levelId,
-                      child: Text(l.displayName),
+                      child: Text(
+                        l.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                 ],
                 onChanged: (v) => data['levelId'] = v,
               ),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: data['visualThemeId'] as String,
                 decoration: const InputDecoration(
                   labelText: 'Background theme',
@@ -68,7 +74,11 @@ class _CampaignMissionSettingsDialogState
                   for (final t in widget.document.chunks.parallaxThemes)
                     DropdownMenuItem(
                       value: t.parallaxThemeId,
-                      child: Text(t.parallaxThemeId),
+                      child: Text(
+                        t.parallaxThemeId,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                 ],
                 onChanged: (v) => data['visualThemeId'] = v,
@@ -85,6 +95,7 @@ class _CampaignMissionSettingsDialogState
                 onSaved: (v) => data['firstClearXp'] = int.parse(v!),
               ),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: data['rewardAbilityId'] as String? ?? '',
                 decoration: const InputDecoration(
                   labelText: 'First-clear ability',
@@ -168,6 +179,7 @@ class _CampaignChapterRewardsDialogState
             Text(widget.chapter.title['en']!),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: reward,
               decoration: const InputDecoration(
                 labelText: 'Completion character',
@@ -245,6 +257,7 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: kind,
                   decoration: const InputDecoration(labelText: 'Purpose'),
                   items: const [
@@ -285,6 +298,7 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
                   },
                 ),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: occurrence,
                   decoration: const InputDecoration(
                     labelText: 'Route occurrence',
@@ -293,7 +307,11 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
                     for (final o in widget.mission.route)
                       DropdownMenuItem(
                         value: o.id,
-                        child: Text('${o.id} · ${o.chunkKey}'),
+                        child: Text(
+                          '${o.id} · ${o.chunkKey}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
                   onChanged: (v) {
@@ -308,6 +326,7 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
                 ),
                 if (kind == 'requiredEnemies')
                   DropdownButtonFormField<int>(
+                    isExpanded: true,
                     key: ValueKey('enemy_$occurrence'),
                     decoration: const InputDecoration(
                       labelText: 'Guaranteed enemy',
@@ -328,6 +347,7 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
                   ),
                 if (kind == 'requiredRescues')
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     key: ValueKey('rescue_$occurrence'),
                     decoration: const InputDecoration(
                       labelText: 'Rescue encounter',

@@ -928,6 +928,16 @@ settings; collapsing it changes only the workspace view. **Create chapter** asks
 for English/French titles, descriptions and a regional-map position (0–1 from
 left/top to right/bottom). **Chapter settings** edits those details later.
 
+Campaign uses the same layout as Level Creator: chapter/mission library on the
+left, persistent preview and workspace tabs in the centre, and contextual
+**Settings** on the right. Smaller windows expose **Chapters / Workspace /
+Settings** as tabs without losing your selection or chunk search. **Contents**
+browses shared chunk cards with visual previews; **Route** controls the exact
+sequence; **Markers** contains start, exit, pickups and objectives. The settings
+panel shows rewards, build status, selected chunk usage and validation. Open
+**Mission settings** there to edit the mission. Back from Chunk Creator restores
+the selected mission, workspace tab, search and valid chunk/occurrence selection.
+
 New chapters start with one empty mission. That mission has no rewards and is
 excluded from Build.
 **Add mission** appends another excluded draft inside that chapter. New chapters
@@ -937,8 +947,8 @@ not change allocated IDs, and Save seals new chapter/mission identities; creatio
 can be undone before Save. The current catalog admits 32 chapters and 16 missions
 per chapter.
 
-Append chunks from the library in exact order. Place the player start, exit and
-objectives with the typed marker controls.
+Append chunks from **Contents** in exact order, then reorder, duplicate or remove
+occurrences in **Route**. Place the player start, exit and objectives in **Markers**.
 Edit the selected occurrence in **Chunk Creator**; use **Copy to Campaign** to
 make an independent layout before changing it. Copying preserves encounters;
 remove unwanted content yourself for Reporting for Duty. **Copy to Runner** makes

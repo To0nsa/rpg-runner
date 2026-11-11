@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../chunks/chunk_domain_models.dart';
 import '../../../chunks/chunk_v2_file_data.dart';
-import 'package:tool_ui/tool_ui.dart';
+import '../shared/authored_chunk_card.dart';
 
 /// Browses actual authored chunks; filters organize the catalog and do not
 /// change runtime selection. Metadata mutations remain Chunk-domain handoffs.
@@ -121,59 +121,33 @@ class LevelContents extends StatelessWidget {
         for (final chunk in visible)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: ToolListCard(
+            child: AuthoredChunkCard(
               key: ValueKey<String>('level_chunk_${chunk.chunkKey}'),
+              chunk: chunk,
               isSelected: selectedChunkKey == chunk.chunkKey,
               onTap: () => onSelected(chunk.chunkKey),
-              preview: SizedBox(
-                width: 120,
-                height: 70,
-                child: previewBuilder(chunk),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            chunk.chunkKey,
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                        ),
-                        if (chunk.chunkKey == firstChunkKey)
-                          const Chip(
-                            avatar: Icon(Icons.flag_outlined, size: 16),
-                            label: Text('First'),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                      ],
-                    ),
-                    Text(
-                      '${chunk.difficulty} · ${chunk.assemblyGroupId} · ${chunk.status == chunkStatusActive ? 'Active' : 'Deprecated — excluded from runs'}',
-                    ),
-                    Wrap(
-                      spacing: 4,
-                      children: [
-                        TextButton(
-                          onPressed: onEditChunk == null
-                              ? null
-                              : () => onEditChunk!(chunk),
-                          child: const Text('Edit chunk'),
-                        ),
-                        TextButton(
-                          onPressed: onAssignChunk == null
-                              ? null
-                              : () => onAssignChunk!(chunk),
-                          child: const Text('Assign group'),
-                        ),
-                      ],
-                    ),
-                  ],
+              preview: previewBuilder(chunk),
+              badge: chunk.chunkKey == firstChunkKey
+                  ? const Chip(
+                      avatar: Icon(Icons.flag_outlined, size: 16),
+                      label: Text('First'),
+                      visualDensity: VisualDensity.compact,
+                    )
+                  : null,
+              actions: [
+                TextButton(
+                  onPressed: onEditChunk == null
+                      ? null
+                      : () => onEditChunk!(chunk),
+                  child: const Text('Edit chunk'),
                 ),
-              ),
+                TextButton(
+                  onPressed: onAssignChunk == null
+                      ? null
+                      : () => onAssignChunk!(chunk),
+                  child: const Text('Assign group'),
+                ),
+              ],
             ),
           ),
       ],

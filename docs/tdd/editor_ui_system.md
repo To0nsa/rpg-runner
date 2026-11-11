@@ -65,6 +65,12 @@ widths. Narrow tab visibility uses Offstage/TickerMode/ExcludeFocus; it does not
 remount editor state when resizing. `ToolThreePanelController.revealPanel`
 reveals a contextual or diagnostic destination without destroying other panels.
 
+`ToolPreviewWorkspace` shares Level Creator and Campaign's persistent preview,
+tab strip and bounded content sizing. Its outer scroll allows short windows and
+larger text; each tab owns its content scrolling. Route coordinators retain tab
+selection, commands and navigation. `AuthoredChunkCard` shares editor-specific
+chunk rows, while `ChunkCompositionPreview` renders captured authored visuals.
+
 `ToolPanelCard` has explicit natural, expanded, and scrollable body modes.
 Expanded and scrollable modes require a bounded parent height. Collapsible
 cards require natural-height bodies and delegate overflow to their containing
@@ -473,7 +479,7 @@ shortcuts retain Enter-to-save and Escape-to-cancel. Text content wraps inside
 bounded row columns, and full catalog metadata remains available through
 semantic labels or retained tooltips at narrow sidebar widths.
 
-Chunk, Prefab, and Level root workspaces use `ToolWorkspaceCard`. Chunk
+Chunk, Prefab, Level and Campaign root workspaces use `ToolWorkspaceCard`. Chunk
 composition is partitioned by the active Chunk workspace tab. Its rows and
 expanded editors or retained dialogs share typed selection and the same
 validated composition command with the scene's direct prefab and marker

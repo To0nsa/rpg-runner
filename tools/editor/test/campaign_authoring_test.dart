@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_page.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
 import 'package:runner_editor/src/campaign/campaign_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_store.dart';
@@ -549,23 +550,191 @@ void main() {
         home: Scaffold(body: CampaignPage(controller: controller)),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpWorkspace(tester);
     expect(find.text('Mission settings'), findsOneWidget);
     expect(find.text('Play mission (F5)'), findsOneWidget);
     await tester.tap(find.text('Mission settings'));
-    await tester.pumpAndSettle();
+    await _pumpWorkspace(tester);
     expect(find.text('Title (en)'), findsOneWidget);
     expect(find.text('Title (fr)'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
+    await _pumpWorkspace(tester);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets(
+    'campaign preserves view context across panels, resize and return',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final original = controller.document as CampaignDocument;
+      controller.applyCommand(edit(original, layout(original)));
+      final pageKey = GlobalKey();
+      String? openedChunk;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              key: pageKey,
+              controller: controller,
+              onOpenChunk: (target) async {
+                openedChunk = target.chunkKey;
+                return false;
+              },
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      Future<void> tap(Finder target) async {
+        await tester.ensureVisible(target);
+        await _pumpWorkspace(tester);
+        await tester.tap(target);
+        await _pumpWorkspace(tester);
+      }
+
+      CampaignLocation location() =>
+          (pageKey.currentState as EditorPageNavigationState)
+                  .navigationLocation!
+              as CampaignLocation;
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Find chunk'),
+        'forest_campaign_fixture',
+      );
+      await _pumpWorkspace(tester);
+      final beforeView = controller.document;
+      await tap(
+        find.byKey(const ValueKey('campaign_chunk_forest_campaign_fixture')),
+      );
+      expect(location().selectedChunkKey, 'forest_campaign_fixture');
+      final preview = tester.element(
+        find.byKey(const ValueKey('campaign_persistent_preview')),
+      );
+      await tap(find.text('Route'));
+      await tap(find.byKey(const ValueKey('campaign_occurrence_first')));
+      expect(location().selectedOccurrenceId, 'first');
+      expect(controller.document, same(beforeView));
+      await tester.binding.setSurfaceSize(const Size(800, 700));
+      await _pumpWorkspace(tester);
+      expect(
+        tester.element(
+          find.byKey(const ValueKey('campaign_persistent_preview')),
+        ),
+        same(preview),
+      );
+      await tap(find.widgetWithText(Tab, 'Settings'));
+      expect(find.text('Selected occurrence'), findsOneWidget);
+      expect(find.text('first'), findsOneWidget);
+      await tap(find.text('Edit chunk'));
+      expect(openedChunk, 'forest_campaign_fixture');
+      expect(location().selectedOccurrenceId, 'first');
+      await tap(find.text('Mission settings'));
+      await tap(find.text('Cancel'));
+      await tap(find.widgetWithText(Tab, 'Chapters'));
+      expect(find.text('Chapter 1'), findsOneWidget);
+      await tap(find.widgetWithText(Tab, 'Workspace'));
+      await tap(find.text('Markers'));
+      await tap(find.text('Place start / exit / objective'));
+      await tap(find.text('Cancel'));
+      await tap(find.text('Contents'));
+      expect(find.text('forest_campaign_fixture').first, findsOneWidget);
+      expect(location().chunkSearch, 'forest_campaign_fixture');
+      await tap(find.text('Route'));
+      final saved = location();
+      await tester.binding.setSurfaceSize(const Size(1600, 900));
+      await _pumpWorkspace(tester);
+      expect(
+        tester.element(
+          find.byKey(const ValueKey('campaign_persistent_preview')),
+        ),
+        same(preview),
+      );
+      expect(controller.document, same(beforeView));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              key: pageKey,
+              controller: controller,
+              initialLocation: saved,
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(location().tab, CampaignTab.route);
+      expect(location().selectedOccurrenceId, 'first');
+      expect(location().chunkSearch, 'forest_campaign_fixture');
+      // Route actions still act on stable occurrences, including reference guards.
+      final first = find.byKey(const ValueKey('campaign_occurrence_first'));
+      await tap(
+        find.descendant(
+          of: first,
+          matching: find.byTooltip('Duplicate occurrence'),
+        ),
+      );
+      expect(
+        (controller.document as CampaignDocument).selected.route.map(
+          (o) => o.id,
+        ),
+        ['first', 'occurrence_1', 'second'],
+      );
+      expect(location().selectedOccurrenceId, 'occurrence_1');
+      final copy = find.byKey(
+        const ValueKey('campaign_occurrence_occurrence_1'),
+      );
+      await tap(
+        find.descendant(of: copy, matching: find.byTooltip('Move left')),
+      );
+      expect(
+        (controller.document as CampaignDocument).selected.route.first.id,
+        'occurrence_1',
+      );
+      await tap(
+        find.descendant(
+          of: copy,
+          matching: find.byTooltip('Remove occurrence'),
+        ),
+      );
+      expect(
+        (controller.document as CampaignDocument).selected.route,
+        hasLength(2),
+      );
+      expect(location().selectedOccurrenceId, isNull);
+      await tap(
+        find.descendant(
+          of: first,
+          matching: find.byTooltip('Remove occurrence'),
+        ),
+      );
+      expect(
+        (controller.document as CampaignDocument).selected.route,
+        hasLength(2),
+      );
+      expect(
+        find.text(
+          'Remove or replace the mission markers on this occurrence first.',
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   testWidgets('chapters collapse, create and reveal selected missions', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final controller = EditorSessionController(
       pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
@@ -579,18 +748,18 @@ void main() {
         home: Scaffold(body: CampaignPage(controller: controller)),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpWorkspace(tester);
     Future<void> tap(Finder finder) async {
       await tester.ensureVisible(finder);
-      await tester.pumpAndSettle();
+      await _pumpWorkspace(tester);
       await tester.tap(finder);
-      await tester.pumpAndSettle();
+      await _pumpWorkspace(tester);
     }
 
     Future<void> fill(String label, String value) async {
       final field = find.widgetWithText(TextFormField, label);
       await tester.ensureVisible(field);
-      await tester.pumpAndSettle();
+      await _pumpWorkspace(tester);
       await tester.enterText(field, value);
     }
 
@@ -601,7 +770,7 @@ void main() {
       find.byKey(const ValueKey('campaign_library')),
       const Offset(0, 500),
     );
-    await tester.pumpAndSettle();
+    await _pumpWorkspace(tester);
     await tap(find.text('Create chapter'));
     await tap(find.text('Cancel'));
     expect(
@@ -653,13 +822,13 @@ void main() {
         payload: {'id': document.catalog.chapters.last.missions.first.id},
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpWorkspace(tester);
     expect(inside('1. Mission 1'), findsOneWidget);
     await tester.drag(
       find.byKey(const ValueKey('campaign_library')),
       const Offset(0, 900),
     );
-    await tester.pumpAndSettle();
+    await _pumpWorkspace(tester);
     expect(find.text('Chapter 1'), findsOneWidget);
     expect(find.text('1. Reporting for Duty'), findsNothing);
     controller.applyCommand(
@@ -668,7 +837,7 @@ void main() {
         payload: {'id': 'reporting_for_duty'},
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpWorkspace(tester);
     expect(find.text('1. Reporting for Duty'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -677,7 +846,7 @@ void main() {
   testWidgets(
     'reward selectors apply, clear and cancel through the workspace',
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1100, 700));
+      await tester.binding.setSurfaceSize(const Size(1600, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final controller = EditorSessionController(
         pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
@@ -691,12 +860,12 @@ void main() {
           home: Scaffold(body: CampaignPage(controller: controller)),
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpWorkspace(tester);
       CampaignDocument document() => controller.document as CampaignDocument;
 
       Future<void> open(String button) async {
         await tester.tap(find.text(button));
-        await tester.pumpAndSettle();
+        await _pumpWorkspace(tester);
       }
 
       Future<void> choose(String label, String choice) async {
@@ -706,9 +875,9 @@ void main() {
         );
         await tester.ensureVisible(field);
         await tester.tap(field);
-        await tester.pumpAndSettle();
+        await _pumpWorkspace(tester);
         await tester.tap(find.text(choice).last);
-        await tester.pumpAndSettle();
+        await _pumpWorkspace(tester);
       }
 
       await open('Mission settings');
@@ -748,4 +917,12 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+}
+
+// Authored water previews animate continuously. Advance UI transitions without
+// waiting for those independent preview tickers to settle.
+Future<void> _pumpWorkspace(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(seconds: 1));
+  await tester.pump();
 }
