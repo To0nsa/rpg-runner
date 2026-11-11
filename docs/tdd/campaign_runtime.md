@@ -19,7 +19,8 @@ without account or ticket authority. Runtime admission checks source ownership,
 dimensions, active status, tier/group agreement, actual neighboring seams,
 complete encounter/boss placements, stable enemy salts, guaranteed required
 targets and exact supported start placement for both playable characters.
-Combat-free missions reject enemy, rescue and boss content; copying never removes it.
+Combat-free missions reject enemy, rescue and boss content. Mode copies omit
+that content and traps; ordinary chunk duplication preserves it.
 
 All terrain and source entities instantiate once, remain resident and keep ticking
 off screen. Campaign disables camera-based enemy/item culling, rescue expiry and
@@ -129,12 +130,15 @@ dependency; no atlas copies or filesystem access enter either shared package.
 A parity test compares the complete derived catalogue with Admin's backend fixture.
 
 Copy to Campaign / Copy to Runner extends the existing stale-checked chunk lifecycle
-transaction. It allocates a fresh key/revision and preserves terrain, prefabs,
-materials, water, traps, markers, rescues and bosses. Prefab/atlas/material assets
-remain shared. Mission-only start/exit/objectives stay on the mission, as stated
-in the dialog. Campaign copies stay outside runner pools; runner copies start
-deprecated until explicitly activated. There is no encounter-removal preset.
-Conversion is not proof of reverse traversal.
+transaction. The dialog suggests an available chunk name and accepts an edited
+name using the lifecycle policy's identity/ownership validation. Each copy gets
+a fresh key and revision 1, preserving terrain, prefabs, materials and water
+while omitting enemy markers, rescue encounters, boss arenas and traps in both
+directions. Ordinary Duplicate still preserves all source content.
+Prefab/atlas/material assets remain shared. Mission-only start/exit/objectives
+stay on the mission, as stated in the dialog. Campaign copies stay outside runner
+pools; runner copies start deprecated until explicitly activated. Copying does
+not rebind an existing mission occurrence or prove reverse traversal.
 
 Chunk Save reads current campaign references before staging and again before
 replacement. Deleting, rekeying or moving a referenced chunk to another source

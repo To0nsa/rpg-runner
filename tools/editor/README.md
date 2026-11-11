@@ -7,7 +7,7 @@ return through your editing journey. Opening a prefab, collision, or atlas from
 a Chunk lets you return to the same Chunk and scene view. Choosing a tool from
 the page selector also resumes its last open item. This works across all seven
 tools; navigation locations are remembered for the current editor session.
-Chunk Creator also restores its existing-owner search, Difficulty, and Group
+Chunk Creator also restores its existing-owner search, Mode, Difficulty, and Group
 filters when returning to the tool.
 Save/Discard/Cancel still protects edits, and returning reads current saved
 sources so dependency changes appear immediately. Navigation is separate from
@@ -719,9 +719,10 @@ to the scene; the row's pencil **Edit** button explicitly opens the inline
 owner form. Each card keeps the chunk name and Edit action on its first row,
 then places metadata on the lower left and the visual preview on the lower
 right. Above the cards, case-insensitive partial name search combines with
-current-level Difficulty and Group filters; all active criteria intersect, and
-**Clear filters** restores the complete owner list without changing the scene's
-selected owner. The form exposes **Chunk key** as the single author-facing
+Mode (**All modes**, **Runner**, or **Campaign**), Difficulty, and Group filters;
+all active criteria intersect, and **Clear filters** restores the complete owner
+list without changing the scene's selected owner. The form exposes **Chunk key**
+as the single author-facing
 identity. Apply commits identity and metadata together in one revision. A key
 change rekeys the owner, source/baseline bindings, pending state, and selection
 atomically and determines the managed filename. The schema-v2 `id` field remains
@@ -953,9 +954,12 @@ per chapter.
 Append chunks from **Contents** in exact order, then reorder, duplicate or remove
 occurrences in **Route**. Place the player start, exit and objectives in **Markers**.
 Edit the selected occurrence in **Chunk Creator**; use **Copy to Campaign** to
-make an independent layout before changing it. Copying preserves encounters;
-remove unwanted content yourself for Reporting for Duty. **Copy to Runner** makes
-an inactive runner draft. Shared prefabs and materials remain shared references.
+make an independent layout before changing it. Both **Copy to Campaign** and
+**Copy to Runner** let you edit the suggested chunk name and omit enemy markers,
+rescue encounters, boss arenas and traps. Terrain, scenery and water are kept;
+shared prefabs and materials remain shared references. **Copy to Runner** makes
+an inactive runner draft. Ordinary **Duplicate** keeps all content. Add the new
+copy to the mission route explicitly; copying does not replace an occurrence.
 
 Set **First-clear XP** and **First-clear ability** in **Mission settings**.
 The ability selector currently offers **None** or **Éloïse — Double Jump**.
@@ -977,9 +981,9 @@ The four Val Outpost missions start as excluded drafts for manual layout authori
 See the [runtime/source contract](../../docs/tdd/campaign_runtime.md).
 
 For **Reporting for Duty**, find Forest `rocky_grove` easy/normal sources in Chunk
-Creator, use **Copy to Campaign**, edit each independent copy and remove its
-unwanted encounters, then Save. Append those copies and `trainingcamp` copies to
-the mission in the desired order. Set a supported player start and an exit, add
+Creator, use **Copy to Campaign**, name and edit each independent layout, then
+Save. Append those copies and `trainingcamp` copies to the mission in the desired
+order. Set a supported player start and an exit, add
 gold pickups, and keep combat disabled. F5 verifies the captured unsaved mission;
 test outward and return travel with basic jump before enabling **Include in Build**.
 Save the mission and run the shared Build action. The same generated catalog must

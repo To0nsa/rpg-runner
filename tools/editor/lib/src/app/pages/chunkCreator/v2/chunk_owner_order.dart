@@ -14,6 +14,7 @@ List<ChunkV2FileData> filterChunkOwners(
   String search = '',
   String difficulty = '',
   String group = '',
+  String usage = '',
 }) {
   final query = search.trim().toLowerCase();
   final matches =
@@ -23,7 +24,8 @@ List<ChunkV2FileData> filterChunkOwners(
                 (query.isEmpty ||
                     chunk.chunkKey.toLowerCase().contains(query)) &&
                 (difficulty.isEmpty || chunk.difficulty == difficulty) &&
-                (group.isEmpty || chunk.assemblyGroupId == group),
+                (group.isEmpty || chunk.assemblyGroupId == group) &&
+                (usage.isEmpty || chunk.usage == usage),
           )
           .toList(growable: false)
         ..sort(compareChunkOwners);

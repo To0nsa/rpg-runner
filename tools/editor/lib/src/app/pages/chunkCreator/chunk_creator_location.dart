@@ -18,6 +18,7 @@ class ChunkCreatorLocation extends EditorPageLocation {
     this.ownerSearch = '',
     this.ownerDifficultyFilter = '',
     this.ownerGroupFilter = '',
+    this.ownerUsageFilter = '',
     this.zoom = 1,
     this.pan = Offset.zero,
     this.domain = ChunkSceneDomain.terrain,
@@ -42,6 +43,7 @@ class ChunkCreatorLocation extends EditorPageLocation {
   final String ownerSearch;
   final String ownerDifficultyFilter;
   final String ownerGroupFilter;
+  final String ownerUsageFilter;
   final double zoom;
   final Offset pan;
   final ChunkSceneDomain domain;

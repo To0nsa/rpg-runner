@@ -51,9 +51,10 @@ attempt. Double Jump is Éloïse's existing skill; Willow unlocks on four clears
   search and occurrence selection across panels, resizing and guarded return.
 - [x] Semantic edits, revision/history, transactional Save, Undo after Save,
   dependency drift, shared-source navigation and captured F5 Play.
-- [x] Bidirectional independent chunk copies preserve supported geometry,
-  encounters and metadata. Campaign copies remain outside runner pools;
-  runner copies start inactive. No encounter-removal preset/filter.
+- [x] Bidirectional independent chunk mode copies accept a custom name and keep
+  geometry, scenery and water while omitting enemy markers, rescue encounters,
+  boss arenas and traps. Campaign copies remain outside runner pools; runner
+  copies start inactive. Ordinary Duplicate retains all content.
 - [x] Validate references, source ownership, supported start, actual seams,
   required targets and encounter-free admission; reject referenced chunk deletion,
   rekeying or owner change until the mission is rebound.

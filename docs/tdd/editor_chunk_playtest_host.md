@@ -56,9 +56,9 @@ selected-Level Chunk, including inactive source, to
 It builds authored Level identity and settings, then delegates scheduler/seam
 admission to the appropriate Core scenario. New Levels, first Chunks, themes,
 and materials need no generated enum or catalog entry. Chunk Play projects the
-current owner-catalog search, difficulty, and group filters into a playtest
-pool, including a one-owner result. Core validates the exact compiled pool,
-chooses a stable supported opener, and
+current owner-catalog search, mode (runner/campaign), difficulty, and group
+filters into a playtest pool, including a one-owner result. Core validates the
+exact compiled pool, chooses a stable supported opener, and
 builds a deterministic closed walk through matching physical boundaries that
 covers every filtered active owner. No non-matching owner can enter that
 multi-owner lasso; repeated matching owners may act as connectors. A filtered

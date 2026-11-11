@@ -27,8 +27,8 @@ calling itself a tutorial. The editable mission defaults are:
 
 The user builds the exact layouts, objectives and encounter distribution. The
 first mission starts from Forest rocky_grove easy/normal copies and ends in
-trainingcamp copies. Copying preserves all content; the author removes encounters
-from the duplicates before validating this combat-free mission.
+trainingcamp copies. Copy to Campaign preserves the layout and water while
+omitting enemies, rescues, boss arenas and traps for this combat-free mission.
 
 Missions contain an exact finite sequence of chunks. Players and camera move in
 both directions without forced scrolling. Collected items and defeated enemies

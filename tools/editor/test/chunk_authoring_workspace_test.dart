@@ -1978,7 +1978,7 @@ void main() {
           shapeId: 'bridge_easy_ground',
           difficulty: chunkDifficultyEasy,
           assemblyGroupId: 'bridges',
-        ),
+        ).copyWith(usage: 'campaign'),
       ],
     );
     addTearDown(harness.dispose);
@@ -2001,6 +2001,7 @@ void main() {
     );
 
     expect(find.text('4 of 4 owners'), findsOneWidget);
+    expect(find.text('All modes'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey<String>('chunk_owner_search')),
       'easy',
@@ -2028,6 +2029,18 @@ void main() {
     );
 
     await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_owner_usage_filter_')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Runner').last);
+    await tester.pump();
+    expect(find.text('1 of 4 owners'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_easy_c')),
+      findsNothing,
+    );
+
+    await tester.tap(
       find.byKey(const ValueKey<String>('chunk_owner_group_filter_')),
     );
     await tester.pumpAndSettle();
@@ -2040,6 +2053,27 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('bridges').last);
+    await tester.pump();
+    expect(find.text('0 of 4 owners'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_owner_filter_empty')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .state<ChunkAuthoringWorkspaceState>(
+            find.byType(ChunkAuthoringWorkspace),
+          )
+          .playtestReadiness
+          .code,
+      'emptyOwnerFilter',
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_owner_usage_filter_runner')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Campaign').last);
     await tester.pump();
     expect(
       find.byKey(const ValueKey<String>('chunk_owner_filter_empty')),
@@ -2067,6 +2101,7 @@ void main() {
     expect(location.ownerSearch, 'easy');
     expect(location.ownerDifficultyFilter, chunkDifficultyEasy);
     expect(location.ownerGroupFilter, 'bridges');
+    expect(location.ownerUsageFilter, 'campaign');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -2106,6 +2141,10 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_owner_group_filter_bridges')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_owner_usage_filter_campaign')),
+      findsOneWidget,
+    );
     expect(find.text('1 of 4 owners'), findsOneWidget);
 
     await tester.tap(
@@ -2113,6 +2152,24 @@ void main() {
     );
     await tester.pump();
     expect(find.text('4 of 4 owners'), findsOneWidget);
+    expect(find.text('All modes'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextButton>(
+            find.byKey(const ValueKey<String>('chunk_owner_clear_filters')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+    expect(
+      tester
+          .state<ChunkAuthoringWorkspaceState>(
+            find.byType(ChunkAuthoringWorkspace),
+          )
+          .selectedChunkKey,
+      location.chunkKey,
+    );
     expect(
       find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
       findsOneWidget,

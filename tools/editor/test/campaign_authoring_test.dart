@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_page.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_mode_copy_dialog.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
 import 'package:runner_editor/src/campaign/campaign_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
@@ -449,14 +450,35 @@ void main() {
       expect(rejected.outcome, ExportOutcome.sourceDrift);
     },
   );
-  test('both copy directions preserve layout and encounters without activating a runner copy', () async {
-    final chunkPlugin = ChunkDomainPlugin();
-    final doc = await chunkPlugin.loadV2FromRepo(workspace);
-    final original = doc.chunks.firstWhere(
-      (c) => c.chunkKey == 'forest_rocky_grove_normal_001',
-    );
-    ChunkV2Document copy(ChunkV2Document d, String key, String usage) =>
-        chunkPlugin.applyEdit(
+  for (final usage in ['campaign', 'runner']) {
+    test(
+      'copy to $usage names a layout without combat content and preserves the source',
+      () async {
+        final chunkPlugin = ChunkDomainPlugin();
+        var doc = await chunkPlugin.loadV2FromRepo(workspace);
+        final sources = [
+          doc.chunks.firstWhere(
+            (c) => c.markers.isNotEmpty && c.waterRegions.isNotEmpty,
+          ),
+          doc.chunks.firstWhere((c) => c.encounters.isNotEmpty),
+          doc.chunks.firstWhere((c) => c.bossArena != null),
+          doc.chunks.firstWhere((c) => c.traps.isNotEmpty),
+        ];
+        if (usage == 'runner') {
+          for (final source in sources) {
+            File(workspace.resolve(doc.sourcePathByChunkKey[source.chunkKey]!))
+                .writeAsStringSync(
+                  ChunkV2FileCodec.encode(source.copyWith(usage: 'campaign')),
+                );
+          }
+          doc = await chunkPlugin.loadV2FromRepo(workspace);
+        }
+        ChunkV2Document copy(
+          ChunkV2Document d,
+          String key,
+          String name, {
+          String? targetUsage,
+        }) => chunkPlugin.applyEdit(
           d,
           AuthoringCommand(
             kind: ChunkDomainPlugin.commitChunkLifecycleCommandKind,
@@ -465,51 +487,138 @@ void main() {
                 before: ChunkV2LifecycleSnapshot.fromDocument(d),
                 operation: ChunkV2DuplicateOperation(
                   sourceChunkKey: key,
-                  targetUsage: usage,
+                  targetId: name,
+                  targetUsage: targetUsage,
                 ),
               ),
             },
           ),
         ) as ChunkV2Document;
-    final campaign = copy(doc, original.chunkKey, 'campaign');
-    final duplicate = campaign.chunks.firstWhere(
-      (c) => c.chunkKey == '${original.chunkKey}_copy',
+        final expectedCopies = <String, String>{};
+        for (final source in sources) {
+          final original = doc.chunks.firstWhere(
+            (c) => c.chunkKey == source.chunkKey,
+          );
+          final name = 'custom_${usage}_${source.chunkKey}';
+          doc = copy(doc, original.chunkKey, name, targetUsage: usage);
+          final duplicate = doc.chunks.firstWhere((c) => c.chunkKey == name);
+          final expected = original.copyWith(
+            chunkKey: name,
+            id: name,
+            revision: 1,
+            usage: usage,
+            status: usage == 'runner' ? 'deprecated' : 'active',
+            markers: [],
+            encounters: [],
+            traps: [],
+            clearBossArena: true,
+          );
+          expect(duplicate.markers, isEmpty);
+          expect(duplicate.encounters, isEmpty);
+          expect(duplicate.traps, isEmpty);
+          expect(duplicate.bossArena, isNull);
+          expect(duplicate.toJson(), expected.toJson());
+          expectedCopies[name] = ChunkV2FileCodec.encode(expected);
+          expect(
+            ChunkV2FileCodec.encode(
+              doc.chunks.firstWhere((c) => c.chunkKey == original.chunkKey),
+            ),
+            ChunkV2FileCodec.encode(original),
+          );
+
+          final ordinaryName = '${name}_full';
+          doc = copy(doc, original.chunkKey, ordinaryName);
+          final ordinary = doc.chunks.firstWhere(
+            (c) => c.chunkKey == ordinaryName,
+          );
+          expect(ordinary.markers, original.markers);
+          expect(ordinary.encounters, original.encounters);
+          expect(ordinary.bossArena, original.bossArena);
+          expect(ordinary.traps, original.traps);
+        }
+        expect(
+          (await chunkPlugin.exportToRepo(workspace, document: doc)).applied,
+          isTrue,
+        );
+        final reloaded = await chunkPlugin.loadV2FromRepo(workspace);
+        for (final entry in expectedCopies.entries) {
+          expect(
+            ChunkV2FileCodec.encode(
+              reloaded.chunks.firstWhere((c) => c.chunkKey == entry.key),
+            ),
+            entry.value,
+          );
+        }
+      },
     );
-    expect(duplicate.usage, 'campaign');
-    expect(duplicate.revision, 1);
-    expect(duplicate.markers, original.markers);
-    expect(duplicate.encounters, original.encounters);
-    expect(
-      ChunkV2FileCodec.encode(
-        campaign.chunks.firstWhere((c) => c.chunkKey == original.chunkKey),
-      ),
-      ChunkV2FileCodec.encode(original),
-    );
-    final runner = copy(campaign, duplicate.chunkKey, 'runner');
-    final back = runner.chunks.firstWhere(
-      (c) => c.chunkKey == '${duplicate.chunkKey}_copy',
-    );
-    final expected = original.toJson()
-      ..remove('chunkKey')
-      ..remove('id')
-      ..remove('revision')
-      ..remove('status');
-    final actual = back.toJson()
-      ..remove('chunkKey')
-      ..remove('id')
-      ..remove('revision')
-      ..remove('status');
-    expect(actual, expected);
-    expect(back.status, 'deprecated');
-    expect(
-      (await chunkPlugin.exportToRepo(workspace, document: runner)).applied,
-      isTrue,
-    );
-    final reloaded = await chunkPlugin.loadV2FromRepo(workspace);
-    expect(
-      reloaded.chunks.firstWhere((c) => c.chunkKey == duplicate.chunkKey).usage,
-      'campaign',
-    );
+  }
+
+  testWidgets('mode copy dialog validates and submits an editable chunk name', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final doc = (await tester.runAsync(
+      () => ChunkDomainPlugin().loadV2FromRepo(workspace),
+    ))!;
+    final source = doc.chunks.first;
+    ChunkV2DuplicateOperation? result;
+    for (final sourceUsage in ['runner', 'campaign']) {
+      result = null;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () async {
+                  result = await showDialog<ChunkV2DuplicateOperation>(
+                    context: context,
+                    builder: (_) => ChunkModeCopyDialog(
+                      document: doc,
+                      source: source.copyWith(usage: sourceUsage),
+                    ),
+                  );
+                },
+                child: const Text('Copy chunk'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Copy chunk'));
+      await tester.pumpAndSettle();
+      final nameField = find.byKey(const ValueKey('chunk_mode_copy_name'));
+      expect(
+        tester.widget<TextFormField>(nameField).controller!.text,
+        const ChunkV2LifecycleCommitPolicy().suggestCopyKey(
+          doc,
+          source.chunkKey,
+        ),
+      );
+      for (final invalidName in [
+        '',
+        'Invalid name',
+        '1_invalid',
+        source.chunkKey,
+      ]) {
+        await tester.enterText(nameField, invalidName);
+        await tester.tap(find.text('Create editable copy'));
+        await tester.pumpAndSettle();
+        expect(find.byType(ChunkModeCopyDialog), findsOneWidget);
+        expect(result, isNull);
+      }
+      await tester.enterText(nameField, 'custom_mission_chunk');
+      await tester.tap(find.text('Create editable copy'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ChunkModeCopyDialog), findsNothing);
+      expect(result!.targetId, 'custom_mission_chunk');
+      expect(
+        result!.targetUsage,
+        sourceUsage == 'runner' ? 'campaign' : 'runner',
+      );
+    }
   });
   test(
     'referenced chunks cannot be deleted until the mission is rebound',

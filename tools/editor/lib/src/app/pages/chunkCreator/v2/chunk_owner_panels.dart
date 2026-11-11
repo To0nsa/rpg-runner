@@ -21,12 +21,14 @@ class ChunkOwnerListSection extends StatelessWidget {
     required this.searchController,
     required this.difficultyFilter,
     required this.groupFilter,
+    required this.usageFilter,
     required this.workspaceRootPath,
     required this.expandedPrefabShapeCount,
     required this.onSelected,
     required this.onEdit,
     required this.onDifficultyFilterChanged,
     required this.onGroupFilterChanged,
+    required this.onUsageFilterChanged,
     required this.onClearFilters,
     required this.selectedDetailsBuilder,
   });
@@ -38,12 +40,14 @@ class ChunkOwnerListSection extends StatelessWidget {
   final TextEditingController searchController;
   final String difficultyFilter;
   final String groupFilter;
+  final String usageFilter;
   final String workspaceRootPath;
   final int Function(String chunkKey) expandedPrefabShapeCount;
   final ValueChanged<ChunkV2FileData> onSelected;
   final ValueChanged<ChunkV2FileData> onEdit;
   final ValueChanged<String> onDifficultyFilterChanged;
   final ValueChanged<String> onGroupFilterChanged;
+  final ValueChanged<String> onUsageFilterChanged;
   final VoidCallback onClearFilters;
   final Widget Function(BuildContext context, ChunkV2FileData chunk)
   selectedDetailsBuilder;
@@ -57,6 +61,7 @@ class ChunkOwnerListSection extends StatelessWidget {
       search: searchController.text,
       difficulty: difficultyFilter,
       group: groupFilter,
+      usage: usageFilter,
     );
     final difficulties =
         allChunks
@@ -87,6 +92,35 @@ class ChunkOwnerListSection extends StatelessWidget {
             clearSearchKey: const ValueKey<String>('chunk_owner_clear_search'),
             clearSearchTooltip: 'Clear owner search',
             filters: <Widget>[
+              SizedBox(
+                width: 164,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey<String>(
+                    'chunk_owner_usage_filter_$usageFilter',
+                  ),
+                  initialValue: usageFilter,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Mode',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const <DropdownMenuItem<String>>[
+                    DropdownMenuItem<String>(
+                      value: '',
+                      child: Text('All modes'),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: 'runner',
+                      child: Text('Runner'),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: 'campaign',
+                      child: Text('Campaign'),
+                    ),
+                  ],
+                  onChanged: (value) => onUsageFilterChanged(value ?? ''),
+                ),
+              ),
               SizedBox(
                 width: 164,
                 child: DropdownButtonFormField<String>(
@@ -201,7 +235,7 @@ class ChunkOwnerListSection extends StatelessWidget {
                         'chunk_owner_metadata_${chunk.chunkKey}',
                       ),
                       '${chunk.difficulty} · ${chunk.width}×${chunk.height} px · '
-                      'rev ${chunk.revision}\n${chunk.status} · '
+                      'rev ${chunk.revision}\n${chunk.usage} · ${chunk.status} · '
                       '${chunk.collisionShapes.length} direct · '
                       '${expandedPrefabShapeCount(chunk.chunkKey)} expanded',
                     ),
@@ -243,7 +277,8 @@ class ChunkOwnerListSection extends StatelessWidget {
   bool get _hasFilters =>
       searchController.text.isNotEmpty ||
       difficultyFilter.isNotEmpty ||
-      groupFilter.isNotEmpty;
+      groupFilter.isNotEmpty ||
+      usageFilter.isNotEmpty;
 }
 
 /// Inline creation section using an existing owner as dimension template.

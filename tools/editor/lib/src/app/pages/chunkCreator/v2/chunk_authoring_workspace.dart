@@ -177,6 +177,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   late final TextEditingController _ownerSearchController;
   String _ownerDifficultyFilter = '';
   String _ownerGroupFilter = '';
+  String _ownerUsageFilter = '';
   String? _selectedChunkKey;
   TerrainBoundarySide _connectionSide = TerrainBoundarySide.right;
   bool _showElevationGuides = false;
@@ -284,6 +285,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       search: _ownerSearchController.text,
       difficulty: _ownerDifficultyFilter,
       group: _ownerGroupFilter,
+      usage: _ownerUsageFilter,
     ).map((chunk) => chunk.chunkKey).toList(growable: false);
   }
 
@@ -294,6 +296,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     ownerSearch: _ownerSearchController.text,
     ownerDifficultyFilter: _ownerDifficultyFilter,
     ownerGroupFilter: _ownerGroupFilter,
+    ownerUsageFilter: _ownerUsageFilter,
     zoom: _zoom,
     pan: _pan,
     domain: _sceneCoordinator.sourceDomain,
@@ -568,6 +571,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     )..addListener(_handleOwnerSearchChanged);
     _ownerDifficultyFilter = initialLocation?.ownerDifficultyFilter ?? '';
     _ownerGroupFilter = initialLocation?.ownerGroupFilter ?? '';
+    _ownerUsageFilter = initialLocation?.ownerUsageFilter ?? '';
     _exactEditController.addListener(_handleExactEditChanged);
     _trapEditController.addListener(_handleExactEditChanged);
     _encounterEditController.addListener(_handleExactEditChanged);
@@ -836,6 +840,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     searchController: _ownerSearchController,
     difficultyFilter: _ownerDifficultyFilter,
     groupFilter: _ownerGroupFilter,
+    usageFilter: _ownerUsageFilter,
     workspaceRootPath: widget.controller.workspacePath,
     expandedPrefabShapeCount: (chunkKey) =>
         _expansionFor(chunkKey)?.expansion?.expandedPrefabShapeCount ?? 0,
@@ -844,11 +849,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     onDifficultyFilterChanged: (value) =>
         setState(() => _ownerDifficultyFilter = value),
     onGroupFilterChanged: (value) => setState(() => _ownerGroupFilter = value),
+    onUsageFilterChanged: (value) => setState(() => _ownerUsageFilter = value),
     onClearFilters: () {
       _ownerSearchController.clear();
       setState(() {
         _ownerDifficultyFilter = '';
         _ownerGroupFilter = '';
+        _ownerUsageFilter = '';
       });
     },
     selectedDetailsBuilder: (context, chunk) =>
