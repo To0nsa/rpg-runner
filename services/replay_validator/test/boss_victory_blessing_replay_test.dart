@@ -12,7 +12,7 @@ import '../lib/src/replay_simulation.dart';
 void main() {
   for (final character in [
     PlayerCharacterRegistry.eloise,
-    PlayerCharacterRegistry.eloiseWip,
+    PlayerCharacterRegistry.bountyHunter,
   ]) {
     for (final hz in [30, 60, 90]) {
       test(

@@ -161,7 +161,7 @@ test('catalog is bound to a registered project and does not send or enable gifts
 });
 
 test('typed gift previews freeze nested attachments and reject caller edits on send', async (t) => {
-  const attachment = { kind: 'ability', slot: 'spell', itemId: 'eloise.arcane_ward', characterId: 'eloiseWip' };
+  const attachment = { kind: 'ability', slot: 'spell', itemId: 'eloise.arcane_ward', characterId: 'eloise' };
   const f = await fixture(t, async (projectId, input) => {
     assert.ok(Object.isFrozen(input.attachments));
     assert.ok(Object.isFrozen(input.attachments[0]));

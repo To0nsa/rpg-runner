@@ -10,7 +10,7 @@ import '../test_support/boss_resource_supply_fixture.dart';
 void main() {
   for (final character in [
     PlayerCharacterRegistry.eloise,
-    PlayerCharacterRegistry.eloiseWip,
+    PlayerCharacterRegistry.bountyHunter,
   ]) {
     for (final hz in [30, 60, 90]) {
       test('${character.id.name} earns and collects Goddess supply at $hz Hz', () {

@@ -16,6 +16,8 @@ import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/ownership/player_progress.dart';
 import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
+import 'package:rpg_runner/ui/state/ownership/campaign_progress.dart';
+import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 
 void main() {
   for (final (xp, available) in [(568, 1), (569, 2), (4023, 2), (4024, 3)]) {
@@ -257,7 +259,16 @@ void main() {
   });
 
   test('setCharacter updates selection optimistically before flush', () async {
-    final ownershipApi = _RecordingOwnershipApi();
+    final ownershipApi = _RecordingOwnershipApi()
+      ..progression = ProgressionState.initial.copyWith(
+        campaign: CampaignProgress.fromJson({
+          'schemaVersion': 1,
+          'missions': {
+            for (final mission in CampaignCatalog.chapters.first.missions)
+              mission.id: {'cleared': true, 'attempts': 1, 'bests': {}},
+          },
+        }),
+      );
     final appState = AppState(
       authApi: _StaticAuthApi.authenticated(),
       loadoutOwnershipApi: ownershipApi,
@@ -266,9 +277,9 @@ void main() {
     await appState.bootstrap(force: true);
     expect(appState.selection.selectedCharacterId, PlayerCharacterId.eloise);
 
-    await appState.setCharacter(PlayerCharacterId.eloiseWip);
+    await appState.setCharacter(PlayerCharacterId.bountyHunter);
 
-    expect(appState.selection.selectedCharacterId, PlayerCharacterId.eloiseWip);
+    expect(appState.selection.selectedCharacterId, PlayerCharacterId.bountyHunter);
     expect(ownershipApi.setSelectionCalls, 0);
 
     await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);

@@ -13,8 +13,9 @@ export function inboxRewardKey(reward: InboxReward): string {
   return reward.kind === "gold" ? "gold" : JSON.stringify([reward.kind, reward.slot, reward.itemId, reward.characterId ?? null]);
 }
 
-/** Validates the persisted/wire reward union, preserving legacy gold representation. */
-export function parseInboxRewards(raw: unknown): InboxReward[] {
+/** Validates rewards without changing their wire identities. Retained reads and
+ * delivery retries may allow the retired recipient; new issuance must not. */
+export function parseInboxRewards(raw: unknown, options: { allowRetiredCharacter?: boolean } = {}): InboxReward[] {
   if (!Array.isArray(raw) || raw.length > 9) throw new HttpsError("invalid-argument", "Use at most nine attachments.");
   const rewards = raw.map((value): InboxReward => {
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new HttpsError("invalid-argument", "Invalid attachment.");
@@ -24,6 +25,11 @@ export function parseInboxRewards(raw: unknown): InboxReward[] {
       const amount = safeInteger(row.amount, "gold reward");
       if (amount === 0) throw new HttpsError("invalid-argument", "Empty gold attachment.");
       return { kind: "gold", amount };
+    }
+    // Retained mail/retry hashes keep their original identity. New issuance is
+    // validated again after existing messages and receipts have been checked.
+    if (options.allowRetiredCharacter && row.kind !== "gear" && row.characterId === "eloiseWip") {
+      return { ...parseCatalogReward({ ...row, characterId: "eloise" }), characterId: "eloiseWip" };
     }
     return parseCatalogReward(row);
   });

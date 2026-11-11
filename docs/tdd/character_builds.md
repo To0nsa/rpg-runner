@@ -9,6 +9,27 @@ Build 2 and Build 3; they are trimmed, non-empty and at most 28 Unicode grapheme
 clusters. Flutter's input limit and the Functions `Intl.Segmenter` validator
 count the same user-perceived characters.
 
+## Character retirement
+
+Only `eloise` and `bountyHunter` are registered runtime characters. The removed
+development identity `eloiseWip` cannot be selected, equipped, purchased for,
+or used for new gifts. Saved selections restore Éloïse and discard the retired
+build branch without replacing either remaining character's builds. Core/client
+and backend meta readers union its earned skills/projectiles into Éloïse while
+keeping current equipment, shared inventory, currency and progression intact.
+Backend normalization is repeatable and does not itself advance the revision;
+the next normal canonical write deletes obsolete persisted character branches.
+Retained inbox gifts preserve immutable identities and retry hashes while
+crediting Éloïse; see [Admin compatibility](admin_tools.md#gifts-and-release-activation).
+
+Replay/ticket character IDs remain exact strings: retired-character runs are not
+reinterpreted as Éloïse or Willow. Roll out the matching client, Functions and
+worker together under the coordinated compatibility workflow, draining any
+outstanding retired-character tickets before worker cutover. This source change
+does not deploy, reset accounts, cancel runs or activate the changed gift catalog.
+[Local verification](../verification/eloise-wip-retirement-2026-11-11.md) records
+the regression coverage and unrun release checks.
+
 ## Unlock authority
 
 Build indices 0/1/2 require account levels 1/5/12. Client controls and AppState

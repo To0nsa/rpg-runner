@@ -60,7 +60,7 @@ export function normalizeProgressionStore(args: {
     .map((definition) => ({
       ...definition, offerId: storeOfferId(definition),
       priceGold: resolveStorePriceGold(definition),
-      characterIds: knownCharacterIds.filter((id) => id !== "eloiseWip" &&
+      characterIds: knownCharacterIds.filter((id) =>
         characterContentAllowed(id, definition.domain, definition.slot, definition.itemId)),
     }));
   const activeOffers = new Map<StoreBucket, StoreOffer>();

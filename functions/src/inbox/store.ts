@@ -67,7 +67,7 @@ export function decodeSystemMessage(raw: DocumentData | undefined, id: string, u
     throw new HttpsError("failed-precondition", "Unsupported message format.");
   }
   let rewards;
-  try { rewards = parseInboxRewards(raw.rewards); }
+  try { rewards = parseInboxRewards(raw.rewards, { allowRetiredCharacter: true }); }
   catch { throw new HttpsError("failed-precondition", "Unsupported reward format."); }
   if (raw.schemaVersion === 1 && (rewards.length > 1 || rewards.some((reward) => reward.kind !== "gold"))) {
     throw new HttpsError("failed-precondition", "Unsupported legacy reward format.");
@@ -109,10 +109,10 @@ export async function prepareSystemMessages(args: {
   const messages = args.deliveries.map((delivery): SystemMessage => {
     const sourceId = boundedText(delivery.sourceId, "sourceId", 200);
     const amount = safeInteger(delivery.goldAmount ?? 0, "goldAmount");
-    const attachments = parseInboxRewards(delivery.attachments ?? []);
+    const attachments = parseInboxRewards(delivery.attachments ?? [], { allowRetiredCharacter: true });
     if (attachments.some((reward) => reward.kind === "gold")) throw new HttpsError("invalid-argument", "Use goldAmount for gold.");
     attachments.sort((a, b) => inboxRewardKey(a) < inboxRewardKey(b) ? -1 : inboxRewardKey(a) > inboxRewardKey(b) ? 1 : 0);
-    const rewards = parseInboxRewards([...(amount > 0 ? [{ kind: "gold", amount }] : []), ...attachments]);
+    const rewards = parseInboxRewards([...(amount > 0 ? [{ kind: "gold", amount }] : []), ...attachments], { allowRetiredCharacter: true });
     return {
       schemaVersion: attachments.length > 0 ? 2 : 1,
       id: systemMessageId(args.uid, sourceId),
@@ -153,6 +153,7 @@ export async function prepareSystemMessages(args: {
     }
     return false;
   });
+  for (const message of pending) parseInboxRewards(message.rewards);
   if (pending.some((message) => message.schemaVersion === 2)) await assertInboxGiftsEnabled(args.tx, args.db);
   const updatedSummary = pending.length === 0 ? null : nextSummary(
     summary,
@@ -273,7 +274,7 @@ export async function claimInboxReward(args: {
             canonical.progression.gold = safeInteger(gold + attachment.amount, "gold balance");
           } else {
             grantCatalogOwnership({ meta: canonical.meta,
-              selectedCharacterId: attachment.characterId ?? "",
+              selectedCharacterId: attachment.characterId === "eloiseWip" ? "eloise" : attachment.characterId ?? "",
               offer: catalogDefinition(attachment) });
           }
         }

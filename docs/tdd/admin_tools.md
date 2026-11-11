@@ -66,7 +66,7 @@ The fixture has separate storage, an explicit offline banner and no cloud access
 The operator catalog is derived from the existing store definitions, including
 gear, abilities and projectile spells. Dart resolves every returned entry against
 Core definitions and shared presentation. Backend validation is authoritative.
-Existing skills are granted to an explicit `eloise`, `eloiseWip` or
+Existing skills are granted to an explicit `eloise` or
 `bountyHunter` (Willow) recipient; selection changes before claim do not retarget
 them. Picker filtering and backend validation both enforce character families.
 Gear ownership is account-wide, while equip eligibility remains character-specific.
@@ -79,6 +79,13 @@ asset bundle with nearest-neighbor filtering; null, unknown and failed assets
 retain the empty-box fallback. Game and Admin use the same mapping and files.
 See [ability-art verification](../verification/ability-icon-art-2026-11-08.md).
 There are no quantities, arbitrary items or client-supplied ownership patches.
+
+The retired `eloiseWip` identity is absent from new catalogs and grants. Retained
+mail and uncertain delivery retries preserve its original reward identity and
+content hash; claims credit Éloïse. New delivery identities targeting it are
+rejected, including from restored Admin drafts. The shared gift decoder keeps
+old drafts/mail readable and labels their recipient Éloïse. Removing this
+catalog entry changes the activation hash and requires renewed rollout evidence.
 
 Gold-only messages remain schema 1. Catalog attachments use schema 2 with up to
 eight unlocks and optional gold. The claim transaction reuses

@@ -99,10 +99,10 @@ void main() {
     );
     final canonicalSelection = SelectionState.defaults
         .copyWith(
-          selectedCharacterId: PlayerCharacterId.eloiseWip,
+          selectedCharacterId: PlayerCharacterId.eloise,
           buildName: 'Hybrid Build',
         )
-        .withLoadoutFor(PlayerCharacterId.eloiseWip, customLoadout);
+        .withLoadoutFor(PlayerCharacterId.eloise, customLoadout);
     final canonical = OwnershipCanonicalState(
       profileId: 'profile_bootstrap',
       revision: 9,
@@ -119,11 +119,11 @@ void main() {
     await appState.bootstrap(force: true);
 
     expect(appState.ownershipRevision, 9);
-    expect(appState.selection.selectedCharacterId, PlayerCharacterId.eloiseWip);
+    expect(appState.selection.selectedCharacterId, PlayerCharacterId.eloise);
     expect(appState.selection.buildName, 'Hybrid Build');
     expect(
       appState.selection
-          .loadoutFor(PlayerCharacterId.eloiseWip)
+          .loadoutFor(PlayerCharacterId.eloise)
           .projectileSlotSpellId,
       ProjectileId.holyBolt,
     );

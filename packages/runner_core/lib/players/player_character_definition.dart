@@ -7,7 +7,7 @@ import 'player_catalog.dart';
 import 'player_projectile_muzzle.dart';
 import '../projectiles/projectile_id.dart';
 
-enum PlayerCharacterId { eloise, eloiseWip, bountyHunter }
+enum PlayerCharacterId { eloise, bountyHunter }
 
 class PlayerCharacterDefinition {
   const PlayerCharacterDefinition({

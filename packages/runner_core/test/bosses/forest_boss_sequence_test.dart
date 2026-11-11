@@ -72,7 +72,6 @@ void main() {
 
   for (final character in [
     PlayerCharacterRegistry.eloise,
-    PlayerCharacterRegistry.eloiseWip,
   ]) {
     test('${character.id.name} clears a compressed authored boss sequence continuously', () {
       final segments = forest.assembly!.segments;

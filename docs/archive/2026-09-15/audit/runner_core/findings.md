@@ -208,7 +208,7 @@ readable and test its signature.
 
 **Evidence.** [`PlayerCatalogDerived.from`](../../../../../packages/runner_core/lib/players/player_catalog.dart#L204)
 always creates an Eloise traversal profile. The second registered character,
-[`eloiseWip`](../../../../../packages/runner_core/lib/players/characters/eloise_wip.dart),
+`eloiseWip` (since removed; see the [current registry](../../../../../packages/runner_core/lib/players/player_character_registry.dart)),
 reuses Eloise's animation, catalog, and tuning and changes only identity/display
 metadata. The backend duplicates the two known IDs in
 [`functions/src/ownership/defaults.ts`](../../../../../functions/src/ownership/defaults.ts#L8).

@@ -4,16 +4,19 @@ import 'package:runner_core/collision/terrain/upright_capsule.dart';
 import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/players/characters/eloise.dart';
-import 'package:runner_core/players/characters/eloise_wip.dart';
+import 'package:runner_core/players/characters/bounty_hunter.dart';
 import 'package:runner_core/players/player_catalog.dart';
 import 'package:runner_core/players/player_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('both Éloïse definitions derive the frozen capsule and exact AABB', () {
-    final definitions = [eloiseCharacter, eloiseWipCharacter];
+  test('both player definitions derive the frozen capsule and exact AABB', () {
+    final definitions = [
+      (eloiseCharacter, 9.65, 12.85, 0.35, 1.5),
+      (bountyHunterCharacter, 10.8, 10.8, 0.0, 1.35),
+    ];
 
-    for (final definition in definitions) {
+    for (final (definition, radius, segment, offsetX, offsetY) in definitions) {
       final derived = PlayerCatalogDerived.from(
         definition.catalog,
         movement: MovementTuningDerived.from(
@@ -25,14 +28,14 @@ void main() {
       final capsule = derived.worldContactCapsule;
       final aabb = capsule.derivedAabb;
 
-      expect(capsule.radius, 9.65);
-      expect(capsule.verticalHalfSegment, 12.85);
-      expect(capsule.offsetX, 0.35);
-      expect(capsule.offsetY, 1.5);
-      expect(aabb.halfX, 9.65);
-      expect(aabb.halfY, 22.5);
-      expect(aabb.offsetX, 0.35);
-      expect(aabb.offsetY, 1.5);
+      expect(capsule.radius, radius);
+      expect(capsule.verticalHalfSegment, segment);
+      expect(capsule.offsetX, offsetX);
+      expect(capsule.offsetY, offsetY);
+      expect(aabb.halfX, radius);
+      expect(aabb.halfY, radius + segment);
+      expect(aabb.offsetX, offsetX);
+      expect(aabb.offsetY, offsetY);
       expect(derived.collider.halfX, aabb.halfX);
       expect(derived.collider.halfY, aabb.halfY);
       expect(derived.collider.offsetX, aabb.offsetX);

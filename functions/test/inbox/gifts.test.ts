@@ -6,7 +6,8 @@ import { loadOrCreateCanonicalState } from "../../src/ownership/canonical_store.
 import { inboxCollections, type InboxCatalogReward } from "../../src/inbox/contracts.js";
 import { inboxGiftCatalogHash, inboxGiftConfigurationPath, parseInboxRewards } from "../../src/inbox/gifts.js";
 import { loadOperatorGiftCatalog, parseOperatorMessage, sendOperatorMessage } from "../../src/inbox/operator.js";
-import { claimInboxReward, deleteInboxMessage, issueSystemMessage, listInbox, markInboxMessageRead } from "../../src/inbox/store.js";
+import { claimInboxReward, deleteInboxMessage, issueSystemMessage, listInbox, markInboxMessageRead, systemMessageId } from "../../src/inbox/store.js";
+import type { JsonObject } from "../../src/ownership/contracts.js";
 import { maintainInboxRetention } from "../../src/inbox/retention.js";
 import { inboxRetentionMs } from "../../src/inbox/retention_policy.js";
 
@@ -16,8 +17,8 @@ const app = initializeApp({ projectId }, `gifts-${process.pid}`);
 const db = getFirestore(app), uid = "gift-player", nowMs = 1700000000000;
 const attachments: InboxCatalogReward[] = [
   { kind: "gear", slot: "mainWeapon", itemId: "waspfang" },
-  { kind: "ability", slot: "spell", itemId: "eloise.arcane_ward", characterId: "eloiseWip" },
-  { kind: "projectileSpell", slot: "projectile", itemId: "fireBolt", characterId: "eloiseWip" },
+  { kind: "ability", slot: "spell", itemId: "eloise.arcane_ward", characterId: "eloise" },
+  { kind: "projectileSpell", slot: "projectile", itemId: "fireBolt", characterId: "eloise" },
 ];
 const input = { uid, sourceId: "gifts", title: "Equipment", body: "Ready to claim", goldAmount: 20, attachments };
 const enable = () => db.doc(inboxGiftConfigurationPath).set({ schemaVersion: 1, enabled: true, catalogHash: inboxGiftCatalogHash });
@@ -63,10 +64,10 @@ test("operator gifts grant account gear and the explicit character skills atomic
   const inventory = state.meta.inventory as { weapons: string[] };
   assert.equal(inventory.weapons.filter((v) => v === "waspfang").length, 1);
   const ownership = state.meta.abilityOwnershipByCharacter as Record<string, { projectileSpells: string[]; abilitiesBySlot: Record<string, string[]> }>;
-  assert.ok(ownership.eloiseWip!.abilitiesBySlot.spell!.includes("eloise.arcane_ward"));
-  assert.ok(ownership.eloiseWip!.projectileSpells.includes("fireBolt"));
-  assert.ok(!ownership.eloise!.abilitiesBySlot.spell!.includes("eloise.arcane_ward"));
-  assert.ok(!ownership.eloise!.projectileSpells.includes("fireBolt"));
+  assert.ok(ownership.eloise!.abilitiesBySlot.spell!.includes("eloise.arcane_ward"));
+  assert.ok(ownership.eloise!.projectileSpells.includes("fireBolt"));
+  assert.ok(!ownership.bountyHunter!.abilitiesBySlot.spell!.includes("eloise.arcane_ward"));
+  assert.ok(!ownership.bountyHunter!.projectileSpells.includes("fireBolt"));
   assert.equal((await listInbox(db, uid)).summary.unclaimedCount, 0);
   await assert.rejects(sendOperatorMessage(projectId, { ...input, attachments: attachments.slice(1) }), { code: "already-exists" });
 });
@@ -96,10 +97,52 @@ test("invalid IDs, slots, characters, duplicate gifts and oversized gifts are re
   for (const rewards of [
     [{ ...attachments[0], itemId: "invented" }], [{ ...attachments[0], slot: "accessory" }],
     [{ ...attachments[0], characterId: "eloise" }], [{ ...attachments[1], characterId: "invented" }],
-    [{ ...attachments[1], characterId: undefined }], [attachments[0], attachments[0]],
+    [{ ...attachments[1], characterId: undefined }], [{ ...attachments[1], characterId: "eloiseWip" }], [attachments[0], attachments[0]],
     [{ ...attachments[0], amount: 2 }], [{ kind: "gold", amount: 0 }],
   ]) assert.throws(() => parseInboxRewards(rewards));
   assert.throws(() => parseOperatorMessage({ ...input, attachments: [{ kind: "gold", amount: 1 }] }));
+});
+
+test("retained WIP gifts claim for Éloïse, preserve retry hashes, and cannot be newly issued", async () => {
+  const retired = { ...attachments[1], characterId: "eloiseWip" };
+  const delivery = { ...input, sourceId: "retired-gift", attachments: [retired] };
+  const id = systemMessageId(uid, delivery.sourceId);
+  const rewards = [{ kind: "gold", amount: 20 }, retired];
+  // This is pre-retirement persisted evidence, not a new issuance bypass.
+  await db.collection(inboxCollections.messages).doc(id).set({
+    schemaVersion: 2, id, uid, sourceId: delivery.sourceId,
+    title: delivery.title, body: delivery.body, rewards,
+    createdAtMs: nowMs, readAtMs: null, claimedAtMs: null, expiresAtMs: null,
+  });
+  await db.collection(inboxCollections.rewards).doc(id).set({ uid, messageId: id, rewards, claimedAtMs: null });
+  await db.collection(inboxCollections.summaries).doc(uid).set({ uid, revision: 1, unreadCount: 1, unclaimedCount: 1 });
+  const old = await loadOrCreateCanonicalState({ db, uid });
+  old.selection.characterId = "eloiseWip";
+  (old.selection.buildsByCharacter as JsonObject).eloiseWip = { builds: [] };
+  (old.meta.equippedByCharacter as JsonObject).eloiseWip = { mainWeaponId: "waspfang" };
+  (old.meta.abilityOwnershipByCharacter as JsonObject).eloiseWip = {
+    projectileSpells: ["fireBolt"], abilitiesBySlot: { spell: ["eloise.focus"] },
+  };
+  const profile = db.collection("ownership_profiles").doc(`${uid}__${old.profileId}`);
+  await profile.update({ selection: old.selection, meta: old.meta });
+  assert.deepEqual((await listInbox(db, uid)).messages[0].rewards, rewards);
+  assert.equal(await issueSystemMessage({ db, uid, nowMs, delivery }), id);
+  const claim = { db, uid, messageId: id, commandId: "retired-claim", expectedRevision: 0, nowMs: nowMs + 1 };
+  const result = await claimInboxReward(claim);
+  const state = result.result.canonicalState;
+  assert.equal(state.selection.characterId, "eloise");
+  assert.equal(state.progression.gold, 20);
+  const ownership = (state.meta.abilityOwnershipByCharacter as JsonObject).eloise as JsonObject;
+  assert.ok(((ownership.abilitiesBySlot as JsonObject).spell as string[]).includes("eloise.arcane_ward"));
+  assert.ok((ownership.projectileSpells as string[]).includes("fireBolt"));
+  assert.ok(!JSON.stringify((await profile.get()).data()).includes("eloiseWip"));
+  assert.deepEqual((await claimInboxReward(claim)).result.canonicalState, state);
+  assert.deepEqual((await db.collection(inboxCollections.rewards).doc(id).get()).get("rewards"), rewards);
+  await deleteInboxMessage({ db, uid, messageId: id, nowMs: nowMs + 2 });
+  assert.equal(await issueSystemMessage({ db, uid, nowMs, delivery }), id);
+  await assert.rejects(issueSystemMessage({ db, uid, nowMs, delivery: { ...delivery, title: "Changed" } }), { code: "already-exists" });
+  await enable();
+  await assert.rejects(issueSystemMessage({ db, uid, nowMs, delivery: { ...delivery, sourceId: "new-retired-gift" } }), { code: "invalid-argument" });
 });
 
 test("stale revision and gold overflow cannot partially grant catalog rewards", async () => {

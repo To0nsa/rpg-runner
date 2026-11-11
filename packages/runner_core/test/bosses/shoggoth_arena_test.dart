@@ -40,7 +40,7 @@ void main() {
     for (final seed in [7, 42, 2026]) {
       for (final character in [
         PlayerCharacterRegistry.eloise,
-        PlayerCharacterRegistry.eloiseWip,
+        PlayerCharacterRegistry.bountyHunter,
       ]) {
         test(
           'authored Shoggoth arena clears at $hz Hz seed=$seed ${character.id.name}',

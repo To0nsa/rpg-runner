@@ -6,7 +6,7 @@ import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/characters/eloise.dart';
-import 'package:runner_core/players/characters/eloise_wip.dart';
+import 'package:runner_core/players/characters/bounty_hunter.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/tuning/camera_tuning.dart';
@@ -15,7 +15,7 @@ import 'package:runner_core/tuning/track_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
-  for (final character in [eloiseCharacter, eloiseWipCharacter]) {
+  for (final character in [eloiseCharacter, bountyHunterCharacter]) {
     for (final direction in [1, -1]) {
       final label = '${character.id.name}, direction $direction';
       for (final mode in TerrainCollisionMode.values) {

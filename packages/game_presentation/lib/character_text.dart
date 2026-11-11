@@ -7,7 +7,6 @@ String characterDisplayName(
   PlayerCharacterId id, {
   required GameLocalizations strings,
 }) => switch (id) {
-  PlayerCharacterId.eloise ||
-  PlayerCharacterId.eloiseWip => strings.characterEloiseName,
+  PlayerCharacterId.eloise => strings.characterEloiseName,
   PlayerCharacterId.bountyHunter => strings.characterWillowName,
 };

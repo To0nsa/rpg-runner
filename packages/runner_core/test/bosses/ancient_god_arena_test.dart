@@ -177,7 +177,7 @@ void main() {
     }
     for (final character in [
       PlayerCharacterRegistry.eloise,
-      PlayerCharacterRegistry.eloiseWip,
+      PlayerCharacterRegistry.bountyHunter,
     ]) {
       test(
         '${character.id.name} defeats ${boss.name} and releases its summons',

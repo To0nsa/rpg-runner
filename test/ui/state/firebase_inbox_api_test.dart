@@ -78,6 +78,13 @@ void main() {
       'Arcane Ward · Éloïse',
     ]);
     expect(decoded.canClaim, isTrue);
+    expect(decoded.attachments.last.toJson(), skill);
+    final retainedAndCurrent = InboxMessage.fromJson({
+      ...message,
+      'schemaVersion': 2,
+      'rewards': [skill, {...skill, 'characterId': 'eloise'}],
+    });
+    expect(retainedAndCurrent.attachments.map((gift) => gift.key).toSet(), hasLength(2));
     expect(
       InboxMessage.fromJson({
         ...message,

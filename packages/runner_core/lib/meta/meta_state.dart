@@ -187,6 +187,35 @@ class MetaState {
       );
     }
 
+    // Retired development profiles keep earned skills, never their equipped build.
+    final retiredRaw = abilityOwnershipRaw is Map
+        ? abilityOwnershipRaw['eloiseWip']
+        : null;
+    if (retiredRaw is Map) {
+      final retired = AbilityOwnershipState.fromJson(
+        Map<String, dynamic>.from(retiredRaw),
+        fallback: AbilityOwnershipState.empty,
+      );
+      final current = abilityOwnershipByCharacter[PlayerCharacterId.eloise]!;
+      abilityOwnershipByCharacter[PlayerCharacterId.eloise] =
+          AbilityOwnershipState(
+            learnedProjectileSpellIds: {
+              ...current.learnedProjectileSpellIds,
+              ...retired.learnedProjectileSpellIds,
+            },
+            learnedAbilityIdsBySlot: {
+              for (final slot in {
+                ...current.learnedAbilityIdsBySlot.keys,
+                ...retired.learnedAbilityIdsBySlot.keys,
+              })
+                slot: {
+                  ...current.learnedAbilityIdsForSlot(slot),
+                  ...retired.learnedAbilityIdsForSlot(slot),
+                },
+            },
+          );
+    }
+
     return MetaState(
       schemaVersion: schemaVersion,
       inventory: inventory,

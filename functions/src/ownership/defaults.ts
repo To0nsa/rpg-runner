@@ -80,27 +80,10 @@ export function starterMeta(): JsonObject {
         spellBookId: "apprenticePrimer",
         accessoryId: "strengthBelt",
       },
-      eloiseWip: {
-        mainWeaponId: "plainsteel",
-        offhandWeaponId: "roadguard",
-        spellBookId: "apprenticePrimer",
-        accessoryId: "strengthBelt",
-      },
     },
     abilityOwnershipByCharacter: {
       bountyHunter: hunterStarterOwnership,
       eloise: {
-        projectileSpells: ["acidBolt", "holyBolt"],
-        abilitiesBySlot: {
-          primary: ["eloise.seeker_slash"],
-          secondary: ["eloise.shield_block"],
-          projectile: ["eloise.snap_shot"],
-          mobility: ["eloise.dash"],
-          spell: ["eloise.arcane_haste", "eloise.focus"],
-          jump: ["eloise.jump"],
-        },
-      },
-      eloiseWip: {
         projectileSpells: ["acidBolt", "holyBolt"],
         abilitiesBySlot: {
           primary: ["eloise.seeker_slash"],
@@ -192,7 +175,9 @@ export function normalizeCanonicalState(
   const progression = isJsonObject(candidate.progression)
     ? structuredClone(candidate.progression)
     : fallback.progression;
-  if (!campaignCharacterUnlocked(progression, selection.characterId)) selection.characterId = "eloise";
+  retireEloiseWip(selection, meta);
+  if (!(knownCharacterIds as readonly unknown[]).includes(selection.characterId) ||
+      !campaignCharacterUnlocked(progression, selection.characterId)) selection.characterId = "eloise";
   progression.achievements = readAchievementProgress(progression.achievements);
   normalizeProgressionStore({
     progression,
@@ -220,4 +205,29 @@ export function normalizeCanonicalState(
 
 export function isJsonObject(value: unknown): value is JsonObject {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Preserve earned skills without replacing Éloïse's current builds or equipment. */
+function retireEloiseWip(selection: JsonObject, meta: JsonObject): void {
+  const ownership = meta.abilityOwnershipByCharacter;
+  if (isJsonObject(ownership)) {
+    const retired = ownership.eloiseWip;
+    if (isJsonObject(retired)) {
+      const current = isJsonObject(ownership.eloise) ? ownership.eloise : {};
+      const mergeIds = (a: unknown, b: unknown) => [...new Set([
+        ...(Array.isArray(a) ? a.filter((id): id is string => typeof id === "string") : []),
+        ...(Array.isArray(b) ? b.filter((id): id is string => typeof id === "string") : []),
+      ])];
+      current.projectileSpells = mergeIds(current.projectileSpells, retired.projectileSpells);
+      const currentSlots = isJsonObject(current.abilitiesBySlot) ? current.abilitiesBySlot : {};
+      const retiredSlots = isJsonObject(retired.abilitiesBySlot) ? retired.abilitiesBySlot : {};
+      for (const slot of knownAbilitySlots) currentSlots[slot] = mergeIds(currentSlots[slot], retiredSlots[slot]);
+      current.abilitiesBySlot = currentSlots;
+      ownership.eloise = current;
+    }
+    delete ownership.eloiseWip;
+  }
+  for (const branches of [selection.buildsByCharacter, selection.loadoutsByCharacter, meta.equippedByCharacter]) {
+    if (isJsonObject(branches)) delete branches.eloiseWip;
+  }
 }

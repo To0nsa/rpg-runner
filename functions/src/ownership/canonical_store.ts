@@ -13,7 +13,7 @@ import type {
   OwnershipCanonicalState,
   OwnershipCommandResult,
 } from "./contracts.js";
-import { normalizeCanonicalState } from "./defaults.js";
+import { isJsonObject, normalizeCanonicalState } from "./defaults.js";
 import { canonicalDocRef, defaultCanonicalProfileId } from "./firestore_paths.js";
 import { legacyReadReconciliationEnabled } from "./legacy_reward_reconciliation.js";
 import { reconcilePendingRewardGrantsForTransaction } from "./reward_grants.js";
@@ -117,7 +117,34 @@ export function canonicalWriteData(
   };
 }
 
+/** Data for set(..., {merge: true}); includes deletions for retired character keys. */
 export function canonicalMergeWriteData(
+  uid: string,
+  canonical: OwnershipCanonicalState,
+): Record<string, unknown> {
+  // Merge writes otherwise retain removed map keys indefinitely.
+  const withoutRetiredCharacter = (value: unknown) => ({
+    ...(isJsonObject(value) ? value : {}), eloiseWip: FieldValue.delete(),
+  });
+  return {
+    ...canonicalUpdateWriteData(uid, canonical),
+    selection: {
+      ...canonical.selection,
+      buildsByCharacter: withoutRetiredCharacter(canonical.selection.buildsByCharacter),
+      ...(isJsonObject(canonical.selection.loadoutsByCharacter) ? {
+        loadoutsByCharacter: withoutRetiredCharacter(canonical.selection.loadoutsByCharacter),
+      } : {}),
+    },
+    meta: {
+      ...canonical.meta,
+      equippedByCharacter: withoutRetiredCharacter(canonical.meta.equippedByCharacter),
+      abilityOwnershipByCharacter: withoutRetiredCharacter(canonical.meta.abilityOwnershipByCharacter),
+    },
+  };
+}
+
+/** Whole-map updates remove retired branches without nested delete sentinels. */
+export function canonicalUpdateWriteData(
   uid: string,
   canonical: OwnershipCanonicalState,
 ): Record<string, unknown> {

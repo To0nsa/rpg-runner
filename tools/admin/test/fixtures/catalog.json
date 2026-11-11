@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "catalogHash": "d1a75007ce95044c4bf6609871d8f1b2c8a988f888d6d4e01708a08802d8d1bd",
+  "catalogHash": "f4c42f855db359cbd3c4a461e0ae00e72136dee0309db31bcfcbc0b79d83e409",
   "entries": [
     {
       "kind": "gear",
@@ -610,7 +610,6 @@
   ],
   "characters": [
     "eloise",
-    "eloiseWip",
     "bountyHunter"
   ]
 }

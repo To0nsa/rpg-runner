@@ -9,6 +9,15 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
+  test('retired selection restores Éloïse and preserves current builds', () {
+    final saved = SelectionState.defaults.copyWith(buildName: 'Keep me');
+    final json = saved.toJson()..['characterId'] = 'eloiseWip';
+    (json['buildsByCharacter'] as Map)['eloiseWip'] = {'builds': []};
+    final restored = SelectionState.fromJson(json);
+    expect(restored.selectedCharacterId, PlayerCharacterId.eloise);
+    expect(restored.buildName, 'Keep me');
+    expect(restored.toJson(), saved.toJson());
+  });
   test(
     'persisted unavailable choices restore the generated selectable default',
     () {
@@ -49,7 +58,7 @@ void main() {
       final state = SelectionState.fromJson(<String, dynamic>{
         'levelId': LevelId.field.name,
         'runType': RunMode.practice.name,
-        'characterId': PlayerCharacterId.eloiseWip.name,
+        'characterId': 'eloiseWip',
         'loadout': <String, Object?>{'abilityJumpId': 'migration.jump'},
         'buildName': 'Legacy',
       });

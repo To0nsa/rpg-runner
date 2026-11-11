@@ -14,7 +14,7 @@ import { applyPlayerProgress } from "../ownership/player_progress.js";
 import { levelUpDeliveries } from "../inbox/level_rewards.js";
 import { prepareSystemMessages } from "../inbox/store.js";
 import {
-  canonicalMergeWriteData,
+  canonicalUpdateWriteData,
   canonicalWriteData,
   resolveCanonicalStateForTransaction,
 } from "../ownership/canonical_store.js";
@@ -216,7 +216,7 @@ export async function settleAcceptedRunSession(args: {
           // Replace canonical object fields so migrated Codex kills disappear.
           tx.update(
             resolvedCanonical.canonicalRef,
-            canonicalMergeWriteData(uid, reconciled.canonicalState),
+            canonicalUpdateWriteData(uid, reconciled.canonicalState),
           );
         } else if (!resolvedCanonical.exists) {
           tx.set(

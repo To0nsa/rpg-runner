@@ -350,7 +350,7 @@ void main() {
         AccessoryId.strengthBelt,
       );
       expect(
-        normalized.equippedFor(PlayerCharacterId.eloiseWip).accessoryId,
+        normalized.equippedFor(PlayerCharacterId.bountyHunter).accessoryId,
         AccessoryId.strengthBelt,
       );
     },

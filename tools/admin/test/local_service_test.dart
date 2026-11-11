@@ -49,7 +49,7 @@ void main() {
       );
       controller.toggleGift(
         controller.catalog.firstWhere((e) => e.itemId == 'eloise.arcane_ward'),
-        'eloiseWip',
+        'eloise',
       );
       await controller.createPreview();
       expect(controller.error, isNull);

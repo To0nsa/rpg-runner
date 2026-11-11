@@ -332,7 +332,7 @@ void main() {
 
   for (final character in [
     PlayerCharacterRegistry.eloise,
-    PlayerCharacterRegistry.eloiseWip,
+    PlayerCharacterRegistry.bountyHunter,
   ]) {
     test('${character.id.name} death column captures the floor height', () {
       final core = _core(character: character);
@@ -568,7 +568,7 @@ void main() {
 
   for (final character in [
     PlayerCharacterRegistry.eloise,
-    PlayerCharacterRegistry.eloiseWip,
+    PlayerCharacterRegistry.bountyHunter,
   ]) {
     for (final hz in [30, 60, 90]) {
       for (final platformX in [369.0, 409.0, 449.0]) {

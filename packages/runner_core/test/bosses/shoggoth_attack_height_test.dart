@@ -14,7 +14,7 @@ import 'package:runner_core/ecs/systems/projectile_pose_system.dart';
 import 'package:runner_core/ecs/systems/projectile_system.dart';
 import 'package:runner_core/ecs/world_support_view.dart';
 import 'package:runner_core/players/characters/eloise.dart';
-import 'package:runner_core/players/characters/eloise_wip.dart';
+import 'package:runner_core/players/characters/bounty_hunter.dart';
 import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:test/test.dart';
@@ -24,7 +24,7 @@ import '../test_support/shoggoth_combat_fixture.dart';
 
 void main() {
   for (final hz in [30, 60, 90]) {
-    for (final character in [eloiseCharacter, eloiseWipCharacter]) {
+    for (final character in [eloiseCharacter, bountyHunterCharacter]) {
       for (final facing in Facing.values) {
         for (final distance in [0.0, 10.0, 20.0, 30.0, 35.0]) {
           test(

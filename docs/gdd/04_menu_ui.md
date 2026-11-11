@@ -331,6 +331,9 @@ Choose level cleanly, while surfacing the **Weekly Challenge** as the competitiv
 Choose Éloïse or [Willow](combat/abilities/willow.md) on the preceding character
 selection screen, then edit that character's remembered loadout. The equipped
 section visually mirrors the in-game HUD cluster **on this page only**.
+These are the complete roster; the former development duplicate is retired.
+Old selections return to Éloïse, with earned duplicate-character skills and
+previously issued gifts credited to her without replacing current builds.
 
 ### Layout
 

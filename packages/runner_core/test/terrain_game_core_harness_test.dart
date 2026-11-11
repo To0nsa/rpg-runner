@@ -9,7 +9,7 @@ import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/characters/eloise.dart';
-import 'package:runner_core/players/characters/eloise_wip.dart';
+import 'package:runner_core/players/characters/bounty_hunter.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/staged_terrain_catalog.dart';
@@ -669,34 +669,8 @@ void main() {
     expect(slopeTravel, closeTo(flatTravel, 2));
   });
 
-  test('Éloïse and Éloïse WIP share identical terrain traversal results', () {
-    final cores = [eloiseCharacter, eloiseWipCharacter]
-        .map(
-          (character) => GameCore.terrainMotionHarness(
-            seed: 25,
-            levelDefinition: _level(groundTopY: 700),
-            playerCharacter: character,
-            terrainGeometry: _slopeTerrain(),
-          ),
-        )
-        .toList();
-    for (final core in cores) {
-      _holdAxis(core, 1, ticks: 60);
-    }
-    final first = cores.first.buildTerrainPlayerDebugSnapshot()!;
-    final second = cores.last.buildTerrainPlayerDebugSnapshot()!;
-
-    expect(second.finalBodyXTicks, first.finalBodyXTicks);
-    expect(second.finalBodyYTicks, first.finalBodyYTicks);
-    expect(second.finalVelocityXTicks, first.finalVelocityXTicks);
-    expect(second.finalVelocityYTicks, first.finalVelocityYTicks);
-    expect(second.supportEdgeId, first.supportEdgeId);
-    expect(second.supportedTravelTicks, first.supportedTravelTicks);
-    expect(cores.last.distance, cores.first.distance);
-  });
-
   test('SG-P01 through SG-P09 smoke matrix passes both player definitions', () {
-    for (final character in [eloiseCharacter, eloiseWipCharacter]) {
+    for (final character in [eloiseCharacter, bountyHunterCharacter]) {
       final label = character.id.name;
 
       final stationary = GameCore.terrainMotionHarness(

@@ -9,7 +9,9 @@ Flame consumes Core animation metadata and snapshots. See the
 The display name is `Willow`. Internal IDs remain `bountyHunter` for the
 character, `bounty_hunter.*` for abilities and `hunter*` for equipment/projectiles;
 asset paths retain the source pack's `bounty_hunter` name. No aliases are needed.
-`PlayerCharacterRegistry.playable` exposes Éloïse and Willow, excluding Éloïse WIP.
+`PlayerCharacterRegistry.all` and `playable` expose only Éloïse and Willow.
+The old development character has been removed; retained ownership and gifts
+follow the [character retirement contract](character_builds.md#character-retirement).
 
 Hub Edit opens `/setup/character`. Card taps select in place; three build
 buttons on each card select an independent saved configuration before opening
@@ -28,9 +30,9 @@ equip/learn commands, store offers and inbox rewards enforce both ownership
 and compatibility. Admin uses shared Core presentation to filter recipients.
 Account-wide accessories remain available to both characters.
 
-Fresh backend profiles contain Willow's complete starter branches. There is no
-new old-profile migration or older-client selection fallback. Development
-accounts predating this content can be reset through the existing account flow.
+Fresh backend profiles contain Willow's complete starter branches. Adding Willow
+does not backfill missing starter branches in older profiles. Development
+accounts predating her content can be reset through the existing account flow.
 The local implementation does not perform remote data resets or cancellations.
 Revision, command idempotency, auth and reward settlement behavior are unchanged.
 

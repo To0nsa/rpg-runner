@@ -5,7 +5,9 @@ import 'package:run_protocol/run_ticket.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/players/player_character_definition.dart';
+import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 import 'package:rpg_runner/ui/components/play_button.dart';
+import 'package:rpg_runner/ui/state/ownership/campaign_progress.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/pages/selectLevel/level_setup_page.dart';
@@ -93,14 +95,23 @@ void main() {
   testWidgets('start run flushes pending selection before navigation', (
     tester,
   ) async {
-    final ownershipApi = _RecordingOwnershipApi();
+    final ownershipApi = _RecordingOwnershipApi()
+      ..progression = ProgressionState.initial.copyWith(
+        campaign: CampaignProgress.fromJson({
+          'schemaVersion': 1,
+          'missions': {
+            for (final mission in CampaignCatalog.chapters.first.missions)
+              mission.id: {'cleared': true, 'attempts': 1, 'bests': {}},
+          },
+        }),
+      );
     final appState = AppState(
       authApi: const _StaticAuthApi(),
       loadoutOwnershipApi: ownershipApi,
       runSessionApi: const _StaticRunSessionApi(),
     );
     await appState.bootstrap(force: true);
-    await appState.setCharacter(PlayerCharacterId.eloiseWip);
+    await appState.setCharacter(PlayerCharacterId.bountyHunter);
     expect(appState.ownershipSyncStatus.pendingSelectionCount, 1);
 
     await tester.pumpWidget(_TestApp(appState: appState));
@@ -231,6 +242,7 @@ class _StaticAuthApi implements AuthApi {
 }
 
 class _RecordingOwnershipApi extends LoadoutOwnershipApi {
+  ProgressionState progression = ProgressionState.initial;
   int _revision = 0;
   int setSelectionCalls = 0;
   SelectionState _selection = SelectionState.defaults;
@@ -242,7 +254,7 @@ class _RecordingOwnershipApi extends LoadoutOwnershipApi {
       revision: _revision,
       selection: _selection,
       meta: _metaService.createNew(),
-      progression: ProgressionState.initial,
+      progression: progression,
     );
   }
 

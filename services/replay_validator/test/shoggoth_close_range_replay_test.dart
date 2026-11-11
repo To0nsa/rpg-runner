@@ -17,7 +17,6 @@ void main() {
   for (final hz in [30, 60, 90]) {
     for (final character in [
       PlayerCharacterRegistry.eloise,
-      PlayerCharacterRegistry.eloiseWip,
     ]) {
       test('point-blank attack spam meets retaliation and replays, '
           '${character.id.name}, $hz Hz', () {

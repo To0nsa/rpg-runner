@@ -68,62 +68,6 @@
             }
           ]
         },
-        "eloiseWip": {
-          "selectedBuildIndex": 0,
-          "builds": [
-            {
-              "name": "Build 1",
-              "loadout": {
-                "mask": 7,
-                "mainWeaponId": "plainsteel",
-                "offhandWeaponId": "roadguard",
-                "spellBookId": "apprenticePrimer",
-                "projectileSlotSpellId": "acidBolt",
-                "accessoryId": "strengthBelt",
-                "abilityPrimaryId": "eloise.seeker_slash",
-                "abilitySecondaryId": "eloise.shield_block",
-                "abilityProjectileId": "eloise.snap_shot",
-                "abilitySpellId": "eloise.arcane_haste",
-                "abilityMobilityId": "eloise.dash",
-                "abilityJumpId": "eloise.jump"
-              }
-            },
-            {
-              "name": "Build 2",
-              "loadout": {
-                "mask": 7,
-                "mainWeaponId": "plainsteel",
-                "offhandWeaponId": "roadguard",
-                "spellBookId": "apprenticePrimer",
-                "projectileSlotSpellId": "acidBolt",
-                "accessoryId": "strengthBelt",
-                "abilityPrimaryId": "eloise.seeker_slash",
-                "abilitySecondaryId": "eloise.shield_block",
-                "abilityProjectileId": "eloise.snap_shot",
-                "abilitySpellId": "eloise.arcane_haste",
-                "abilityMobilityId": "eloise.dash",
-                "abilityJumpId": "eloise.jump"
-              }
-            },
-            {
-              "name": "Build 3",
-              "loadout": {
-                "mask": 7,
-                "mainWeaponId": "plainsteel",
-                "offhandWeaponId": "roadguard",
-                "spellBookId": "apprenticePrimer",
-                "projectileSlotSpellId": "acidBolt",
-                "accessoryId": "strengthBelt",
-                "abilityPrimaryId": "eloise.seeker_slash",
-                "abilitySecondaryId": "eloise.shield_block",
-                "abilityProjectileId": "eloise.snap_shot",
-                "abilitySpellId": "eloise.arcane_haste",
-                "abilityMobilityId": "eloise.dash",
-                "abilityJumpId": "eloise.jump"
-              }
-            }
-          ]
-        },
         "bountyHunter": {
           "selectedBuildIndex": 0,
           "builds": [
@@ -211,12 +155,6 @@
           "offhandWeaponId": "roadguard",
           "spellBookId": "apprenticePrimer",
           "accessoryId": "strengthBelt"
-        },
-        "eloiseWip": {
-          "mainWeaponId": "plainsteel",
-          "offhandWeaponId": "roadguard",
-          "spellBookId": "apprenticePrimer",
-          "accessoryId": "strengthBelt"
         }
       },
       "abilityOwnershipByCharacter": {
@@ -249,33 +187,6 @@
           }
         },
         "eloise": {
-          "projectileSpells": [
-            "acidBolt",
-            "holyBolt"
-          ],
-          "abilitiesBySlot": {
-            "primary": [
-              "eloise.seeker_slash"
-            ],
-            "secondary": [
-              "eloise.shield_block"
-            ],
-            "projectile": [
-              "eloise.snap_shot"
-            ],
-            "mobility": [
-              "eloise.dash"
-            ],
-            "spell": [
-              "eloise.arcane_haste",
-              "eloise.focus"
-            ],
-            "jump": [
-              "eloise.jump"
-            ]
-          }
-        },
-        "eloiseWip": {
           "projectileSpells": [
             "acidBolt",
             "holyBolt"

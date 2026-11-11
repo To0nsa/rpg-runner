@@ -24,7 +24,7 @@ export function parseOperatorMessage(input: unknown) {
   if (uid.includes("/") || uid === "." || uid === ".." || /^__.*__$/.test(uid)) {
     throw new HttpsError("invalid-argument", "Invalid uid.");
   }
-  const attachments = parseInboxRewards(raw.attachments ?? []);
+  const attachments = parseInboxRewards(raw.attachments ?? [], { allowRetiredCharacter: true });
   if (attachments.some((reward) => reward.kind === "gold")) throw new HttpsError("invalid-argument", "Use goldAmount for gold.");
   if (attachments.length > 8) throw new HttpsError("invalid-argument", "Use at most eight item/skill gifts.");
   const delivery = {

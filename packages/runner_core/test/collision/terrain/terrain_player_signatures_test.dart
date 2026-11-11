@@ -9,7 +9,7 @@ import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/characters/eloise.dart';
-import 'package:runner_core/players/characters/eloise_wip.dart';
+import 'package:runner_core/players/characters/bounty_hunter.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/terrain_player_debug_snapshot.dart';
 import 'package:runner_core/snapshots/terrain_player_signatures.dart';
@@ -52,10 +52,10 @@ void main() {
     },
   );
 
-  test('player-run signatures repeat for both Phase 2 player definitions', () {
+  test('player-run signatures repeat for both registered player definitions', () {
     for (final fixture in <(String, PlayerCharacterDefinition)>[
       ('eloise', eloiseCharacter),
-      ('eloise-wip', eloiseWipCharacter),
+      ('bountyHunter', bountyHunterCharacter),
     ]) {
       final first = _runFixture(characterId: fixture.$1, character: fixture.$2);
       final second = _runFixture(

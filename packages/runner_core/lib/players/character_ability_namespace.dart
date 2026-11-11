@@ -3,8 +3,8 @@ import 'player_character_registry.dart';
 
 /// Returns the authored ability id namespace for [characterId].
 ///
-/// Example: character ids like `eloiseWip` still resolve to `eloise` when
-/// their catalog abilities are authored as `eloise.*`.
+/// Authored prefixes need not match character IDs (for example, Willow uses
+/// `bounty_hunter.*` while her character ID is `bountyHunter`).
 String characterAbilityNamespace(PlayerCharacterId characterId) {
   final catalog = PlayerCharacterRegistry.resolve(characterId).catalog;
   final namespace = _namespaceFromAbilityId(catalog.abilityPrimaryId);

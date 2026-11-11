@@ -1,7 +1,7 @@
 import type { JsonObject } from "./contracts.js";
 
 /** Stable character/content identities shared by starter grants and authorization. */
-export const knownCharacterIds = ["eloise", "eloiseWip", "bountyHunter"] as const;
+export const knownCharacterIds = ["eloise", "bountyHunter"] as const;
 export const hunterStarterProjectiles = ["hunterPistol", "hunterCrossbow", "hunterShotgun"] as const;
 export const hunterProjectiles = ["hunterPistol", "hunterCrossbow", "hunterShotgun", "hunterRoadsidePistol", "hunterLongbarrelPistol", "hunterLongwatchCrossbow", "hunterHeavyLimbCrossbow", "hunterBrushgun"] as const;
 export const hunterBlades = ["hunterBlade", "hunterNotchknife", "hunterHookblade", "hunterCausticEdge", "hunterCinderpoint", "hunterSappingBlade", "hunterPursuitBlade", "hunterLastWord"] as const;
