@@ -40,7 +40,8 @@ dev, staging and production apps. Its final candidate and Play release are pendi
   [Flutter Admin](tools/admin/README.md), with explicit environment activation.
   Existing levels are not backfilled.
 - 2 authored level layouts: `forest`, `field`
-- [Campaign](docs/gdd/campaign.md): Val Outpost map/mission menus, finite hand-built
+- [Campaign](docs/gdd/campaign.md): full-screen regional map with pan/zoom and
+  Val Outpost mission menus, finite hand-built
   routes with bidirectional movement, verified first-clear rewards and chapter
   unlocks. The editor supports exact assembly and Runner/Campaign chunk copying.
   Four editable missions await authoring; Willow unlocks after all four clears.

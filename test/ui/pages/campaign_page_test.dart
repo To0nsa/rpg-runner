@@ -12,7 +12,9 @@ import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/campaign/campaign_page.dart';
 import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 import 'package:rpg_runner/ui/campaign/campaign_chapter_rewards.dart';
+import 'package:rpg_runner/ui/campaign/campaign_map.dart';
 import 'package:rpg_runner/ui/campaign/generated_campaign_catalog.dart';
+import 'package:rpg_runner/ui/components/map_label_button.dart';
 import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:rpg_runner/ui/pages/hub/play_hub_page.dart';
 import 'package:rpg_runner/ui/pages/hub/components/hub_select_card_frame.dart';
@@ -247,6 +249,36 @@ void main() {
         await _capture(tester, boundary, 'hub_${size.width.toInt()}_$language');
         await tester.tap(frames.last);
         await tester.pumpAndSettle();
+        _expectFullScreenMap(tester, size);
+        await _capture(tester, boundary, 'map_${size.width.toInt()}_$language');
+        final viewerFinder = find.byType(InteractiveViewer);
+        final viewer = tester.widget<InteractiveViewer>(viewerFinder);
+        final transform = viewer.transformationController!;
+        final initial = transform.value.clone();
+        await tester.drag(viewerFinder, const Offset(0, -50));
+        await tester.pumpAndSettle();
+        expect(transform.value, isNot(initial));
+
+        final center = tester.getCenter(viewerFinder);
+        final first = await tester.startGesture(center - const Offset(30, 0));
+        final second = await tester.startGesture(
+          center + const Offset(30, 0),
+          pointer: 2,
+        );
+        await first.moveTo(center - const Offset(60, 0));
+        await second.moveTo(center + const Offset(60, 0));
+        await tester.pump();
+        await first.moveTo(center - const Offset(90, 0));
+        await second.moveTo(center + const Offset(90, 0));
+        await tester.pump();
+        await first.up();
+        await second.up();
+        await tester.pumpAndSettle();
+        expect(transform.value.getMaxScaleOnAxis(), greaterThan(1));
+        await tester.tap(find.byIcon(Icons.center_focus_strong));
+        await tester.pumpAndSettle();
+        expect(transform.value, initial);
+
         final chapter = CampaignCatalog.chapters.first;
         await tester.tap(find.text(chapter.title(language)).last);
         await tester.pumpAndSettle();
@@ -267,6 +299,25 @@ void main() {
           findsNothing,
         );
         expect(find.text(chapter.title(language)), findsOneWidget);
+        _expectFullScreenMap(tester, size);
+
+        const portrait = Size(390, 844);
+        tester.view.physicalSize = portrait;
+        tester.view.padding = const FakeViewPadding(top: 24, bottom: 20);
+        addTearDown(tester.view.resetPadding);
+        await tester.pumpAndSettle();
+        _expectFullScreenMap(tester, portrait);
+        final labelRect = tester.getRect(find.byType(MapLabelButton));
+        expect(labelRect.left, greaterThanOrEqualTo(0));
+        expect(labelRect.right, lessThanOrEqualTo(portrait.width));
+        expect(labelRect.top, greaterThanOrEqualTo(24 + kToolbarHeight));
+        expect(labelRect.bottom, lessThanOrEqualTo(portrait.height - 20));
+        expect(
+          find.text(chapter.title(language)).hitTestable(),
+          findsOneWidget,
+        );
+        await _capture(tester, boundary, 'map_portrait_$language');
+        expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       });
     }
@@ -276,6 +327,23 @@ void main() {
 class _UnusedAuth extends Fake implements AuthApi {}
 
 class _UnusedOwnership extends Fake implements LoadoutOwnershipApi {}
+
+void _expectFullScreenMap(WidgetTester tester, Size viewport) {
+  expect(
+    tester.getRect(find.byType(CampaignRegionalMap)),
+    Offset.zero & viewport,
+  );
+  final image = find.descendant(
+    of: find.byType(CampaignRegionalMap),
+    matching: find.byType(Image),
+  );
+  final rect = tester.getRect(image);
+  expect(rect.left, lessThanOrEqualTo(0));
+  expect(rect.top, lessThanOrEqualTo(0));
+  expect(rect.right, greaterThanOrEqualTo(viewport.width));
+  expect(rect.bottom, greaterThanOrEqualTo(viewport.height));
+  expect(rect.width / rect.height, closeTo(1361 / 1156, 0.0001));
+}
 
 Future<void> _capture(WidgetTester tester, GlobalKey key, String name) async {
   if (Platform.environment['CAMPAIGN_CAPTURE'] != 'true') return;

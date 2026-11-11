@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/ui_tokens.dart';
 import '../theme/ui_world_palette.dart';
 
-/// Text and icon treatment shared by clickable labels on the two maps.
+/// Text and icon treatment shared by clickable labels on navigation maps.
 class MapLabelButton extends StatelessWidget {
   const MapLabelButton({
     super.key,

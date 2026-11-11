@@ -5,11 +5,13 @@ drafts for the user to author in the editor. See the
 [runtime and progression contract](../tdd/campaign_runtime.md).
 
 Campaign has a third main-menu card alongside Level and Character Selection.
-It shows the regional map cropped around Val Outpost. Open Campaign, select Val
-on the map, then choose a mission. Mission one has no completion prerequisite;
-later missions require verified clears of their predecessors. An unbuilt draft
-shows Coming soon. Each entry shows assignment, first-clear rewards and current
-content-version personal best, and uses the selected character/build.
+It shows the regional map cropped around Val Outpost. Open Campaign to see the
+regional map fill the screen behind the toolbar, like Town and Library Locations.
+Pan or pinch to explore the cropped artwork; Reset map restores the initial view.
+Select Val on the map, then choose a mission. Mission one has no completion
+prerequisite; later missions require verified clears of their predecessors. An
+unbuilt draft shows Coming soon. Each entry shows assignment, first-clear rewards
+and current content-version personal best, and uses the selected character/build.
 
 The chapter follows **Le feu de joie**, chapter 3 of **Les Soleils d'or**, using
 the user's supplied premise: cultists have been seen nearby and Val needs help.

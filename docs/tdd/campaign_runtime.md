@@ -213,6 +213,16 @@ also waits for durable replay journaling. Existing submission recovery and accou
 deletion fences remain in force. Developer mode bypasses availability locally,
 records no replay, and grants no account progress.
 
+## Campaign map presentation
+
+`CampaignPage` overlays its transparent toolbar only while the regional map is
+open. `CampaignRegionalMap` preserves the artwork's aspect ratio while covering
+the viewport, using an unconstrained `InteractiveViewer` for pan and zoom.
+Resize and reset restore the centered crop. Shared `MapCallout` and
+`MapLabelButton` controls bind the generated chapter coordinates to labels kept
+inside the initial toolbar/system-safe area. Chapter selection and Back retain
+the existing mission-list flow; the list uses the normal inset menu layout.
+
 ## Verification scope
 
 Tests cover continuous outward/return travel across real joins for both characters,

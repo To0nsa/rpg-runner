@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:game_presentation/character_text.dart';
@@ -54,52 +52,13 @@ class _CampaignPageState extends State<CampaignPage> {
       },
       child: MenuScaffold(
         title: chapter?.title(language) ?? context.l10n.campaignHeading,
+        overlayAppBar: chapter == null,
+        background: chapter == null
+            ? ColoredBox(color: ui.colors.background)
+            : null,
         child: chapter == null
-            ? LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = math.min(
-                    constraints.maxWidth,
-                    constraints.maxHeight * 1361 / 1156,
-                  );
-                  final height = width * 1156 / 1361;
-                  return Center(
-                    child: SizedBox(
-                      width: width,
-                      height: height,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Image.asset(
-                              campaignRegionalMapAsset,
-                              fit: BoxFit.fill,
-                            ),
-                          ),
-                          for (final entry in CampaignCatalog.chapters)
-                            Positioned(
-                              left:
-                                  (width * entry.mapX -
-                                          math.min(220, width) / 2)
-                                      .clamp(
-                                        0,
-                                        math.max(
-                                          0,
-                                          width - math.min(220, width),
-                                        ),
-                                      ),
-                              top: height * entry.mapY - 20,
-                              width: math.min(220, width),
-                              child: AppButton(
-                                label: entry.title(language),
-                                icon: Icons.flag_outlined,
-                                onPressed: () =>
-                                    setState(() => _chapter = entry),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+            ? CampaignRegionalMap(
+                onChapterPressed: (entry) => setState(() => _chapter = entry),
               )
             : MenuLayout(
                 maxWidth: 1100,
