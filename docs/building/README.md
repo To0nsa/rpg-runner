@@ -1,5 +1,11 @@
 # Current Implementation Plans
 
+- [Campaign and Val Outpost](campaign/README.md): planned finite missions with
+  bidirectional movement, explicit chunk routes, editor authoring, campaign map,
+  and verified progression. Planning is prepared; implementation has not started.
+  Next: settle shared contracts and the finite-world lifetime policy, then prove
+  one playable return-trip mission using the single linked checklist.
+
 - [Equipment and Training town services](town_services.md): permanent catalogues,
   independent character browsing and protected purchases. Implementation, dev
   deployment and Android v7 are complete; device end-to-end acceptance remains open.
