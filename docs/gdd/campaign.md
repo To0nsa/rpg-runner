@@ -9,9 +9,11 @@ It shows the regional map cropped around Val Outpost. Open Campaign to see the
 regional map fill the screen behind the toolbar, like Town and Library Locations.
 Pan or pinch to explore the cropped artwork; Reset map restores the initial view.
 Selecting Val opens chapter details and missions in a modal occupying the left
-two-thirds and full height of the phone's safe area, clear of cutouts and system
-bars. The map remains visible on the right. Details scroll below a fixed title and
-Close button; Close, Back or a tap outside restores the same map view.
+two-thirds of the phone's safe width, clear of cutouts and system bars. A
+12-logical-pixel outer margin keeps the panel off the screen edges even in
+fullscreen mode with no system insets. The map remains visible on the right.
+Details scroll below a fixed title and Close button; Close, Back or a tap outside
+restores the same map view.
 
 Mission one has no completion prerequisite; later missions require verified clears
 of their predecessors. An unbuilt draft shows Coming soon. Built missions show a

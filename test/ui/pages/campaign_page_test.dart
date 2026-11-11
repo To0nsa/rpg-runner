@@ -539,13 +539,18 @@ void _expectChapterPanel(
   final panel = tester.getRect(
     find.byKey(const ValueKey('campaign-chapter-panel')),
   );
-  expect(panel.left, padding.left);
-  expect(panel.top, padding.top);
+  const margin = 12.0;
+  expect(panel.left, padding.left + margin);
+  expect(panel.top, padding.top + margin);
   expect(
     panel.width,
     closeTo((viewport.width - padding.horizontal) * 2 / 3, .01),
   );
-  expect(panel.height, viewport.height - padding.vertical);
+  expect(panel.bottom, viewport.height - padding.bottom - margin);
+  expect(
+    panel.right,
+    lessThanOrEqualTo(viewport.width - padding.right - margin),
+  );
 }
 
 void _expectMissionLayout(

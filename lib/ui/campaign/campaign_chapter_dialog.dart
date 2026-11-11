@@ -8,7 +8,8 @@ import '../state/app/app_state.dart';
 import '../theme/ui_tokens.dart';
 import 'campaign_catalog.dart';
 
-/// Chapter selection fills the left two-thirds of the system-safe area.
+/// Chapter selection occupies the left two-thirds of the system-safe width.
+/// An outer margin keeps it off screen edges even when safe insets are zero.
 /// Content scrolls independently of the title and dismiss control.
 class CampaignChapterDialog extends StatefulWidget {
   const CampaignChapterDialog({super.key, required this.chapter});
@@ -45,17 +46,14 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
     return LayoutBuilder(
       builder: (context, constraints) => Dialog(
         alignment: Alignment.centerLeft,
-        insetPadding: EdgeInsets.zero,
+        insetPadding: EdgeInsets.all(ui.space.sm),
         // Override Dialog's minimum width so portrait keeps the same proportion.
         constraints: const BoxConstraints(),
         backgroundColor: ui.colors.background,
         surfaceTintColor: Colors.transparent,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            topRight: Radius.circular(ui.radii.md),
-            bottomRight: Radius.circular(ui.radii.md),
-          ),
+          borderRadius: BorderRadius.circular(ui.radii.md),
           side: BorderSide(color: ui.colors.outline),
         ),
         child: SizedBox(

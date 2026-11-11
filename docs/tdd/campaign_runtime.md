@@ -233,9 +233,11 @@ controller lifetime. Resize and reset restore the centered crop. Shared
 `MapCallout` and `MapLabelButton` controls bind chapter coordinates to labels kept
 inside the initial toolbar/system-safe area. Chapter selection opens a dialog
 route containing `CampaignChapterDialog`. The route applies `SafeArea` outside
-the dialog; its layout constraints size the panel to the left two-thirds and full
-height of that safe rectangle, including after rotation. Its title and dismiss
-control stay fixed; the chapter description and mission cards scroll below.
+the dialog; its layout constraints size the panel to two-thirds of that safe
+rectangle's width, including after rotation. The dialog's `ui.space.sm` outer
+inset (12 logical pixels) adds a visible margin inside the safe area and limits
+its otherwise full-height panel. All four corners are rounded. Its title and
+dismiss control stay fixed; the chapter description and mission cards scroll below.
 Mission headers use the smaller headline token in the chapter title's font
 family. A leading disclosure arrow and single-line name share a row with the
 action button. Arrow/name taps toggle description and progress below that row;
