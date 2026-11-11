@@ -1,5 +1,8 @@
 # Documentation
 
+- [Item authoring](tdd/item_authoring.md): editor creation/duplication, immutable
+  identities, shared names/art and typed Core/backend generation.
+
 - [Campaign and Val Outpost](gdd/campaign.md): finite authored missions,
   bidirectional movement, chunk copying, campaign menus and verified Double Jump/
   Willow unlocks; 224 first-clear XP reaches level 3. The

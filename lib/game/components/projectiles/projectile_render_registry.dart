@@ -116,8 +116,11 @@ class ProjectileRenderRegistry {
 
   final Map<ProjectileId, ProjectileRenderEntry> _entries =
       <ProjectileId, ProjectileRenderEntry>{
-        for (final id in hunterRangedWeaponIds)
-          id: ProjectileRenderEntry(id: id, renderScale: Vector2.all(1)),
+        for (final id in playerEquippableProjectileIds)
+          id: ProjectileRenderEntry(
+            id: id,
+            renderScale: Vector2.all(ProjectileRenderCatalog.scaleFor(id)),
+          ),
         ProjectileId.hunterBomb: ProjectileRenderEntry(
           id: ProjectileId.hunterBomb,
           renderScale: Vector2.all(
@@ -153,54 +156,6 @@ class ProjectileRenderRegistry {
           id: ProjectileId.poisonDart,
           renderScale: Vector2.all(
             ProjectileRenderCatalog.scaleFor(ProjectileId.poisonDart),
-          ),
-        ),
-        ProjectileId.iceBolt: ProjectileRenderEntry(
-          id: ProjectileId.iceBolt,
-          renderScale: Vector2.all(
-            ProjectileRenderCatalog.scaleFor(ProjectileId.iceBolt),
-          ),
-        ),
-        ProjectileId.thunderBolt: ProjectileRenderEntry(
-          id: ProjectileId.thunderBolt,
-          renderScale: Vector2.all(
-            ProjectileRenderCatalog.scaleFor(ProjectileId.thunderBolt),
-          ),
-        ),
-        ProjectileId.fireBolt: ProjectileRenderEntry(
-          id: ProjectileId.fireBolt,
-          renderScale: Vector2.all(
-            ProjectileRenderCatalog.scaleFor(ProjectileId.fireBolt),
-          ),
-        ),
-        ProjectileId.acidBolt: ProjectileRenderEntry(
-          id: ProjectileId.acidBolt,
-          renderScale: Vector2.all(
-            ProjectileRenderCatalog.scaleFor(ProjectileId.acidBolt),
-          ),
-        ),
-        ProjectileId.darkBolt: ProjectileRenderEntry(
-          id: ProjectileId.darkBolt,
-          renderScale: Vector2.all(
-            ProjectileRenderCatalog.scaleFor(ProjectileId.darkBolt),
-          ),
-        ),
-        ProjectileId.earthBolt: ProjectileRenderEntry(
-          id: ProjectileId.earthBolt,
-          renderScale: Vector2.all(
-            ProjectileRenderCatalog.scaleFor(ProjectileId.earthBolt),
-          ),
-        ),
-        ProjectileId.holyBolt: ProjectileRenderEntry(
-          id: ProjectileId.holyBolt,
-          renderScale: Vector2.all(
-            ProjectileRenderCatalog.scaleFor(ProjectileId.holyBolt),
-          ),
-        ),
-        ProjectileId.waterBolt: ProjectileRenderEntry(
-          id: ProjectileId.waterBolt,
-          renderScale: Vector2.all(
-            ProjectileRenderCatalog.scaleFor(ProjectileId.waterBolt),
           ),
         ),
       };

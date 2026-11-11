@@ -2,11 +2,42 @@
 
 Standalone authoring tool for `rpg_runner` content workflows.
 
+## Create and edit items
+
+Choose **Items** in the page selector. Select an existing item to edit it, choose
+**Create item** for a category and unique stable ID, or **Duplicate** to copy the
+selected item into a new ID. Creation starts with a valid category template.
+Edit English/French names, choose existing canonical art, and configure the
+category's stats, effects, family and projectile fields. Expand nested controls
+to customize inherited defaults. The preview shows eligibility derived from Core;
+account-wide gear ownership is separate from character equipment eligibility.
+
+Use the toolbar **Save**, **Undo** and **Redo**. Save validates visible input and
+writes the source with conflict/rollback protection. Saved IDs, categories,
+ordinals, families, slots and two-handed occupancy cannot be changed or deleted;
+duplicate to choose different compatibility fields. Unsaved new items can change
+their family/slot before their first Save.
+
+Run the shared **Build**, then restart/rebuild the editor and Admin to load new
+compiled item identities in campaign reward and Admin gift pickers. The focused
+root command is `dart run tool/generate_item_data.dart`; add `--check` for a
+read-only freshness check. `corepack pnpm catalog:check` checks both authored
+outputs and the Core-to-Functions catalogue. No handwritten Dart/TypeScript item
+list edits are needed. Generation does not deploy anything.
+
+New mechanics, categories, skill profiles, art assets and exceptional existing-ID
+loadout migrations still require code. Backend prices, purchase rules, rewards,
+authentication and ownership remain server-owned. See the
+[item contract](../../docs/tdd/item_authoring.md) for source, compatibility and
+release details.
+
+## Navigation
+
 Use **Back / Forward** in the shared toolbar, or **Alt+Left / Alt+Right**, to
 return through your editing journey. Opening a prefab, collision, or atlas from
 a Chunk lets you return to the same Chunk and scene view. Choosing a tool from
-the page selector also resumes its last open item. This works across all seven
-tools; navigation locations are remembered for the current editor session.
+the page selector also resumes its last open item. Navigation locations are
+remembered across tools for the current editor session.
 Chunk Creator also restores its existing-owner search, Mode, Difficulty, and Group
 filters when returning to the tool.
 Save/Discard/Cancel still protects edits, and returning reads current saved

@@ -101,6 +101,58 @@ No live deployment or account mutation is part of this work.
 - [x] Regenerate artifacts; validate all affected owners and update contracts,
   authoring guide and local evidence.
 
+### Item authoring follow-up
+
+Authorized November 11: create, duplicate and edit existing item categories in
+the repository editor, with a single authored source and typed Core generation.
+Worktree was clean at the start. No deployment or account mutations authorized.
+
+- [x] Trace identity, presentation, equipment policies, exporter and save/build boundaries.
+- [x] Capture original effective definitions, ordinals, starter state and backend output;
+  initial migration matches SHA-256 `bde5d3a8f2954cb7dbe57bbd62808b5e4f90a3a7813ff027e8e3d95a9037d61a`.
+- [x] Establish structured item source and typed generation without parallel handwritten catalogs.
+- [x] Complete Items plugin/forms, source conflicts, history and rollback coverage.
+- [x] Prove new item propagation through Core, presentation, backend and shared pickers.
+- [x] Validate affected Core/game/editor/Admin/backend, including gift retry and campaign settlement.
+- [x] Complete documentation, compatibility policy, freshness gates and full diff review.
+
+Compatibility policy: existing IDs, ordinals, category, family/slot and two-handed
+occupancy are immutable in ordinary authoring. Reject changes that can invalidate
+saved loadouts; duplicate into a new identity. Ownership and retained gift readers
+remain intact. Exceptional eligibility migrations require separate code and release
+design; this implementation does not add account migrations.
+
+Local item-authoring evidence (November 11, Flutter 3.47.1 / Dart 3.13.1):
+
+| Directory / command | Result |
+| --- | --- |
+| Core: `dart --suppress-analytics test test/combat/willow_equipment_test.dart test/combat/bounty_hunter_test.dart test/combat/status_tuning_test.dart` | 299 passed |
+| Root: `flutter test --no-pub test/tool/item_migration_test.dart` | Original 76 item definitions, ordinals, starter snapshot and complete backend bytes retain the digest above |
+| Root: `flutter test --no-pub --no-test-assets test/tool/item_generation_test.dart test/tool/generate_backend_catalog_test.dart --reporter expanded` | 6 passed; isolated append/compile/recheck is deterministic; check failure writes nothing; actual shared picker selects each new category from Core and generated backend inputs |
+| Root: item migration/generation plus `test/game/willow_muzzle_render_test.dart test/game/player_scale_render_test.dart` | 6 passed, including new projectile render/muzzle/character profile inheritance |
+| Root: shared gear/localized catalogue and icon targets | 13 passed before final generator fixture extension; presentation inputs unchanged |
+| Editor: item authoring, home-route switching, session/controller/recovery, Build service, entity pipeline/parser and campaign authoring targets | 87 passed; final Items-only rerun 9 passed, including inherited values versus explicit false and 520px layout |
+| Root: `generate_chunk_runtime_data_test.dart` machine reporting, cancellation, input additions, missing outputs and writes | First 3 passed; 2 fixture expectations corrected for the mandatory item source and 10 added outputs, then both passed |
+| Admin: `flutter test --no-pub --reporter expanded`; root `corepack pnpm admin:test:service` | 7 Flutter and 12 local service tests passed; catalogue fixture unchanged |
+| Functions: `corepack pnpm --dir functions test` | 384/385 passed with local Firestore emulator, including retained-gift retry/hash, activation fixture and campaign once-only/concurrent settlement |
+| Functions: `corepack pnpm --dir functions build`; Admin catalogue `--check-fixture` | Passed |
+| Root: item/backend `--check`, content generator `--dry-run`, navigation revision `--check` | Passed; navigation revision remains `bd2274e0b71f13d538e131be959817d040eb11182da317b2db98903ed26a1e98` |
+| Root/editor: focused analyzers, localization `check`, `corepack pnpm catalog:check`, `node tools/agents/check.mjs`, task diff and 124 relative links | Passed; all 76 English/French names also match the original HEAD resources |
+
+The sole backend failure is pre-existing in HEAD: `practice_routes.test.ts`
+expects the frozen route plan's compatibility `2026.11.10` to equal the current
+`2026.11.11`. Both original files were inspected; no hash/fixture was blindly
+updated. Generated item/backend bytes and retained activation hashes are unchanged.
+Full content freshness passed before subsequent unrelated campaign source edits in
+the shared worktree; those edits and their generation are outside this item commit.
+Concurrent campaign UI/source work was preserved and excluded from staging.
+
+Transient logs are under ignored `.tmp/item-*`. Fixture setup failures during the
+new nested Flutter picker test were fixed and rerun; unchanged test assets were
+reused after a concurrent Windows asset-copy collision. All claimed checks are
+local automated checks, with no native manual pass, live accounts, deployment or
+device acceptance claimed. See [item contract](../../tdd/item_authoring.md).
+
 ### Core catalogue generation follow-up
 
 Authorized November 11: generate backend item/skill identities, slots and equipment

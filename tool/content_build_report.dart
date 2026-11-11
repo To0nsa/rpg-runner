@@ -41,6 +41,7 @@ final class ContentBuildSnapshot {
   static const sourceRoots = <String, String>{
     'assets/authoring/level': '.json',
     'assets/authoring/campaign': '.json',
+    'assets/authoring/items': '.json',
     'assets/images/level/atlases': '.png',
     'assets/images/parallax': '.png',
     'assets/images/entities/traps': '.png',
@@ -52,6 +53,14 @@ final class ContentBuildSnapshot {
   };
 
   static const _generatedInputs = {
+    'packages/runner_core/lib/weapons/weapon_id.dart',
+    'packages/runner_core/lib/weapons/weapon_data.generated.dart',
+    'packages/runner_core/lib/accessories/accessory_id.dart',
+    'packages/runner_core/lib/accessories/accessory_data.generated.dart',
+    'packages/runner_core/lib/spellBook/spell_book_id.dart',
+    'packages/runner_core/lib/spellBook/spell_book_data.generated.dart',
+    'packages/runner_core/lib/projectiles/projectile_id.dart',
+    'packages/runner_core/lib/projectiles/projectile_data.generated.dart',
     'packages/runner_core/lib/track/authored_chunk_patterns.dart',
     'packages/runner_core/lib/track/staged_authored_terrain.dart',
     'packages/runner_core/lib/campaign/campaign_registry.dart',
@@ -85,6 +94,7 @@ final class ContentBuildSnapshot {
       }
     }
     for (final relative in const [
+      'packages/game_presentation/lib/item_icon_ids.dart',
       'pubspec.yaml',
       'pubspec.lock',
       'packages/runner_core/pubspec.yaml',

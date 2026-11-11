@@ -30,6 +30,9 @@ extension _EntitiesPage on _EntitiesEditorPageState {
 
     return Column(
       children: [
+        const Text(
+          'Player item projectile physics and colliders are authored in Items. Entities retains internal projectiles and actor geometry.',
+        ),
         // Primary authoring surface gets most vertical space so viewport and
         // inspector remain usable on common laptop resolutions.
         Expanded(

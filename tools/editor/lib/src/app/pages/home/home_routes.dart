@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../chunks/chunk_domain_plugin.dart';
 import '../../../training/training_field_domain_plugin.dart';
 import '../../../campaign/campaign_domain_plugin.dart';
+import '../../../items/item_domain_plugin.dart';
+import '../items/items_page.dart';
 import '../campaign/campaign_page.dart';
 import '../trainingField/training_field_page.dart';
 import '../../../entities/entity_domain_plugin.dart';
@@ -94,6 +96,7 @@ const String chunkCreatorRouteId = 'chunk_creator';
 const String levelCreatorRouteId = 'level_creator';
 const String trainingFieldRouteId = 'training_field';
 const String campaignRouteId = 'campaign';
+const String itemsRouteId = 'items';
 const String parallaxEditorRouteId = 'parallax_editor';
 const String terrainMaterialsRouteId = 'terrain_materials';
 
@@ -102,6 +105,18 @@ const String terrainMaterialsRouteId = 'terrain_materials';
 /// Keep this list authoritative: selector order, plugin switching, and page
 /// creation all derive from these entries.
 final List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
+  EditorHomeRoute(
+    id: itemsRouteId,
+    label: 'Items',
+    pluginId: ItemDomainPlugin.pluginId,
+    buildPage: ({required key, required controller, required navigation}) =>
+        ItemsPage(
+          key: key,
+          controller: controller,
+          initialLocation: navigation.initialLocation as ItemsLocation?,
+          onShellStateChanged: navigation.onShellStateChanged,
+        ),
+  ),
   EditorHomeRoute(
     id: entitiesRouteId,
     label: 'Entities',

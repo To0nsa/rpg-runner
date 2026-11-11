@@ -8,6 +8,8 @@ import 'package:runner_core/projectiles/projectile_render_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
 
 import 'ui_icon_coords.dart';
+import 'items.generated.dart';
+import 'item_icon_ids.dart';
 
 /// Displays dedicated ranged-item art or a projectile's first idle frame.
 ///
@@ -19,10 +21,18 @@ class ProjectileIconFrame extends StatefulWidget {
     super.key,
     required this.projectileId,
     this.size = 32,
-  });
+  }) : canonicalIcon = null;
+
+  const ProjectileIconFrame.canonical({
+    super.key,
+    required CanonicalProjectileIcon icon,
+    this.size = 32,
+  }) : projectileId = ProjectileId.unknown,
+       canonicalIcon = icon;
 
   final ProjectileId projectileId;
   final double size;
+  final CanonicalProjectileIcon? canonicalIcon;
 
   @override
   State<ProjectileIconFrame> createState() => _ProjectileIconFrameState();
@@ -45,7 +55,8 @@ class _ProjectileIconFrameState extends State<ProjectileIconFrame> {
   @override
   void didUpdateWidget(ProjectileIconFrame oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.projectileId != widget.projectileId) {
+    if (oldWidget.projectileId != widget.projectileId ||
+        oldWidget.canonicalIcon != widget.canonicalIcon) {
       _resolveImage();
     }
   }
@@ -66,13 +77,24 @@ class _ProjectileIconFrameState extends State<ProjectileIconFrame> {
 
   void _resolveImage() {
     // Inventory illustrations are independent of combat effect sheets.
-    if (widget.projectileId == ProjectileId.unknown ||
-        uiImageAssetPathForProjectile(widget.projectileId) != null ||
+    if ((widget.projectileId == ProjectileId.unknown &&
+            widget.canonicalIcon == null) ||
+        canonicalProjectileImage(
+              widget.canonicalIcon ??
+                  itemIconForProjectile(widget.projectileId),
+            ) !=
+            null ||
         widget.projectileId == ProjectileId.hunterBomb) {
       _clearImage();
       return;
     }
-    final anim = _catalog.get(widget.projectileId);
+    final icon =
+        widget.canonicalIcon ?? itemIconForProjectile(widget.projectileId);
+    final anim = _catalog.getCanonical(
+      icon == null
+          ? widget.projectileId
+          : ProjectileId.values.byName(icon.name),
+    );
     final source = anim.sourcesByKey[AnimKey.idle];
     if (source == null) {
       _clearImage();
@@ -114,7 +136,9 @@ class _ProjectileIconFrameState extends State<ProjectileIconFrame> {
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
-    final illustration = uiImageAssetPathForProjectile(widget.projectileId);
+    final illustration = canonicalProjectileImage(
+      widget.canonicalIcon ?? itemIconForProjectile(widget.projectileId),
+    );
     if (illustration != null) {
       return Image.asset(
         illustration,

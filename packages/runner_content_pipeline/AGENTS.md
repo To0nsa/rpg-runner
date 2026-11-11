@@ -1,7 +1,7 @@
 # AGENTS.md - Runner Content Pipeline Package
 
 This pure-Dart package owns repository-independent decoding, validation,
-compilation, and runtime materialization for authored chunks. It is shared by
+compilation, and runtime materialization for authored chunks and item source data. It is shared by
 the repository generator and the standalone editor so both consumers produce
 the same Core-facing data from the same current-schema source strings.
 
@@ -15,6 +15,12 @@ The package may depend on `runner_core`; `runner_core` must never depend on this
 package. Preserve deterministic ordering, exact signatures, strict Prefab-v3
 and Chunk-v2 validation, and generated-byte parity when changing the pipeline.
 Do not add legacy schema fallback paths.
+
+Item schema decoding is repository-independent. Call Core family policies for
+eligibility; callers supply canonical icon membership from game_presentation.
+Keep item file paths and generated-output orchestration in editor/tool layers.
+Existing IDs/ordinals and saved family/slot/occupancy are compatibility-locked;
+ordinary source authoring must not introduce account or loadout migrations.
 
 Optional Chunk-v2 water rectangles compile into separate Core volume records.
 Preserve water signatures and bindings without adding solid edges or navigation

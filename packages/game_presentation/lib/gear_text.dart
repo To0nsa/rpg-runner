@@ -1,3 +1,5 @@
+import 'items.generated.dart';
+
 import 'package:intl/intl.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/combat/damage_type.dart';
@@ -12,124 +14,76 @@ import 'package:runner_core/weapons/weapon_proc.dart';
 
 import 'game_localization.dart';
 
-/// Localized catalog identity; exhaustive mapping makes new enum values explicit.
+/// Localized names compiled from the item authoring source.
 String weaponDisplayName(WeaponId id, {required GameLocalizations strings}) =>
-    switch (id) {
-      WeaponId.plainsteel => strings.weaponPlainsteelName,
-      WeaponId.waspfang => strings.weaponWaspfangName,
-      WeaponId.cinderedge => strings.weaponCinderedgeName,
-      WeaponId.basiliskKiss => strings.weaponBasiliskKissName,
-      WeaponId.frostbrand => strings.weaponFrostbrandName,
-      WeaponId.stormneedle => strings.weaponStormneedleName,
-      WeaponId.nullblade => strings.weaponNullbladeName,
-      WeaponId.sunlitVow => strings.weaponSunlitVowName,
-      WeaponId.roadguard => strings.weaponRoadguardName,
-      WeaponId.thornbark => strings.weaponThornbarkName,
-      WeaponId.cinderWard => strings.weaponCinderWardName,
-      WeaponId.tideguardShell => strings.weaponTideguardShellName,
-      WeaponId.frostlockBuckler => strings.weaponFrostlockBucklerName,
-      WeaponId.ironBastion => strings.weaponIronBastionName,
-      WeaponId.stormAegis => strings.weaponStormAegisName,
-      WeaponId.nullPrism => strings.weaponNullPrismName,
-      WeaponId.warbannerGuard => strings.weaponWarbannerGuardName,
-      WeaponId.oathwallRelic => strings.weaponOathwallRelicName,
-      WeaponId.hunterBlade => strings.weaponHunterBladeName,
-      WeaponId.hunterBombKit => strings.weaponHunterBombKitName,
-      WeaponId.hunterNotchknife => strings.weaponHunterNotchknifeName,
-      WeaponId.hunterHookblade => strings.weaponHunterHookbladeName,
-      WeaponId.hunterCausticEdge => strings.weaponHunterCausticEdgeName,
-      WeaponId.hunterCinderpoint => strings.weaponHunterCinderpointName,
-      WeaponId.hunterSappingBlade => strings.weaponHunterSappingBladeName,
-      WeaponId.hunterPursuitBlade => strings.weaponHunterPursuitBladeName,
-      WeaponId.hunterLastWord => strings.weaponHunterLastWordName,
-      WeaponId.hunterSplinterRig => strings.weaponHunterSplinterRigName,
-      WeaponId.hunterPitchRig => strings.weaponHunterPitchRigName,
-      WeaponId.hunterSnareRig => strings.weaponHunterSnareRigName,
-      WeaponId.hunterEtchingRig => strings.weaponHunterEtchingRigName,
-      WeaponId.hunterSapperHarness => strings.weaponHunterSapperHarnessName,
-      WeaponId.hunterKilnwrapRig => strings.weaponHunterKilnwrapRigName,
-      WeaponId.hunterSealedRig => strings.weaponHunterSealedRigName,
-      WeaponId.hunterStormwrapRig => strings.weaponHunterStormwrapRigName,
-      WeaponId.hunterBacktrailRig => strings.weaponHunterBacktrailRigName,
-    };
+    authoredItemName('weapon', id.name, strings.localeName)!;
 
 /// Resolves a complete translated description for the character's resource pool.
 String weaponDescription(
   WeaponId id, {
   required GameLocalizations strings,
   ManaPresentation manaPresentation = ManaPresentation.mana,
-}) => switch (id) {
-  WeaponId.plainsteel => strings.weaponPlainsteelDescription,
-  WeaponId.waspfang => strings.weaponWaspfangDescription,
-  WeaponId.cinderedge => strings.weaponCinderedgeDescription,
-  WeaponId.basiliskKiss => strings.weaponBasiliskKissDescription,
-  WeaponId.frostbrand => strings.weaponFrostbrandDescription,
-  WeaponId.stormneedle => strings.weaponStormneedleDescription,
-  WeaponId.nullblade => strings.weaponNullbladeDescription,
-  WeaponId.sunlitVow => strings.weaponSunlitVowDescription,
-  WeaponId.roadguard => strings.weaponRoadguardDescription,
-  WeaponId.thornbark => strings.weaponThornbarkDescription,
-  WeaponId.cinderWard => strings.weaponCinderWardDescription,
-  WeaponId.tideguardShell => strings.weaponTideguardShellDescription,
-  WeaponId.frostlockBuckler => strings.weaponFrostlockBucklerDescription,
-  WeaponId.ironBastion => strings.weaponIronBastionDescription,
-  WeaponId.stormAegis => strings.weaponStormAegisDescription,
-  WeaponId.nullPrism => strings.weaponNullPrismDescription,
-  WeaponId.warbannerGuard => strings.weaponWarbannerGuardDescription,
-  WeaponId.oathwallRelic => strings.weaponOathwallRelicDescription,
-  WeaponId.hunterBlade => strings.weaponHunterBladeDescription,
-  WeaponId.hunterBombKit => strings.weaponHunterBombKitDescription,
-  WeaponId.hunterNotchknife => strings.weaponHunterNotchknifeDescription,
-  WeaponId.hunterHookblade => strings.weaponHunterHookbladeDescription,
-  WeaponId.hunterCausticEdge => strings.weaponHunterCausticEdgeDescription,
-  WeaponId.hunterCinderpoint => strings.weaponHunterCinderpointDescription,
-  WeaponId.hunterSappingBlade => strings.weaponHunterSappingBladeDescription,
-  WeaponId.hunterPursuitBlade => strings.weaponHunterPursuitBladeDescription,
-  WeaponId.hunterLastWord => strings.weaponHunterLastWordDescription,
-  WeaponId.hunterSplinterRig => strings.weaponHunterSplinterRigDescription,
-  WeaponId.hunterPitchRig => strings.weaponHunterPitchRigDescription,
-  WeaponId.hunterSnareRig => strings.weaponHunterSnareRigDescription,
-  WeaponId.hunterEtchingRig => strings.weaponHunterEtchingRigDescription,
-  WeaponId.hunterSapperHarness => strings.weaponHunterSapperHarnessDescription,
-  WeaponId.hunterKilnwrapRig => strings.weaponHunterKilnwrapRigDescription,
-  WeaponId.hunterSealedRig => strings.weaponHunterSealedRigDescription,
-  WeaponId.hunterStormwrapRig => strings.weaponHunterStormwrapRigDescription,
-  WeaponId.hunterBacktrailRig => strings.weaponHunterBacktrailRigDescription,
+}) => switch (id.name) {
+  'plainsteel' => strings.weaponPlainsteelDescription,
+  'waspfang' => strings.weaponWaspfangDescription,
+  'cinderedge' => strings.weaponCinderedgeDescription,
+  'basiliskKiss' => strings.weaponBasiliskKissDescription,
+  'frostbrand' => strings.weaponFrostbrandDescription,
+  'stormneedle' => strings.weaponStormneedleDescription,
+  'nullblade' => strings.weaponNullbladeDescription,
+  'sunlitVow' => strings.weaponSunlitVowDescription,
+  'roadguard' => strings.weaponRoadguardDescription,
+  'thornbark' => strings.weaponThornbarkDescription,
+  'cinderWard' => strings.weaponCinderWardDescription,
+  'tideguardShell' => strings.weaponTideguardShellDescription,
+  'frostlockBuckler' => strings.weaponFrostlockBucklerDescription,
+  'ironBastion' => strings.weaponIronBastionDescription,
+  'stormAegis' => strings.weaponStormAegisDescription,
+  'nullPrism' => strings.weaponNullPrismDescription,
+  'warbannerGuard' => strings.weaponWarbannerGuardDescription,
+  'oathwallRelic' => strings.weaponOathwallRelicDescription,
+  'hunterBlade' => strings.weaponHunterBladeDescription,
+  'hunterBombKit' => strings.weaponHunterBombKitDescription,
+  'hunterNotchknife' => strings.weaponHunterNotchknifeDescription,
+  'hunterHookblade' => strings.weaponHunterHookbladeDescription,
+  'hunterCausticEdge' => strings.weaponHunterCausticEdgeDescription,
+  'hunterCinderpoint' => strings.weaponHunterCinderpointDescription,
+  'hunterSappingBlade' => strings.weaponHunterSappingBladeDescription,
+  'hunterPursuitBlade' => strings.weaponHunterPursuitBladeDescription,
+  'hunterLastWord' => strings.weaponHunterLastWordDescription,
+  'hunterSplinterRig' => strings.weaponHunterSplinterRigDescription,
+  'hunterPitchRig' => strings.weaponHunterPitchRigDescription,
+  'hunterSnareRig' => strings.weaponHunterSnareRigDescription,
+  'hunterEtchingRig' => strings.weaponHunterEtchingRigDescription,
+  'hunterSapperHarness' => strings.weaponHunterSapperHarnessDescription,
+  'hunterKilnwrapRig' => strings.weaponHunterKilnwrapRigDescription,
+  'hunterSealedRig' => strings.weaponHunterSealedRigDescription,
+  'hunterStormwrapRig' => strings.weaponHunterStormwrapRigDescription,
+  'hunterBacktrailRig' => strings.weaponHunterBacktrailRigDescription,
+  _ => weaponDisplayName(id, strings: strings),
 };
 
-/// Localized catalog identity; exhaustive mapping makes new enum values explicit.
+/// Localized names compiled from the item authoring source.
 String projectileDisplayName(
   ProjectileId id, {
   required GameLocalizations strings,
-}) => switch (id) {
-  ProjectileId.unknown => strings.projectileUnknownName,
-  ProjectileId.iceBolt => strings.projectileIceBoltName,
-  ProjectileId.fireBolt => strings.projectileFireBoltName,
-  ProjectileId.acidBolt => strings.projectileAcidBoltName,
-  ProjectileId.darkBolt => strings.projectileDarkBoltName,
-  ProjectileId.earthBolt => strings.projectileEarthBoltName,
-  ProjectileId.holyBolt => strings.projectileHolyBoltName,
-  ProjectileId.waterBolt => strings.projectileWaterBoltName,
-  ProjectileId.thunderBolt => strings.projectileThunderBoltName,
-  ProjectileId.poisonDart => strings.projectilePoisonDartName,
-  ProjectileId.npcSpear => strings.projectileNpcSpearName,
-  ProjectileId.npcArrow => strings.projectileNpcArrowName,
-  ProjectileId.goddessOrb => strings.projectileGoddessOrbName,
-  ProjectileId.shoggothOrb => strings.projectileShoggothOrbName,
-  ProjectileId.voidClaw => strings.projectileVoidClawName,
-  ProjectileId.hunterPistol => strings.projectileHunterPistolName,
-  ProjectileId.hunterCrossbow => strings.projectileHunterCrossbowName,
-  ProjectileId.hunterShotgun => strings.projectileHunterShotgunName,
-  ProjectileId.hunterBomb => strings.projectileHunterBombName,
-  ProjectileId.hunterRoadsidePistol =>
-    strings.projectileHunterRoadsidePistolName,
-  ProjectileId.hunterLongbarrelPistol =>
-    strings.projectileHunterLongbarrelPistolName,
-  ProjectileId.hunterLongwatchCrossbow =>
-    strings.projectileHunterLongwatchCrossbowName,
-  ProjectileId.hunterHeavyLimbCrossbow =>
-    strings.projectileHunterHeavyLimbCrossbowName,
-  ProjectileId.hunterBrushgun => strings.projectileHunterBrushgunName,
+}) =>
+    authoredItemName('projectile', id.name, strings.localeName) ??
+    _internalProjectileDisplayName(id, strings: strings);
+
+String _internalProjectileDisplayName(
+  ProjectileId id, {
+  required GameLocalizations strings,
+}) => switch (id.name) {
+  'unknown' => strings.projectileUnknownName,
+  'poisonDart' => strings.projectilePoisonDartName,
+  'npcSpear' => strings.projectileNpcSpearName,
+  'npcArrow' => strings.projectileNpcArrowName,
+  'goddessOrb' => strings.projectileGoddessOrbName,
+  'shoggothOrb' => strings.projectileShoggothOrbName,
+  'voidClaw' => strings.projectileVoidClawName,
+  'hunterBomb' => strings.projectileHunterBombName,
+  _ => strings.projectileUnknownName,
 };
 
 /// Description parameters read the same item/status catalogs as gameplay.
@@ -139,160 +93,130 @@ String projectileDescription(
 }) {
   final item = const ProjectileCatalog().tryGet(id);
   if (item == null) return strings.projectileUnknownDescription;
-  return switch (id) {
-    ProjectileId.unknown => strings.projectileUnknownDescription,
-    ProjectileId.iceBolt => strings.projectileIceBoltDescription,
-    ProjectileId.fireBolt => strings.projectileFireBoltDescription,
-    ProjectileId.acidBolt => strings.projectileAcidBoltDescription,
-    ProjectileId.darkBolt => strings.projectileDarkBoltDescription,
-    ProjectileId.earthBolt => strings.projectileEarthBoltDescription,
-    ProjectileId.holyBolt => strings.projectileHolyBoltDescription(
+  return switch (id.name) {
+    'unknown' => strings.projectileUnknownDescription,
+    'iceBolt' => strings.projectileIceBoltDescription,
+    'fireBolt' => strings.projectileFireBoltDescription,
+    'acidBolt' => strings.projectileAcidBoltDescription,
+    'darkBolt' => strings.projectileDarkBoltDescription,
+    'earthBolt' => strings.projectileEarthBoltDescription,
+    'holyBolt' => strings.projectileHolyBoltDescription(
       seconds: _silenceSeconds(item),
     ),
-    ProjectileId.waterBolt => strings.projectileWaterBoltDescription,
-    ProjectileId.thunderBolt => strings.projectileThunderBoltDescription,
-    ProjectileId.poisonDart => strings.projectilePoisonDartDescription,
-    ProjectileId.npcSpear => strings.projectileNpcSpearDescription,
-    ProjectileId.npcArrow => strings.projectileNpcArrowDescription,
-    ProjectileId.goddessOrb => strings.projectileGoddessOrbDescription,
-    ProjectileId.shoggothOrb => strings.projectileShoggothOrbDescription,
-    ProjectileId.voidClaw => strings.projectileVoidClawDescription,
-    ProjectileId.hunterPistol => strings.projectileHunterPistolDescription,
-    ProjectileId.hunterCrossbow => strings.projectileHunterCrossbowDescription(
+    'waterBolt' => strings.projectileWaterBoltDescription,
+    'thunderBolt' => strings.projectileThunderBoltDescription,
+    'poisonDart' => strings.projectilePoisonDartDescription,
+    'npcSpear' => strings.projectileNpcSpearDescription,
+    'npcArrow' => strings.projectileNpcArrowDescription,
+    'goddessOrb' => strings.projectileGoddessOrbDescription,
+    'shoggothOrb' => strings.projectileShoggothOrbDescription,
+    'voidClaw' => strings.projectileVoidClawDescription,
+    'hunterPistol' => strings.projectileHunterPistolDescription,
+    'hunterCrossbow' => strings.projectileHunterCrossbowDescription(
       damagePercent: item.damageScaleBp / 100.0,
     ),
-    ProjectileId.hunterShotgun => strings.projectileHunterShotgunDescription(
+    'hunterShotgun' => strings.projectileHunterShotgunDescription(
       damagePercent: item.damageScaleBp / 100.0,
       pellets: item.shotCount,
     ),
-    ProjectileId.hunterBomb => strings.projectileHunterBombDescription,
-    ProjectileId.hunterRoadsidePistol =>
-      strings.projectileHunterRoadsidePistolDescription(
-        damagePercent: item.damageScaleBp / 100.0,
-      ),
-    ProjectileId.hunterLongbarrelPistol =>
+    'hunterBomb' => strings.projectileHunterBombDescription,
+    'hunterRoadsidePistol' => strings.projectileHunterRoadsidePistolDescription(
+      damagePercent: item.damageScaleBp / 100.0,
+    ),
+    'hunterLongbarrelPistol' =>
       strings.projectileHunterLongbarrelPistolDescription(
         damagePercent: item.damageScaleBp / 100.0,
       ),
-    ProjectileId.hunterLongwatchCrossbow =>
+    'hunterLongwatchCrossbow' =>
       strings.projectileHunterLongwatchCrossbowDescription,
-    ProjectileId.hunterHeavyLimbCrossbow =>
+    'hunterHeavyLimbCrossbow' =>
       strings.projectileHunterHeavyLimbCrossbowDescription(
         damagePercent: item.damageScaleBp / 100.0,
       ),
-    ProjectileId.hunterBrushgun => strings.projectileHunterBrushgunDescription(
+    'hunterBrushgun' => strings.projectileHunterBrushgunDescription(
       damagePercent: item.damageScaleBp / 100.0,
       pellets: item.shotCount,
     ),
+    _ => projectileDisplayName(id, strings: strings),
   };
 }
 
-/// Localized catalog identity; exhaustive mapping makes new enum values explicit.
+/// Localized names compiled from the item authoring source.
 String spellBookDisplayName(
   SpellBookId id, {
   required GameLocalizations strings,
-}) => switch (id) {
-  SpellBookId.apprenticePrimer => strings.spellBookApprenticePrimerName,
-  SpellBookId.bastionCodex => strings.spellBookBastionCodexName,
-  SpellBookId.emberGrimoire => strings.spellBookEmberGrimoireName,
-  SpellBookId.tideAlmanac => strings.spellBookTideAlmanacName,
-  SpellBookId.hexboundLexicon => strings.spellBookHexboundLexiconName,
-  SpellBookId.galeFolio => strings.spellBookGaleFolioName,
-  SpellBookId.nullTestament => strings.spellBookNullTestamentName,
-  SpellBookId.crownOfFocus => strings.spellBookCrownOfFocusName,
-  SpellBookId.hunterFieldKit => strings.spellBookHunterFieldKitName,
-  SpellBookId.hunterLongtrailPack => strings.spellBookHunterLongtrailPackName,
-  SpellBookId.hunterMarksmanRoll => strings.spellBookHunterMarksmanRollName,
-  SpellBookId.hunterQuickAccessSatchel =>
-    strings.spellBookHunterQuickAccessSatchelName,
-  SpellBookId.hunterReserveBandolier =>
-    strings.spellBookHunterReserveBandolierName,
-  SpellBookId.hunterTrackerPouch => strings.spellBookHunterTrackerPouchName,
-  SpellBookId.hunterSurveyorCase => strings.spellBookHunterSurveyorCaseName,
-  SpellBookId.hunterQuarryKit => strings.spellBookHunterQuarryKitName,
-};
+}) => authoredItemName('spellBook', id.name, strings.localeName)!;
 
 /// Resolves a complete translated description for the character's resource pool.
 String spellBookDescription(
   SpellBookId id, {
   required GameLocalizations strings,
   ManaPresentation manaPresentation = ManaPresentation.mana,
-}) => switch (id) {
-  SpellBookId.apprenticePrimer => strings.spellBookApprenticePrimerDescription(
+}) => switch (id.name) {
+  'apprenticePrimer' => strings.spellBookApprenticePrimerDescription(
     resource: manaPresentation.name,
   ),
-  SpellBookId.bastionCodex => strings.spellBookBastionCodexDescription(
+  'bastionCodex' => strings.spellBookBastionCodexDescription(
     resource: manaPresentation.name,
   ),
-  SpellBookId.emberGrimoire => strings.spellBookEmberGrimoireDescription(
+  'emberGrimoire' => strings.spellBookEmberGrimoireDescription(
     resource: manaPresentation.name,
   ),
-  SpellBookId.tideAlmanac => strings.spellBookTideAlmanacDescription(
+  'tideAlmanac' => strings.spellBookTideAlmanacDescription(
     resource: manaPresentation.name,
   ),
-  SpellBookId.hexboundLexicon => strings.spellBookHexboundLexiconDescription(
+  'hexboundLexicon' => strings.spellBookHexboundLexiconDescription(
     resource: manaPresentation.name,
   ),
-  SpellBookId.galeFolio => strings.spellBookGaleFolioDescription(
+  'galeFolio' => strings.spellBookGaleFolioDescription(
     resource: manaPresentation.name,
   ),
-  SpellBookId.nullTestament => strings.spellBookNullTestamentDescription(
+  'nullTestament' => strings.spellBookNullTestamentDescription(
     resource: manaPresentation.name,
   ),
-  SpellBookId.crownOfFocus => strings.spellBookCrownOfFocusDescription(
+  'crownOfFocus' => strings.spellBookCrownOfFocusDescription(
     resource: manaPresentation.name,
   ),
-  SpellBookId.hunterFieldKit => strings.spellBookHunterFieldKitDescription,
-  SpellBookId.hunterLongtrailPack =>
-    strings.spellBookHunterLongtrailPackDescription,
-  SpellBookId.hunterMarksmanRoll =>
-    strings.spellBookHunterMarksmanRollDescription,
-  SpellBookId.hunterQuickAccessSatchel =>
+  'hunterFieldKit' => strings.spellBookHunterFieldKitDescription,
+  'hunterLongtrailPack' => strings.spellBookHunterLongtrailPackDescription,
+  'hunterMarksmanRoll' => strings.spellBookHunterMarksmanRollDescription,
+  'hunterQuickAccessSatchel' =>
     strings.spellBookHunterQuickAccessSatchelDescription,
-  SpellBookId.hunterReserveBandolier =>
+  'hunterReserveBandolier' =>
     strings.spellBookHunterReserveBandolierDescription,
-  SpellBookId.hunterTrackerPouch =>
-    strings.spellBookHunterTrackerPouchDescription,
-  SpellBookId.hunterSurveyorCase =>
-    strings.spellBookHunterSurveyorCaseDescription,
-  SpellBookId.hunterQuarryKit => strings.spellBookHunterQuarryKitDescription,
+  'hunterTrackerPouch' => strings.spellBookHunterTrackerPouchDescription,
+  'hunterSurveyorCase' => strings.spellBookHunterSurveyorCaseDescription,
+  'hunterQuarryKit' => strings.spellBookHunterQuarryKitDescription,
+  _ => spellBookDisplayName(id, strings: strings),
 };
 
-/// Localized catalog identity; exhaustive mapping makes new enum values explicit.
+/// Localized names compiled from the item authoring source.
 String accessoryDisplayName(
   AccessoryId id, {
   required GameLocalizations strings,
-}) => switch (id) {
-  AccessoryId.speedBoots => strings.accessorySpeedBootsName,
-  AccessoryId.goldenRing => strings.accessoryGoldenRingName,
-  AccessoryId.teethNecklace => strings.accessoryTeethNecklaceName,
-  AccessoryId.diamondRing => strings.accessoryDiamondRingName,
-  AccessoryId.ironBoots => strings.accessoryIronBootsName,
-  AccessoryId.oathBeads => strings.accessoryOathBeadsName,
-  AccessoryId.resilienceCape => strings.accessoryResilienceCapeName,
-  AccessoryId.strengthBelt => strings.accessoryStrengthBeltName,
-};
+}) => authoredItemName('accessory', id.name, strings.localeName)!;
 
 /// Resolves a complete translated description for the character's resource pool.
 String accessoryDescription(
   AccessoryId id, {
   required GameLocalizations strings,
   ManaPresentation manaPresentation = ManaPresentation.mana,
-}) => switch (id) {
-  AccessoryId.speedBoots => strings.accessorySpeedBootsDescription(
+}) => switch (id.name) {
+  'speedBoots' => strings.accessorySpeedBootsDescription(
     resource: manaPresentation.name,
   ),
-  AccessoryId.goldenRing => strings.accessoryGoldenRingDescription,
-  AccessoryId.teethNecklace => strings.accessoryTeethNecklaceDescription,
-  AccessoryId.diamondRing => strings.accessoryDiamondRingDescription(
+  'goldenRing' => strings.accessoryGoldenRingDescription,
+  'teethNecklace' => strings.accessoryTeethNecklaceDescription,
+  'diamondRing' => strings.accessoryDiamondRingDescription(
     resource: manaPresentation.name,
   ),
-  AccessoryId.ironBoots => strings.accessoryIronBootsDescription,
-  AccessoryId.oathBeads => strings.accessoryOathBeadsDescription(
+  'ironBoots' => strings.accessoryIronBootsDescription,
+  'oathBeads' => strings.accessoryOathBeadsDescription(
     resource: manaPresentation.name,
   ),
-  AccessoryId.resilienceCape => strings.accessoryResilienceCapeDescription,
-  AccessoryId.strengthBelt => strings.accessoryStrengthBeltDescription,
+  'resilienceCape' => strings.accessoryResilienceCapeDescription,
+  'strengthBelt' => strings.accessoryStrengthBeltDescription,
+  _ => accessoryDisplayName(id, strings: strings),
 };
 
 /// Resource choice affects wording only; the same Core mana values are used.

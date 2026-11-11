@@ -403,15 +403,16 @@ class ProjectileRenderCatalog {
   const ProjectileRenderCatalog();
 
   /// Shared presentation scale used by profile generation and Flame views.
-  static double scaleFor(ProjectileId id) => switch (id) {
-    ProjectileId.npcSpear ||
-    ProjectileId.npcArrow ||
-    ProjectileId.goddessOrb ||
-    ProjectileId.shoggothOrb ||
-    ProjectileId.voidClaw => 1.5,
-    ProjectileId.waterBolt => .5,
-    _ => 1.0,
-  };
+  static double scaleFor(ProjectileId id) =>
+      switch (projectileRenderSource(id)) {
+        ProjectileId.npcSpear ||
+        ProjectileId.npcArrow ||
+        ProjectileId.goddessOrb ||
+        ProjectileId.shoggothOrb ||
+        ProjectileId.voidClaw => 1.5,
+        ProjectileId.waterBolt => .5,
+        _ => 1.0,
+      };
 
   static const _npcSpear = RenderAnimSetDefinition(
     frameWidth: 60,
@@ -447,7 +448,11 @@ class ProjectileRenderCatalog {
     stepTimeSecondsByKey: const {AnimKey.idle: 0.1, AnimKey.hit: 0.06},
   );
 
-  RenderAnimSetDefinition get(ProjectileId id) {
+  RenderAnimSetDefinition get(ProjectileId id) =>
+      getCanonical(projectileRenderSource(id));
+
+  /// Existing visual profile for art selection, independent of item assignments.
+  RenderAnimSetDefinition getCanonical(ProjectileId id) {
     switch (id) {
       case ProjectileId.hunterPistol:
       case ProjectileId.hunterRoadsidePistol:
@@ -496,6 +501,14 @@ class ProjectileRenderCatalog {
         return VoidcallerRenderCatalog.claw;
       case ProjectileId.npcArrow:
         return _npcArrow;
+      // Generated item IDs may extend the enum beyond these canonical profiles.
+      // ignore: unreachable_switch_default
+      default:
+        throw ArgumentError.value(
+          id,
+          'id',
+          'No canonical projectile render profile.',
+        );
     }
   }
 }

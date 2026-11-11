@@ -18,6 +18,11 @@ authoring phases are implemented.
 
 ## Authoritative inputs
 
+Player-equippable projectile physics and colliders now belong to the
+[Items source/editor](item_authoring.md), compiled into Core. Entities edits only
+the remaining code-owned internal projectiles in `projectile_catalog.dart`; it
+must not patch generated player item definitions.
+
 The parser reads the current supported shapes from:
 
 - `packages/runner_core/lib/enemies/enemy_catalog.dart` and the per-enemy

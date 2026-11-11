@@ -10,252 +10,144 @@ class GameLocalizationsFr extends GameLocalizations {
   GameLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get weaponPlainsteelName => 'Acier simple';
-
-  @override
   String get weaponPlainsteelDescription =>
       'Épée à une main de base aux dégâts réguliers.';
-
-  @override
-  String get weaponWaspfangName => 'Croc de guêpe';
 
   @override
   String get weaponWaspfangDescription =>
       'Épée qui mise sur le saignement, au prix de dégâts directs réduits.';
 
   @override
-  String get weaponCinderedgeName => 'Tranchant de braise';
-
-  @override
   String get weaponCinderedgeDescription =>
       'Lame axée sur les coups critiques, qui enflamment les ennemis.';
-
-  @override
-  String get weaponBasiliskKissName => 'Baiser du basilic';
 
   @override
   String get weaponBasiliskKissDescription =>
       'Épée contre les ennemis résistants : moins de dégâts immédiats, mais une vulnérabilité à l’acide.';
 
   @override
-  String get weaponFrostbrandName => 'Marque de givre';
-
-  @override
   String get weaponFrostbrandDescription =>
       'Épée qui ralentit les ennemis pour mieux maîtriser le rythme du combat.';
-
-  @override
-  String get weaponStormneedleName => 'Aiguille d’orage';
 
   @override
   String get weaponStormneedleDescription =>
       'Épée axée sur les coups critiques et l’endurance, avec de la régénération au prix d’une santé réduite.';
 
   @override
-  String get weaponNullbladeName => 'Lame du néant';
-
-  @override
   String get weaponNullbladeDescription =>
       'Épée contre les lanceurs de sorts, pouvant infliger Silence à l’impact.';
-
-  @override
-  String get weaponSunlitVowName => 'Vœu solaire';
 
   @override
   String get weaponSunlitVowDescription =>
       'Épée qui favorise les éliminations successives, peut accorder Concentration et soutient une pression continue.';
 
   @override
-  String get weaponRoadguardName => 'Garde-route';
-
-  @override
   String get weaponRoadguardDescription =>
       'Bouclier de base polyvalent à la défense fiable.';
-
-  @override
-  String get weaponThornbarkName => 'Écorce épineuse';
 
   @override
   String get weaponThornbarkDescription =>
       'Bouclier de représailles qui fait saigner les assaillants lorsque tu subis des dégâts.';
 
   @override
-  String get weaponCinderWardName => 'Rempart de braise';
-
-  @override
   String get weaponCinderWardDescription =>
       'Bouclier contre le feu, renforçant la défense au prix d’un potentiel critique réduit.';
-
-  @override
-  String get weaponTideguardShellName => 'Carapace des marées';
 
   @override
   String get weaponTideguardShellDescription =>
       'Bouclier contre l’eau, qui soutient l’endurance au prix de la puissance.';
 
   @override
-  String get weaponFrostlockBucklerName => 'Rondache de givre';
-
-  @override
   String get weaponFrostlockBucklerDescription =>
       'Bouclier contre le froid, équilibrant défense et endurance.';
-
-  @override
-  String get weaponIronBastionName => 'Bastion de fer';
 
   @override
   String get weaponIronBastionDescription =>
       'Bouclier lourd offrant la meilleure absorption, au prix de la mobilité.';
 
   @override
-  String get weaponStormAegisName => 'Égide d’orage';
-
-  @override
   String get weaponStormAegisDescription =>
       'Bouclier contre la foudre, avec de la régénération au prix des coups critiques.';
-
-  @override
-  String get weaponNullPrismName => 'Prisme du néant';
 
   @override
   String get weaponNullPrismDescription =>
       'Bouclier résistant aux ténèbres et au sacré, au prix de la mobilité.';
 
   @override
-  String get weaponWarbannerGuardName => 'Garde à la bannière';
-
-  @override
   String get weaponWarbannerGuardDescription =>
       'Bouclier de première ligne favorisant l’endurance, au prix d’une forte réduction des coups critiques.';
-
-  @override
-  String get weaponOathwallRelicName => 'Relique du serment';
 
   @override
   String get weaponOathwallRelicDescription =>
       'Bouclier de survie accordant Célérité à faible santé, au prix d’une réduction permanente de l’offensive.';
 
   @override
-  String get weaponHunterBladeName => 'Lame de chasse';
-
-  @override
   String get weaponHunterBladeDescription =>
       'Combat polyvalent fiable, au prix d’une légère réduction de la défense.';
-
-  @override
-  String get weaponHunterBombKitName => 'Nécessaire à bombes';
 
   @override
   String get weaponHunterBombKitDescription =>
       'Équipement protecteur pour les bombes, qui échange la vitesse de déplacement contre la stabilité.';
 
   @override
-  String get weaponHunterNotchknifeName => 'Couteau cranté';
-
-  @override
   String get weaponHunterNotchknifeDescription =>
       'Les entailles sanglantes favorisent le repli, au prix de la santé maximale.';
-
-  @override
-  String get weaponHunterHookbladeName => 'Lame à crochet';
 
   @override
   String get weaponHunterHookbladeDescription =>
       'Les entailles ralentissent et ouvrent une fenêtre pour tirer ou lancer une bombe, au prix de la défense.';
 
   @override
-  String get weaponHunterCausticEdgeName => 'Tranchant caustique';
-
-  @override
   String get weaponHunterCausticEdgeDescription =>
       'Les attaques de mêlée exposent la cible aux dégâts suivants, au prix de la santé.';
-
-  @override
-  String get weaponHunterCinderpointName => 'Pointe de braise';
 
   @override
   String get weaponHunterCinderpointDescription =>
       'Les entailles critiques enflamment les ennemis, au prix de la régénération des provisions.';
 
   @override
-  String get weaponHunterSappingBladeName => 'Lame débilitante';
-
-  @override
   String get weaponHunterSappingBladeDescription =>
       'Les entailles peuvent affaiblir les attaques ennemies, au prix de la santé maximale.';
-
-  @override
-  String get weaponHunterPursuitBladeName => 'Lame de poursuite';
 
   @override
   String get weaponHunterPursuitBladeDescription =>
       'Les éliminations en mêlée peuvent accorder une brève accélération, au prix de la défense.';
 
   @override
-  String get weaponHunterLastWordName => 'Dernier mot';
-
-  @override
   String get weaponHunterLastWordDescription =>
       'Offensive directe et endurance renforcées, avec moins de santé pour absorber les erreurs.';
-
-  @override
-  String get weaponHunterSplinterRigName => 'Équipement à éclats';
 
   @override
   String get weaponHunterSplinterRigDescription =>
       'Les explosions critiques provoquent un saignement, au prix de la puissance globale.';
 
   @override
-  String get weaponHunterPitchRigName => 'Équipement à poix';
-
-  @override
   String get weaponHunterPitchRigDescription =>
       'Les explosions critiques enflamment les survivants, au prix des chances de coup critique.';
-
-  @override
-  String get weaponHunterSnareRigName => 'Équipement d’entrave';
 
   @override
   String get weaponHunterSnareRigDescription =>
       'Les explosions peuvent ralentir les poursuivants, au prix de la puissance globale.';
 
   @override
-  String get weaponHunterEtchingRigName => 'Équipement corrosif';
-
-  @override
   String get weaponHunterEtchingRigDescription =>
       'Les explosions peuvent exposer les survivants aux dégâts suivants, au prix des chances de coup critique.';
-
-  @override
-  String get weaponHunterSapperHarnessName => 'Harnais de sapeur';
 
   @override
   String get weaponHunterSapperHarnessDescription =>
       'Protection physique et récupération d’endurance, au prix d’un déplacement nettement plus lent.';
 
   @override
-  String get weaponHunterKilnwrapRigName => 'Équipement ignifuge';
-
-  @override
   String get weaponHunterKilnwrapRigDescription =>
       'Préparation aux affrontements riches en feu, au prix des chances de coup critique.';
-
-  @override
-  String get weaponHunterSealedRigName => 'Équipement étanche';
 
   @override
   String get weaponHunterSealedRigDescription =>
       'Protection contre l’acide et l’eau, avec des réserves d’endurance, au prix de la puissance.';
 
   @override
-  String get weaponHunterStormwrapRigName => 'Équipement isolant';
-
-  @override
   String get weaponHunterStormwrapRigDescription =>
       'Protection contre la foudre et récupération d’endurance, au prix des chances de coup critique.';
-
-  @override
-  String get weaponHunterBacktrailRigName => 'Équipement de repli';
 
   @override
   String get weaponHunterBacktrailRigDescription =>
@@ -269,42 +161,24 @@ class GameLocalizationsFr extends GameLocalizations {
       'Aucune description disponible pour le moment.';
 
   @override
-  String get projectileIceBoltName => 'Trait de glace';
-
-  @override
   String get projectileIceBoltDescription =>
       'Projectile magique qui refroidit à l’impact.';
-
-  @override
-  String get projectileFireBoltName => 'Trait de feu';
 
   @override
   String get projectileFireBoltDescription =>
       'Projectile magique qui brûle à l’impact.';
 
   @override
-  String get projectileAcidBoltName => 'Trait d’acide';
-
-  @override
   String get projectileAcidBoltDescription =>
       'Projectile magique corrosif qui augmente les dégâts subis.';
-
-  @override
-  String get projectileDarkBoltName => 'Trait de ténèbres';
 
   @override
   String get projectileDarkBoltDescription =>
       'Projectile magique qui réduit les dégâts infligés par l’ennemi touché.';
 
   @override
-  String get projectileEarthBoltName => 'Trait de terre';
-
-  @override
   String get projectileEarthBoltDescription =>
       'Projectile magique qui étourdit les ennemis à l’impact.';
-
-  @override
-  String get projectileHolyBoltName => 'Trait sacré';
 
   @override
   String projectileHolyBoltDescription({required num seconds}) {
@@ -322,14 +196,8 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get projectileWaterBoltName => 'Trait d’eau';
-
-  @override
   String get projectileWaterBoltDescription =>
       'Projectile magique qui trempe l’ennemi et ralentit ses attaques et ses sorts.';
-
-  @override
-  String get projectileThunderBoltName => 'Trait de foudre';
 
   @override
   String get projectileThunderBoltDescription =>
@@ -378,14 +246,8 @@ class GameLocalizationsFr extends GameLocalizations {
       'Aucune description disponible pour le moment.';
 
   @override
-  String get projectileHunterPistolName => 'Pistolet';
-
-  @override
   String get projectileHunterPistolDescription =>
       'Balles rapides à portée équilibrée. Consomme des provisions qui se régénèrent.';
-
-  @override
-  String get projectileHunterCrossbowName => 'Arbalète';
 
   @override
   String projectileHunterCrossbowDescription({required double damagePercent}) {
@@ -397,9 +259,6 @@ class GameLocalizationsFr extends GameLocalizations {
 
     return 'Carreaux à longue portée infligeant $damagePercentString % des dégâts de base. Consomme des provisions qui se régénèrent.';
   }
-
-  @override
-  String get projectileHunterShotgunName => 'Fusil à grenaille';
 
   @override
   String projectileHunterShotgunDescription({
@@ -432,9 +291,6 @@ class GameLocalizationsFr extends GameLocalizations {
       'Explosion à retardement bloquée par le terrain solide.';
 
   @override
-  String get projectileHunterRoadsidePistolName => 'Pistolet de grand-route';
-
-  @override
   String projectileHunterRoadsidePistolDescription({
     required double damagePercent,
   }) {
@@ -446,9 +302,6 @@ class GameLocalizationsFr extends GameLocalizations {
 
     return 'Balles rapides à courte portée infligeant $damagePercentString % des dégâts de base, avec une portée réduite.';
   }
-
-  @override
-  String get projectileHunterLongbarrelPistolName => 'Pistolet à canon long';
 
   @override
   String projectileHunterLongbarrelPistolDescription({
@@ -464,15 +317,8 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get projectileHunterLongwatchCrossbowName =>
-      'Arbalète de longue veille';
-
-  @override
   String get projectileHunterLongwatchCrossbowDescription =>
       'Carreaux plus rapides et de plus longue portée, infligeant moins de dégâts que l’arbalète standard.';
-
-  @override
-  String get projectileHunterHeavyLimbCrossbowName => 'Arbalète à arc puissant';
 
   @override
   String projectileHunterHeavyLimbCrossbowDescription({
@@ -486,9 +332,6 @@ class GameLocalizationsFr extends GameLocalizations {
 
     return 'Carreaux lourds infligeant $damagePercentString % des dégâts de base, mais plus lents et de portée réduite.';
   }
-
-  @override
-  String get projectileHunterBrushgunName => 'Fusil de sous-bois';
 
   @override
   String projectileHunterBrushgunDescription({
@@ -514,9 +357,6 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get spellBookApprenticePrimerName => 'Manuel d’apprenti';
-
-  @override
   String spellBookApprenticePrimerDescription({required String resource}) {
     String _temp0 = intl.Intl.selectLogic(resource, {
       'supplies': 'Réserves de provisions, régénération et chances de coup critique équilibrées, au prix de l’endurance.',
@@ -524,9 +364,6 @@ class GameLocalizationsFr extends GameLocalizations {
     });
     return '$_temp0';
   }
-
-  @override
-  String get spellBookBastionCodexName => 'Codex du bastion';
 
   @override
   String spellBookBastionCodexDescription({required String resource}) {
@@ -538,9 +375,6 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get spellBookEmberGrimoireName => 'Grimoire des braises';
-
-  @override
   String spellBookEmberGrimoireDescription({required String resource}) {
     String _temp0 = intl.Intl.selectLogic(resource, {
       'supplies': 'Provisions, chances de coup critique et délais de récupération réduits, au prix d’une récupération d’endurance plus lente.',
@@ -548,9 +382,6 @@ class GameLocalizationsFr extends GameLocalizations {
     });
     return '$_temp0';
   }
-
-  @override
-  String get spellBookTideAlmanacName => 'Almanach des marées';
 
   @override
   String spellBookTideAlmanacDescription({required String resource}) {
@@ -562,9 +393,6 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get spellBookHexboundLexiconName => 'Lexique ensorcelé';
-
-  @override
   String spellBookHexboundLexiconDescription({required String resource}) {
     String _temp0 = intl.Intl.selectLogic(resource, {
       'supplies': 'Provisions, régénération et chances de coup critique, au prix d’une récupération de santé plus lente.',
@@ -572,9 +400,6 @@ class GameLocalizationsFr extends GameLocalizations {
     });
     return '$_temp0';
   }
-
-  @override
-  String get spellBookGaleFolioName => 'Folio des bourrasques';
 
   @override
   String spellBookGaleFolioDescription({required String resource}) {
@@ -586,9 +411,6 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get spellBookNullTestamentName => 'Testament du néant';
-
-  @override
   String spellBookNullTestamentDescription({required String resource}) {
     String _temp0 = intl.Intl.selectLogic(resource, {
       'supplies': 'Réserves de provisions, régénération et chances de coup critique, au prix d’une récupération d’endurance plus lente.',
@@ -596,9 +418,6 @@ class GameLocalizationsFr extends GameLocalizations {
     });
     return '$_temp0';
   }
-
-  @override
-  String get spellBookCrownOfFocusName => 'Couronne de concentration';
 
   @override
   String spellBookCrownOfFocusDescription({required String resource}) {
@@ -610,63 +429,36 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get spellBookHunterFieldKitName => 'Nécessaire de terrain';
-
-  @override
   String get spellBookHunterFieldKitDescription =>
       'Provisions et chances de coup critique équilibrées, avec une réserve d’endurance réduite.';
-
-  @override
-  String get spellBookHunterLongtrailPackName => 'Sac de longue route';
 
   @override
   String get spellBookHunterLongtrailPackDescription =>
       'Provisions durables et récupération plus rapide entre les actions, au prix d’une régénération de santé plus lente.';
 
   @override
-  String get spellBookHunterMarksmanRollName => 'Trousse de tireur';
-
-  @override
   String get spellBookHunterMarksmanRollDescription =>
       'Préparation aux tirs critiques et délais de récupération réduits, au prix d’une récupération d’endurance plus lente.';
-
-  @override
-  String get spellBookHunterQuickAccessSatchelName => 'Sacoche à accès rapide';
 
   @override
   String get spellBookHunterQuickAccessSatchelDescription =>
       'Échanges brefs et fréquents, avec moins d’endurance et sans capacité supplémentaire de provisions.';
 
   @override
-  String get spellBookHunterReserveBandolierName => 'Bandoulière de réserve';
-
-  @override
   String get spellBookHunterReserveBandolierDescription =>
       'Grande réserve initiale et chances de coup critique, au prix d’une endurance nettement réduite.';
-
-  @override
-  String get spellBookHunterTrackerPouchName => 'Bourse de pisteur';
 
   @override
   String get spellBookHunterTrackerPouchDescription =>
       'Poursuite offensive qui préserve l’endurance, au prix de la récupération de santé.';
 
   @override
-  String get spellBookHunterSurveyorCaseName => 'Étui d’arpenteur';
-
-  @override
   String get spellBookHunterSurveyorCaseDescription =>
       'Grande réserve de provisions et compétences utilitaires disponibles, au prix d’une récupération d’endurance plus lente.';
 
   @override
-  String get spellBookHunterQuarryKitName => 'Nécessaire de traque';
-
-  @override
   String get spellBookHunterQuarryKitDescription =>
       'Fenêtres offensives critiques et délais de récupération réduits, avec peu de marge en endurance.';
-
-  @override
-  String get accessorySpeedBootsName => 'Bottes de vitesse';
 
   @override
   String accessorySpeedBootsDescription({required String resource}) {
@@ -678,21 +470,12 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get accessoryGoldenRingName => 'Anneau d’or';
-
-  @override
   String get accessoryGoldenRingDescription =>
       'Anneau de survie offrant de la santé et des soins d’urgence à faible santé.';
 
   @override
-  String get accessoryTeethNecklaceName => 'Collier de dents';
-
-  @override
   String get accessoryTeethNecklaceDescription =>
       'Collier d’endurance qui restaure l’endurance à faible santé, au prix de la santé maximale.';
-
-  @override
-  String get accessoryDiamondRingName => 'Anneau de diamant';
 
   @override
   String accessoryDiamondRingDescription({required String resource}) {
@@ -704,14 +487,8 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get accessoryIronBootsName => 'Bottes de fer';
-
-  @override
   String get accessoryIronBootsDescription =>
       'Bottes défensives résistantes aux dégâts physiques, au prix de la puissance globale.';
-
-  @override
-  String get accessoryOathBeadsName => 'Perles du serment';
 
   @override
   String accessoryOathBeadsDescription({required String resource}) {
@@ -723,14 +500,8 @@ class GameLocalizationsFr extends GameLocalizations {
   }
 
   @override
-  String get accessoryResilienceCapeName => 'Cape de résilience';
-
-  @override
   String get accessoryResilienceCapeDescription =>
       'Défense et résistances au feu et aux ténèbres pour contrer ces éléments.';
-
-  @override
-  String get accessoryStrengthBeltName => 'Ceinture de force';
 
   @override
   String get accessoryStrengthBeltDescription =>

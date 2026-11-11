@@ -7,6 +7,16 @@ Short filenames and `src/`/`pages/` paths are relative to the named editor domai
 
 ## Domain Ownership And Write Targets
 
+### Items Domain
+
+- owner: `tools/editor/lib/src/items/**` and `src/app/pages/items/**`
+- source: `assets/authoring/items/item_defs.json`; plugin: `ItemDomainPlugin`
+- shared pipeline validates data; Core owns mechanics and character eligibility
+- Save uses guarded workspace transactions; Build uses the shared captured output plan
+- keep IDs/ordinals append-only and saved slot/family/occupancy immutable
+- use game_presentation canonical artwork and the existing shared campaign/Admin picker
+- see [item contract](../../docs/tdd/item_authoring.md) for compatibility and generation
+
 ### Entities Domain
 
 - owner: `tools/editor/lib/src/entities/**`

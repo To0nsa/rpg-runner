@@ -98,23 +98,11 @@ abstract class GameLocalizations {
     Locale('fr'),
   ];
 
-  /// Catalog name for weapons/plainsteel. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Plainsteel'**
-  String get weaponPlainsteelName;
-
   /// Catalog description for weapons/plainsteel. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Baseline one-handed sword with consistent output.'**
   String get weaponPlainsteelDescription;
-
-  /// Catalog name for weapons/waspfang. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Waspfang'**
-  String get weaponWaspfangName;
 
   /// Catalog description for weapons/waspfang. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -122,23 +110,11 @@ abstract class GameLocalizations {
   /// **'Bleed pressure sword with lower upfront power.'**
   String get weaponWaspfangDescription;
 
-  /// Catalog name for weapons/cinderedge. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Cinderedge'**
-  String get weaponCinderedgeName;
-
   /// Catalog description for weapons/cinderedge. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Crit-focused blade that ignites on critical strikes.'**
   String get weaponCinderedgeDescription;
-
-  /// Catalog name for weapons/basiliskKiss. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Basilisk Kiss'**
-  String get weaponBasiliskKissName;
 
   /// Catalog description for weapons/basiliskKiss. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -146,23 +122,11 @@ abstract class GameLocalizations {
   /// **'Anti-tank sword that trades burst for acid vulnerability pressure.'**
   String get weaponBasiliskKissDescription;
 
-  /// Catalog name for weapons/frostbrand. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Frostbrand'**
-  String get weaponFrostbrandName;
-
   /// Catalog description for weapons/frostbrand. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Control sword that applies slows for safer tempo.'**
   String get weaponFrostbrandDescription;
-
-  /// Catalog name for weapons/stormneedle. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Stormneedle'**
-  String get weaponStormneedleName;
 
   /// Catalog description for weapons/stormneedle. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -170,23 +134,11 @@ abstract class GameLocalizations {
   /// **'Sustained crit/stamina sword with regen and a health tradeoff.'**
   String get weaponStormneedleDescription;
 
-  /// Catalog name for weapons/nullblade. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Nullblade'**
-  String get weaponNullbladeName;
-
   /// Catalog description for weapons/nullblade. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Anti-caster sword that can silence on hit.'**
   String get weaponNullbladeDescription;
-
-  /// Catalog name for weapons/sunlitVow. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Sunlit Vow'**
-  String get weaponSunlitVowName;
 
   /// Catalog description for weapons/sunlitVow. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -194,23 +146,11 @@ abstract class GameLocalizations {
   /// **'Kill-chain sword that can grant Focus and boosts sustained pressure.'**
   String get weaponSunlitVowDescription;
 
-  /// Catalog name for weapons/roadguard. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Roadguard'**
-  String get weaponRoadguardName;
-
   /// Catalog description for weapons/roadguard. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Baseline all-rounder shield with dependable defense.'**
   String get weaponRoadguardDescription;
-
-  /// Catalog name for weapons/thornbark. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Thornbark'**
-  String get weaponThornbarkName;
 
   /// Catalog description for weapons/thornbark. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -218,23 +158,11 @@ abstract class GameLocalizations {
   /// **'Retaliation shield that bleeds attackers on damage.'**
   String get weaponThornbarkDescription;
 
-  /// Catalog name for weapons/cinderWard. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Cinder Ward'**
-  String get weaponCinderWardName;
-
   /// Catalog description for weapons/cinderWard. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Fire-counter shield with defense and a crit-scaling dump.'**
   String get weaponCinderWardDescription;
-
-  /// Catalog name for weapons/tideguardShell. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Tideguard Shell'**
-  String get weaponTideguardShellName;
 
   /// Catalog description for weapons/tideguardShell. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -242,23 +170,11 @@ abstract class GameLocalizations {
   /// **'Water-stabilizer shield with stamina support and power tax.'**
   String get weaponTideguardShellDescription;
 
-  /// Catalog name for weapons/frostlockBuckler. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Frostlock Buckler'**
-  String get weaponFrostlockBucklerName;
-
   /// Catalog description for weapons/frostlockBuckler. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Cold matchup shield with balanced defense and stamina.'**
   String get weaponFrostlockBucklerDescription;
-
-  /// Catalog name for weapons/ironBastion. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Iron Bastion'**
-  String get weaponIronBastionName;
 
   /// Catalog description for weapons/ironBastion. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -266,23 +182,11 @@ abstract class GameLocalizations {
   /// **'Heavy face-tank shield with the strongest soak and lower mobility.'**
   String get weaponIronBastionDescription;
 
-  /// Catalog name for weapons/stormAegis. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Storm Aegis'**
-  String get weaponStormAegisName;
-
   /// Catalog description for weapons/stormAegis. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Thunder counterpick shield with regen and a crit dump.'**
   String get weaponStormAegisDescription;
-
-  /// Catalog name for weapons/nullPrism. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Null Prism'**
-  String get weaponNullPrismName;
 
   /// Catalog description for weapons/nullPrism. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -290,23 +194,11 @@ abstract class GameLocalizations {
   /// **'Dual dark/holy resist shield that trades mobility for coverage.'**
   String get weaponNullPrismDescription;
 
-  /// Catalog name for weapons/warbannerGuard. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Warbanner Guard'**
-  String get weaponWarbannerGuardName;
-
   /// Catalog description for weapons/warbannerGuard. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Stamina-forward frontline shield with a heavy crit dump.'**
   String get weaponWarbannerGuardDescription;
-
-  /// Catalog name for weapons/oathwallRelic. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Oathwall Relic'**
-  String get weaponOathwallRelicName;
 
   /// Catalog description for weapons/oathwallRelic. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -314,23 +206,11 @@ abstract class GameLocalizations {
   /// **'Clutch survival shield with low-health haste and permanent offense tax.'**
   String get weaponOathwallRelicDescription;
 
-  /// Catalog name for weapons/hunterBlade. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Hunter Blade'**
-  String get weaponHunterBladeName;
-
   /// Catalog description for weapons/hunterBlade. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Reliable mixed combat with a small defense tradeoff.'**
   String get weaponHunterBladeDescription;
-
-  /// Catalog name for weapons/hunterBombKit. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Bomb Kit'**
-  String get weaponHunterBombKitName;
 
   /// Catalog description for weapons/hunterBombKit. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -338,23 +218,11 @@ abstract class GameLocalizations {
   /// **'A protective bomb rig that trades movement speed for steadiness.'**
   String get weaponHunterBombKitDescription;
 
-  /// Catalog name for weapons/hunterNotchknife. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Notchknife'**
-  String get weaponHunterNotchknifeName;
-
   /// Catalog description for weapons/hunterNotchknife. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Bleeding cuts reward disengaging, at the cost of maximum health.'**
   String get weaponHunterNotchknifeDescription;
-
-  /// Catalog name for weapons/hunterHookblade. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Hookblade'**
-  String get weaponHunterHookbladeName;
 
   /// Catalog description for weapons/hunterHookblade. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -362,23 +230,11 @@ abstract class GameLocalizations {
   /// **'Slowing cuts create room for a shot or bomb, with lower defense.'**
   String get weaponHunterHookbladeDescription;
 
-  /// Catalog name for weapons/hunterCausticEdge. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Caustic Edge'**
-  String get weaponHunterCausticEdgeName;
-
   /// Catalog description for weapons/hunterCausticEdge. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Melee openings expose a target to follow-up damage, with lower health.'**
   String get weaponHunterCausticEdgeDescription;
-
-  /// Catalog name for weapons/hunterCinderpoint. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Cinderpoint'**
-  String get weaponHunterCinderpointName;
 
   /// Catalog description for weapons/hunterCinderpoint. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -386,23 +242,11 @@ abstract class GameLocalizations {
   /// **'Critical cuts ignite enemies, at the cost of Supplies regeneration.'**
   String get weaponHunterCinderpointDescription;
 
-  /// Catalog name for weapons/hunterSappingBlade. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Sapping Blade'**
-  String get weaponHunterSappingBladeName;
-
   /// Catalog description for weapons/hunterSappingBlade. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Cuts can weaken enemy attacks, but maximum health is lower.'**
   String get weaponHunterSappingBladeDescription;
-
-  /// Catalog name for weapons/hunterPursuitBlade. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Pursuit Blade'**
-  String get weaponHunterPursuitBladeName;
 
   /// Catalog description for weapons/hunterPursuitBlade. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -410,23 +254,11 @@ abstract class GameLocalizations {
   /// **'Melee kills can grant a short burst of speed, with lower defense.'**
   String get weaponHunterPursuitBladeDescription;
 
-  /// Catalog name for weapons/hunterLastWord. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Last Word'**
-  String get weaponHunterLastWordName;
-
   /// Catalog description for weapons/hunterLastWord. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Strong direct offense and stamina, with less health for mistakes.'**
   String get weaponHunterLastWordDescription;
-
-  /// Catalog name for weapons/hunterSplinterRig. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Splinter Rig'**
-  String get weaponHunterSplinterRigName;
 
   /// Catalog description for weapons/hunterSplinterRig. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -434,23 +266,11 @@ abstract class GameLocalizations {
   /// **'Critical blasts cause bleeding, at the cost of global power.'**
   String get weaponHunterSplinterRigDescription;
 
-  /// Catalog name for weapons/hunterPitchRig. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Pitch Rig'**
-  String get weaponHunterPitchRigName;
-
   /// Catalog description for weapons/hunterPitchRig. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Critical blasts ignite survivors, with lower critical chance.'**
   String get weaponHunterPitchRigDescription;
-
-  /// Catalog name for weapons/hunterSnareRig. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Snare Rig'**
-  String get weaponHunterSnareRigName;
 
   /// Catalog description for weapons/hunterSnareRig. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -458,23 +278,11 @@ abstract class GameLocalizations {
   /// **'Blasts can slow pursuers, at the cost of global power.'**
   String get weaponHunterSnareRigDescription;
 
-  /// Catalog name for weapons/hunterEtchingRig. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Etching Rig'**
-  String get weaponHunterEtchingRigName;
-
   /// Catalog description for weapons/hunterEtchingRig. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Blasts can expose survivors to follow-up damage, with lower critical chance.'**
   String get weaponHunterEtchingRigDescription;
-
-  /// Catalog name for weapons/hunterSapperHarness. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Sapper Harness'**
-  String get weaponHunterSapperHarnessName;
 
   /// Catalog description for weapons/hunterSapperHarness. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -482,23 +290,11 @@ abstract class GameLocalizations {
   /// **'Physical protection and stamina recovery, with substantially slower movement.'**
   String get weaponHunterSapperHarnessDescription;
 
-  /// Catalog name for weapons/hunterKilnwrapRig. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Kilnwrap Rig'**
-  String get weaponHunterKilnwrapRigName;
-
   /// Catalog description for weapons/hunterKilnwrapRig. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Preparation for fire-heavy encounters, with lower critical chance.'**
   String get weaponHunterKilnwrapRigDescription;
-
-  /// Catalog name for weapons/hunterSealedRig. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Sealed Rig'**
-  String get weaponHunterSealedRigName;
 
   /// Catalog description for weapons/hunterSealedRig. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -506,23 +302,11 @@ abstract class GameLocalizations {
   /// **'Acid and water protection with stamina reserves, at the cost of power.'**
   String get weaponHunterSealedRigDescription;
 
-  /// Catalog name for weapons/hunterStormwrapRig. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Stormwrap Rig'**
-  String get weaponHunterStormwrapRigName;
-
   /// Catalog description for weapons/hunterStormwrapRig. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Thunder protection and stamina recovery, with lower critical chance.'**
   String get weaponHunterStormwrapRigDescription;
-
-  /// Catalog name for weapons/hunterBacktrailRig. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Backtrail Rig'**
-  String get weaponHunterBacktrailRigName;
 
   /// Catalog description for weapons/hunterBacktrailRig. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -542,23 +326,11 @@ abstract class GameLocalizations {
   /// **'No description available yet.'**
   String get projectileUnknownDescription;
 
-  /// Catalog name for projectiles/iceBolt. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Ice Bolt'**
-  String get projectileIceBoltName;
-
   /// Catalog description for projectiles/iceBolt. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Spell projectile that chills on hit.'**
   String get projectileIceBoltDescription;
-
-  /// Catalog name for projectiles/fireBolt. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Fire Bolt'**
-  String get projectileFireBoltName;
 
   /// Catalog description for projectiles/fireBolt. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -566,23 +338,11 @@ abstract class GameLocalizations {
   /// **'Spell projectile that burns on hit.'**
   String get projectileFireBoltDescription;
 
-  /// Catalog name for projectiles/acidBolt. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Acid Bolt'**
-  String get projectileAcidBoltName;
-
   /// Catalog description for projectiles/acidBolt. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Spell projectile that corrodes and increases damage taken.'**
   String get projectileAcidBoltDescription;
-
-  /// Catalog name for projectiles/darkBolt. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Dark Bolt'**
-  String get projectileDarkBoltName;
 
   /// Catalog description for projectiles/darkBolt. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -590,23 +350,11 @@ abstract class GameLocalizations {
   /// **'Spell projectile that weakens enemy outgoing damage on hit.'**
   String get projectileDarkBoltDescription;
 
-  /// Catalog name for projectiles/earthBolt. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Earth Bolt'**
-  String get projectileEarthBoltName;
-
   /// Catalog description for projectiles/earthBolt. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Spell projectile that stuns enemies on hit.'**
   String get projectileEarthBoltDescription;
-
-  /// Catalog name for projectiles/holyBolt. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Holy Bolt'**
-  String get projectileHolyBoltName;
 
   /// Holy Bolt silence duration from its resolved Core status profile, in seconds.
   ///
@@ -614,23 +362,11 @@ abstract class GameLocalizations {
   /// **'Spell projectile that silences enemy casts for {seconds, plural, one{one second} other{{seconds} seconds}}.'**
   String projectileHolyBoltDescription({required num seconds});
 
-  /// Catalog name for projectiles/waterBolt. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Water Bolt'**
-  String get projectileWaterBoltName;
-
   /// Catalog description for projectiles/waterBolt. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Spell projectile that drenches and slows attack/cast speed.'**
   String get projectileWaterBoltDescription;
-
-  /// Catalog name for projectiles/thunderBolt. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Thunder Bolt'**
-  String get projectileThunderBoltName;
 
   /// Catalog description for projectiles/thunderBolt. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -710,35 +446,17 @@ abstract class GameLocalizations {
   /// **'No description available yet.'**
   String get projectileVoidClawDescription;
 
-  /// Catalog name for projectiles/hunterPistol. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Pistol'**
-  String get projectileHunterPistolName;
-
   /// Catalog description for projectiles/hunterPistol. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Fast bullets with balanced range. Uses regenerating Supplies.'**
   String get projectileHunterPistolDescription;
 
-  /// Catalog name for projectiles/hunterCrossbow. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Crossbow'**
-  String get projectileHunterCrossbowName;
-
   /// Projectile hunterCrossbow: values come from the current Core item definition; damage is total across pellets.
   ///
   /// In en, this message translates to:
   /// **'Long-range bolts dealing {damagePercent}% of base damage. Uses regenerating Supplies.'**
   String projectileHunterCrossbowDescription({required double damagePercent});
-
-  /// Catalog name for projectiles/hunterShotgun. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Shotgun'**
-  String get projectileHunterShotgunName;
 
   /// Projectile hunterShotgun: values come from the current Core item definition; damage is total across pellets.
   ///
@@ -761,12 +479,6 @@ abstract class GameLocalizations {
   /// **'A timed blast blocked by solid terrain.'**
   String get projectileHunterBombDescription;
 
-  /// Catalog name for projectiles/hunterRoadsidePistol. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Roadside Pistol'**
-  String get projectileHunterRoadsidePistolName;
-
   /// Projectile hunterRoadsidePistol: values come from the current Core item definition; damage is total across pellets.
   ///
   /// In en, this message translates to:
@@ -774,12 +486,6 @@ abstract class GameLocalizations {
   String projectileHunterRoadsidePistolDescription({
     required double damagePercent,
   });
-
-  /// Catalog name for projectiles/hunterLongbarrelPistol. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Longbarrel Pistol'**
-  String get projectileHunterLongbarrelPistolName;
 
   /// Projectile hunterLongbarrelPistol: values come from the current Core item definition; damage is total across pellets.
   ///
@@ -789,23 +495,11 @@ abstract class GameLocalizations {
     required double damagePercent,
   });
 
-  /// Catalog name for projectiles/hunterLongwatchCrossbow. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Longwatch Crossbow'**
-  String get projectileHunterLongwatchCrossbowName;
-
   /// Catalog description for projectiles/hunterLongwatchCrossbow. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Long-reaching, faster bolts with less damage than the standard crossbow.'**
   String get projectileHunterLongwatchCrossbowDescription;
-
-  /// Catalog name for projectiles/hunterHeavyLimbCrossbow. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Heavy-Limb Crossbow'**
-  String get projectileHunterHeavyLimbCrossbowName;
 
   /// Projectile hunterHeavyLimbCrossbow: values come from the current Core item definition; damage is total across pellets.
   ///
@@ -814,12 +508,6 @@ abstract class GameLocalizations {
   String projectileHunterHeavyLimbCrossbowDescription({
     required double damagePercent,
   });
-
-  /// Catalog name for projectiles/hunterBrushgun. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Brushgun'**
-  String get projectileHunterBrushgunName;
 
   /// Projectile hunterBrushgun: values come from the current Core item definition; damage is total across pellets.
   ///
@@ -830,23 +518,11 @@ abstract class GameLocalizations {
     required int pellets,
   });
 
-  /// Catalog name for books/apprenticePrimer. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Apprentice Primer'**
-  String get spellBookApprenticePrimerName;
-
   /// Catalog description for books/apprenticePrimer. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'{resource, select, supplies{Balanced Supplies reserves, regeneration and critical chance, with less stamina.} other{Balanced mana reserves, regeneration and critical chance, with less stamina.}}'**
   String spellBookApprenticePrimerDescription({required String resource});
-
-  /// Catalog name for books/bastionCodex. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Bastion Codex'**
-  String get spellBookBastionCodexName;
 
   /// Catalog description for books/bastionCodex. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -854,23 +530,11 @@ abstract class GameLocalizations {
   /// **'{resource, select, supplies{Large Supplies reserves, regeneration and faster cooldowns, with slower health recovery.} other{Large mana reserves, regeneration and faster cooldowns, with slower health recovery.}}'**
   String spellBookBastionCodexDescription({required String resource});
 
-  /// Catalog name for books/emberGrimoire. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Ember Grimoire'**
-  String get spellBookEmberGrimoireName;
-
   /// Catalog description for books/emberGrimoire. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'{resource, select, supplies{Supplies, critical chance and faster cooldowns, with slower stamina recovery.} other{Mana, critical chance and faster cooldowns, with slower stamina recovery.}}'**
   String spellBookEmberGrimoireDescription({required String resource});
-
-  /// Catalog name for books/tideAlmanac. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Tide Almanac'**
-  String get spellBookTideAlmanacName;
 
   /// Catalog description for books/tideAlmanac. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -878,23 +542,11 @@ abstract class GameLocalizations {
   /// **'{resource, select, supplies{Large Supplies reserves, regeneration and faster cooldowns, with substantially less stamina.} other{Large mana reserves, regeneration and faster cooldowns, with substantially less stamina.}}'**
   String spellBookTideAlmanacDescription({required String resource});
 
-  /// Catalog name for books/hexboundLexicon. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Hexbound Lexicon'**
-  String get spellBookHexboundLexiconName;
-
   /// Catalog description for books/hexboundLexicon. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'{resource, select, supplies{Supplies, regeneration and critical chance, with slower health recovery.} other{Mana, regeneration and critical chance, with slower health recovery.}}'**
   String spellBookHexboundLexiconDescription({required String resource});
-
-  /// Catalog name for books/galeFolio. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Gale Folio'**
-  String get spellBookGaleFolioName;
 
   /// Catalog description for books/galeFolio. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -902,23 +554,11 @@ abstract class GameLocalizations {
   /// **'{resource, select, supplies{Large Supplies reserves, critical chance and faster cooldowns, with less stamina.} other{Large mana reserves, critical chance and faster cooldowns, with less stamina.}}'**
   String spellBookGaleFolioDescription({required String resource});
 
-  /// Catalog name for books/nullTestament. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Null Testament'**
-  String get spellBookNullTestamentName;
-
   /// Catalog description for books/nullTestament. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'{resource, select, supplies{Supplies reserves, regeneration and critical chance, with slower stamina recovery.} other{Mana reserves, regeneration and critical chance, with slower stamina recovery.}}'**
   String spellBookNullTestamentDescription({required String resource});
-
-  /// Catalog name for books/crownOfFocus. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Crown of Focus'**
-  String get spellBookCrownOfFocusName;
 
   /// Catalog description for books/crownOfFocus. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -926,23 +566,11 @@ abstract class GameLocalizations {
   /// **'{resource, select, supplies{Large Supplies reserves, critical chance and faster cooldowns, with substantially less stamina.} other{Large mana reserves, critical chance and faster cooldowns, with substantially less stamina.}}'**
   String spellBookCrownOfFocusDescription({required String resource});
 
-  /// Catalog name for books/hunterFieldKit. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Field Kit'**
-  String get spellBookHunterFieldKitName;
-
   /// Catalog description for books/hunterFieldKit. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Balanced Supplies and critical chance, with a smaller stamina reserve.'**
   String get spellBookHunterFieldKitDescription;
-
-  /// Catalog name for books/hunterLongtrailPack. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Longtrail Pack'**
-  String get spellBookHunterLongtrailPackName;
 
   /// Catalog description for books/hunterLongtrailPack. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -950,23 +578,11 @@ abstract class GameLocalizations {
   /// **'Sustained Supplies and faster recovery between actions, with slower health regeneration.'**
   String get spellBookHunterLongtrailPackDescription;
 
-  /// Catalog name for books/hunterMarksmanRoll. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Marksman\'s Roll'**
-  String get spellBookHunterMarksmanRollName;
-
   /// Catalog description for books/hunterMarksmanRoll. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Critical-shot preparation and faster cooldowns, with slower stamina recovery.'**
   String get spellBookHunterMarksmanRollDescription;
-
-  /// Catalog name for books/hunterQuickAccessSatchel. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Quick-Access Satchel'**
-  String get spellBookHunterQuickAccessSatchelName;
 
   /// Catalog description for books/hunterQuickAccessSatchel. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -974,23 +590,11 @@ abstract class GameLocalizations {
   /// **'Frequent short exchanges, with less stamina and no extra Supplies capacity.'**
   String get spellBookHunterQuickAccessSatchelDescription;
 
-  /// Catalog name for books/hunterReserveBandolier. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Reserve Bandolier'**
-  String get spellBookHunterReserveBandolierName;
-
   /// Catalog description for books/hunterReserveBandolier. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'A large opening reserve and critical chance, with substantially less stamina.'**
   String get spellBookHunterReserveBandolierDescription;
-
-  /// Catalog name for books/hunterTrackerPouch. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Tracker\'s Pouch'**
-  String get spellBookHunterTrackerPouchName;
 
   /// Catalog description for books/hunterTrackerPouch. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -998,23 +602,11 @@ abstract class GameLocalizations {
   /// **'Offensive pursuit that preserves stamina, at the cost of health recovery.'**
   String get spellBookHunterTrackerPouchDescription;
 
-  /// Catalog name for books/hunterSurveyorCase. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Surveyor\'s Case'**
-  String get spellBookHunterSurveyorCaseName;
-
   /// Catalog description for books/hunterSurveyorCase. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'A large Supplies reserve and ready utility, with slower stamina recovery.'**
   String get spellBookHunterSurveyorCaseDescription;
-
-  /// Catalog name for books/hunterQuarryKit. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Quarry Kit'**
-  String get spellBookHunterQuarryKitName;
 
   /// Catalog description for books/hunterQuarryKit. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -1022,23 +614,11 @@ abstract class GameLocalizations {
   /// **'Critical offensive windows and faster cooldowns, with little stamina headroom.'**
   String get spellBookHunterQuarryKitDescription;
 
-  /// Catalog name for accessories/speedBoots. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Speed Boots'**
-  String get accessorySpeedBootsName;
-
   /// Catalog description for accessories/speedBoots. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'{resource, select, supplies{Tempo accessory with movement, stamina regen, and cooldown pacing at heavy Supplies tax.} other{Tempo accessory with movement, stamina regen, and cooldown pacing at heavy mana tax.}}'**
   String accessorySpeedBootsDescription({required String resource});
-
-  /// Catalog name for accessories/goldenRing. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Golden Ring'**
-  String get accessoryGoldenRingName;
 
   /// Catalog description for accessories/goldenRing. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -1046,23 +626,11 @@ abstract class GameLocalizations {
   /// **'Clutch sustain ring with health and emergency low-health healing.'**
   String get accessoryGoldenRingDescription;
 
-  /// Catalog name for accessories/teethNecklace. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Teeth Necklace'**
-  String get accessoryTeethNecklaceName;
-
   /// Catalog description for accessories/teethNecklace. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Stamina necklace with low-health stamina restore, traded against max health.'**
   String get accessoryTeethNecklaceDescription;
-
-  /// Catalog name for accessories/diamondRing. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Diamond Ring'**
-  String get accessoryDiamondRingName;
 
   /// Catalog description for accessories/diamondRing. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -1070,23 +638,11 @@ abstract class GameLocalizations {
   /// **'{resource, select, supplies{Supplies ring with low-health Supplies restore, traded against max stamina.} other{Mana ring with low-health mana restore, traded against max stamina.}}'**
   String accessoryDiamondRingDescription({required String resource});
 
-  /// Catalog name for accessories/ironBoots. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Iron Boots'**
-  String get accessoryIronBootsName;
-
   /// Catalog description for accessories/ironBoots. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Defensive boots with physical resistance that tax global power.'**
   String get accessoryIronBootsDescription;
-
-  /// Catalog name for accessories/oathBeads. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Oath Beads'**
-  String get accessoryOathBeadsName;
 
   /// Catalog description for accessories/oathBeads. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
@@ -1094,23 +650,11 @@ abstract class GameLocalizations {
   /// **'{resource, select, supplies{Caster-tempo beads with cooldown, Supplies regen, and power at a defense tax.} other{Caster-tempo beads with cooldown, mana regen, and power at a defense tax.}}'**
   String accessoryOathBeadsDescription({required String resource});
 
-  /// Catalog name for accessories/resilienceCape. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Resilience Cape'**
-  String get accessoryResilienceCapeName;
-
   /// Catalog description for accessories/resilienceCape. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///
   /// In en, this message translates to:
   /// **'Elemental counterpick with fire and dark resistance plus defense.'**
   String get accessoryResilienceCapeDescription;
-
-  /// Catalog name for accessories/strengthBelt. Keep distinct from its stable internal ID.
-  ///
-  /// In en, this message translates to:
-  /// **'Strength Belt'**
-  String get accessoryStrengthBeltName;
 
   /// Catalog description for accessories/strengthBelt. Describes tradeoffs; numeric tuning is supplied separately by Core.
   ///

@@ -15,6 +15,7 @@ import 'package:runner_core/spellBook/spell_book_catalog.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_catalog.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
+import 'package:runner_content_pipeline/item_source.dart';
 
 import 'generated_artifact_plan.dart';
 
@@ -82,6 +83,7 @@ Future<Map<String, String>> _sourceBytes() async {
 /// deliberately separate. Optional items allow validation of malformed sources.
 List<Map<String, Object>> backendCatalogEntries({
   Iterable<CatalogItemId>? items,
+  Iterable<ItemSource>? authoredItems,
 }) {
   final characters = PlayerCharacterRegistry.playable;
   if (characters.isEmpty ||
@@ -91,6 +93,7 @@ List<Map<String, Object>> backendCatalogEntries({
   final keys = <String>{};
   final result = <Map<String, Object>>[];
   for (final item in items ?? CatalogItemId.values) {
+    if (authoredItems != null && item.kind != 'ability') continue;
     if (!keys.add(item.key)) {
       throw StateError('Duplicate catalogue identity: ${item.key}');
     }
@@ -133,6 +136,30 @@ List<Map<String, Object>> backendCatalogEntries({
       'itemId': item.itemId,
       'characterIds': characterIds,
     });
+  }
+  // During the atomic content Build the new enums do not exist in this VM yet.
+  // The shared compiler supplies definitions; Core's same family policy resolves
+  // eligibility. Ordinary --check still exports the compiled Core catalog.
+  if (authoredItems != null) {
+    final equipment = <Map<String, Object>>[];
+    for (final item in authoredItems) {
+      final domain = item.slot == null ? 'projectileSpell' : 'gear';
+      final slot = item.slot?.name ?? 'projectile';
+      if (!keys.add('$domain/$slot/${item.id}')) {
+        throw StateError('Duplicate authored catalog identity: ${item.key}');
+      }
+      final eligible = item.eligibleCharacters.map((c) => c.name).toList();
+      if (eligible.isEmpty) {
+        throw StateError('No eligible character: ${item.key}');
+      }
+      equipment.add({
+        'domain': domain,
+        'slot': slot,
+        'itemId': item.id,
+        'characterIds': eligible,
+      });
+    }
+    result.insertAll(0, equipment);
   }
 
   // Schema-2 gift activation hashes include array order. Preserve the original
@@ -193,8 +220,8 @@ List<Map<String, Object>> backendCatalogEntries({
 }
 
 /// Pure rendering keeps check mode byte-for-byte and free of repository writes.
-String renderBackendCatalog() {
-  final entries = backendCatalogEntries();
+String renderBackendCatalog({Iterable<ItemSource>? authoredItems}) {
+  final entries = backendCatalogEntries(authoredItems: authoredItems);
   final characters = PlayerCharacterRegistry.playable;
   final meta = const MetaService().createNew();
   final loadouts = {

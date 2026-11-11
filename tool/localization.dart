@@ -87,6 +87,7 @@ Future<void> main(List<String> args) async {
       final path = file.path.replaceAll('\\', '/');
       if (!path.endsWith('.dart') ||
           path.contains('/l10n/generated/') ||
+          path == 'packages/game_presentation/lib/items.generated.dart' ||
           path == 'lib/ui/campaign/generated_campaign_catalog.dart' ||
           path == 'lib/ui/levels/generated_level_ui_metadata.dart' ||
           path == 'lib/game/themes/authored_parallax_themes.dart' ||

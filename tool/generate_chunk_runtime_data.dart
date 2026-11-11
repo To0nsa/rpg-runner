@@ -16,6 +16,10 @@ import 'level_definition_generation.dart';
 import 'parallax_theme_generation.dart';
 import 'polygon_terrain_render.dart';
 import 'terrain_material_generation.dart';
+import 'item_generation.dart';
+import 'generate_backend_catalog.dart' as backend;
+
+import 'package:runner_content_pipeline/item_source.dart';
 
 part 'campaign_generation.dart';
 
@@ -431,8 +435,14 @@ Future<void> main(List<String> args) async {
       levelResult.levels.map((l) => l.levelId).toSet(),
       parallaxResult.themes.map((t) => t.parallaxThemeId).toSet(),
     );
+    final items = ItemCatalogSource.decode(captured.readString(itemSourcePath));
     final artifactPlan = GeneratedArtifactPlan(
       <GeneratedArtifact>[
+        ...buildItemArtifacts(items),
+        GeneratedArtifact(
+          path: backend.backendCatalogPath,
+          content: backend.renderBackendCatalog(authoredItems: items.items),
+        ),
         ...campaignArtifacts,
         GeneratedArtifact(path: _outputPath, content: output),
         GeneratedArtifact(path: _levelIdOutputPath, content: levelIdOutput),

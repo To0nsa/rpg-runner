@@ -257,7 +257,9 @@ final class ContentBuildService extends ChangeNotifier {
             .relative(event.path, from: root)
             .replaceAll('\\', '/');
         final source =
-            (relative.startsWith('assets/authoring/level/') &&
+            ((relative.startsWith('assets/authoring/level/') ||
+                    relative.startsWith('assets/authoring/campaign/') ||
+                    relative.startsWith('assets/authoring/items/')) &&
                 relative.endsWith('.json')) ||
             ((relative.startsWith('assets/images/level/atlases/') ||
                     relative.startsWith('assets/images/entities/traps/') ||
@@ -274,7 +276,9 @@ final class ContentBuildService extends ChangeNotifier {
                       'packages/runner_content_pipeline/lib/',
                     ) ||
                     relative.startsWith('packages/terrain_materials/lib/') ||
-                    relative.startsWith('packages/runner_core/lib/')) &&
+                    relative.startsWith('packages/runner_core/lib/') ||
+                    relative ==
+                        'packages/game_presentation/lib/item_icon_ids.dart') &&
                 relative.endsWith('.dart')) ||
             relative == 'pubspec.yaml' ||
             relative == 'pubspec.lock' ||

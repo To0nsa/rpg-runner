@@ -22,7 +22,7 @@ import 'bounty_hunter_geometry.dart';
 /// Native cells are composed into one canvas without stretching. The base
 /// body's support line is aligned with the larger add-on's feet.
 RenderAnimSetDefinition bountyHunterRenderAnim(ProjectileId weapon) {
-  final variant = switch (weapon) {
+  final variant = switch (projectileRenderSource(weapon)) {
     ProjectileId.hunterCrossbow ||
     ProjectileId.hunterLongwatchCrossbow ||
     ProjectileId.hunterHeavyLimbCrossbow => 'crossbow',
@@ -214,11 +214,13 @@ final bountyHunterCharacter = PlayerCharacterDefinition(
   catalog: bountyHunterCatalog,
   tuning: bountyHunterTuning,
   projectileMuzzles: {
-    for (final id in [
-      ProjectileId.hunterPistol,
-      ProjectileId.hunterRoadsidePistol,
-      ProjectileId.hunterLongbarrelPistol,
-    ])
+    for (final id in hunterRangedWeaponIds.where(
+      (id) => [
+        ProjectileId.hunterPistol,
+        ProjectileId.hunterRoadsidePistol,
+        ProjectileId.hunterLongbarrelPistol,
+      ].contains(projectileRenderSource(id)),
+    ))
       id: _muzzle(const Vec2(47, 20), const Vec2(51, 26), const [
         Vec2(45, 21),
         Vec2(44, 19),
@@ -229,11 +231,13 @@ final bountyHunterCharacter = PlayerCharacterDefinition(
         Vec2(46, 20),
         Vec2(46, 22),
       ]),
-    for (final id in [
-      ProjectileId.hunterCrossbow,
-      ProjectileId.hunterLongwatchCrossbow,
-      ProjectileId.hunterHeavyLimbCrossbow,
-    ])
+    for (final id in hunterRangedWeaponIds.where(
+      (id) => [
+        ProjectileId.hunterCrossbow,
+        ProjectileId.hunterLongwatchCrossbow,
+        ProjectileId.hunterHeavyLimbCrossbow,
+      ].contains(projectileRenderSource(id)),
+    ))
       id: _muzzle(const Vec2(48, 23.5), const Vec2(52, 30.5), const [
         Vec2(46, 23.5),
         Vec2(45, 21.5),
@@ -244,7 +248,12 @@ final bountyHunterCharacter = PlayerCharacterDefinition(
         Vec2(47, 22.5),
         Vec2(47, 24.5),
       ]),
-    for (final id in [ProjectileId.hunterShotgun, ProjectileId.hunterBrushgun])
+    for (final id in hunterRangedWeaponIds.where(
+      (id) => [
+        ProjectileId.hunterShotgun,
+        ProjectileId.hunterBrushgun,
+      ].contains(projectileRenderSource(id)),
+    ))
       id: _muzzle(const Vec2(49, 19), const Vec2(53, 25), const [
         Vec2(48, 19),
         Vec2(46, 18),

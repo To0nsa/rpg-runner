@@ -39,6 +39,11 @@ still perform their normal admission checks before publishing runtime content.
 
 ## Captured source and freshness
 
+Items source JSON and canonical icon IDs participate in the same captured Build.
+Item enums/definitions, shared names/icon assignments and the Functions catalogue
+join the atomic output plan. Generated item Dart is excluded from input hashing;
+the authored source and compiler are included. See [item authoring](item_authoring.md).
+
 `ContentBuildSnapshot` captures exact bytes and the sorted set of all Level
 authoring JSON, canonical atlas PNGs and parallax PNGs. It includes excluded and
 deprecated source; Build still strictly parses and validates every source.

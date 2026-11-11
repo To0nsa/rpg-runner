@@ -96,6 +96,13 @@ No run/replay compatibility tuple change is required by this ownership change.
 
 ## Client presentation
 
+Player items are authored through the editor's Items route and compiled from one
+JSON source into Core and shared presentation. The existing exporter supplies
+backend membership; prices and purchases remain server-owned. See
+[item authoring](item_authoring.md) for Save/Build, immutable identities and the
+saved-loadout compatibility policy. Adding an item within an existing category
+does not require a handwritten backend catalogue entry.
+
 `TownStorePage` accepts an initial `TownService` from its route. Service, browsed
 character, category, unowned filter and expanded entry are route-local state.
 Entry defaults to the active playable character. Browsing does not submit a

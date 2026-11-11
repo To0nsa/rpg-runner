@@ -54,11 +54,16 @@ resolved through Flutter's matching algorithm after checking the language is
 supported; an unrelated language always falls back to English. Hosts keep their
 own delegates and own language preference persistence.
 
-Shared names and descriptions live in `packages/game_presentation/lib/l10n/`.
+Shared message resources and descriptions live in `packages/game_presentation/lib/l10n/`.
+Item names are authored in English/French in `assets/authoring/items/item_defs.json`
+and compiled into `game_presentation/items.generated.dart`; they are no longer
+duplicated in ARBs. The same locale-bound gear/projectile APIs resolve these names.
+New items use their translated name as the fallback descriptive text, while
+stats/effects remain Core-derived. See [item authoring](item_authoring.md).
 The package has its own generator configuration and `GameLocalizations` delegate;
 the app's `RunnerLocalizations.delegates` registers both message owners. Admin
 registers shared resources with an explicit English locale. Catalog display APIs
-require resources; identity switches are exhaustive, with safe localized unknown
+require resources; generated item lookups cover all authored identities, with safe localized unknown
 labels for retained string IDs. `ManaPresentation` selects mana or Willow's
 Supplies before formatting, including complete descriptive sentences and stat
 labels. Never replace words in a finished translation.

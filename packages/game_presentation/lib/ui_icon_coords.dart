@@ -1,3 +1,6 @@
+import 'item_icon_ids.dart';
+import 'items.generated.dart';
+
 import 'package:runner_core/accessories/accessory_id.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
@@ -45,120 +48,124 @@ const String _willowIconBasePath = 'assets/images/icons/gear-icons/willow/';
 
 /// Full weapon icon mapping for loadout and gear picker UI.
 UiWeaponIconSpec uiIconSpecForWeapon(WeaponId id) {
-  return switch (id) {
-    WeaponId.hunterBlade => const UiWeaponIconSpec.image(
+  return canonicalWeaponIconSpec(itemIconForWeapon(id));
+}
+
+UiWeaponIconSpec canonicalWeaponIconSpec(CanonicalWeaponIcon icon) {
+  return switch (icon) {
+    CanonicalWeaponIcon.hunterBlade => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}blades/hunter_blade.png',
     ),
-    WeaponId.hunterNotchknife => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterNotchknife => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}blades/notchknife.png',
     ),
-    WeaponId.hunterHookblade => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterHookblade => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}blades/hookblade.png',
     ),
-    WeaponId.hunterCausticEdge => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterCausticEdge => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}blades/caustic_edge.png',
     ),
-    WeaponId.hunterCinderpoint => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterCinderpoint => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}blades/cinderpoint.png',
     ),
-    WeaponId.hunterSappingBlade => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterSappingBlade => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}blades/sapping_blade.png',
     ),
-    WeaponId.hunterPursuitBlade => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterPursuitBlade => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}blades/pursuit_blade.png',
     ),
-    WeaponId.hunterLastWord => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterLastWord => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}blades/last_word.png',
     ),
-    WeaponId.hunterBombKit => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterBombKit => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/bomb_kit.png',
     ),
-    WeaponId.hunterSplinterRig => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterSplinterRig => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/splinter_rig.png',
     ),
-    WeaponId.hunterPitchRig => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterPitchRig => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/pitch_rig.png',
     ),
-    WeaponId.hunterSnareRig => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterSnareRig => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/snare_rig.png',
     ),
-    WeaponId.hunterEtchingRig => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterEtchingRig => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/etching_rig.png',
     ),
-    WeaponId.hunterSapperHarness => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterSapperHarness => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/sapper_harness.png',
     ),
-    WeaponId.hunterKilnwrapRig => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterKilnwrapRig => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/kilnwrap_rig.png',
     ),
-    WeaponId.hunterSealedRig => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterSealedRig => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/sealed_rig.png',
     ),
-    WeaponId.hunterStormwrapRig => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterStormwrapRig => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/stormwrap_rig.png',
     ),
-    WeaponId.hunterBacktrailRig => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.hunterBacktrailRig => const UiWeaponIconSpec.image(
       '${_willowIconBasePath}bomb_kits/backtrail_rig.png',
     ),
-    WeaponId.plainsteel => const UiWeaponIconSpec.sprite(
+    CanonicalWeaponIcon.plainsteel => const UiWeaponIconSpec.sprite(
       coords: UiIconCoords(5, 1),
       spriteAssetPath: _swordUiSpritePath,
     ),
-    WeaponId.waspfang => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.waspfang => const UiWeaponIconSpec.image(
       'assets/images/icons/gear-icons/sword/waspfang.png',
     ),
-    WeaponId.cinderedge => const UiWeaponIconSpec.sprite(
+    CanonicalWeaponIcon.cinderedge => const UiWeaponIconSpec.sprite(
       coords: UiIconCoords(5, 7),
       spriteAssetPath: _swordUiSpritePath,
     ),
-    WeaponId.basiliskKiss => const UiWeaponIconSpec.sprite(
+    CanonicalWeaponIcon.basiliskKiss => const UiWeaponIconSpec.sprite(
       coords: UiIconCoords(5, 0),
       spriteAssetPath: _swordUiSpritePath,
     ),
-    WeaponId.frostbrand => const UiWeaponIconSpec.sprite(
+    CanonicalWeaponIcon.frostbrand => const UiWeaponIconSpec.sprite(
       coords: UiIconCoords(5, 2),
       spriteAssetPath: _swordUiSpritePath,
     ),
-    WeaponId.stormneedle => const UiWeaponIconSpec.sprite(
+    CanonicalWeaponIcon.stormneedle => const UiWeaponIconSpec.sprite(
       coords: UiIconCoords(5, 3),
       spriteAssetPath: _swordUiSpritePath,
     ),
-    WeaponId.nullblade => const UiWeaponIconSpec.sprite(
+    CanonicalWeaponIcon.nullblade => const UiWeaponIconSpec.sprite(
       coords: UiIconCoords(5, 5),
       spriteAssetPath: _swordUiSpritePath,
     ),
-    WeaponId.sunlitVow => const UiWeaponIconSpec.sprite(
+    CanonicalWeaponIcon.sunlitVow => const UiWeaponIconSpec.sprite(
       coords: UiIconCoords(5, 4),
       spriteAssetPath: _swordUiSpritePath,
     ),
-    WeaponId.roadguard => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.roadguard => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}roadguard.png',
     ),
-    WeaponId.thornbark => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.thornbark => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}thornbark.png',
     ),
-    WeaponId.cinderWard => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.cinderWard => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}cinderward.png',
     ),
-    WeaponId.tideguardShell => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.tideguardShell => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}tideguardShell.png',
     ),
-    WeaponId.frostlockBuckler => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.frostlockBuckler => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}frostlockBuckler.png',
     ),
-    WeaponId.ironBastion => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.ironBastion => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}ironBastion.png',
     ),
-    WeaponId.stormAegis => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.stormAegis => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}stormAegis.png',
     ),
-    WeaponId.nullPrism => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.nullPrism => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}nullPrism.png',
     ),
-    WeaponId.warbannerGuard => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.warbannerGuard => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}warbannerGuard.png',
     ),
-    WeaponId.oathwallRelic => const UiWeaponIconSpec.image(
+    CanonicalWeaponIcon.oathwallRelic => const UiWeaponIconSpec.image(
       '${_shieldIconBasePath}oathwallRelic.png',
     ),
   };
@@ -169,74 +176,91 @@ UiIconCoords? uiIconCoordsForWeapon(WeaponId id) {
 }
 
 UiIconCoords? uiIconCoordsForSpellBook(SpellBookId id) {
-  return switch (id) {
-    SpellBookId.hunterFieldKit ||
-    SpellBookId.hunterLongtrailPack ||
-    SpellBookId.hunterMarksmanRoll ||
-    SpellBookId.hunterQuickAccessSatchel ||
-    SpellBookId.hunterReserveBandolier ||
-    SpellBookId.hunterTrackerPouch ||
-    SpellBookId.hunterSurveyorCase ||
-    SpellBookId.hunterQuarryKit => null,
-    SpellBookId.apprenticePrimer => const UiIconCoords(13, 0),
-    SpellBookId.bastionCodex => const UiIconCoords(13, 1),
-    SpellBookId.emberGrimoire => const UiIconCoords(13, 2),
-    SpellBookId.tideAlmanac => const UiIconCoords(13, 3),
-    SpellBookId.hexboundLexicon => const UiIconCoords(13, 4),
-    SpellBookId.galeFolio => const UiIconCoords(13, 5),
-    SpellBookId.nullTestament => const UiIconCoords(13, 6),
-    SpellBookId.crownOfFocus => const UiIconCoords(13, 7),
+  return canonicalSpellBookIconCoords(itemIconForSpellBook(id));
+}
+
+UiIconCoords? canonicalSpellBookIconCoords(CanonicalSpellBookIcon icon) {
+  return switch (icon) {
+    CanonicalSpellBookIcon.hunterFieldKit ||
+    CanonicalSpellBookIcon.hunterLongtrailPack ||
+    CanonicalSpellBookIcon.hunterMarksmanRoll ||
+    CanonicalSpellBookIcon.hunterQuickAccessSatchel ||
+    CanonicalSpellBookIcon.hunterReserveBandolier ||
+    CanonicalSpellBookIcon.hunterTrackerPouch ||
+    CanonicalSpellBookIcon.hunterSurveyorCase ||
+    CanonicalSpellBookIcon.hunterQuarryKit => null,
+    CanonicalSpellBookIcon.apprenticePrimer => const UiIconCoords(13, 0),
+    CanonicalSpellBookIcon.bastionCodex => const UiIconCoords(13, 1),
+    CanonicalSpellBookIcon.emberGrimoire => const UiIconCoords(13, 2),
+    CanonicalSpellBookIcon.tideAlmanac => const UiIconCoords(13, 3),
+    CanonicalSpellBookIcon.hexboundLexicon => const UiIconCoords(13, 4),
+    CanonicalSpellBookIcon.galeFolio => const UiIconCoords(13, 5),
+    CanonicalSpellBookIcon.nullTestament => const UiIconCoords(13, 6),
+    CanonicalSpellBookIcon.crownOfFocus => const UiIconCoords(13, 7),
   };
 }
 
 /// Dedicated field-kit artwork; spellbooks continue to use the atlas.
-String? uiImageAssetPathForSpellBook(SpellBookId id) => switch (id) {
-  SpellBookId.hunterFieldKit =>
+String? uiImageAssetPathForSpellBook(SpellBookId id) =>
+    canonicalSpellBookImage(itemIconForSpellBook(id));
+String? canonicalSpellBookImage(CanonicalSpellBookIcon? icon) => switch (icon) {
+  CanonicalSpellBookIcon.hunterFieldKit =>
     '${_willowIconBasePath}field_kits/field_kit.png',
-  SpellBookId.hunterLongtrailPack =>
+  CanonicalSpellBookIcon.hunterLongtrailPack =>
     '${_willowIconBasePath}field_kits/longtrail_pack.png',
-  SpellBookId.hunterMarksmanRoll =>
+  CanonicalSpellBookIcon.hunterMarksmanRoll =>
     '${_willowIconBasePath}field_kits/marksman_roll.png',
-  SpellBookId.hunterQuickAccessSatchel =>
+  CanonicalSpellBookIcon.hunterQuickAccessSatchel =>
     '${_willowIconBasePath}field_kits/quick_access_satchel.png',
-  SpellBookId.hunterReserveBandolier =>
+  CanonicalSpellBookIcon.hunterReserveBandolier =>
     '${_willowIconBasePath}field_kits/reserve_bandolier.png',
-  SpellBookId.hunterTrackerPouch =>
+  CanonicalSpellBookIcon.hunterTrackerPouch =>
     '${_willowIconBasePath}field_kits/tracker_pouch.png',
-  SpellBookId.hunterSurveyorCase =>
+  CanonicalSpellBookIcon.hunterSurveyorCase =>
     '${_willowIconBasePath}field_kits/surveyor_case.png',
-  SpellBookId.hunterQuarryKit =>
+  CanonicalSpellBookIcon.hunterQuarryKit =>
     '${_willowIconBasePath}field_kits/quarry_kit.png',
   _ => null,
 };
 
 /// Inventory weapon illustrations, independent of projectile flight effects.
-String? uiImageAssetPathForProjectile(ProjectileId id) => switch (id) {
-  ProjectileId.hunterPistol => '${_willowIconBasePath}ranged/pistol.png',
-  ProjectileId.hunterCrossbow => '${_willowIconBasePath}ranged/crossbow.png',
-  ProjectileId.hunterShotgun => '${_willowIconBasePath}ranged/shotgun.png',
-  ProjectileId.hunterRoadsidePistol =>
-    '${_willowIconBasePath}ranged/roadside_pistol.png',
-  ProjectileId.hunterLongbarrelPistol =>
-    '${_willowIconBasePath}ranged/longbarrel_pistol.png',
-  ProjectileId.hunterLongwatchCrossbow =>
-    '${_willowIconBasePath}ranged/longwatch_crossbow.png',
-  ProjectileId.hunterHeavyLimbCrossbow =>
-    '${_willowIconBasePath}ranged/heavy_limb_crossbow.png',
-  ProjectileId.hunterBrushgun => '${_willowIconBasePath}ranged/brushgun.png',
-  _ => null,
-};
+String? uiImageAssetPathForProjectile(ProjectileId id) =>
+    canonicalProjectileImage(itemIconForProjectile(id));
+String? canonicalProjectileImage(CanonicalProjectileIcon? icon) =>
+    switch (icon) {
+      CanonicalProjectileIcon.hunterPistol =>
+        '${_willowIconBasePath}ranged/pistol.png',
+      CanonicalProjectileIcon.hunterCrossbow =>
+        '${_willowIconBasePath}ranged/crossbow.png',
+      CanonicalProjectileIcon.hunterShotgun =>
+        '${_willowIconBasePath}ranged/shotgun.png',
+      CanonicalProjectileIcon.hunterRoadsidePistol =>
+        '${_willowIconBasePath}ranged/roadside_pistol.png',
+      CanonicalProjectileIcon.hunterLongbarrelPistol =>
+        '${_willowIconBasePath}ranged/longbarrel_pistol.png',
+      CanonicalProjectileIcon.hunterLongwatchCrossbow =>
+        '${_willowIconBasePath}ranged/longwatch_crossbow.png',
+      CanonicalProjectileIcon.hunterHeavyLimbCrossbow =>
+        '${_willowIconBasePath}ranged/heavy_limb_crossbow.png',
+      CanonicalProjectileIcon.hunterBrushgun =>
+        '${_willowIconBasePath}ranged/brushgun.png',
+      _ => null,
+    };
 
 UiIconCoords? uiIconCoordsForAccessory(AccessoryId id) {
-  return switch (id) {
-    AccessoryId.speedBoots => const UiIconCoords(8, 2),
-    AccessoryId.goldenRing => const UiIconCoords(8, 4),
-    AccessoryId.teethNecklace => const UiIconCoords(8, 8),
-    AccessoryId.diamondRing => const UiIconCoords(8, 5),
-    AccessoryId.ironBoots => const UiIconCoords(8, 3),
-    AccessoryId.oathBeads => const UiIconCoords(8, 7),
-    AccessoryId.resilienceCape => const UiIconCoords(7, 14),
-    AccessoryId.strengthBelt => const UiIconCoords(7, 15),
+  return canonicalAccessoryIconCoords(itemIconForAccessory(id));
+}
+
+UiIconCoords? canonicalAccessoryIconCoords(CanonicalAccessoryIcon icon) {
+  return switch (icon) {
+    CanonicalAccessoryIcon.speedBoots => const UiIconCoords(8, 2),
+    CanonicalAccessoryIcon.goldenRing => const UiIconCoords(8, 4),
+    CanonicalAccessoryIcon.teethNecklace => const UiIconCoords(8, 8),
+    CanonicalAccessoryIcon.diamondRing => const UiIconCoords(8, 5),
+    CanonicalAccessoryIcon.ironBoots => const UiIconCoords(8, 3),
+    CanonicalAccessoryIcon.oathBeads => const UiIconCoords(8, 7),
+    CanonicalAccessoryIcon.resilienceCape => const UiIconCoords(7, 14),
+    CanonicalAccessoryIcon.strengthBelt => const UiIconCoords(7, 15),
   };
 }
 

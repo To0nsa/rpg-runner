@@ -1,288 +1,144 @@
 {
   "@@locale": "en",
-  "weaponPlainsteelName": "Plainsteel",
-  "@weaponPlainsteelName": {
-    "description": "Catalog name for weapons/plainsteel. Keep distinct from its stable internal ID."
-  },
   "weaponPlainsteelDescription": "Baseline one-handed sword with consistent output.",
   "@weaponPlainsteelDescription": {
     "description": "Catalog description for weapons/plainsteel. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponWaspfangName": "Waspfang",
-  "@weaponWaspfangName": {
-    "description": "Catalog name for weapons/waspfang. Keep distinct from its stable internal ID."
   },
   "weaponWaspfangDescription": "Bleed pressure sword with lower upfront power.",
   "@weaponWaspfangDescription": {
     "description": "Catalog description for weapons/waspfang. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponCinderedgeName": "Cinderedge",
-  "@weaponCinderedgeName": {
-    "description": "Catalog name for weapons/cinderedge. Keep distinct from its stable internal ID."
-  },
   "weaponCinderedgeDescription": "Crit-focused blade that ignites on critical strikes.",
   "@weaponCinderedgeDescription": {
     "description": "Catalog description for weapons/cinderedge. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponBasiliskKissName": "Basilisk Kiss",
-  "@weaponBasiliskKissName": {
-    "description": "Catalog name for weapons/basiliskKiss. Keep distinct from its stable internal ID."
   },
   "weaponBasiliskKissDescription": "Anti-tank sword that trades burst for acid vulnerability pressure.",
   "@weaponBasiliskKissDescription": {
     "description": "Catalog description for weapons/basiliskKiss. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponFrostbrandName": "Frostbrand",
-  "@weaponFrostbrandName": {
-    "description": "Catalog name for weapons/frostbrand. Keep distinct from its stable internal ID."
-  },
   "weaponFrostbrandDescription": "Control sword that applies slows for safer tempo.",
   "@weaponFrostbrandDescription": {
     "description": "Catalog description for weapons/frostbrand. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponStormneedleName": "Stormneedle",
-  "@weaponStormneedleName": {
-    "description": "Catalog name for weapons/stormneedle. Keep distinct from its stable internal ID."
   },
   "weaponStormneedleDescription": "Sustained crit/stamina sword with regen and a health tradeoff.",
   "@weaponStormneedleDescription": {
     "description": "Catalog description for weapons/stormneedle. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponNullbladeName": "Nullblade",
-  "@weaponNullbladeName": {
-    "description": "Catalog name for weapons/nullblade. Keep distinct from its stable internal ID."
-  },
   "weaponNullbladeDescription": "Anti-caster sword that can silence on hit.",
   "@weaponNullbladeDescription": {
     "description": "Catalog description for weapons/nullblade. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponSunlitVowName": "Sunlit Vow",
-  "@weaponSunlitVowName": {
-    "description": "Catalog name for weapons/sunlitVow. Keep distinct from its stable internal ID."
   },
   "weaponSunlitVowDescription": "Kill-chain sword that can grant Focus and boosts sustained pressure.",
   "@weaponSunlitVowDescription": {
     "description": "Catalog description for weapons/sunlitVow. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponRoadguardName": "Roadguard",
-  "@weaponRoadguardName": {
-    "description": "Catalog name for weapons/roadguard. Keep distinct from its stable internal ID."
-  },
   "weaponRoadguardDescription": "Baseline all-rounder shield with dependable defense.",
   "@weaponRoadguardDescription": {
     "description": "Catalog description for weapons/roadguard. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponThornbarkName": "Thornbark",
-  "@weaponThornbarkName": {
-    "description": "Catalog name for weapons/thornbark. Keep distinct from its stable internal ID."
   },
   "weaponThornbarkDescription": "Retaliation shield that bleeds attackers on damage.",
   "@weaponThornbarkDescription": {
     "description": "Catalog description for weapons/thornbark. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponCinderWardName": "Cinder Ward",
-  "@weaponCinderWardName": {
-    "description": "Catalog name for weapons/cinderWard. Keep distinct from its stable internal ID."
-  },
   "weaponCinderWardDescription": "Fire-counter shield with defense and a crit-scaling dump.",
   "@weaponCinderWardDescription": {
     "description": "Catalog description for weapons/cinderWard. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponTideguardShellName": "Tideguard Shell",
-  "@weaponTideguardShellName": {
-    "description": "Catalog name for weapons/tideguardShell. Keep distinct from its stable internal ID."
   },
   "weaponTideguardShellDescription": "Water-stabilizer shield with stamina support and power tax.",
   "@weaponTideguardShellDescription": {
     "description": "Catalog description for weapons/tideguardShell. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponFrostlockBucklerName": "Frostlock Buckler",
-  "@weaponFrostlockBucklerName": {
-    "description": "Catalog name for weapons/frostlockBuckler. Keep distinct from its stable internal ID."
-  },
   "weaponFrostlockBucklerDescription": "Cold matchup shield with balanced defense and stamina.",
   "@weaponFrostlockBucklerDescription": {
     "description": "Catalog description for weapons/frostlockBuckler. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponIronBastionName": "Iron Bastion",
-  "@weaponIronBastionName": {
-    "description": "Catalog name for weapons/ironBastion. Keep distinct from its stable internal ID."
   },
   "weaponIronBastionDescription": "Heavy face-tank shield with the strongest soak and lower mobility.",
   "@weaponIronBastionDescription": {
     "description": "Catalog description for weapons/ironBastion. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponStormAegisName": "Storm Aegis",
-  "@weaponStormAegisName": {
-    "description": "Catalog name for weapons/stormAegis. Keep distinct from its stable internal ID."
-  },
   "weaponStormAegisDescription": "Thunder counterpick shield with regen and a crit dump.",
   "@weaponStormAegisDescription": {
     "description": "Catalog description for weapons/stormAegis. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponNullPrismName": "Null Prism",
-  "@weaponNullPrismName": {
-    "description": "Catalog name for weapons/nullPrism. Keep distinct from its stable internal ID."
   },
   "weaponNullPrismDescription": "Dual dark/holy resist shield that trades mobility for coverage.",
   "@weaponNullPrismDescription": {
     "description": "Catalog description for weapons/nullPrism. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponWarbannerGuardName": "Warbanner Guard",
-  "@weaponWarbannerGuardName": {
-    "description": "Catalog name for weapons/warbannerGuard. Keep distinct from its stable internal ID."
-  },
   "weaponWarbannerGuardDescription": "Stamina-forward frontline shield with a heavy crit dump.",
   "@weaponWarbannerGuardDescription": {
     "description": "Catalog description for weapons/warbannerGuard. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponOathwallRelicName": "Oathwall Relic",
-  "@weaponOathwallRelicName": {
-    "description": "Catalog name for weapons/oathwallRelic. Keep distinct from its stable internal ID."
   },
   "weaponOathwallRelicDescription": "Clutch survival shield with low-health haste and permanent offense tax.",
   "@weaponOathwallRelicDescription": {
     "description": "Catalog description for weapons/oathwallRelic. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponHunterBladeName": "Hunter Blade",
-  "@weaponHunterBladeName": {
-    "description": "Catalog name for weapons/hunterBlade. Keep distinct from its stable internal ID."
-  },
   "weaponHunterBladeDescription": "Reliable mixed combat with a small defense tradeoff.",
   "@weaponHunterBladeDescription": {
     "description": "Catalog description for weapons/hunterBlade. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponHunterBombKitName": "Bomb Kit",
-  "@weaponHunterBombKitName": {
-    "description": "Catalog name for weapons/hunterBombKit. Keep distinct from its stable internal ID."
   },
   "weaponHunterBombKitDescription": "A protective bomb rig that trades movement speed for steadiness.",
   "@weaponHunterBombKitDescription": {
     "description": "Catalog description for weapons/hunterBombKit. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponHunterNotchknifeName": "Notchknife",
-  "@weaponHunterNotchknifeName": {
-    "description": "Catalog name for weapons/hunterNotchknife. Keep distinct from its stable internal ID."
-  },
   "weaponHunterNotchknifeDescription": "Bleeding cuts reward disengaging, at the cost of maximum health.",
   "@weaponHunterNotchknifeDescription": {
     "description": "Catalog description for weapons/hunterNotchknife. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponHunterHookbladeName": "Hookblade",
-  "@weaponHunterHookbladeName": {
-    "description": "Catalog name for weapons/hunterHookblade. Keep distinct from its stable internal ID."
   },
   "weaponHunterHookbladeDescription": "Slowing cuts create room for a shot or bomb, with lower defense.",
   "@weaponHunterHookbladeDescription": {
     "description": "Catalog description for weapons/hunterHookblade. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponHunterCausticEdgeName": "Caustic Edge",
-  "@weaponHunterCausticEdgeName": {
-    "description": "Catalog name for weapons/hunterCausticEdge. Keep distinct from its stable internal ID."
-  },
   "weaponHunterCausticEdgeDescription": "Melee openings expose a target to follow-up damage, with lower health.",
   "@weaponHunterCausticEdgeDescription": {
     "description": "Catalog description for weapons/hunterCausticEdge. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponHunterCinderpointName": "Cinderpoint",
-  "@weaponHunterCinderpointName": {
-    "description": "Catalog name for weapons/hunterCinderpoint. Keep distinct from its stable internal ID."
   },
   "weaponHunterCinderpointDescription": "Critical cuts ignite enemies, at the cost of Supplies regeneration.",
   "@weaponHunterCinderpointDescription": {
     "description": "Catalog description for weapons/hunterCinderpoint. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponHunterSappingBladeName": "Sapping Blade",
-  "@weaponHunterSappingBladeName": {
-    "description": "Catalog name for weapons/hunterSappingBlade. Keep distinct from its stable internal ID."
-  },
   "weaponHunterSappingBladeDescription": "Cuts can weaken enemy attacks, but maximum health is lower.",
   "@weaponHunterSappingBladeDescription": {
     "description": "Catalog description for weapons/hunterSappingBlade. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponHunterPursuitBladeName": "Pursuit Blade",
-  "@weaponHunterPursuitBladeName": {
-    "description": "Catalog name for weapons/hunterPursuitBlade. Keep distinct from its stable internal ID."
   },
   "weaponHunterPursuitBladeDescription": "Melee kills can grant a short burst of speed, with lower defense.",
   "@weaponHunterPursuitBladeDescription": {
     "description": "Catalog description for weapons/hunterPursuitBlade. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponHunterLastWordName": "Last Word",
-  "@weaponHunterLastWordName": {
-    "description": "Catalog name for weapons/hunterLastWord. Keep distinct from its stable internal ID."
-  },
   "weaponHunterLastWordDescription": "Strong direct offense and stamina, with less health for mistakes.",
   "@weaponHunterLastWordDescription": {
     "description": "Catalog description for weapons/hunterLastWord. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponHunterSplinterRigName": "Splinter Rig",
-  "@weaponHunterSplinterRigName": {
-    "description": "Catalog name for weapons/hunterSplinterRig. Keep distinct from its stable internal ID."
   },
   "weaponHunterSplinterRigDescription": "Critical blasts cause bleeding, at the cost of global power.",
   "@weaponHunterSplinterRigDescription": {
     "description": "Catalog description for weapons/hunterSplinterRig. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponHunterPitchRigName": "Pitch Rig",
-  "@weaponHunterPitchRigName": {
-    "description": "Catalog name for weapons/hunterPitchRig. Keep distinct from its stable internal ID."
-  },
   "weaponHunterPitchRigDescription": "Critical blasts ignite survivors, with lower critical chance.",
   "@weaponHunterPitchRigDescription": {
     "description": "Catalog description for weapons/hunterPitchRig. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponHunterSnareRigName": "Snare Rig",
-  "@weaponHunterSnareRigName": {
-    "description": "Catalog name for weapons/hunterSnareRig. Keep distinct from its stable internal ID."
   },
   "weaponHunterSnareRigDescription": "Blasts can slow pursuers, at the cost of global power.",
   "@weaponHunterSnareRigDescription": {
     "description": "Catalog description for weapons/hunterSnareRig. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponHunterEtchingRigName": "Etching Rig",
-  "@weaponHunterEtchingRigName": {
-    "description": "Catalog name for weapons/hunterEtchingRig. Keep distinct from its stable internal ID."
-  },
   "weaponHunterEtchingRigDescription": "Blasts can expose survivors to follow-up damage, with lower critical chance.",
   "@weaponHunterEtchingRigDescription": {
     "description": "Catalog description for weapons/hunterEtchingRig. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponHunterSapperHarnessName": "Sapper Harness",
-  "@weaponHunterSapperHarnessName": {
-    "description": "Catalog name for weapons/hunterSapperHarness. Keep distinct from its stable internal ID."
   },
   "weaponHunterSapperHarnessDescription": "Physical protection and stamina recovery, with substantially slower movement.",
   "@weaponHunterSapperHarnessDescription": {
     "description": "Catalog description for weapons/hunterSapperHarness. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponHunterKilnwrapRigName": "Kilnwrap Rig",
-  "@weaponHunterKilnwrapRigName": {
-    "description": "Catalog name for weapons/hunterKilnwrapRig. Keep distinct from its stable internal ID."
-  },
   "weaponHunterKilnwrapRigDescription": "Preparation for fire-heavy encounters, with lower critical chance.",
   "@weaponHunterKilnwrapRigDescription": {
     "description": "Catalog description for weapons/hunterKilnwrapRig. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponHunterSealedRigName": "Sealed Rig",
-  "@weaponHunterSealedRigName": {
-    "description": "Catalog name for weapons/hunterSealedRig. Keep distinct from its stable internal ID."
   },
   "weaponHunterSealedRigDescription": "Acid and water protection with stamina reserves, at the cost of power.",
   "@weaponHunterSealedRigDescription": {
     "description": "Catalog description for weapons/hunterSealedRig. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "weaponHunterStormwrapRigName": "Stormwrap Rig",
-  "@weaponHunterStormwrapRigName": {
-    "description": "Catalog name for weapons/hunterStormwrapRig. Keep distinct from its stable internal ID."
-  },
   "weaponHunterStormwrapRigDescription": "Thunder protection and stamina recovery, with lower critical chance.",
   "@weaponHunterStormwrapRigDescription": {
     "description": "Catalog description for weapons/hunterStormwrapRig. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "weaponHunterBacktrailRigName": "Backtrail Rig",
-  "@weaponHunterBacktrailRigName": {
-    "description": "Catalog name for weapons/hunterBacktrailRig. Keep distinct from its stable internal ID."
   },
   "weaponHunterBacktrailRigDescription": "Low-health haste creates an escape opportunity, at a permanent power cost.",
   "@weaponHunterBacktrailRigDescription": {
@@ -296,49 +152,25 @@
   "@projectileUnknownDescription": {
     "description": "Catalog description for projectiles/unknown. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "projectileIceBoltName": "Ice Bolt",
-  "@projectileIceBoltName": {
-    "description": "Catalog name for projectiles/iceBolt. Keep distinct from its stable internal ID."
-  },
   "projectileIceBoltDescription": "Spell projectile that chills on hit.",
   "@projectileIceBoltDescription": {
     "description": "Catalog description for projectiles/iceBolt. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "projectileFireBoltName": "Fire Bolt",
-  "@projectileFireBoltName": {
-    "description": "Catalog name for projectiles/fireBolt. Keep distinct from its stable internal ID."
   },
   "projectileFireBoltDescription": "Spell projectile that burns on hit.",
   "@projectileFireBoltDescription": {
     "description": "Catalog description for projectiles/fireBolt. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "projectileAcidBoltName": "Acid Bolt",
-  "@projectileAcidBoltName": {
-    "description": "Catalog name for projectiles/acidBolt. Keep distinct from its stable internal ID."
-  },
   "projectileAcidBoltDescription": "Spell projectile that corrodes and increases damage taken.",
   "@projectileAcidBoltDescription": {
     "description": "Catalog description for projectiles/acidBolt. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "projectileDarkBoltName": "Dark Bolt",
-  "@projectileDarkBoltName": {
-    "description": "Catalog name for projectiles/darkBolt. Keep distinct from its stable internal ID."
   },
   "projectileDarkBoltDescription": "Spell projectile that weakens enemy outgoing damage on hit.",
   "@projectileDarkBoltDescription": {
     "description": "Catalog description for projectiles/darkBolt. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "projectileEarthBoltName": "Earth Bolt",
-  "@projectileEarthBoltName": {
-    "description": "Catalog name for projectiles/earthBolt. Keep distinct from its stable internal ID."
-  },
   "projectileEarthBoltDescription": "Spell projectile that stuns enemies on hit.",
   "@projectileEarthBoltDescription": {
     "description": "Catalog description for projectiles/earthBolt. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "projectileHolyBoltName": "Holy Bolt",
-  "@projectileHolyBoltName": {
-    "description": "Catalog name for projectiles/holyBolt. Keep distinct from its stable internal ID."
   },
   "projectileHolyBoltDescription": "Spell projectile that silences enemy casts for {seconds, plural, one{one second} other{{seconds} seconds}}.",
   "@projectileHolyBoltDescription": {
@@ -350,17 +182,9 @@
       }
     }
   },
-  "projectileWaterBoltName": "Water Bolt",
-  "@projectileWaterBoltName": {
-    "description": "Catalog name for projectiles/waterBolt. Keep distinct from its stable internal ID."
-  },
   "projectileWaterBoltDescription": "Spell projectile that drenches and slows attack/cast speed.",
   "@projectileWaterBoltDescription": {
     "description": "Catalog description for projectiles/waterBolt. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "projectileThunderBoltName": "Thunder Bolt",
-  "@projectileThunderBoltName": {
-    "description": "Catalog name for projectiles/thunderBolt. Keep distinct from its stable internal ID."
   },
   "projectileThunderBoltDescription": "Spell projectile with thunder damage.",
   "@projectileThunderBoltDescription": {
@@ -414,17 +238,9 @@
   "@projectileVoidClawDescription": {
     "description": "Catalog description for projectiles/voidClaw. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "projectileHunterPistolName": "Pistol",
-  "@projectileHunterPistolName": {
-    "description": "Catalog name for projectiles/hunterPistol. Keep distinct from its stable internal ID."
-  },
   "projectileHunterPistolDescription": "Fast bullets with balanced range. Uses regenerating Supplies.",
   "@projectileHunterPistolDescription": {
     "description": "Catalog description for projectiles/hunterPistol. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "projectileHunterCrossbowName": "Crossbow",
-  "@projectileHunterCrossbowName": {
-    "description": "Catalog name for projectiles/hunterCrossbow. Keep distinct from its stable internal ID."
   },
   "projectileHunterCrossbowDescription": "Long-range bolts dealing {damagePercent}% of base damage. Uses regenerating Supplies.",
   "@projectileHunterCrossbowDescription": {
@@ -436,10 +252,6 @@
         "description": "Total damage multiplier expressed as a percentage, e.g. 115 for 115% of base damage."
       }
     }
-  },
-  "projectileHunterShotgunName": "Shotgun",
-  "@projectileHunterShotgunName": {
-    "description": "Catalog name for projectiles/hunterShotgun. Keep distinct from its stable internal ID."
   },
   "projectileHunterShotgunDescription": "Short-range shells divided into {pellets, plural, one{at least one pellet} other{at least {pellets} pellets}}, dealing {damagePercent}% of total base damage. Uses regenerating Supplies.",
   "@projectileHunterShotgunDescription": {
@@ -465,10 +277,6 @@
   "@projectileHunterBombDescription": {
     "description": "Catalog description for projectiles/hunterBomb. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "projectileHunterRoadsidePistolName": "Roadside Pistol",
-  "@projectileHunterRoadsidePistolName": {
-    "description": "Catalog name for projectiles/hunterRoadsidePistol. Keep distinct from its stable internal ID."
-  },
   "projectileHunterRoadsidePistolDescription": "Fast close-range bullets dealing {damagePercent}% of base damage, with shorter reach.",
   "@projectileHunterRoadsidePistolDescription": {
     "description": "Projectile hunterRoadsidePistol: values come from the current Core item definition; damage is total across pellets.",
@@ -479,10 +287,6 @@
         "description": "Total damage multiplier expressed as a percentage, e.g. 115 for 115% of base damage."
       }
     }
-  },
-  "projectileHunterLongbarrelPistolName": "Longbarrel Pistol",
-  "@projectileHunterLongbarrelPistolName": {
-    "description": "Catalog name for projectiles/hunterLongbarrelPistol. Keep distinct from its stable internal ID."
   },
   "projectileHunterLongbarrelPistolDescription": "Fast, long-reaching bullets dealing {damagePercent}% of base damage.",
   "@projectileHunterLongbarrelPistolDescription": {
@@ -495,17 +299,9 @@
       }
     }
   },
-  "projectileHunterLongwatchCrossbowName": "Longwatch Crossbow",
-  "@projectileHunterLongwatchCrossbowName": {
-    "description": "Catalog name for projectiles/hunterLongwatchCrossbow. Keep distinct from its stable internal ID."
-  },
   "projectileHunterLongwatchCrossbowDescription": "Long-reaching, faster bolts with less damage than the standard crossbow.",
   "@projectileHunterLongwatchCrossbowDescription": {
     "description": "Catalog description for projectiles/hunterLongwatchCrossbow. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "projectileHunterHeavyLimbCrossbowName": "Heavy-Limb Crossbow",
-  "@projectileHunterHeavyLimbCrossbowName": {
-    "description": "Catalog name for projectiles/hunterHeavyLimbCrossbow. Keep distinct from its stable internal ID."
   },
   "projectileHunterHeavyLimbCrossbowDescription": "Heavy bolts dealing {damagePercent}% of base damage, with slower flight and shorter reach.",
   "@projectileHunterHeavyLimbCrossbowDescription": {
@@ -517,10 +313,6 @@
         "description": "Total damage multiplier expressed as a percentage, e.g. 115 for 115% of base damage."
       }
     }
-  },
-  "projectileHunterBrushgunName": "Brushgun",
-  "@projectileHunterBrushgunName": {
-    "description": "Catalog name for projectiles/hunterBrushgun. Keep distinct from its stable internal ID."
   },
   "projectileHunterBrushgunDescription": "A wide spread of {pellets, plural, one{one pellet} other{{pellets} pellets}} deals {damagePercent}% of total base damage and rewards close placement.",
   "@projectileHunterBrushgunDescription": {
@@ -538,10 +330,6 @@
       }
     }
   },
-  "spellBookApprenticePrimerName": "Apprentice Primer",
-  "@spellBookApprenticePrimerName": {
-    "description": "Catalog name for books/apprenticePrimer. Keep distinct from its stable internal ID."
-  },
   "spellBookApprenticePrimerDescription": "{resource, select, supplies{Balanced Supplies reserves, regeneration and critical chance, with less stamina.} other{Balanced mana reserves, regeneration and critical chance, with less stamina.}}",
   "@spellBookApprenticePrimerDescription": {
     "description": "Catalog description for books/apprenticePrimer. Describes tradeoffs; numeric tuning is supplied separately by Core.",
@@ -552,10 +340,6 @@
         "description": "Semantic resource kind: mana or supplies. Translate the full branches, never these identifiers."
       }
     }
-  },
-  "spellBookBastionCodexName": "Bastion Codex",
-  "@spellBookBastionCodexName": {
-    "description": "Catalog name for books/bastionCodex. Keep distinct from its stable internal ID."
   },
   "spellBookBastionCodexDescription": "{resource, select, supplies{Large Supplies reserves, regeneration and faster cooldowns, with slower health recovery.} other{Large mana reserves, regeneration and faster cooldowns, with slower health recovery.}}",
   "@spellBookBastionCodexDescription": {
@@ -568,10 +352,6 @@
       }
     }
   },
-  "spellBookEmberGrimoireName": "Ember Grimoire",
-  "@spellBookEmberGrimoireName": {
-    "description": "Catalog name for books/emberGrimoire. Keep distinct from its stable internal ID."
-  },
   "spellBookEmberGrimoireDescription": "{resource, select, supplies{Supplies, critical chance and faster cooldowns, with slower stamina recovery.} other{Mana, critical chance and faster cooldowns, with slower stamina recovery.}}",
   "@spellBookEmberGrimoireDescription": {
     "description": "Catalog description for books/emberGrimoire. Describes tradeoffs; numeric tuning is supplied separately by Core.",
@@ -582,10 +362,6 @@
         "description": "Semantic resource kind: mana or supplies. Translate the full branches, never these identifiers."
       }
     }
-  },
-  "spellBookTideAlmanacName": "Tide Almanac",
-  "@spellBookTideAlmanacName": {
-    "description": "Catalog name for books/tideAlmanac. Keep distinct from its stable internal ID."
   },
   "spellBookTideAlmanacDescription": "{resource, select, supplies{Large Supplies reserves, regeneration and faster cooldowns, with substantially less stamina.} other{Large mana reserves, regeneration and faster cooldowns, with substantially less stamina.}}",
   "@spellBookTideAlmanacDescription": {
@@ -598,10 +374,6 @@
       }
     }
   },
-  "spellBookHexboundLexiconName": "Hexbound Lexicon",
-  "@spellBookHexboundLexiconName": {
-    "description": "Catalog name for books/hexboundLexicon. Keep distinct from its stable internal ID."
-  },
   "spellBookHexboundLexiconDescription": "{resource, select, supplies{Supplies, regeneration and critical chance, with slower health recovery.} other{Mana, regeneration and critical chance, with slower health recovery.}}",
   "@spellBookHexboundLexiconDescription": {
     "description": "Catalog description for books/hexboundLexicon. Describes tradeoffs; numeric tuning is supplied separately by Core.",
@@ -612,10 +384,6 @@
         "description": "Semantic resource kind: mana or supplies. Translate the full branches, never these identifiers."
       }
     }
-  },
-  "spellBookGaleFolioName": "Gale Folio",
-  "@spellBookGaleFolioName": {
-    "description": "Catalog name for books/galeFolio. Keep distinct from its stable internal ID."
   },
   "spellBookGaleFolioDescription": "{resource, select, supplies{Large Supplies reserves, critical chance and faster cooldowns, with less stamina.} other{Large mana reserves, critical chance and faster cooldowns, with less stamina.}}",
   "@spellBookGaleFolioDescription": {
@@ -628,10 +396,6 @@
       }
     }
   },
-  "spellBookNullTestamentName": "Null Testament",
-  "@spellBookNullTestamentName": {
-    "description": "Catalog name for books/nullTestament. Keep distinct from its stable internal ID."
-  },
   "spellBookNullTestamentDescription": "{resource, select, supplies{Supplies reserves, regeneration and critical chance, with slower stamina recovery.} other{Mana reserves, regeneration and critical chance, with slower stamina recovery.}}",
   "@spellBookNullTestamentDescription": {
     "description": "Catalog description for books/nullTestament. Describes tradeoffs; numeric tuning is supplied separately by Core.",
@@ -642,10 +406,6 @@
         "description": "Semantic resource kind: mana or supplies. Translate the full branches, never these identifiers."
       }
     }
-  },
-  "spellBookCrownOfFocusName": "Crown of Focus",
-  "@spellBookCrownOfFocusName": {
-    "description": "Catalog name for books/crownOfFocus. Keep distinct from its stable internal ID."
   },
   "spellBookCrownOfFocusDescription": "{resource, select, supplies{Large Supplies reserves, critical chance and faster cooldowns, with substantially less stamina.} other{Large mana reserves, critical chance and faster cooldowns, with substantially less stamina.}}",
   "@spellBookCrownOfFocusDescription": {
@@ -658,73 +418,37 @@
       }
     }
   },
-  "spellBookHunterFieldKitName": "Field Kit",
-  "@spellBookHunterFieldKitName": {
-    "description": "Catalog name for books/hunterFieldKit. Keep distinct from its stable internal ID."
-  },
   "spellBookHunterFieldKitDescription": "Balanced Supplies and critical chance, with a smaller stamina reserve.",
   "@spellBookHunterFieldKitDescription": {
     "description": "Catalog description for books/hunterFieldKit. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "spellBookHunterLongtrailPackName": "Longtrail Pack",
-  "@spellBookHunterLongtrailPackName": {
-    "description": "Catalog name for books/hunterLongtrailPack. Keep distinct from its stable internal ID."
   },
   "spellBookHunterLongtrailPackDescription": "Sustained Supplies and faster recovery between actions, with slower health regeneration.",
   "@spellBookHunterLongtrailPackDescription": {
     "description": "Catalog description for books/hunterLongtrailPack. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "spellBookHunterMarksmanRollName": "Marksman's Roll",
-  "@spellBookHunterMarksmanRollName": {
-    "description": "Catalog name for books/hunterMarksmanRoll. Keep distinct from its stable internal ID."
-  },
   "spellBookHunterMarksmanRollDescription": "Critical-shot preparation and faster cooldowns, with slower stamina recovery.",
   "@spellBookHunterMarksmanRollDescription": {
     "description": "Catalog description for books/hunterMarksmanRoll. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "spellBookHunterQuickAccessSatchelName": "Quick-Access Satchel",
-  "@spellBookHunterQuickAccessSatchelName": {
-    "description": "Catalog name for books/hunterQuickAccessSatchel. Keep distinct from its stable internal ID."
   },
   "spellBookHunterQuickAccessSatchelDescription": "Frequent short exchanges, with less stamina and no extra Supplies capacity.",
   "@spellBookHunterQuickAccessSatchelDescription": {
     "description": "Catalog description for books/hunterQuickAccessSatchel. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "spellBookHunterReserveBandolierName": "Reserve Bandolier",
-  "@spellBookHunterReserveBandolierName": {
-    "description": "Catalog name for books/hunterReserveBandolier. Keep distinct from its stable internal ID."
-  },
   "spellBookHunterReserveBandolierDescription": "A large opening reserve and critical chance, with substantially less stamina.",
   "@spellBookHunterReserveBandolierDescription": {
     "description": "Catalog description for books/hunterReserveBandolier. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "spellBookHunterTrackerPouchName": "Tracker's Pouch",
-  "@spellBookHunterTrackerPouchName": {
-    "description": "Catalog name for books/hunterTrackerPouch. Keep distinct from its stable internal ID."
   },
   "spellBookHunterTrackerPouchDescription": "Offensive pursuit that preserves stamina, at the cost of health recovery.",
   "@spellBookHunterTrackerPouchDescription": {
     "description": "Catalog description for books/hunterTrackerPouch. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "spellBookHunterSurveyorCaseName": "Surveyor's Case",
-  "@spellBookHunterSurveyorCaseName": {
-    "description": "Catalog name for books/hunterSurveyorCase. Keep distinct from its stable internal ID."
-  },
   "spellBookHunterSurveyorCaseDescription": "A large Supplies reserve and ready utility, with slower stamina recovery.",
   "@spellBookHunterSurveyorCaseDescription": {
     "description": "Catalog description for books/hunterSurveyorCase. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "spellBookHunterQuarryKitName": "Quarry Kit",
-  "@spellBookHunterQuarryKitName": {
-    "description": "Catalog name for books/hunterQuarryKit. Keep distinct from its stable internal ID."
-  },
   "spellBookHunterQuarryKitDescription": "Critical offensive windows and faster cooldowns, with little stamina headroom.",
   "@spellBookHunterQuarryKitDescription": {
     "description": "Catalog description for books/hunterQuarryKit. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "accessorySpeedBootsName": "Speed Boots",
-  "@accessorySpeedBootsName": {
-    "description": "Catalog name for accessories/speedBoots. Keep distinct from its stable internal ID."
   },
   "accessorySpeedBootsDescription": "{resource, select, supplies{Tempo accessory with movement, stamina regen, and cooldown pacing at heavy Supplies tax.} other{Tempo accessory with movement, stamina regen, and cooldown pacing at heavy mana tax.}}",
   "@accessorySpeedBootsDescription": {
@@ -737,25 +461,13 @@
       }
     }
   },
-  "accessoryGoldenRingName": "Golden Ring",
-  "@accessoryGoldenRingName": {
-    "description": "Catalog name for accessories/goldenRing. Keep distinct from its stable internal ID."
-  },
   "accessoryGoldenRingDescription": "Clutch sustain ring with health and emergency low-health healing.",
   "@accessoryGoldenRingDescription": {
     "description": "Catalog description for accessories/goldenRing. Describes tradeoffs; numeric tuning is supplied separately by Core."
   },
-  "accessoryTeethNecklaceName": "Teeth Necklace",
-  "@accessoryTeethNecklaceName": {
-    "description": "Catalog name for accessories/teethNecklace. Keep distinct from its stable internal ID."
-  },
   "accessoryTeethNecklaceDescription": "Stamina necklace with low-health stamina restore, traded against max health.",
   "@accessoryTeethNecklaceDescription": {
     "description": "Catalog description for accessories/teethNecklace. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "accessoryDiamondRingName": "Diamond Ring",
-  "@accessoryDiamondRingName": {
-    "description": "Catalog name for accessories/diamondRing. Keep distinct from its stable internal ID."
   },
   "accessoryDiamondRingDescription": "{resource, select, supplies{Supplies ring with low-health Supplies restore, traded against max stamina.} other{Mana ring with low-health mana restore, traded against max stamina.}}",
   "@accessoryDiamondRingDescription": {
@@ -768,17 +480,9 @@
       }
     }
   },
-  "accessoryIronBootsName": "Iron Boots",
-  "@accessoryIronBootsName": {
-    "description": "Catalog name for accessories/ironBoots. Keep distinct from its stable internal ID."
-  },
   "accessoryIronBootsDescription": "Defensive boots with physical resistance that tax global power.",
   "@accessoryIronBootsDescription": {
     "description": "Catalog description for accessories/ironBoots. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "accessoryOathBeadsName": "Oath Beads",
-  "@accessoryOathBeadsName": {
-    "description": "Catalog name for accessories/oathBeads. Keep distinct from its stable internal ID."
   },
   "accessoryOathBeadsDescription": "{resource, select, supplies{Caster-tempo beads with cooldown, Supplies regen, and power at a defense tax.} other{Caster-tempo beads with cooldown, mana regen, and power at a defense tax.}}",
   "@accessoryOathBeadsDescription": {
@@ -791,17 +495,9 @@
       }
     }
   },
-  "accessoryResilienceCapeName": "Resilience Cape",
-  "@accessoryResilienceCapeName": {
-    "description": "Catalog name for accessories/resilienceCape. Keep distinct from its stable internal ID."
-  },
   "accessoryResilienceCapeDescription": "Elemental counterpick with fire and dark resistance plus defense.",
   "@accessoryResilienceCapeDescription": {
     "description": "Catalog description for accessories/resilienceCape. Describes tradeoffs; numeric tuning is supplied separately by Core."
-  },
-  "accessoryStrengthBeltName": "Strength Belt",
-  "@accessoryStrengthBeltName": {
-    "description": "Catalog name for accessories/strengthBelt. Keep distinct from its stable internal ID."
   },
   "accessoryStrengthBeltDescription": "Burst belt with power, crit, and stamina at slower cooldown recovery.",
   "@accessoryStrengthBeltDescription": {

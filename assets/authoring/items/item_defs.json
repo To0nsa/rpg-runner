@@ -1,0 +1,1754 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "category": "weapon",
+      "id": "plainsteel",
+      "ordinal": 0,
+      "name": {
+        "en": "Plainsteel",
+        "fr": "Acier simple"
+      },
+      "icon": "plainsteel",
+      "data": {
+        "category": "primary",
+        "weaponType": "oneHandedSword",
+        "stats": {
+          "globalPowerBonusBp": 1500,
+          "globalCritChanceBonusBp": 1000,
+          "staminaBonusBp": 1000,
+          "defenseBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "waspfang",
+      "ordinal": 1,
+      "name": {
+        "en": "Waspfang",
+        "fr": "Croc de guêpe"
+      },
+      "icon": "waspfang",
+      "data": {
+        "category": "primary",
+        "weaponType": "oneHandedSword",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "meleeBleed",
+            "chanceBp": 2000
+          }
+        ],
+        "stats": {
+          "globalPowerBonusBp": 500,
+          "healthBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "cinderedge",
+      "ordinal": 2,
+      "name": {
+        "en": "Cinderedge",
+        "fr": "Tranchant de braise"
+      },
+      "icon": "cinderedge",
+      "data": {
+        "category": "primary",
+        "weaponType": "oneHandedSword",
+        "procs": [
+          {
+            "hook": "onCrit",
+            "statusProfileId": "burnOnHit",
+            "chanceBp": 10000
+          }
+        ],
+        "stats": {
+          "globalCritChanceBonusBp": 1000,
+          "manaRegenBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "basiliskKiss",
+      "ordinal": 3,
+      "name": {
+        "en": "Basilisk Kiss",
+        "fr": "Baiser du basilic"
+      },
+      "icon": "basiliskKiss",
+      "data": {
+        "category": "primary",
+        "weaponType": "oneHandedSword",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "acidOnHit",
+            "chanceBp": 2000
+          }
+        ],
+        "stats": {
+          "staminaRegenBonusBp": 1000,
+          "healthBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "frostbrand",
+      "ordinal": 4,
+      "name": {
+        "en": "Frostbrand",
+        "fr": "Marque de givre"
+      },
+      "icon": "frostbrand",
+      "data": {
+        "category": "primary",
+        "weaponType": "oneHandedSword",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "slowOnHit",
+            "chanceBp": 2000
+          }
+        ],
+        "stats": {
+          "globalPowerBonusBp": 1000,
+          "defenseBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "stormneedle",
+      "ordinal": 5,
+      "name": {
+        "en": "Stormneedle",
+        "fr": "Aiguille d’orage"
+      },
+      "icon": "stormneedle",
+      "data": {
+        "category": "primary",
+        "weaponType": "oneHandedSword",
+        "stats": {
+          "globalCritChanceBonusBp": 1000,
+          "staminaBonusBp": 1500,
+          "staminaRegenBonusBp": 500,
+          "healthBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "nullblade",
+      "ordinal": 6,
+      "name": {
+        "en": "Nullblade",
+        "fr": "Lame du néant"
+      },
+      "icon": "nullblade",
+      "data": {
+        "category": "primary",
+        "weaponType": "oneHandedSword",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "silenceOnHit",
+            "chanceBp": 2000
+          }
+        ],
+        "stats": {
+          "globalCritChanceBonusBp": 1000,
+          "staminaBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "sunlitVow",
+      "ordinal": 7,
+      "name": {
+        "en": "Sunlit Vow",
+        "fr": "Vœu solaire"
+      },
+      "icon": "sunlitVow",
+      "data": {
+        "category": "primary",
+        "weaponType": "oneHandedSword",
+        "procs": [
+          {
+            "hook": "onKill",
+            "statusProfileId": "focus",
+            "chanceBp": 3500
+          }
+        ],
+        "stats": {
+          "globalPowerBonusBp": 1000,
+          "staminaRegenBonusBp": 1000,
+          "healthBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "roadguard",
+      "ordinal": 8,
+      "name": {
+        "en": "Roadguard",
+        "fr": "Garde-route"
+      },
+      "icon": "roadguard",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "stats": {
+          "defenseBonusBp": 1500,
+          "staminaBonusBp": 1500,
+          "physicalResistanceBp": 1000,
+          "moveSpeedBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "thornbark",
+      "ordinal": 9,
+      "name": {
+        "en": "Thornbark",
+        "fr": "Écorce épineuse"
+      },
+      "icon": "thornbark",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "reactiveProcs": [
+          {
+            "hook": "onDamaged",
+            "statusProfileId": "meleeBleed",
+            "target": "attacker",
+            "chanceBp": 3500
+          }
+        ],
+        "stats": {
+          "defenseBonusBp": 1000,
+          "globalPowerBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "cinderWard",
+      "ordinal": 10,
+      "name": {
+        "en": "Cinder Ward",
+        "fr": "Rempart de braise"
+      },
+      "icon": "cinderWard",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "stats": {
+          "fireResistanceBp": 2500,
+          "defenseBonusBp": 1000,
+          "globalCritChanceBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "tideguardShell",
+      "ordinal": 11,
+      "name": {
+        "en": "Tideguard Shell",
+        "fr": "Carapace des marées"
+      },
+      "icon": "tideguardShell",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "stats": {
+          "waterResistanceBp": 2000,
+          "staminaBonusBp": 1500,
+          "defenseBonusBp": 500,
+          "globalPowerBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "frostlockBuckler",
+      "ordinal": 12,
+      "name": {
+        "en": "Frostlock Buckler",
+        "fr": "Rondache de givre"
+      },
+      "icon": "frostlockBuckler",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "stats": {
+          "iceResistanceBp": 2000,
+          "defenseBonusBp": 1000,
+          "staminaBonusBp": 1000,
+          "globalCritChanceBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "ironBastion",
+      "ordinal": 13,
+      "name": {
+        "en": "Iron Bastion",
+        "fr": "Bastion de fer"
+      },
+      "icon": "ironBastion",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "stats": {
+          "defenseBonusBp": 1500,
+          "physicalResistanceBp": 1500,
+          "staminaRegenBonusBp": 1000,
+          "moveSpeedBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "stormAegis",
+      "ordinal": 14,
+      "name": {
+        "en": "Storm Aegis",
+        "fr": "Égide d’orage"
+      },
+      "icon": "stormAegis",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "stats": {
+          "thunderResistanceBp": 2500,
+          "defenseBonusBp": 500,
+          "staminaRegenBonusBp": 1000,
+          "globalCritChanceBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "nullPrism",
+      "ordinal": 15,
+      "name": {
+        "en": "Null Prism",
+        "fr": "Prisme du néant"
+      },
+      "icon": "nullPrism",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "stats": {
+          "darkResistanceBp": 2000,
+          "holyResistanceBp": 1500,
+          "defenseBonusBp": 500,
+          "moveSpeedBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "warbannerGuard",
+      "ordinal": 16,
+      "name": {
+        "en": "Warbanner Guard",
+        "fr": "Garde à la bannière"
+      },
+      "icon": "warbannerGuard",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "stats": {
+          "defenseBonusBp": 1000,
+          "staminaBonusBp": 2000,
+          "bleedResistanceBp": 500,
+          "globalCritChanceBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "oathwallRelic",
+      "ordinal": 17,
+      "name": {
+        "en": "Oathwall Relic",
+        "fr": "Relique du serment"
+      },
+      "icon": "oathwallRelic",
+      "data": {
+        "category": "offHand",
+        "weaponType": "shield",
+        "reactiveProcs": [
+          {
+            "hook": "onLowHealth",
+            "statusProfileId": "speedBoost",
+            "target": "self",
+            "chanceBp": 10000,
+            "lowHealthThresholdBp": 3000,
+            "internalCooldownTicks": 1800
+          }
+        ],
+        "stats": {
+          "defenseBonusBp": 1500,
+          "globalPowerBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterBlade",
+      "ordinal": 18,
+      "name": {
+        "en": "Hunter Blade",
+        "fr": "Lame de chasse"
+      },
+      "icon": "hunterBlade",
+      "data": {
+        "category": "primary",
+        "weaponType": "hunterBlade",
+        "stats": {
+          "globalPowerBonusBp": 1000,
+          "staminaBonusBp": 1500,
+          "staminaRegenBonusBp": 500,
+          "defenseBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterBombKit",
+      "ordinal": 19,
+      "name": {
+        "en": "Bomb Kit",
+        "fr": "Nécessaire à bombes"
+      },
+      "icon": "hunterBombKit",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "defenseBonusBp": 1000,
+          "staminaBonusBp": 1500,
+          "physicalResistanceBp": 1000,
+          "moveSpeedBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterNotchknife",
+      "ordinal": 20,
+      "name": {
+        "en": "Notchknife",
+        "fr": "Couteau cranté"
+      },
+      "icon": "hunterNotchknife",
+      "data": {
+        "category": "primary",
+        "weaponType": "hunterBlade",
+        "stats": {
+          "globalPowerBonusBp": 500,
+          "healthBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "meleeBleed",
+            "chanceBp": 2000,
+            "statusTuning": {
+              "dot": {
+                "magnitude": 200,
+                "durationSeconds": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterHookblade",
+      "ordinal": 21,
+      "name": {
+        "en": "Hookblade",
+        "fr": "Lame à crochet"
+      },
+      "icon": "hunterHookblade",
+      "data": {
+        "category": "primary",
+        "weaponType": "hunterBlade",
+        "stats": {
+          "staminaRegenBonusBp": 1000,
+          "defenseBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "slowOnHit",
+            "chanceBp": 2000,
+            "statusTuning": {
+              "slow": {
+                "magnitude": 2000,
+                "durationSeconds": 2
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterCausticEdge",
+      "ordinal": 22,
+      "name": {
+        "en": "Caustic Edge",
+        "fr": "Tranchant caustique"
+      },
+      "icon": "hunterCausticEdge",
+      "data": {
+        "category": "primary",
+        "weaponType": "hunterBlade",
+        "stats": {
+          "staminaBonusBp": 1000,
+          "healthBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "acidOnHit",
+            "chanceBp": 2000,
+            "statusTuning": {
+              "vulnerable": {
+                "magnitude": 1500,
+                "durationSeconds": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterCinderpoint",
+      "ordinal": 23,
+      "name": {
+        "en": "Cinderpoint",
+        "fr": "Pointe de braise"
+      },
+      "icon": "hunterCinderpoint",
+      "data": {
+        "category": "primary",
+        "weaponType": "hunterBlade",
+        "stats": {
+          "globalCritChanceBonusBp": 1000,
+          "manaRegenBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onCrit",
+            "statusProfileId": "burnOnHit",
+            "chanceBp": 10000,
+            "statusTuning": {
+              "dot": {
+                "magnitude": 200,
+                "durationSeconds": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterSappingBlade",
+      "ordinal": 24,
+      "name": {
+        "en": "Sapping Blade",
+        "fr": "Lame débilitante"
+      },
+      "icon": "hunterSappingBlade",
+      "data": {
+        "category": "primary",
+        "weaponType": "hunterBlade",
+        "stats": {
+          "staminaRegenBonusBp": 1000,
+          "healthBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "weakenOnHit",
+            "chanceBp": 2000,
+            "statusTuning": {
+              "weaken": {
+                "magnitude": 1500,
+                "durationSeconds": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterPursuitBlade",
+      "ordinal": 25,
+      "name": {
+        "en": "Pursuit Blade",
+        "fr": "Lame de poursuite"
+      },
+      "icon": "hunterPursuitBlade",
+      "data": {
+        "category": "primary",
+        "weaponType": "hunterBlade",
+        "stats": {
+          "globalPowerBonusBp": 500,
+          "staminaRegenBonusBp": 1000,
+          "defenseBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onKill",
+            "statusProfileId": "speedBoost",
+            "chanceBp": 3500,
+            "statusTuning": {
+              "haste": {
+                "magnitude": 1500,
+                "durationSeconds": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterLastWord",
+      "ordinal": 26,
+      "name": {
+        "en": "Last Word",
+        "fr": "Dernier mot"
+      },
+      "icon": "hunterLastWord",
+      "data": {
+        "category": "primary",
+        "weaponType": "hunterBlade",
+        "stats": {
+          "globalPowerBonusBp": 1500,
+          "globalCritChanceBonusBp": 1000,
+          "staminaBonusBp": 1000,
+          "healthBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterSplinterRig",
+      "ordinal": 27,
+      "name": {
+        "en": "Splinter Rig",
+        "fr": "Équipement à éclats"
+      },
+      "icon": "hunterSplinterRig",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "defenseBonusBp": 500,
+          "globalPowerBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onCrit",
+            "statusProfileId": "meleeBleed",
+            "chanceBp": 10000,
+            "statusTuning": {
+              "dot": {
+                "magnitude": 200,
+                "durationSeconds": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterPitchRig",
+      "ordinal": 28,
+      "name": {
+        "en": "Pitch Rig",
+        "fr": "Équipement à poix"
+      },
+      "icon": "hunterPitchRig",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "defenseBonusBp": 500,
+          "globalCritChanceBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onCrit",
+            "statusProfileId": "burnOnHit",
+            "chanceBp": 10000,
+            "statusTuning": {
+              "dot": {
+                "magnitude": 200,
+                "durationSeconds": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterSnareRig",
+      "ordinal": 29,
+      "name": {
+        "en": "Snare Rig",
+        "fr": "Équipement d’entrave"
+      },
+      "icon": "hunterSnareRig",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "staminaBonusBp": 1000,
+          "globalPowerBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "slowOnHit",
+            "chanceBp": 2500,
+            "statusTuning": {
+              "slow": {
+                "magnitude": 2500,
+                "durationSeconds": 2
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterEtchingRig",
+      "ordinal": 30,
+      "name": {
+        "en": "Etching Rig",
+        "fr": "Équipement corrosif"
+      },
+      "icon": "hunterEtchingRig",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "staminaRegenBonusBp": 1000,
+          "globalCritChanceBonusBp": -500
+        },
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "acidOnHit",
+            "chanceBp": 2000,
+            "statusTuning": {
+              "vulnerable": {
+                "magnitude": 1500,
+                "durationSeconds": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterSapperHarness",
+      "ordinal": 31,
+      "name": {
+        "en": "Sapper Harness",
+        "fr": "Harnais de sapeur"
+      },
+      "icon": "hunterSapperHarness",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "defenseBonusBp": 1000,
+          "physicalResistanceBp": 1500,
+          "staminaRegenBonusBp": 500,
+          "moveSpeedBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterKilnwrapRig",
+      "ordinal": 32,
+      "name": {
+        "en": "Kilnwrap Rig",
+        "fr": "Équipement ignifuge"
+      },
+      "icon": "hunterKilnwrapRig",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "fireResistanceBp": 2500,
+          "defenseBonusBp": 1000,
+          "staminaBonusBp": 500,
+          "globalCritChanceBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterSealedRig",
+      "ordinal": 33,
+      "name": {
+        "en": "Sealed Rig",
+        "fr": "Équipement étanche"
+      },
+      "icon": "hunterSealedRig",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "acidResistanceBp": 2000,
+          "waterResistanceBp": 1500,
+          "staminaBonusBp": 1000,
+          "globalPowerBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterStormwrapRig",
+      "ordinal": 34,
+      "name": {
+        "en": "Stormwrap Rig",
+        "fr": "Équipement isolant"
+      },
+      "icon": "hunterStormwrapRig",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "thunderResistanceBp": 2500,
+          "defenseBonusBp": 500,
+          "staminaRegenBonusBp": 1000,
+          "globalCritChanceBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "weapon",
+      "id": "hunterBacktrailRig",
+      "ordinal": 35,
+      "name": {
+        "en": "Backtrail Rig",
+        "fr": "Équipement de repli"
+      },
+      "icon": "hunterBacktrailRig",
+      "data": {
+        "category": "offHand",
+        "weaponType": "bombKit",
+        "stats": {
+          "defenseBonusBp": 1000,
+          "globalPowerBonusBp": -1000
+        },
+        "reactiveProcs": [
+          {
+            "hook": "onLowHealth",
+            "statusProfileId": "speedBoost",
+            "chanceBp": 10000,
+            "lowHealthThresholdBp": 3000,
+            "internalCooldownTicks": 1800,
+            "statusTuning": {
+              "haste": {
+                "magnitude": 1500,
+                "durationSeconds": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "category": "accessory",
+      "id": "speedBoots",
+      "ordinal": 0,
+      "name": {
+        "en": "Speed Boots",
+        "fr": "Bottes de vitesse"
+      },
+      "icon": "speedBoots",
+      "data": {
+        "stats": {
+          "moveSpeedBonusBp": 1000,
+          "staminaRegenBonusBp": 1000,
+          "cooldownReductionBp": 500,
+          "manaBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "accessory",
+      "id": "goldenRing",
+      "ordinal": 1,
+      "name": {
+        "en": "Golden Ring",
+        "fr": "Anneau d’or"
+      },
+      "icon": "goldenRing",
+      "data": {
+        "reactiveProcs": [
+          {
+            "hook": "onLowHealth",
+            "statusProfileId": "restoreHealth",
+            "target": "self",
+            "chanceBp": 10000,
+            "lowHealthThresholdBp": 3000,
+            "internalCooldownTicks": 1800
+          }
+        ],
+        "stats": {
+          "healthBonusBp": 1500,
+          "cooldownReductionBp": -500
+        }
+      }
+    },
+    {
+      "category": "accessory",
+      "id": "teethNecklace",
+      "ordinal": 2,
+      "name": {
+        "en": "Teeth Necklace",
+        "fr": "Collier de dents"
+      },
+      "icon": "teethNecklace",
+      "data": {
+        "reactiveProcs": [
+          {
+            "hook": "onLowHealth",
+            "statusProfileId": "restoreStamina",
+            "target": "self",
+            "chanceBp": 10000,
+            "lowHealthThresholdBp": 3000,
+            "internalCooldownTicks": 1800
+          }
+        ],
+        "stats": {
+          "staminaBonusBp": 1500,
+          "healthBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "accessory",
+      "id": "diamondRing",
+      "ordinal": 3,
+      "name": {
+        "en": "Diamond Ring",
+        "fr": "Anneau de diamant"
+      },
+      "icon": "diamondRing",
+      "data": {
+        "reactiveProcs": [
+          {
+            "hook": "onLowHealth",
+            "statusProfileId": "restoreMana",
+            "target": "self",
+            "chanceBp": 10000,
+            "lowHealthThresholdBp": 3000,
+            "internalCooldownTicks": 1800
+          }
+        ],
+        "stats": {
+          "manaBonusBp": 1500,
+          "staminaBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "accessory",
+      "id": "ironBoots",
+      "ordinal": 4,
+      "name": {
+        "en": "Iron Boots",
+        "fr": "Bottes de fer"
+      },
+      "icon": "ironBoots",
+      "data": {
+        "stats": {
+          "healthBonusBp": 500,
+          "defenseBonusBp": 1500,
+          "physicalResistanceBp": 1500,
+          "globalPowerBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "accessory",
+      "id": "oathBeads",
+      "ordinal": 5,
+      "name": {
+        "en": "Oath Beads",
+        "fr": "Perles du serment"
+      },
+      "icon": "oathBeads",
+      "data": {
+        "stats": {
+          "cooldownReductionBp": 500,
+          "globalPowerBonusBp": 1000,
+          "manaRegenBonusBp": 1000,
+          "defenseBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "accessory",
+      "id": "resilienceCape",
+      "ordinal": 6,
+      "name": {
+        "en": "Resilience Cape",
+        "fr": "Cape de résilience"
+      },
+      "icon": "resilienceCape",
+      "data": {
+        "stats": {
+          "fireResistanceBp": 2500,
+          "darkResistanceBp": 2000,
+          "defenseBonusBp": 1000,
+          "manaBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "accessory",
+      "id": "strengthBelt",
+      "ordinal": 7,
+      "name": {
+        "en": "Strength Belt",
+        "fr": "Ceinture de force"
+      },
+      "icon": "strengthBelt",
+      "data": {
+        "stats": {
+          "globalPowerBonusBp": 1500,
+          "globalCritChanceBonusBp": 1000,
+          "staminaBonusBp": 1000,
+          "cooldownReductionBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "apprenticePrimer",
+      "ordinal": 0,
+      "name": {
+        "en": "Apprentice Primer",
+        "fr": "Manuel d’apprenti"
+      },
+      "icon": "apprenticePrimer",
+      "data": {
+        "stats": {
+          "manaBonusBp": 1500,
+          "manaRegenBonusBp": 500,
+          "globalCritChanceBonusBp": 500,
+          "staminaBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "bastionCodex",
+      "ordinal": 1,
+      "name": {
+        "en": "Bastion Codex",
+        "fr": "Codex du bastion"
+      },
+      "icon": "bastionCodex",
+      "data": {
+        "stats": {
+          "manaBonusBp": 2000,
+          "manaRegenBonusBp": 1000,
+          "cooldownReductionBp": 500,
+          "healthRegenBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "emberGrimoire",
+      "ordinal": 2,
+      "name": {
+        "en": "Ember Grimoire",
+        "fr": "Grimoire des braises"
+      },
+      "icon": "emberGrimoire",
+      "data": {
+        "stats": {
+          "manaBonusBp": 1000,
+          "globalCritChanceBonusBp": 1000,
+          "cooldownReductionBp": 500,
+          "staminaRegenBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "tideAlmanac",
+      "ordinal": 3,
+      "name": {
+        "en": "Tide Almanac",
+        "fr": "Almanach des marées"
+      },
+      "icon": "tideAlmanac",
+      "data": {
+        "stats": {
+          "manaBonusBp": 2000,
+          "manaRegenBonusBp": 500,
+          "cooldownReductionBp": 500,
+          "staminaBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "hexboundLexicon",
+      "ordinal": 4,
+      "name": {
+        "en": "Hexbound Lexicon",
+        "fr": "Lexique ensorcelé"
+      },
+      "icon": "hexboundLexicon",
+      "data": {
+        "stats": {
+          "manaBonusBp": 1000,
+          "manaRegenBonusBp": 1000,
+          "globalCritChanceBonusBp": 1000,
+          "healthRegenBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "galeFolio",
+      "ordinal": 5,
+      "name": {
+        "en": "Gale Folio",
+        "fr": "Folio des bourrasques"
+      },
+      "icon": "galeFolio",
+      "data": {
+        "stats": {
+          "manaBonusBp": 2000,
+          "globalCritChanceBonusBp": 500,
+          "cooldownReductionBp": 500,
+          "staminaBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "nullTestament",
+      "ordinal": 6,
+      "name": {
+        "en": "Null Testament",
+        "fr": "Testament du néant"
+      },
+      "icon": "nullTestament",
+      "data": {
+        "stats": {
+          "manaBonusBp": 1500,
+          "manaRegenBonusBp": 1000,
+          "globalCritChanceBonusBp": 500,
+          "staminaRegenBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "crownOfFocus",
+      "ordinal": 7,
+      "name": {
+        "en": "Crown of Focus",
+        "fr": "Couronne de concentration"
+      },
+      "icon": "crownOfFocus",
+      "data": {
+        "stats": {
+          "manaBonusBp": 2000,
+          "globalCritChanceBonusBp": 1000,
+          "cooldownReductionBp": 500,
+          "staminaBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "hunterFieldKit",
+      "ordinal": 8,
+      "name": {
+        "en": "Field Kit",
+        "fr": "Nécessaire de terrain"
+      },
+      "icon": "hunterFieldKit",
+      "data": {
+        "weaponType": "fieldKit",
+        "stats": {
+          "manaBonusBp": 1500,
+          "manaRegenBonusBp": 1000,
+          "globalCritChanceBonusBp": 500,
+          "staminaBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "hunterLongtrailPack",
+      "ordinal": 9,
+      "name": {
+        "en": "Longtrail Pack",
+        "fr": "Sac de longue route"
+      },
+      "icon": "hunterLongtrailPack",
+      "data": {
+        "weaponType": "fieldKit",
+        "stats": {
+          "manaBonusBp": 2000,
+          "manaRegenBonusBp": 1000,
+          "cooldownReductionBp": 500,
+          "healthRegenBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "hunterMarksmanRoll",
+      "ordinal": 10,
+      "name": {
+        "en": "Marksman's Roll",
+        "fr": "Trousse de tireur"
+      },
+      "icon": "hunterMarksmanRoll",
+      "data": {
+        "weaponType": "fieldKit",
+        "stats": {
+          "manaBonusBp": 1000,
+          "globalCritChanceBonusBp": 1000,
+          "cooldownReductionBp": 500,
+          "staminaRegenBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "hunterQuickAccessSatchel",
+      "ordinal": 11,
+      "name": {
+        "en": "Quick-Access Satchel",
+        "fr": "Sacoche à accès rapide"
+      },
+      "icon": "hunterQuickAccessSatchel",
+      "data": {
+        "weaponType": "fieldKit",
+        "stats": {
+          "manaRegenBonusBp": 1000,
+          "globalCritChanceBonusBp": 500,
+          "cooldownReductionBp": 500,
+          "staminaBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "hunterReserveBandolier",
+      "ordinal": 12,
+      "name": {
+        "en": "Reserve Bandolier",
+        "fr": "Bandoulière de réserve"
+      },
+      "icon": "hunterReserveBandolier",
+      "data": {
+        "weaponType": "fieldKit",
+        "stats": {
+          "manaBonusBp": 2000,
+          "manaRegenBonusBp": 500,
+          "globalCritChanceBonusBp": 1000,
+          "staminaBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "hunterTrackerPouch",
+      "ordinal": 13,
+      "name": {
+        "en": "Tracker's Pouch",
+        "fr": "Bourse de pisteur"
+      },
+      "icon": "hunterTrackerPouch",
+      "data": {
+        "weaponType": "fieldKit",
+        "stats": {
+          "manaBonusBp": 1000,
+          "manaRegenBonusBp": 500,
+          "globalCritChanceBonusBp": 1000,
+          "healthRegenBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "hunterSurveyorCase",
+      "ordinal": 14,
+      "name": {
+        "en": "Surveyor's Case",
+        "fr": "Étui d’arpenteur"
+      },
+      "icon": "hunterSurveyorCase",
+      "data": {
+        "weaponType": "fieldKit",
+        "stats": {
+          "manaBonusBp": 2000,
+          "globalCritChanceBonusBp": 500,
+          "cooldownReductionBp": 500,
+          "staminaRegenBonusBp": -500
+        }
+      }
+    },
+    {
+      "category": "spellBook",
+      "id": "hunterQuarryKit",
+      "ordinal": 15,
+      "name": {
+        "en": "Quarry Kit",
+        "fr": "Nécessaire de traque"
+      },
+      "icon": "hunterQuarryKit",
+      "data": {
+        "weaponType": "fieldKit",
+        "stats": {
+          "manaRegenBonusBp": 500,
+          "globalCritChanceBonusBp": 1000,
+          "cooldownReductionBp": 500,
+          "staminaBonusBp": -1000
+        }
+      }
+    },
+    {
+      "category": "projectile",
+      "id": "iceBolt",
+      "ordinal": 1,
+      "name": {
+        "en": "Ice Bolt",
+        "fr": "Trait de glace"
+      },
+      "icon": "iceBolt",
+      "data": {
+        "weaponType": "spell",
+        "speedUnitsPerSecond": 600.0,
+        "lifetimeSeconds": 1.3,
+        "colliderSizeX": 25.0,
+        "colliderSizeY": 9.0,
+        "damageType": "ice",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "slowOnHit"
+          }
+        ]
+      },
+      "renderAs": "iceBolt"
+    },
+    {
+      "category": "projectile",
+      "id": "fireBolt",
+      "ordinal": 2,
+      "name": {
+        "en": "Fire Bolt",
+        "fr": "Trait de feu"
+      },
+      "icon": "fireBolt",
+      "data": {
+        "weaponType": "spell",
+        "speedUnitsPerSecond": 600.0,
+        "lifetimeSeconds": 1.3,
+        "colliderSizeX": 31.5,
+        "colliderSizeY": 10.8438,
+        "damageType": "fire",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "burnOnHit"
+          }
+        ]
+      },
+      "renderAs": "fireBolt"
+    },
+    {
+      "category": "projectile",
+      "id": "acidBolt",
+      "ordinal": 3,
+      "name": {
+        "en": "Acid Bolt",
+        "fr": "Trait d’acide"
+      },
+      "icon": "acidBolt",
+      "data": {
+        "weaponType": "spell",
+        "speedUnitsPerSecond": 500.0,
+        "lifetimeSeconds": 1.3,
+        "colliderSizeX": 2.0,
+        "colliderSizeY": 12.0,
+        "damageType": "acid",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "acidOnHit"
+          }
+        ]
+      },
+      "renderAs": "acidBolt"
+    },
+    {
+      "category": "projectile",
+      "id": "darkBolt",
+      "ordinal": 4,
+      "name": {
+        "en": "Dark Bolt",
+        "fr": "Trait de ténèbres"
+      },
+      "icon": "darkBolt",
+      "data": {
+        "weaponType": "spell",
+        "speedUnitsPerSecond": 550.0,
+        "lifetimeSeconds": 1.3,
+        "colliderSizeX": 14.625,
+        "colliderSizeY": 13.5,
+        "damageType": "dark",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "weakenOnHit"
+          }
+        ]
+      },
+      "renderAs": "darkBolt"
+    },
+    {
+      "category": "projectile",
+      "id": "earthBolt",
+      "ordinal": 5,
+      "name": {
+        "en": "Earth Bolt",
+        "fr": "Trait de terre"
+      },
+      "icon": "earthBolt",
+      "data": {
+        "weaponType": "spell",
+        "speedUnitsPerSecond": 500.0,
+        "lifetimeSeconds": 1.3,
+        "colliderSizeX": 18.0,
+        "colliderSizeY": 10.0,
+        "damageType": "earth",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "stunOnHit"
+          }
+        ]
+      },
+      "renderAs": "earthBolt"
+    },
+    {
+      "category": "projectile",
+      "id": "holyBolt",
+      "ordinal": 6,
+      "name": {
+        "en": "Holy Bolt",
+        "fr": "Trait sacré"
+      },
+      "icon": "holyBolt",
+      "data": {
+        "weaponType": "spell",
+        "speedUnitsPerSecond": 550.0,
+        "lifetimeSeconds": 1.3,
+        "colliderSizeX": 27.5,
+        "colliderSizeY": 9.0,
+        "damageType": "holy",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "silenceOnHit"
+          }
+        ]
+      },
+      "renderAs": "holyBolt"
+    },
+    {
+      "category": "projectile",
+      "id": "waterBolt",
+      "ordinal": 7,
+      "name": {
+        "en": "Water Bolt",
+        "fr": "Trait d’eau"
+      },
+      "icon": "waterBolt",
+      "data": {
+        "weaponType": "spell",
+        "speedUnitsPerSecond": 550.0,
+        "lifetimeSeconds": 1.3,
+        "colliderSizeX": 23.0,
+        "colliderSizeY": 10.5,
+        "damageType": "water",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "drenchOnHit"
+          }
+        ]
+      },
+      "renderAs": "waterBolt"
+    },
+    {
+      "category": "projectile",
+      "id": "thunderBolt",
+      "ordinal": 8,
+      "name": {
+        "en": "Thunder Bolt",
+        "fr": "Trait de foudre"
+      },
+      "icon": "thunderBolt",
+      "data": {
+        "weaponType": "spell",
+        "speedUnitsPerSecond": 650.0,
+        "lifetimeSeconds": 1.3,
+        "colliderSizeX": 26.5,
+        "colliderSizeY": 8.0,
+        "damageType": "thunder",
+        "procs": [
+          {
+            "hook": "onHit",
+            "statusProfileId": "stunOnHit"
+          }
+        ]
+      },
+      "renderAs": "thunderBolt"
+    },
+    {
+      "category": "projectile",
+      "id": "hunterPistol",
+      "ordinal": 15,
+      "name": {
+        "en": "Pistol",
+        "fr": "Pistolet"
+      },
+      "icon": "hunterPistol",
+      "data": {
+        "weaponType": "firearm",
+        "speedUnitsPerSecond": 720,
+        "lifetimeSeconds": 0.9,
+        "colliderSizeX": 8,
+        "colliderSizeY": 3
+      },
+      "renderAs": "hunterPistol"
+    },
+    {
+      "category": "projectile",
+      "id": "hunterCrossbow",
+      "ordinal": 16,
+      "name": {
+        "en": "Crossbow",
+        "fr": "Arbalète"
+      },
+      "icon": "hunterCrossbow",
+      "data": {
+        "weaponType": "crossbow",
+        "speedUnitsPerSecond": 600,
+        "lifetimeSeconds": 1.4,
+        "colliderSizeX": 16,
+        "colliderSizeY": 3,
+        "damageScaleBp": 11500
+      },
+      "renderAs": "hunterCrossbow"
+    },
+    {
+      "category": "projectile",
+      "id": "hunterShotgun",
+      "ordinal": 17,
+      "name": {
+        "en": "Shotgun",
+        "fr": "Fusil à grenaille"
+      },
+      "icon": "hunterShotgun",
+      "data": {
+        "weaponType": "firearm",
+        "speedUnitsPerSecond": 620,
+        "lifetimeSeconds": 0.42,
+        "colliderSizeX": 6,
+        "colliderSizeY": 3,
+        "shotCount": 3,
+        "spreadRadians": 0.18,
+        "damageScaleBp": 13000
+      },
+      "renderAs": "hunterShotgun"
+    },
+    {
+      "category": "projectile",
+      "id": "hunterRoadsidePistol",
+      "ordinal": 19,
+      "name": {
+        "en": "Roadside Pistol",
+        "fr": "Pistolet de grand-route"
+      },
+      "icon": "hunterRoadsidePistol",
+      "data": {
+        "weaponType": "firearm",
+        "speedUnitsPerSecond": 850,
+        "lifetimeSeconds": 0.55,
+        "colliderSizeX": 8,
+        "colliderSizeY": 3,
+        "damageScaleBp": 11000,
+        "shotCount": 1,
+        "spreadRadians": 0
+      },
+      "renderAs": "hunterRoadsidePistol"
+    },
+    {
+      "category": "projectile",
+      "id": "hunterLongbarrelPistol",
+      "ordinal": 20,
+      "name": {
+        "en": "Longbarrel Pistol",
+        "fr": "Pistolet à canon long"
+      },
+      "icon": "hunterLongbarrelPistol",
+      "data": {
+        "weaponType": "firearm",
+        "speedUnitsPerSecond": 800,
+        "lifetimeSeconds": 1.0,
+        "colliderSizeX": 8,
+        "colliderSizeY": 3,
+        "damageScaleBp": 9000,
+        "shotCount": 1,
+        "spreadRadians": 0
+      },
+      "renderAs": "hunterLongbarrelPistol"
+    },
+    {
+      "category": "projectile",
+      "id": "hunterLongwatchCrossbow",
+      "ordinal": 21,
+      "name": {
+        "en": "Longwatch Crossbow",
+        "fr": "Arbalète de longue veille"
+      },
+      "icon": "hunterLongwatchCrossbow",
+      "data": {
+        "weaponType": "crossbow",
+        "speedUnitsPerSecond": 720,
+        "lifetimeSeconds": 1.35,
+        "colliderSizeX": 16,
+        "colliderSizeY": 3,
+        "damageScaleBp": 10000,
+        "shotCount": 1,
+        "spreadRadians": 0
+      },
+      "renderAs": "hunterLongwatchCrossbow"
+    },
+    {
+      "category": "projectile",
+      "id": "hunterHeavyLimbCrossbow",
+      "ordinal": 22,
+      "name": {
+        "en": "Heavy-Limb Crossbow",
+        "fr": "Arbalète à arc puissant"
+      },
+      "icon": "hunterHeavyLimbCrossbow",
+      "data": {
+        "weaponType": "crossbow",
+        "speedUnitsPerSecond": 500,
+        "lifetimeSeconds": 1.0,
+        "colliderSizeX": 16,
+        "colliderSizeY": 3,
+        "damageScaleBp": 12500,
+        "shotCount": 1,
+        "spreadRadians": 0
+      },
+      "renderAs": "hunterHeavyLimbCrossbow"
+    },
+    {
+      "category": "projectile",
+      "id": "hunterBrushgun",
+      "ordinal": 23,
+      "name": {
+        "en": "Brushgun",
+        "fr": "Fusil de sous-bois"
+      },
+      "icon": "hunterBrushgun",
+      "data": {
+        "weaponType": "firearm",
+        "speedUnitsPerSecond": 620,
+        "lifetimeSeconds": 0.55,
+        "colliderSizeX": 6,
+        "colliderSizeY": 3,
+        "damageScaleBp": 11000,
+        "shotCount": 5,
+        "spreadRadians": 0.28
+      },
+      "renderAs": "hunterBrushgun"
+    }
+  ],
+  "internalProjectiles": [
+    {
+      "id": "unknown",
+      "ordinal": 0
+    },
+    {
+      "id": "poisonDart",
+      "ordinal": 9
+    },
+    {
+      "id": "npcSpear",
+      "ordinal": 10
+    },
+    {
+      "id": "npcArrow",
+      "ordinal": 11
+    },
+    {
+      "id": "goddessOrb",
+      "ordinal": 12
+    },
+    {
+      "id": "shoggothOrb",
+      "ordinal": 13
+    },
+    {
+      "id": "voidClaw",
+      "ordinal": 14
+    },
+    {
+      "id": "hunterBomb",
+      "ordinal": 18
+    }
+  ]
+}

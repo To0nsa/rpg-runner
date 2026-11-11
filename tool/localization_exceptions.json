@@ -718,5 +718,22 @@
     "literals": [
       "'campaign'"
     ]
+  },
+  {
+    "file": "packages/game_presentation/lib/gear_text.dart",
+    "reason": "Authored item category keys select generated data; they are not displayed prose.",
+    "literals": [
+      "'weapon'",
+      "'projectile'",
+      "'spellBook'",
+      "'accessory'"
+    ]
+  },
+  {
+    "file": "packages/game_presentation/lib/catalog_gift.dart",
+    "reason": "Retained-gift character wire identity, not player-facing text.",
+    "literals": [
+      "'eloise'"
+    ]
   }
 ]

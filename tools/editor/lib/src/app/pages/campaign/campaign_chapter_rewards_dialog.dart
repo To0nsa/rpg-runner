@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
+import '../shared/game_asset_bundle.dart';
+
 import 'package:game_presentation/catalog_gift.dart';
 import 'package:game_presentation/catalog_gift_picker.dart';
 import 'package:game_presentation/catalog_item.dart';
@@ -18,7 +20,7 @@ class CampaignChapterRewardsDialog extends StatefulWidget {
 
 class _ChapterRewardsState extends State<CampaignChapterRewardsDialog> {
   final _form = GlobalKey<FormState>();
-  final _assets = _GameAssets();
+  final _assets = EditorGameAssetBundle();
   late String _character = widget.chapter.rewardCharacterId ?? '';
   late int _xp = widget.chapter.rewardXp, _gold = widget.chapter.rewardGold;
   late final _items = widget.chapter.rewardItems
@@ -130,14 +132,5 @@ class _ChapterRewardsState extends State<CampaignChapterRewardsDialog> {
         ),
       ],
     ),
-  );
-}
-
-/// The editor already bundles the game dependency's canonical assets. Redirect
-/// the shared icons' keys to that package, without copying atlases or doing I/O.
-class _GameAssets extends CachingAssetBundle {
-  @override
-  Future<ByteData> load(String key) => rootBundle.load(
-    key.startsWith('assets/') ? 'packages/rpg_runner/$key' : key,
   );
 }

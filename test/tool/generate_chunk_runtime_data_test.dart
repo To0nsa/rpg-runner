@@ -888,13 +888,17 @@ void main() {
       expect(result.exitCode, 1);
       expect(
         'generated_output_missing'.allMatches(result.stderr as String),
-        hasLength(8),
+        hasLength(18),
       );
       expect(
         result.stderr,
-        contains('Generated output drift found in 8 file(s).'),
+        contains('Generated output drift found in 18 file(s).'),
       );
       expect(result.stderr, contains('campaign_registry.dart'));
+      // Four enums + four typed maps + shared presentation + backend catalogue.
+      expect(result.stderr, contains('weapon_data.generated.dart'));
+      expect(result.stderr, contains('items.generated.dart'));
+      expect(result.stderr, contains('core_catalog.generated.ts'));
       expect(
         File(
           '${fixtureRoot.path}/packages/runner_core/lib/campaign/campaign_registry.dart',
@@ -1845,6 +1849,11 @@ Future<ProcessResult> _runGenerate({required String workingDirectory}) {
 }
 
 void _writePrefabAndTileDefs(String rootPath) {
+  _writeFile(
+    rootPath,
+    'assets/authoring/items/item_defs.json',
+    File('assets/authoring/items/item_defs.json').readAsStringSync(),
+  );
   _writeFile(rootPath, 'assets/authoring/level/prefab_defs.json', '''
 {
   "schemaVersion": 3,
