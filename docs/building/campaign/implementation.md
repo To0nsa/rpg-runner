@@ -44,6 +44,8 @@ attempt. Double Jump is Éloïse's existing skill; Willow unlocks on four clears
   continuous preview, typed markers, bilingual settings and inclusion controls.
 - [x] Mission ability and chapter character reward selectors, including None,
   Cancel, stale-form rejection and Save/reopen/Undo coverage.
+- [x] Expandable chapter bars, chapter creation/settings and additional mission
+  drafts, with stable identity, selection and creation history coverage.
 - [x] Semantic edits, revision/history, transactional Save, Undo after Save,
   dependency drift, shared-source navigation and captured F5 Play.
 - [x] Bidirectional independent chunk copies preserve supported geometry,
@@ -102,6 +104,7 @@ retain their independent package configs. Flutter checks use `--no-pub`.
 | `tools/editor`: `flutter test test/campaign_authoring_test.dart` | 4 passed: Save/Undo/drift/captured Play, bidirectional copy, reference deletion, workspace controls |
 | `tools/editor`: reward-controls follow-up `flutter test --no-pub test/campaign_authoring_test.dart --reporter expanded` | 7 passed, including reward selection/clearing/Cancel, Save/reopen/Undo/Redo and unsupported/stale edit rejection; local automated checks, no native manual pass |
 | `tools/editor`: reward-controls `dart analyze lib/src/app/pages/campaign lib/src/campaign test/campaign_authoring_test.dart` | No issues; formatting and task diff checks passed. Sandboxed checks stalled and were stopped; successful checks used normal SDK/cache access |
+| `tools/editor`: chapter-authoring follow-up, same focused analyzer and `flutter test --no-pub test/campaign_authoring_test.dart --reporter expanded` | No analysis issues; 10 tests passed. Covers expandable sections, creation/settings, unique draft IDs, mission append limits, Save/reopen, selection fallback and saved-identity history boundaries. UI test interactions wait for scrolling/layout; no native manual pass claimed |
 | `tools/editor`: chunk-v2, Play preparation and home-plugin-switch targets | 47 passed |
 | `services/replay_validator`: cached runner `test` | 367 passed before the added campaign integration cases; final focused rejection cases 2 passed |
 | Root: generator campaign-to-worker target | Passed generated trusted registry, continuous return and exact outcome/tick/gold at 30 and 120 Hz |

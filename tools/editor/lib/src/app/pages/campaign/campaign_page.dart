@@ -14,6 +14,8 @@ import '../chunkCreator/chunk_creator_location.dart';
 import '../shared/authored_playtest_session.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_page_navigation_state.dart';
+import 'campaign_chapter_dialog.dart';
+import 'campaign_chapter_section.dart';
 import 'campaign_edit_dialogs.dart';
 
 final class CampaignLocation extends EditorPageLocation {
@@ -185,6 +187,29 @@ class _CampaignPageState extends State<CampaignPage>
     );
   }
 
+  Future<void> _chapterSettings([CampaignChapterSource? chapter]) async {
+    final d = _doc!;
+    final details = await showDialog<Map<String, Object?>>(
+      context: context,
+      builder: (_) => CampaignChapterDialog(chapter: chapter),
+    );
+    if (!mounted || details == null || !identical(d, _doc)) return;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: chapter == null
+            ? CampaignDomainPlugin.createChapter
+            : CampaignDomainPlugin.editChapter,
+        payload: {
+          'details': details,
+          if (chapter != null) ...{
+            'id': chapter.id,
+            'expectedChapter': chapter.toJson(),
+          },
+        },
+      ),
+    );
+  }
+
   Future<void> _marker() async {
     final d = _doc!;
     final value = await showDialog<({String kind, Object value})>(
@@ -276,55 +301,44 @@ class _CampaignPageState extends State<CampaignPage>
             SizedBox(
               width: 280,
               child: ListView(
+                key: const ValueKey('campaign_library'),
                 padding: const EdgeInsets.all(12),
                 children: [
-                  for (final chapter in d.catalog.chapters) ...[
-                    Text(
-                      chapter.title['en']!,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    Text(chapter.description['en']!),
-                    Text(
-                      'Chapter reward: ${chapter.rewardCharacterId == null ? 'None' : 'Willow'} · ${chapter.missions.fold<int>(0, (sum, m) => sum + m.firstClearXp)} XP',
-                    ),
-                    OutlinedButton(
-                      onPressed: () => _chapterRewards(chapter),
-                      child: const Text('Chapter rewards'),
-                    ),
-                    for (var i = 0; i < chapter.missions.length; i++)
-                      ListTile(
-                        selected: chapter.missions[i].id == m.id,
-                        title: Text(
-                          '${i + 1}. ${chapter.missions[i].title['en']}',
+                  FilledButton.icon(
+                    onPressed: d.catalog.chapters.length < 32
+                        ? () => _chapterSettings()
+                        : null,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create chapter'),
+                  ),
+                  for (var i = 0; i < d.catalog.chapters.length; i++)
+                    CampaignChapterSection(
+                      key: ValueKey(d.catalog.chapters[i].id),
+                      chapter: d.catalog.chapters[i],
+                      number: i + 1,
+                      selectedMissionId: m.id,
+                      onSettings: () => _chapterSettings(d.catalog.chapters[i]),
+                      onRewards: () => _chapterRewards(d.catalog.chapters[i]),
+                      onAddMission: () => widget.controller.applyCommand(
+                        AuthoringCommand(
+                          kind: CampaignDomainPlugin.addMission,
+                          payload: {'id': d.catalog.chapters[i].id},
                         ),
-                        subtitle: Text(
-                          chapter.missions[i].includeInBuild
-                              ? 'Included · previous mission required'
-                              : 'Draft · excluded from Build',
-                        ),
-                        onTap: () => widget.controller.applyCommand(
-                          AuthoringCommand(
-                            kind: CampaignDomainPlugin.selectMission,
-                            payload: {'id': chapter.missions[i].id},
-                          ),
-                        ),
-                        trailing: i == 0
-                            ? null
-                            : IconButton(
-                                tooltip: 'Move mission earlier',
-                                icon: const Icon(Icons.arrow_upward),
-                                onPressed: () => widget.controller.applyCommand(
-                                  AuthoringCommand(
-                                    kind: CampaignDomainPlugin.reorderMission,
-                                    payload: {
-                                      'id': chapter.missions[i].id,
-                                      'targetIndex': i - 1,
-                                    },
-                                  ),
-                                ),
-                              ),
                       ),
-                  ],
+                      onSelectMission: (id) => widget.controller.applyCommand(
+                        AuthoringCommand(
+                          kind: CampaignDomainPlugin.selectMission,
+                          payload: {'id': id},
+                        ),
+                      ),
+                      onMoveEarlier: (id, target) =>
+                          widget.controller.applyCommand(
+                            AuthoringCommand(
+                              kind: CampaignDomainPlugin.reorderMission,
+                              payload: {'id': id, 'targetIndex': target},
+                            ),
+                          ),
+                    ),
                   const Divider(),
                   const Text('Chunk library'),
                   TextField(

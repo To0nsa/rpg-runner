@@ -922,8 +922,23 @@ Level migration, exact admission and release compatibility.
 
 ## Campaign authoring
 
-Open **Campaign**, select a mission, and append chunks from its library in exact
-order. Place the player start, exit and objectives with the typed marker controls.
+Open **Campaign** and expand a **Chapter** bar (starting with **Chapter 1 — Val
+Outpost**) to select a mission. Each chapter contains its own mission list and
+settings; collapsing it changes only the workspace view. **Create chapter** asks
+for English/French titles, descriptions and a regional-map position (0–1 from
+left/top to right/bottom). **Chapter settings** edits those details later.
+
+New chapters start with one empty mission. That mission has no rewards and is
+excluded from Build.
+**Add mission** appends another excluded draft inside that chapter. New chapters
+inherit the current mission's region/background; added missions inherit the last
+mission in their chapter. Configure each draft in **Mission settings**. Names do
+not change allocated IDs, and Save seals new chapter/mission identities; creation
+can be undone before Save. The current catalog admits 32 chapters and 16 missions
+per chapter.
+
+Append chunks from the library in exact order. Place the player start, exit and
+objectives with the typed marker controls.
 Edit the selected occurrence in **Chunk Creator**; use **Copy to Campaign** to
 make an independent layout before changing it. Copying preserves encounters;
 remove unwanted content yourself for Reporting for Duty. **Copy to Runner** makes

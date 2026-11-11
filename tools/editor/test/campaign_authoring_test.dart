@@ -101,6 +101,169 @@ void main() {
         },
       );
 
+  AuthoringCommand createChapter(String title) => AuthoringCommand(
+    kind: CampaignDomainPlugin.createChapter,
+    payload: {
+      'details': {
+        'title': {'en': title, 'fr': title},
+        'description': {'en': 'A chapter draft.', 'fr': 'Un chapitre à créer.'},
+        'mapX': 0.25,
+        'mapY': 0.4,
+      },
+    },
+  );
+
+  test('chapter creation allocates fresh drafts and metadata edits preserve identities', () async {
+    final original = await plugin.loadFromRepo(workspace) as CampaignDocument;
+    var current = plugin.applyEdit(
+      original,
+      createChapter('North Pass'),
+    ) as CampaignDocument;
+    final chapter = current.catalog.chapters.last;
+    expect(chapter.id, 'north_pass');
+    expect(chapter.rewardCharacterId, isNull);
+    expect(chapter.mapX, 0.25);
+    expect(chapter.missions, hasLength(1));
+    expect(current.selected.id, chapter.missions.single.id);
+    expect(current.selected.includeInBuild, isFalse);
+    expect(current.selected.route, isEmpty);
+    expect(current.selected.start, isNull);
+    expect(current.selected.exit, isNull);
+    expect(current.selected.firstClearXp, 0);
+    expect(current.selected.rewardAbilityId, isNull);
+    expect(current.selected.levelId, original.selected.levelId);
+    expect(current.selected.visualThemeId, original.selected.visualThemeId);
+    expect(
+      current.catalog.chapters.first.toJson(),
+      original.catalog.chapters.first.toJson(),
+    );
+    current = plugin.applyEdit(
+      current,
+      createChapter('North Pass'),
+    ) as CampaignDocument;
+    expect(current.catalog.chapters.last.id, 'north_pass_2');
+    final metadata = AuthoringCommand(
+      kind: CampaignDomainPlugin.editChapter,
+      payload: {
+        'id': chapter.id,
+        'expectedChapter': chapter.toJson(),
+        'details': {
+          'title': {'en': 'Renamed pass', 'fr': 'Col renommé'},
+          'description': chapter.description,
+          'mapX': 0.6,
+          'mapY': 0.7,
+        },
+      },
+    );
+    current = plugin.applyEdit(current, metadata) as CampaignDocument;
+    final renamed = current.catalog.chapters[1];
+    expect(renamed.id, chapter.id);
+    expect(renamed.title['en'], 'Renamed pass');
+    expect(
+      renamed.missions.map((m) => m.toJson()),
+      chapter.missions.map((m) => m.toJson()),
+    );
+    expect(() => plugin.applyEdit(current, metadata), throwsStateError);
+    final append = AuthoringCommand(
+      kind: CampaignDomainPlugin.addMission,
+      payload: {'id': chapter.id},
+    );
+    for (var i = 1; i < 16; i++) {
+      current = plugin.applyEdit(current, append) as CampaignDocument;
+    }
+    expect(current.catalog.chapters[1].missions, hasLength(16));
+    expect(current.selected.id, current.catalog.chapters[1].missions.last.id);
+    expect(
+      current.catalog.missions.map((m) => m.id).toSet().length,
+      current.catalog.missions.length,
+    );
+    expect(() => plugin.applyEdit(current, append), throwsFormatException);
+    final invalid = createChapter('Bad map');
+    expect(
+      () => plugin.applyEdit(
+        original,
+        AuthoringCommand(
+          kind: invalid.kind,
+          payload: {
+            'details': {...invalid.payload['details'] as Map, 'mapX': 2},
+          },
+        ),
+      ),
+      throwsFormatException,
+    );
+  });
+
+  test(
+    'unsaved chapter creation is undoable and Save seals new identities',
+    () async {
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await controller.loadWorkspace();
+      controller.applyCommand(createChapter('North Pass'));
+      final created = controller.document as CampaignDocument;
+      final newChapter = created.catalog.chapters.last;
+      controller.undo();
+      var current = controller.document as CampaignDocument;
+      expect(current.catalog.chapters, hasLength(1));
+      expect(current.selected.id, 'reporting_for_duty');
+      expect(controller.pendingChanges.hasChanges, isFalse);
+      controller.redo();
+      current = controller.document as CampaignDocument;
+      expect(current.catalog.chapters.last.id, newChapter.id);
+      controller.applyCommand(
+        AuthoringCommand(
+          kind: CampaignDomainPlugin.addMission,
+          payload: {'id': newChapter.id},
+        ),
+      );
+      expect(
+        (controller.document as CampaignDocument)
+            .catalog
+            .chapters
+            .last
+            .missions,
+        hasLength(2),
+      );
+      controller.undo();
+      expect(
+        (controller.document as CampaignDocument)
+            .catalog
+            .chapters
+            .last
+            .missions,
+        hasLength(1),
+      );
+      controller.redo();
+      await controller.exportDirectWrite();
+      expect(controller.exportError, isNull);
+      final reopened = await plugin.loadFromRepo(workspace) as CampaignDocument;
+      expect(reopened.catalog.chapters.last.id, newChapter.id);
+      expect(reopened.catalog.chapters.last.missions, hasLength(2));
+      current = controller.document as CampaignDocument;
+      final selection = current.selected.id;
+      controller.applyCommand(
+        edit(current, current.selected.toJson()..['firstClearXp'] = 9),
+      );
+      controller.undo();
+      expect((controller.document as CampaignDocument).selected.id, selection);
+      expect(controller.pendingChanges.hasChanges, isFalse);
+      controller.undo();
+      expect(
+        (controller.document as CampaignDocument)
+            .catalog
+            .chapters
+            .last
+            .missions,
+        hasLength(2),
+      );
+      expect(controller.canUndo, isFalse);
+    },
+  );
+
   test('reward edits reject unsupported IDs and stale chapter forms', () async {
     final original = await plugin.loadFromRepo(workspace) as CampaignDocument;
     expect(
@@ -187,11 +350,18 @@ void main() {
     restored = controller.document as CampaignDocument;
     expect(restored.catalog.chapters.first.rewardCharacterId, isNull);
     expect(restored.selected.rewardAbilityId, isNull);
+    expect(controller.pendingChanges.hasChanges, isFalse);
+    controller.applyCommand(
+      edit(restored, restored.selected.toJson()..['firstClearXp'] = 56),
+    );
     // Reward-only edits retain the same drift protection as route edits.
     final source = File(workspace.resolve(campaignSourcePath));
     final external = '${source.readAsStringSync()}\n';
     source.writeAsStringSync(external);
-    final rejected = await plugin.exportToRepo(workspace, document: restored);
+    final rejected = await plugin.exportToRepo(
+      workspace,
+      document: controller.document!,
+    );
     expect(rejected.outcome, ExportOutcome.sourceDrift);
     expect(source.readAsStringSync(), external);
   });
@@ -388,6 +558,118 @@ void main() {
     expect(find.text('Title (fr)'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('chapters collapse, create and reveal selected missions', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+      initialPluginId: plugin.id,
+      initialWorkspacePath: fixture.path,
+    );
+    addTearDown(controller.dispose);
+    await tester.runAsync(controller.loadWorkspace);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: CampaignPage(controller: controller)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Future<void> tap(Finder finder) async {
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> fill(String label, String value) async {
+      final field = find.widgetWithText(TextFormField, label);
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+      await tester.enterText(field, value);
+    }
+
+    await tap(find.text('Chapter 1'));
+    expect(find.text('1. Reporting for Duty'), findsNothing);
+    expect(controller.pendingChanges.hasChanges, isFalse);
+    await tester.drag(
+      find.byKey(const ValueKey('campaign_library')),
+      const Offset(0, 500),
+    );
+    await tester.pumpAndSettle();
+    await tap(find.text('Create chapter'));
+    await tap(find.text('Cancel'));
+    expect(
+      (controller.document as CampaignDocument).catalog.chapters,
+      hasLength(1),
+    );
+    await tap(find.text('Create chapter'));
+    await tap(find.text('Create'));
+    expect(find.text('Required.'), findsWidgets);
+    await fill('Chapter title (en)', 'North Pass');
+    await fill('Chapter title (fr)', 'Col du Nord');
+    await fill('Map X (left 0 → right 1)', '2');
+    await tap(find.text('Create'));
+    expect(find.text('Enter a position from 0 to 1.'), findsOneWidget);
+    await fill('Map X (left 0 → right 1)', '0.3');
+    await tap(find.text('Create'));
+    var document = controller.document as CampaignDocument;
+    expect(document.catalog.chapters, hasLength(2));
+    expect(document.catalog.chapters.last.mapX, 0.3);
+    expect(
+      document.selected.id,
+      document.catalog.chapters.last.missions.single.id,
+    );
+    final section = find.byKey(const ValueKey('north_pass'));
+    expect(section, findsOneWidget);
+    Finder inside(String text) =>
+        find.descendant(of: section, matching: find.text(text));
+    expect(inside('1. Mission 1'), findsOneWidget);
+    await tap(inside('Add mission'));
+    document = controller.document as CampaignDocument;
+    expect(document.catalog.chapters.last.missions, hasLength(2));
+    expect(
+      document.selected.id,
+      document.catalog.chapters.last.missions.last.id,
+    );
+    await tap(inside('Chapter settings'));
+    await fill('Chapter title (en)', 'Northern Pass');
+    await tap(find.text('Apply'));
+    expect(inside('Northern Pass'), findsOneWidget);
+    expect(
+      (controller.document as CampaignDocument).catalog.chapters.last.id,
+      'north_pass',
+    );
+    await tap(find.text('Chapter 2'));
+    expect(inside('1. Mission 1'), findsNothing);
+    controller.applyCommand(
+      AuthoringCommand(
+        kind: CampaignDomainPlugin.selectMission,
+        payload: {'id': document.catalog.chapters.last.missions.first.id},
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(inside('1. Mission 1'), findsOneWidget);
+    await tester.drag(
+      find.byKey(const ValueKey('campaign_library')),
+      const Offset(0, 900),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Chapter 1'), findsOneWidget);
+    expect(find.text('1. Reporting for Duty'), findsNothing);
+    controller.applyCommand(
+      AuthoringCommand(
+        kind: CampaignDomainPlugin.selectMission,
+        payload: {'id': 'reporting_for_duty'},
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('1. Reporting for Duty'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

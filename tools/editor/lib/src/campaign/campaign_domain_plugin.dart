@@ -8,6 +8,7 @@ import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import '../chunks/chunk_domain_plugin.dart';
 import '../chunks/chunk_v2_file_codec.dart';
 import '../chunks/chunk_v2_models.dart';
+import '../domain/authoring_history_revision.dart';
 import '../domain/authoring_session_semantics.dart';
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
@@ -20,7 +21,10 @@ final class CampaignDocument extends AuthoringDocument {
     required this.chunks,
     required this.dependencies,
     String? selectedMissionId,
-  }) : selectedMissionId = selectedMissionId ?? catalog.missions.first.id;
+  }) : selectedMissionId =
+           catalog.missions.any((m) => m.id == selectedMissionId)
+           ? selectedMissionId!
+           : catalog.missions.first.id;
   final CampaignCatalogSource catalog;
   final String baseline;
   final ChunkV2Document chunks;
@@ -70,6 +74,15 @@ final class CampaignDomainPlugin
   static const selectMission = 'campaign_select_mission';
   static const replaceMission = 'campaign_replace_mission';
   static const reorderMission = 'campaign_reorder_mission';
+
+  /// Accepts title/description/mapX/mapY in details; selects a fresh draft mission.
+  static const createChapter = 'campaign_create_chapter';
+
+  /// Appends an excluded draft to chapter id, inheriting only its last mission's region/theme.
+  static const addMission = 'campaign_add_mission';
+
+  /// Replaces metadata in details only when expectedChapter still matches.
+  static const editChapter = 'campaign_edit_chapter';
 
   /// Sets only the chapter reward; expectedRewardCharacterId guards stale forms.
   static const setChapterReward = 'campaign_set_chapter_reward';
@@ -161,6 +174,59 @@ final class CampaignDomainPlugin
     final json = doc.catalog.toJson();
     final chapters = json['chapters'] as List;
     final id = command.payload['id'];
+    if (command.kind == createChapter) {
+      final details = command.payload['details'] as Map;
+      final title = details['title'] as Map;
+      final chapterId = _allocateId(
+        title['en'] as String,
+        doc.catalog.chapters.map((c) => c.id).toSet(),
+      );
+      final mission = _draftMission(doc, chapterId, 1, doc.selected);
+      chapters.add({
+        'id': chapterId,
+        for (final key in ['title', 'description', 'mapX', 'mapY'])
+          key: details[key],
+        'rewardCharacterId': null,
+        'missions': [mission.toJson()],
+      });
+      return doc.withCatalog(
+        CampaignCatalogSource.decode(jsonEncode(json)),
+        selection: mission.id,
+      );
+    }
+    if (command.kind == editChapter || command.kind == addMission) {
+      final chapter = chapters
+          .cast<Map>()
+          .where((c) => c['id'] == id)
+          .firstOrNull;
+      if (chapter == null) throw ArgumentError('Unknown chapter $id.');
+      if (command.kind == editChapter) {
+        if (jsonEncode(command.payload['expectedChapter']) !=
+            jsonEncode(chapter)) {
+          throw StateError('Chapter changed; reload this form.');
+        }
+        final details = command.payload['details'] as Map;
+        for (final key in ['title', 'description', 'mapX', 'mapY']) {
+          chapter[key] = details[key];
+        }
+        final next = CampaignCatalogSource.decode(jsonEncode(json));
+        return next.encode() == doc.catalog.encode()
+            ? doc
+            : doc.withCatalog(next);
+      }
+      final missions = chapter['missions'] as List;
+      final mission = _draftMission(
+        doc,
+        chapter['id'] as String,
+        missions.length + 1,
+        CampaignMissionSource.decode(missions.last),
+      );
+      missions.add(mission.toJson());
+      return doc.withCatalog(
+        CampaignCatalogSource.decode(jsonEncode(json)),
+        selection: mission.id,
+      );
+    }
     if (command.kind == setChapterReward) {
       final chapter = chapters
           .cast<Map>()
@@ -302,18 +368,90 @@ final class CampaignDomainPlugin
   }) {
     final now = current as CampaignDocument;
     final old = historical as CampaignDocument;
+    final persisted = CampaignCatalogSource.decode(now.baseline);
+    // Persisted identities may already own account progress. Undo may remove
+    // unsaved drafts, but cannot delete or recycle a saved chapter or mission.
+    if (persisted.chapters.any(
+          (c) => !old.catalog.chapters.any((o) => o.id == c.id),
+        ) ||
+        persisted.missions.any(
+          (m) => !old.catalog.missions.any((o) => o.id == m.id),
+        )) {
+      return null;
+    }
     final json = old.catalog.toJson()..['revision'] = now.catalog.revision;
     for (final chapter in json['chapters'] as List) {
       for (final mission in chapter['missions'] as List) {
-        mission['revision'] =
-            now.catalog.missions
-                .firstWhere((m) => m.id == mission['id'])
-                .revision +
-            1;
+        final existing = now.catalog.missions
+            .where((m) => m.id == mission['id'])
+            .firstOrNull;
+        final saved = persisted.missions
+            .where((m) => m.id == mission['id'])
+            .firstOrNull;
+        final desired = CampaignMissionSource.decode(mission);
+        mission['revision'] = reconcileAuthoringHistoryRevision(
+          currentRevision: existing?.revision,
+          persistedRevision: saved?.revision,
+          restoresPersistedContent:
+              saved != null && _sameMission(desired, saved),
+          preservesCurrentContent:
+              existing != null && _sameMission(desired, existing),
+        );
       }
     }
     return now.withCatalog(CampaignCatalogSource.decode(jsonEncode(json)));
   }
+}
+
+bool _sameMission(CampaignMissionSource a, CampaignMissionSource b) =>
+    jsonEncode(a.toJson()..remove('revision')) ==
+    jsonEncode(b.toJson()..remove('revision'));
+
+/// New drafts inherit only the region/background, never content or rewards.
+CampaignMissionSource _draftMission(
+  CampaignDocument document,
+  String chapterId,
+  int number,
+  CampaignMissionSource template,
+) => CampaignMissionSource.decode({
+  'id': _allocateId(
+    '${chapterId.length > 40 ? chapterId.substring(0, 40) : chapterId}_mission_$number',
+    document.catalog.missions.map((m) => m.id).toSet(),
+  ),
+  'revision': 1,
+  'includeInBuild': false,
+  'title': {'en': 'Mission $number', 'fr': 'Mission $number'},
+  'description': {
+    'en': 'Describe this mission.',
+    'fr': 'Décris cette mission.',
+  },
+  'levelId': template.levelId,
+  'visualThemeId': template.visualThemeId,
+  'firstClearXp': 0,
+  'rewardAbilityId': null,
+  'combatAllowed': true,
+  'route': [],
+  'start': null,
+  'exit': null,
+  'collectibles': [],
+  'requiredRegions': [],
+  'requiredEnemies': [],
+  'requiredRescues': [],
+});
+
+String _allocateId(String name, Set<String> existing) {
+  var base = name
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_+|_+$'), '');
+  if (base.isEmpty || !RegExp(r'^[a-z]').hasMatch(base)) base = 'chapter_$base';
+  // Leave room for suffixes and the 64-character mission wire identity limit.
+  if (base.length > 52) base = base.substring(0, 52);
+  var id = base;
+  for (var suffix = 2; existing.contains(id); suffix++) {
+    id = '${base}_$suffix';
+  }
+  return id;
 }
 
 final class _CampaignRecovery implements AuthoringExportRecovery {

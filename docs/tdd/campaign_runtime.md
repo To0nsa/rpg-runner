@@ -54,8 +54,9 @@ idling and backtracking cannot add survival/distance points.
 
 ## Source and build contracts
 
-`assets/authoring/campaign/chapter_defs.json` uses strict schema 1. Chapter order
-defines sequential prerequisites. Missions carry stable identity/revision,
+`assets/authoring/campaign/chapter_defs.json` uses strict schema 1. Mission order
+within each chapter defines sequential prerequisites; chapters have independent
+mission progressions. Missions carry stable identity/revision,
 English/French title and assignment, regional level/theme, explicit inclusion,
 first-clear XP/ability policy, ordered occurrences and local markers. Incomplete
 route/start/exit drafts are saveable but cannot Play or enter Build.
@@ -77,13 +78,29 @@ status is still required for Play; usage and lifecycle status remain independent
 The Campaign plugin owns semantic edits, revisions and transactional Save. It
 reuses shell history, pending-change handling, navigation, Build and captured Play.
 Undo after Save retains current baselines; dependency drift blocks overwrites.
-Chapter reordering changes prerequisites explicitly. Route reordering preserves
+Mission reordering changes prerequisites explicitly. Route reordering preserves
 occurrence identity; the workspace blocks removing an occurrence with markers.
 
 The workspace provides a mission library, chunk search, exact route ordering,
 shared-source where-used labels, continuous geometry overview, bilingual settings
 and typed start/exit/objective/pickup fields. Geometry opens in Chunk Creator through
 guarded navigation. Back reloads dependencies and restores mission selection.
+
+Chapter bars expand independently and contain their mission list, settings and
+reward controls. Expansion is presentation state, never content history. Restored
+mission selection expands its chapter. Create chapter collects bilingual metadata
+and normalized map coordinates, allocates a unique stable ID and selects a fresh
+excluded mission. Add mission appends and selects an excluded draft in that chapter.
+Creation inherits only the current mission's region/theme (the chapter's last
+mission when appending); no routes, objectives, pickups or rewards are copied.
+Metadata edits preserve identities, missions and rewards and reject stale forms.
+The source schema enforces 32 chapters and 16 missions per chapter.
+
+Unsaved creations support Undo/Redo with valid selection fallback. Once saved,
+their IDs form a history boundary: Undo cannot delete a persisted chapter or
+mission whose identity may own account progress. Ordinary value edits remain
+undoable after Save. Revision reconciliation reuses current persisted revisions
+when restored content matches the baseline, so Undo/Redo can become clean again.
 
 Mission settings edits first-clear XP and the optional Double Jump reward. Chapter
 rewards edits the optional Willow unlock independently of mission settings. Both
