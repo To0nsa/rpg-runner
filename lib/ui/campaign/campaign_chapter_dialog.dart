@@ -21,6 +21,7 @@ class CampaignChapterDialog extends StatefulWidget {
 
 class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
   bool _starting = false;
+  final Set<String> _expandedMissions = {};
 
   Future<void> _start(CampaignMission mission) async {
     if (_starting) return;
@@ -106,17 +107,8 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
                       children: [
                         Text(chapter.description(language)),
                         const SizedBox(height: 12),
-                        for (
-                          var index = 0;
-                          index < chapter.missions.length;
-                          index++
-                        )
-                          _missionCard(
-                            chapter.missions[index],
-                            index,
-                            state,
-                            language,
-                          ),
+                        for (final mission in chapter.missions)
+                          _missionCard(mission, state, language),
                       ],
                     ),
                   ),
@@ -131,7 +123,6 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
 
   Widget _missionCard(
     CampaignMission mission,
-    int index,
     AppState state,
     String language,
   ) {
@@ -139,8 +130,11 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
     final unlocked = state.isDeveloperMode || progress.isUnlocked(mission);
     final cleared = progress.isCleared(mission.id);
     final score = progress.bestScore(mission.id);
+    final expanded = _expandedMissions.contains(mission.id);
+    final title = mission.title(language);
     final ui = context.ui;
     return Card(
+      key: ValueKey('campaign-mission-${mission.id}'),
       color: ui.colors.cardBackground,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(ui.radii.md),
@@ -150,48 +144,62 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
         // Keep button measurement and painting free of Material text defaults.
         style: ui.text.body.copyWith(inherit: false),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(ui.space.xs),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 children: [
-                  Icon(
-                    cleared
-                        ? Icons.check_circle_outline
-                        : unlocked
-                        ? Icons.flag_outlined
-                        : Icons.lock_outline,
-                    color: ui.colors.textPrimary,
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      '${index + 1}. ${mission.title(language)}',
-                      style: ui.text.title.copyWith(inherit: false),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          mission.description(language),
-                          style: ui.text.body,
+                    child: Semantics(
+                      key: ValueKey('campaign-mission-details-${mission.id}'),
+                      container: true,
+                      button: true,
+                      expanded: expanded,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(ui.radii.sm),
+                        onTap: () => setState(() {
+                          if (expanded) {
+                            _expandedMissions.remove(mission.id);
+                          } else {
+                            _expandedMissions.add(mission.id);
+                          }
+                        }),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: ui.sizes.tapTarget,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                expanded
+                                    ? Icons.expand_more
+                                    : Icons.chevron_right,
+                                size: 20,
+                                color: ui.colors.textPrimary,
+                              ),
+                              SizedBox(width: ui.space.xxs),
+                              Expanded(
+                                child: Tooltip(
+                                  message: title,
+                                  excludeFromSemantics: true,
+                                  child: Text(
+                                    title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: ui.text.headline.copyWith(
+                                      inherit: false,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        if (score != null) const SizedBox(height: 6),
-                        if (score != null)
-                          Text(context.l10n.campaignBestScore(score: score)),
-                      ],
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: ui.space.xs),
                   AppButton(
                     size: AppButtonSize.xxs,
                     label: !mission.available
@@ -210,6 +218,20 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
                   ),
                 ],
               ),
+              if (expanded)
+                Padding(
+                  padding: EdgeInsets.only(top: ui.space.xs),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(mission.description(language), style: ui.text.body),
+                      if (cleared || score != null) const SizedBox(height: 6),
+                      if (cleared) Text(context.l10n.uiCompleted),
+                      if (score != null)
+                        Text(context.l10n.campaignBestScore(score: score)),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),

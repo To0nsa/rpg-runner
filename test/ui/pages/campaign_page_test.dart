@@ -211,10 +211,22 @@ void main() {
         expect(tester.widget<AppButton>(locked).onPressed, isNull);
         expect(tester.widget<AppButton>(comingSoon).onPressed, isNull);
         _expectMissionLayout(tester, chapter, language);
+        final lockedTitle = find.text(chapter.missions[1].title(language));
+        await tester.ensureVisible(lockedTitle);
+        await tester.tap(lockedTitle);
+        await tester.pumpAndSettle();
+        expect(
+          find.text(chapter.missions[1].description(language)),
+          findsOneWidget,
+        );
         await tester.ensureVisible(locked);
         await tester.tap(locked);
         await tester.pumpAndSettle();
         expect(launched, isNull);
+        final firstTitle = find.text(chapter.missions.first.title(language));
+        await tester.ensureVisible(firstTitle);
+        await tester.tap(firstTitle);
+        await tester.pumpAndSettle();
         await tester.ensureVisible(play);
         await tester.tap(play);
         await tester.pumpAndSettle();
@@ -223,6 +235,10 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byType(CampaignChapterDialog), findsOneWidget);
         expect(tester.widget<AppButton>(play).onPressed, isNotNull);
+        expect(
+          find.text(chapter.missions.first.description(language)),
+          findsOneWidget,
+        );
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       },
@@ -356,6 +372,49 @@ void main() {
           boundary,
           'missions_${size.width.toInt()}_$language',
         );
+        final mission = chapter.missions.first;
+        final disclosure = find.byKey(
+          ValueKey('campaign-mission-details-${mission.id}'),
+        );
+        final card = find.byKey(ValueKey('campaign-mission-${mission.id}'));
+        final collapsedHeight = tester.getSize(card).height;
+        for (final entry in chapter.missions) {
+          expect(find.text(entry.description(language)), findsNothing);
+        }
+        await tester.ensureVisible(disclosure);
+        await tester.tap(
+          find.descendant(
+            of: disclosure,
+            matching: find.byIcon(Icons.chevron_right),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(mission.description(language)), findsOneWidget);
+        expect(
+          find.descendant(
+            of: disclosure,
+            matching: find.byIcon(Icons.expand_more),
+          ),
+          findsOneWidget,
+        );
+        expect(tester.getSize(card).height, greaterThan(collapsedHeight));
+        final actionRect = tester.getRect(
+          find.descendant(of: card, matching: find.byType(AppButton)),
+        );
+        final descriptionRect = tester.getRect(
+          find.text(mission.description(language)),
+        );
+        expect(descriptionRect.top, greaterThan(actionRect.bottom));
+        expect(descriptionRect.width, greaterThan(actionRect.width));
+        await _capture(
+          tester,
+          boundary,
+          'mission_expanded_${size.width.toInt()}_$language',
+        );
+        await tester.tap(find.text(mission.title(language)));
+        await tester.pumpAndSettle();
+        expect(find.text(mission.description(language)), findsNothing);
+        expect(tester.getSize(card).height, collapsedHeight);
         await tester.ensureVisible(
           find.textContaining(chapter.missions.last.title(language)),
         );
@@ -504,19 +563,34 @@ void _expectMissionLayout(
       )
       .text
       .style;
-  for (var index = 0; index < chapter.missions.length; index++) {
-    final mission = chapter.missions[index];
-    final title = find.text('${index + 1}. ${mission.title(language)}');
-    expect(renderedStyle(title), renderedStyle(heading));
+  for (final mission in chapter.missions) {
+    final title = find.text(mission.title(language));
+    expect(
+      renderedStyle(title)?.fontFamily,
+      renderedStyle(heading)?.fontFamily,
+    );
+    expect(
+      renderedStyle(title)?.fontWeight,
+      renderedStyle(heading)?.fontWeight,
+    );
+    expect(
+      renderedStyle(title)?.fontSize,
+      lessThan(renderedStyle(heading)!.fontSize!),
+    );
+    expect(tester.widget<Text>(title).maxLines, 1);
     final card = find.ancestor(of: title, matching: find.byType(Card));
     final actionFinder = find.descendant(
       of: card,
       matching: find.byType(AppButton),
     );
     final action = tester.getRect(actionFinder);
-    final description = tester.getRect(
-      find.text(mission.description(language)),
+    final disclosure = find.byKey(
+      ValueKey('campaign-mission-details-${mission.id}'),
     );
+    final arrow = tester.getRect(
+      find.descendant(of: disclosure, matching: find.byType(Icon)),
+    );
+    final titleRect = tester.getRect(title);
     final buttonLabel = tester.renderObject<RenderParagraph>(
       find.descendant(
         of: find.descendant(
@@ -527,10 +601,12 @@ void _expectMissionLayout(
       ),
     );
     expect(buttonLabel.didExceedMaxLines, isFalse);
-    expect(description.right, lessThan(action.left));
-    expect(description.top, closeTo(action.top, .01));
+    expect(arrow.right, lessThan(titleRect.left));
+    expect(titleRect.right, lessThan(action.left));
+    expect(titleRect.center.dy, closeTo(action.center.dy, .01));
     expect(action.right, lessThan(tester.getRect(card).right));
     expect(action.height, greaterThanOrEqualTo(48));
+    expect(tester.getSize(disclosure).height, greaterThanOrEqualTo(48));
   }
 }
 

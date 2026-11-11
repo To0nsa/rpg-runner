@@ -236,8 +236,13 @@ route containing `CampaignChapterDialog`. The route applies `SafeArea` outside
 the dialog; its layout constraints size the panel to the left two-thirds and full
 height of that safe rectangle, including after rotation. Its title and dismiss
 control stay fixed; the chapter description and mission cards scroll below.
-Chapter and mission headings use the same explicit title style. Mission
-descriptions and progress sit left of a compact action button in one row.
+Mission headers use the smaller headline token in the chapter title's font
+family. A leading disclosure arrow and single-line name share a row with the
+action button. Arrow/name taps toggle description and progress below that row;
+action taps remain independent. Expanded mission IDs are local dialog state,
+preserved across run-route pushes and reset when the dialog closes. Disclosure
+controls expose expanded semantics; truncated names retain full tooltips and
+screen-reader labels.
 Draft availability takes precedence over progress: drafts show Coming soon;
 built missions show disabled Locked with a lock icon or enabled Play with a play
 icon according to canonical unlocks (or the existing developer bypass).
