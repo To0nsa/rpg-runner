@@ -156,7 +156,6 @@ void main() {
                 body: TextButton(
                   onPressed: () => showDialog<void>(
                     context: context,
-                    useSafeArea: false,
                     builder: (_) => CampaignChapterDialog(chapter: chapter),
                   ),
                   child: const Text('Open chapter'),
@@ -302,6 +301,7 @@ void main() {
         await tester.tap(find.text(chapter.title(language)).last);
         await tester.pumpAndSettle();
         _expectChapterPanel(tester, size);
+        _expectMissionLayout(tester, chapter, language);
         expect(
           tester
               .widget<InteractiveViewer>(viewerFinder)
@@ -368,7 +368,12 @@ void main() {
         await _capture(tester, boundary, 'map_portrait_$language');
         await tester.tap(find.text(chapter.title(language)));
         await tester.pumpAndSettle();
-        _expectChapterPanel(tester, portrait);
+        _expectChapterPanel(
+          tester,
+          portrait,
+          padding: const EdgeInsets.only(top: 24, bottom: 20),
+        );
+        _expectMissionLayout(tester, chapter, language);
         expect(
           tester
               .getTopLeft(
@@ -393,6 +398,31 @@ void main() {
         await tester.tap(find.byIcon(Icons.close));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
+
+        // Rotate with the chapter open, covering cutouts on either phone edge.
+        await tester.tap(find.text(chapter.title(language)));
+        await tester.pumpAndSettle();
+        tester.view.physicalSize = const Size(844, 390);
+        for (final padding in [
+          const EdgeInsets.only(left: 44, bottom: 21),
+          const EdgeInsets.only(right: 44, bottom: 21),
+        ]) {
+          tester.view.padding = FakeViewPadding(
+            left: padding.left,
+            right: padding.right,
+            bottom: padding.bottom,
+          );
+          await tester.pumpAndSettle();
+          _expectChapterPanel(tester, const Size(844, 390), padding: padding);
+          _expectMissionLayout(tester, chapter, language);
+          expect(find.byIcon(Icons.close).hitTestable(), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          await _capture(
+            tester,
+            boundary,
+            'missions_notch_${padding.left > 0 ? 'left' : 'right'}_$language',
+          );
+        }
         await tester.pumpWidget(const SizedBox.shrink());
       });
     }
@@ -403,15 +433,62 @@ class _UnusedAuth extends Fake implements AuthApi {}
 
 class _UnusedOwnership extends Fake implements LoadoutOwnershipApi {}
 
-void _expectChapterPanel(WidgetTester tester, Size viewport) {
+void _expectChapterPanel(
+  WidgetTester tester,
+  Size viewport, {
+  EdgeInsets padding = EdgeInsets.zero,
+}) {
   expect(find.byType(CampaignRegionalMap), findsOneWidget);
   final panel = tester.getRect(
     find.byKey(const ValueKey('campaign-chapter-panel')),
   );
-  expect(panel.left, 0);
-  expect(panel.top, 0);
-  expect(panel.width, closeTo(viewport.width * 2 / 3, .01));
-  expect(panel.height, viewport.height);
+  expect(panel.left, padding.left);
+  expect(panel.top, padding.top);
+  expect(
+    panel.width,
+    closeTo((viewport.width - padding.horizontal) * 2 / 3, .01),
+  );
+  expect(panel.height, viewport.height - padding.vertical);
+}
+
+void _expectMissionLayout(
+  WidgetTester tester,
+  CampaignChapter chapter,
+  String language,
+) {
+  final heading = find.descendant(
+    of: find.byType(CampaignChapterDialog),
+    matching: find.text(chapter.title(language)),
+  );
+  TextStyle? renderedStyle(Finder text) => tester
+      .renderObject<RenderParagraph>(
+        find.descendant(of: text, matching: find.byType(RichText)),
+      )
+      .text
+      .style;
+  for (var index = 0; index < chapter.missions.length; index++) {
+    final mission = chapter.missions[index];
+    final title = find.text('${index + 1}. ${mission.title(language)}');
+    expect(renderedStyle(title), renderedStyle(heading));
+    final card = find.ancestor(of: title, matching: find.byType(Card));
+    final action = tester.getRect(
+      find.descendant(of: card, matching: find.byType(AppButton)),
+    );
+    final description = tester.getRect(
+      find.text(mission.description(language)),
+    );
+    final buttonLabel = tester.renderObject<RenderParagraph>(
+      find.descendant(
+        of: find.descendant(of: card, matching: find.byType(AppButton)),
+        matching: find.byType(RichText),
+      ),
+    );
+    expect(buttonLabel.didExceedMaxLines, isFalse);
+    expect(description.right, lessThan(action.left));
+    expect(description.top, closeTo(action.top, .01));
+    expect(action.right, lessThan(tester.getRect(card).right));
+    expect(action.height, greaterThanOrEqualTo(48));
+  }
 }
 
 void _expectFullScreenMap(WidgetTester tester, Size viewport) {

@@ -19,7 +19,6 @@ class CampaignPage extends StatelessWidget {
     child: CampaignRegionalMap(
       onChapterPressed: (chapter) => showDialog<void>(
         context: context,
-        useSafeArea: false,
         routeSettings: RouteSettings(
           name: '${UiRoutes.campaign}/chapter/${chapter.id}',
         ),

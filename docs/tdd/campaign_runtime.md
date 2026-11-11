@@ -227,9 +227,12 @@ Locations for aspect-preserving full-screen artwork, pan/zoom, reset and
 controller lifetime. Resize and reset restore the centered crop. Shared
 `MapCallout` and `MapLabelButton` controls bind chapter coordinates to labels kept
 inside the initial toolbar/system-safe area. Chapter selection opens a dialog
-route containing `CampaignChapterDialog`, flush left at two-thirds of the viewport
-width and full height. Its title and dismiss control stay fixed; the chapter
-description and mission cards scroll within system-safe content.
+route containing `CampaignChapterDialog`. The route applies `SafeArea` outside
+the dialog; its layout constraints size the panel to the left two-thirds and full
+height of that safe rectangle, including after rotation. Its title and dismiss
+control stay fixed; the chapter description and mission cards scroll below.
+Chapter and mission headings use the same explicit title style. Mission
+descriptions and progress sit left of a compact action button in one row.
 Close, system Back and the outside barrier dismiss it without resetting the map
 transform. The dialog watches canonical `AppState` and retains the existing
 mission availability/unlock checks and shared run-bootstrap route. Run launch is

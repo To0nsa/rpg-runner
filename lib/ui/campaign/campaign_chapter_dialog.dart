@@ -8,7 +8,7 @@ import '../state/app/app_state.dart';
 import '../theme/ui_tokens.dart';
 import 'campaign_catalog.dart';
 
-/// Chapter selection stays over the map in a full-height, left two-thirds panel.
+/// Chapter selection fills the left two-thirds of the system-safe area.
 /// Content scrolls independently of the title and dismiss control.
 class CampaignChapterDialog extends StatefulWidget {
   const CampaignChapterDialog({super.key, required this.chapter});
@@ -41,28 +41,26 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
     final chapter = widget.chapter;
     final state = context.watch<AppState>();
     final ui = context.ui;
-    final viewport = MediaQuery.sizeOf(context);
-    return Dialog(
-      alignment: Alignment.centerLeft,
-      insetPadding: EdgeInsets.zero,
-      // Override Dialog's minimum width so portrait keeps the same proportion.
-      constraints: const BoxConstraints(),
-      backgroundColor: ui.colors.background,
-      surfaceTintColor: Colors.transparent,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topRight: Radius.circular(ui.radii.md),
-          bottomRight: Radius.circular(ui.radii.md),
+    return LayoutBuilder(
+      builder: (context, constraints) => Dialog(
+        alignment: Alignment.centerLeft,
+        insetPadding: EdgeInsets.zero,
+        // Override Dialog's minimum width so portrait keeps the same proportion.
+        constraints: const BoxConstraints(),
+        backgroundColor: ui.colors.background,
+        surfaceTintColor: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topRight: Radius.circular(ui.radii.md),
+            bottomRight: Radius.circular(ui.radii.md),
+          ),
+          side: BorderSide(color: ui.colors.outline),
         ),
-        side: BorderSide(color: ui.colors.outline),
-      ),
-      child: SizedBox(
-        key: const ValueKey('campaign-chapter-panel'),
-        width: viewport.width * 2 / 3,
-        height: viewport.height,
-        child: SafeArea(
-          right: false,
+        child: SizedBox(
+          key: const ValueKey('campaign-chapter-panel'),
+          width: constraints.maxWidth * 2 / 3,
+          height: constraints.maxHeight,
           child: DefaultTextStyle(
             style: ui.text.body,
             child: Column(
@@ -83,7 +81,7 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
                           header: true,
                           child: Text(
                             chapter.title(language),
-                            style: ui.text.title,
+                            style: ui.text.title.copyWith(inherit: false),
                           ),
                         ),
                       ),
@@ -149,7 +147,8 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
         side: BorderSide(color: ui.colors.outline),
       ),
       child: DefaultTextStyle(
-        style: ui.text.body,
+        // Keep button measurement and painting free of Material text defaults.
+        style: ui.text.body.copyWith(inherit: false),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -169,30 +168,45 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
                   Expanded(
                     child: Text(
                       '${index + 1}. ${mission.title(language)}',
-                      style: ui.text.title,
+                      style: ui.text.title.copyWith(inherit: false),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(mission.description(language), style: ui.text.body),
-              if (score != null || !unlocked) const SizedBox(height: 6),
-              if (score != null)
-                Text(context.l10n.campaignBestScore(score: score)),
-              if (!unlocked) Text(context.l10n.campaignPreviousRequired),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: AppButton(
-                  label: !mission.available
-                      ? context.l10n.campaignComingSoon
-                      : cleared
-                      ? context.l10n.campaignReplay
-                      : context.l10n.campaignStart,
-                  onPressed: mission.available && unlocked && !_starting
-                      ? () => _start(mission)
-                      : null,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mission.description(language),
+                          style: ui.text.body,
+                        ),
+                        if (score != null || !unlocked)
+                          const SizedBox(height: 6),
+                        if (score != null)
+                          Text(context.l10n.campaignBestScore(score: score)),
+                        if (!unlocked)
+                          Text(context.l10n.campaignPreviousRequired),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  AppButton(
+                    size: AppButtonSize.xxs,
+                    label: !mission.available
+                        ? context.l10n.campaignComingSoon
+                        : cleared
+                        ? context.l10n.campaignReplay
+                        : context.l10n.campaignStart,
+                    onPressed: mission.available && unlocked && !_starting
+                        ? () => _start(mission)
+                        : null,
+                  ),
+                ],
               ),
             ],
           ),

@@ -8,14 +8,16 @@ Campaign has a third main-menu card alongside Level and Character Selection.
 It shows the regional map cropped around Val Outpost. Open Campaign to see the
 regional map fill the screen behind the toolbar, like Town and Library Locations.
 Pan or pinch to explore the cropped artwork; Reset map restores the initial view.
-Selecting Val opens chapter details and missions in a full-height modal occupying
-the left two-thirds of the screen. The map remains visible on the right. Details
-scroll below a fixed title and Close button; Close, Back or a tap outside restores
-the same map view.
+Selecting Val opens chapter details and missions in a modal occupying the left
+two-thirds and full height of the phone's safe area, clear of cutouts and system
+bars. The map remains visible on the right. Details scroll below a fixed title and
+Close button; Close, Back or a tap outside restores the same map view.
 
 Mission one has no completion prerequisite; later missions require verified clears
 of their predecessors. An unbuilt draft shows Coming soon. Each entry shows its
 assignment, access/clear status and current content-version personal best.
+Level titles match the chapter heading's font and size. Descriptions sit on the
+left with the mission action button on the right in the same row.
 The modal omits the selected character/build and chapter/mission reward details.
 Missions use the selected character/build.
 
