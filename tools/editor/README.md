@@ -938,9 +938,12 @@ left, persistent preview and workspace tabs in the centre, and contextual
 **Settings** on the right. Smaller windows expose **Chapters / Workspace /
 Settings** as tabs without losing your selection or chunk search. **Contents**
 browses only Campaign chunks with visual previews; **Route** controls the exact
-sequence; **Markers** contains start, exit, pickups and objectives. The settings
-panel shows rewards, build status, selected chunk usage and validation. Open
-**Mission settings** there to edit the mission. Back from Chunk Creator restores
+sequence; **Markers** contains start, exit, pickups and objectives. The mission
+route preview joins the chunk artwork at the panel's height. Scroll horizontally
+with the bottom scrollbar or a horizontal trackpad gesture to inspect the entire
+route; start, pickup, exit and region markers stay aligned with their occurrences.
+The settings panel shows rewards, build status, selected chunk usage and validation.
+Open **Mission settings** there to edit the mission. Back from Chunk Creator restores
 the selected mission, workspace tab, search and valid chunk/occurrence selection.
 
 New chapters start with one empty mission. That mission has no rewards and is

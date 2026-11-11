@@ -89,8 +89,13 @@ sizing. The left panel owns chapters and missions. Contents reuses
 chunks. Runner layouts must first be copied using Chunk Creator's Copy to Campaign
 action to appear in Contents. Route owns exact occurrence ordering, while Markers
 owns typed start/exit/objective/pickup controls. The persistent preview shows
-selected chunk art in Contents or the assembled geometry in Route/Markers. The
-right inspector shows mission/reward status, selected chunk usage and validation,
+selected chunk art in Contents or the assembled route in Route/Markers. Route art
+reuses `ChunkCompositionPreview.joined`, including terrain, scenery, water and
+the mission's parallax theme. The 600x270 occurrences share a scale fitted to
+the preview height, with a horizontal scrollbar and lazy occurrence rendering.
+Start, pickup, exit and required-region overlays remain occurrence-local; repeated
+chunks keep distinct markers. Scroll positions are view state scoped by mission.
+The right inspector shows mission/reward status, selected chunk usage and validation,
 with the existing revision-checked settings dialogs. Narrow panels remain mounted
 behind tabs.
 Geometry opens in Chunk Creator through guarded navigation. Back reloads

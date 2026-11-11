@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+import 'package:runner_editor/src/app/pages/campaign/campaign_overview.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_page.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_composition_preview.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_mode_copy_dialog.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
 import 'package:runner_editor/src/campaign/campaign_domain_plugin.dart';
@@ -874,6 +877,121 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'route preview fills its height and scrolls through all 16 occurrences',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final original = controller.document as CampaignDocument;
+      final mission = layout(original)
+        ..['route'] = [
+          for (var i = 0; i < 16; i++)
+            {
+              'id': 'route_$i',
+              'levelId': 'forest',
+              'chunkKey': 'forest_campaign_fixture',
+            },
+        ]
+        ..['start'] = {'occurrenceId': 'route_0', 'x': 60, 'y': 224}
+        ..['exit'] = {
+          'origin': {'occurrenceId': 'route_15', 'x': 500, 'y': 0},
+          'width': 100,
+          'height': 270,
+        };
+      controller.applyCommand(edit(original, mission));
+      final beforeView = controller.document;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              controller: controller,
+              initialLocation: CampaignLocation(
+                original.selected.id,
+                tab: CampaignTab.route,
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      final overview = find.byType(CampaignOverview);
+      final scrollbar = find.descendant(
+        of: overview,
+        matching: find.byType(Scrollbar),
+      );
+      final scrollController = tester.widget<Scrollbar>(scrollbar).controller!;
+      Finder occurrence(int index) =>
+          find.byKey(ValueKey('campaign_preview_route_$index'));
+      final firstSize = tester.getSize(occurrence(0));
+      expect(firstSize.height, greaterThan(200));
+      expect(firstSize.width / firstSize.height, closeTo(600 / 270, .001));
+      final art = find.descendant(
+        of: occurrence(0),
+        matching: find.byType(ChunkCompositionPreview),
+      );
+      expect(tester.getSize(art), firstSize);
+      final firstOverlay = tester
+          .widget<CustomPaint>(occurrence(0))
+          .foregroundPainter!;
+      expect(
+        (Canvas canvas) => firstOverlay.paint(canvas, firstSize),
+        paints
+          ..scale(x: firstSize.height / 270)
+          ..circle(x: 60, y: 224, color: Colors.amber),
+      );
+      expect(occurrence(15), findsNothing);
+
+      // Use the visible scrollbar, proving that desktop users can reach the end.
+      final barRect = tester.getRect(scrollbar);
+      await tester.dragFrom(
+        Offset(barRect.left + 10, barRect.bottom - 3),
+        Offset(barRect.width - 20, 0),
+        kind: PointerDeviceKind.mouse,
+      );
+      await _pumpWorkspace(tester);
+      expect(occurrence(15).hitTestable(), findsOneWidget);
+      expect(
+        scrollController.offset,
+        closeTo(scrollController.position.maxScrollExtent, 1),
+      );
+      final lastSize = tester.getSize(occurrence(15));
+      final lastOverlay = tester
+          .widget<CustomPaint>(occurrence(15))
+          .foregroundPainter!;
+      expect(
+        (Canvas canvas) => lastOverlay.paint(canvas, lastSize),
+        paints..rect(rect: const Rect.fromLTWH(500, 0, 100, 270)),
+      );
+      expect(
+        (Canvas canvas) => lastOverlay.paint(canvas, lastSize),
+        paintsExactlyCountTimes(#drawCircle, 0),
+      );
+
+      final offset = scrollController.offset;
+      await tester.tap(find.text('Markers'));
+      await _pumpWorkspace(tester);
+      expect(scrollController.offset, offset);
+      await tester.binding.setSurfaceSize(const Size(800, 700));
+      await _pumpWorkspace(tester);
+      scrollController.jumpTo(scrollController.position.maxScrollExtent);
+      await _pumpWorkspace(tester);
+      expect(occurrence(15).hitTestable(), findsOneWidget);
+      final resized = tester.getSize(occurrence(15));
+      expect(resized.height, lessThan(firstSize.height));
+      expect(resized.width / resized.height, closeTo(600 / 270, .001));
+      expect(controller.document, same(beforeView));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },

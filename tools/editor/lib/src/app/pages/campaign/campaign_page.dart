@@ -551,7 +551,12 @@ class _CampaignPageState extends State<CampaignPage>
             ? const Center(
                 child: Text('Add chunks from Contents to build this mission.'),
               )
-            : CustomPaint(painter: CampaignOverview(m, Map.of(_compiled))),
+            : CampaignOverview(
+                key: ValueKey(m.id),
+                mission: m,
+                chunks: d.chunks,
+                workspaceRootPath: widget.controller.workspacePath,
+              ),
       ),
       tabs: SegmentedButton<CampaignTab>(
         key: const ValueKey('campaign_workspace_tabs'),
