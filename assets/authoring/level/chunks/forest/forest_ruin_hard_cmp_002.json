@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_ruin_hard_cmp_002",
+  "id": "forest_ruin_hard_cmp_002",
+  "revision": 1,
+  "status": "active",
+  "usage": "campaign",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "ruin",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "fantasy_environment_bush_01",
+      "prefabKey": "fantasy_environment_bush_01",
+      "x": 426,
+      "y": 188,
+      "zIndex": -4,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "kauzz_forest_tree_04",
+      "prefabKey": "kauzz_forest_tree_04",
+      "x": 128,
+      "y": 128,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "ancient_forest_ruin_arch_01",
+      "prefabKey": "ancient_forest_ruin_arch_01",
+      "x": 414,
+      "y": 139,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_mossy_rock_03",
+      "prefabKey": "rune_rocks_mossy_rock_03",
+      "x": 219,
+      "y": 179,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_bush_03",
+      "prefabKey": "fantasy_environment_bush_03",
+      "x": 336,
+      "y": 191,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "fantasy_environment_bush_02",
+      "prefabKey": "fantasy_environment_bush_02",
+      "x": 498,
+      "y": 199,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 309,
+          "y": 203
+        },
+        {
+          "x": 519,
+          "y": 203
+        },
+        {
+          "x": 600,
+          "y": 189
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 309,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "none",
+      "vertices": [
+        {
+          "x": 247,
+          "y": 203
+        },
+        {
+          "x": 309,
+          "y": 203
+        },
+        {
+          "x": 309,
+          "y": 270
+        },
+        {
+          "x": 247,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "dirt_hole"
+    },
+    {
+      "shapeId": "solid_002",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 162,
+          "y": 203
+        },
+        {
+          "x": 247,
+          "y": 203
+        },
+        {
+          "x": 247,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

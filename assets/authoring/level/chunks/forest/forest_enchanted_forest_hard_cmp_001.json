@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_enchanted_forest_hard_cmp_001",
+  "id": "forest_enchanted_forest_hard_cmp_001",
+  "revision": 1,
+  "status": "active",
+  "usage": "campaign",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "enchanted_forest",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "green_woods_tree_trunk_07",
+      "prefabKey": "green_woods_tree_trunk_07",
+      "x": 48,
+      "y": 199,
+      "zIndex": -22,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "green_woods_tree_foliage_08",
+      "prefabKey": "green_woods_tree_foliage_08",
+      "x": 48,
+      "y": 78,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 0.7
+    },
+    {
+      "prefabId": "green_woods_tree_trunk_05",
+      "prefabKey": "green_woods_tree_trunk_05",
+      "x": 121,
+      "y": 154,
+      "zIndex": -21,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "green_woods_tree_trunk_01",
+      "prefabKey": "green_woods_tree_trunk_01",
+      "x": 482,
+      "y": 161,
+      "zIndex": -21,
+      "snapToGrid": false,
+      "scale": 1.2
+    },
+    {
+      "prefabId": "green_woods_tree_foliage_03",
+      "prefabKey": "green_woods_tree_foliage_03",
+      "x": 129,
+      "y": 120,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "green_woods_tree_foliage_02",
+      "prefabKey": "green_woods_tree_foliage_02",
+      "x": 477,
+      "y": 122,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rune_rocks_menhir_06",
+      "prefabKey": "rune_rocks_menhir_06",
+      "x": 295,
+      "y": 189,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 1.6
+    },
+    {
+      "prefabId": "rune_rocks_rune_r_01",
+      "prefabKey": "rune_rocks_rune_r_01",
+      "x": 305,
+      "y": 181,
+      "zIndex": 2,
+      "snapToGrid": false,
+      "scale": 1.5
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 139,
+          "y": 224
+        },
+        {
+          "x": 139,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    },
+    {
+      "shapeId": "solid_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 139,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 139,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}

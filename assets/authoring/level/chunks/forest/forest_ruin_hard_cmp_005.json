@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "forest_ruin_hard_cmp_005",
+  "id": "forest_ruin_hard_cmp_005",
+  "revision": 1,
+  "status": "active",
+  "usage": "campaign",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "hard",
+  "assemblyGroupId": "ruin",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "fantasy_environment_tree_02",
+      "prefabKey": "fantasy_environment_tree_02",
+      "x": 512,
+      "y": 160,
+      "zIndex": -1,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "tiny_swords_ground_platform_10_96x32_platform",
+      "prefabKey": "tiny_swords_ground_platform_10_96x32_platform",
+      "x": 342,
+      "y": 79,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_ruin_wall_01",
+      "prefabKey": "ancient_forest_ruin_wall_01",
+      "x": 445,
+      "y": 147,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.2
+    },
+    {
+      "prefabId": "ancient_forest_ruin_arch_01",
+      "prefabKey": "ancient_forest_ruin_arch_01",
+      "x": 198,
+      "y": 161,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "ancient_forest_statue_02",
+      "prefabKey": "ancient_forest_statue_02",
+      "x": 118,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
+}
