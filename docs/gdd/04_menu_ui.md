@@ -535,8 +535,9 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 - `Town` on the Play Hub opens the city map.
 - `Equipment`, `Training Hall` and `Library` markers around Théodonis open their respective
   screens. They indicate services in the city, not precise street addresses.
-- The map fills the view. Drag and pinch gestures allow inspection; only a
-  reset control is shown. Compact service markers have no border/background.
+- The map fills the screen behind the transparent AppBar. Drag and pinch
+  gestures allow inspection; only a reset control is shown. Compact service
+  markers have no border/background.
 - `Options` remains available directly from the Play Hub.
 
 ### In-Game Store (Gold Store)

@@ -100,11 +100,17 @@ class _TownMapViewportState extends State<_TownMapViewport> {
     final ui = context.ui;
     final scene = _scene;
     Offset at(double x, double y) => Offset(scene.width * x, scene.height * y);
-    final visibleMap = Rect.fromCenter(
-      center: scene.center(Offset.zero),
-      width: widget.viewport.width,
-      height: widget.viewport.height,
-    ).deflate(ui.space.xs);
+    // Inset the initial callouts below the overlay toolbar while the artwork
+    // continues to fill the entire viewport.
+    final visibleMap = MediaQuery.paddingOf(context)
+        .deflateRect(
+          Rect.fromCenter(
+            center: scene.center(Offset.zero),
+            width: widget.viewport.width,
+            height: widget.viewport.height,
+          ),
+        )
+        .deflate(ui.space.xs);
     // Keep the middle of the artwork free for building pins. Shallow viewports
     // use two columns; portrait labels have the full width for localized text.
     final wide = widget.viewport.width > widget.viewport.height;
@@ -236,7 +242,6 @@ class _TownMapViewportState extends State<_TownMapViewport> {
           right: ui.space.xs,
           top: ui.space.xs,
           child: SafeArea(
-            top: false,
             child: IconButton(
               tooltip: context.l10n.uiResetMap,
               onPressed: () => _transform.value = _initialTransform,

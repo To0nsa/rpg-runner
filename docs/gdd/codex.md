@@ -2,9 +2,9 @@
 
 Town opens the supplied `assets/Théodonis.jpg` city map, with Equipment, Training Hall,
 Library and [Hall of Honour](12_achievements.md) callouts inside the walled city.
-The image fills the available view,
-cropping its edges initially; dragging reveals the remaining map. Pinch to
-zoom and a small reset control remain. Service labels use Mist text and icons
+The image fills the entire screen, including behind the transparent title and
+back bar, cropping its edges initially; dragging reveals the remaining map.
+Pinch to zoom and a small reset control remain. Service labels use Mist text and icons
 with dark shadows, without borders or backgrounds. There is no instruction
 footer or plus/minus zoom control. Indicator lines meet the beginning or end
 of each label, with a small gap and no crossing through the icon or name.

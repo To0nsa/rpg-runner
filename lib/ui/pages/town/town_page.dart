@@ -18,6 +18,7 @@ class TownPage extends StatelessWidget {
     final ui = context.ui;
     return MenuScaffold(
       title: context.l10n.townName,
+      overlayAppBar: true,
       background: ColoredBox(color: ui.colors.background),
       child: TownMap(
         hasAchievementRewards: context

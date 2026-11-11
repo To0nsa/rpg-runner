@@ -166,8 +166,11 @@ bundled. `TownMap` uses the image’s 4:3 aspect ratio for both artwork and mark
 geometry. Its unconstrained scene fills the viewport while preserving that
 aspect ratio. The initial transform centers the cropped artwork; pan gestures
 can reveal the full scene. Resize and reset restore the centered transform.
-The map extends to the screen edges below the app bar. Decode width is capped
-at 2048 pixels to bound display memory.
+The map extends to every screen edge, including behind the transparent app bar.
+Town enables `MenuScaffold.overlayAppBar`; the body's safe-area padding keeps
+initial service callouts and the reset control clear of the toolbar and system
+insets without insetting the artwork. Decode width is capped at 2048 pixels to
+bound display memory.
 
 Service anchors use image coordinates: Equipment `(0.35, 0.49)` in the market
 streets, Library `(0.47, 0.405)` at the northeastern courtyard complex,
