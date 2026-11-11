@@ -601,11 +601,48 @@ void main() {
     LevelCreatorChunkTarget? target;
     await _mountLevelPage(
       tester,
+      contentLoader: (root) async {
+        final projection = await _testContentLoader(root);
+        final runner = projection.chunksFor('forest').single;
+        return LevelContentProjection(
+          document: projection.document.copyWith(
+            chunks: [
+              runner.copyWith(
+                chunkKey: 'forest-campaign-key',
+                id: 'forest_campaign',
+                usage: 'campaign',
+              ),
+              ...projection.document.chunks,
+            ],
+          ),
+        );
+      },
       onOpenChunk: (value) async {
         target = value;
         return true;
       },
     );
+    expect(
+      find.byKey(const ValueKey('level_chunk_forest-campaign-key')),
+      findsNothing,
+    );
+    expect(find.text('All (1)'), findsOneWidget);
+    expect(find.text('default (1)'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('level_library_forest')),
+        matching: find.text('1 active chunk'),
+      ),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      _textFieldByLabel('Find chunk'),
+      'forest-campaign-key',
+    );
+    await _flush(tester);
+    expect(find.text('No chunks match this search.'), findsOneWidget);
+    await tester.enterText(_textFieldByLabel('Find chunk'), '');
+    await _flush(tester);
     await tester.tap(
       find.byKey(const ValueKey<String>('level_chunk_forest-flat-key')),
     );

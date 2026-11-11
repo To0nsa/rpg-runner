@@ -106,7 +106,7 @@ class LevelContents extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Group filters organize this catalog. Automatic selection uses eligible content from every group.',
+          'Only Runner chunks appear here. Group filters organize this catalog. Automatic selection uses eligible content from every group.',
         ),
         const SizedBox(height: 12),
         if (visible.isEmpty)

@@ -9,6 +9,9 @@ Contents/Flow/Appearance views, and contextual inspector. Presentation siblings
 receive typed callbacks; the Level domain owns commands, identities, validation,
 pending diffs, and persistence. `LevelContentProjection` loads immutable Chunk
 and Prefab sources and visual bounds without switching the active plugin.
+Its Level catalog exposes only Runner chunks, keeping Contents, previews,
+active counts and Flow coverage consistent; Campaign chunks remain available
+in the Campaign editor and Chunk Creator.
 Its geometry renderer is shared with Chunk previews and resolves authored
 material/image assets. Play/sample preparation captures their complete source
 dependencies separately through the shared compiler. Session `sourceGeneration`

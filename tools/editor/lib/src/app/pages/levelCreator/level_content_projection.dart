@@ -12,10 +12,12 @@ class LevelContentProjection {
 
   final ChunkV2Document document;
 
+  /// Runner sources for Level authoring, including inactive and deprecated chunks.
   List<ChunkV2FileData> chunksFor(String levelId, {String? groupId}) => document
       .chunks
       .where(
         (chunk) =>
+            chunk.usage == 'runner' &&
             chunk.levelId == levelId &&
             (groupId == null || chunk.assemblyGroupId == groupId),
       )

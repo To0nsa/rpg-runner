@@ -230,9 +230,10 @@ tab, viewport, undo/redo history, and pending diff.
 3. **Add flat starter** opens a valid ground chunk in Chunk Creator. Edit it and
    use **Save and return to level**. **Add chunk** supports further content;
    Chunk Creator owns geometry, Prefabs, enemy markers, activation, and groups.
-4. Use **Contents**, **Flow**, and **Appearance** to inspect the Level. Automatic
-   selection needs no section. **Ordered sections** compose the level from top
-   to bottom. Add a section, choose its **Chunk group** and **Section difficulty**,
+4. Use **Contents**, **Flow**, and **Appearance** to inspect the Level. **Contents**
+   shows only Runner chunks; previews and pool counts also exclude Campaign chunks.
+   Automatic selection needs no section. **Ordered sections** compose the level
+   from top to bottom. Add a section, choose its **Chunk group** and **Section difficulty**,
    then set **At least** and **At most** to `3` for exactly three chunks. Leave
    **Use each chunk at most once in this section** enabled for no repeats.
    **Duplicate section** copies its settings; drag or use **Move earlier/later**
