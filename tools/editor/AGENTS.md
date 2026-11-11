@@ -346,3 +346,9 @@ When editor contracts or workflows change:
   root generator's structured report, captured-input checks, cancellation gate,
   and atomic writer; no page-level generated-file writer or process kill during
   output replacement.
+- Campaign uses this same Save/Build/captured-Play lifecycle. Its schema-1 catalog
+  owns routes and mission markers; chunk geometry remains in Chunk Creator.
+  Keep occurrence IDs stable and reject deleting/rekeying/moving referenced
+  chunks until mission references are rebound. Runner/Campaign copies preserve
+  all supported content and never filter encounters or silently activate a
+  runner copy. See [campaign contract](../../docs/tdd/campaign_runtime.md).

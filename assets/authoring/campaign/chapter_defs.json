@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "chapters": [
+    {
+      "id": "val_outpost",
+      "title": {
+        "en": "Val Outpost",
+        "fr": "Avant-poste du Val"
+      },
+      "description": {
+        "en": "After Le feu de joie, cultists have been seen at several nearby locations. Val Outpost has called for help.",
+        "fr": "Après Le feu de joie, des cultistes ont été aperçus en plusieurs lieux des environs. L’Avant-poste du Val demande de l’aide."
+      },
+      "mapX": 0.8,
+      "mapY": 0.595,
+      "rewardCharacterId": "bountyHunter",
+      "missions": [
+        {
+          "id": "reporting_for_duty",
+          "revision": 1,
+          "includeInBuild": false,
+          "title": {
+            "en": "Reporting for Duty",
+            "fr": "Au rapport"
+          },
+          "description": {
+            "en": "Cross the Forêt des Moyen-Ducs and report to Val Outpost. Take time to find your footing and reach the camp.",
+            "fr": "Traverse la Forêt des Moyen-Ducs et rejoins l’Avant-poste du Val. Prends le temps de trouver tes appuis et d’atteindre le camp."
+          },
+          "visualThemeId": "forest",
+          "firstClearXp": 40,
+          "rewardAbilityId": "eloise.double_jump",
+          "combatAllowed": false,
+          "route": [],
+          "start": null,
+          "exit": null,
+          "collectibles": [],
+          "requiredRegions": [],
+          "requiredEnemies": [],
+          "requiredRescues": [],
+          "levelId": "forest"
+        },
+        {
+          "id": "signs_in_the_grove",
+          "revision": 1,
+          "includeInBuild": false,
+          "title": {
+            "en": "Signs in the Grove",
+            "fr": "Des traces dans le bosquet"
+          },
+          "description": {
+            "en": "Investigate the reported sightings in the grove. Clear the cultist patrol and return to the designated rendezvous.",
+            "fr": "Enquête sur les signalements dans le bosquet. Élimine la patrouille de cultistes et rejoins le point de rendez-vous."
+          },
+          "visualThemeId": "forest",
+          "firstClearXp": 48,
+          "rewardAbilityId": null,
+          "combatAllowed": true,
+          "route": [],
+          "start": null,
+          "exit": null,
+          "collectibles": [],
+          "requiredRegions": [],
+          "requiredEnemies": [],
+          "requiredRescues": [],
+          "levelId": "forest"
+        },
+        {
+          "id": "the_supply_trail",
+          "revision": 1,
+          "includeInBuild": false,
+          "title": {
+            "en": "The Supply Trail",
+            "fr": "La piste du ravitaillement"
+          },
+          "description": {
+            "en": "Cultists threaten the supply trail. Clear the route and bring the stranded guard to safety.",
+            "fr": "Des cultistes menacent la piste du ravitaillement. Dégage le passage et mets le garde isolé en sécurité."
+          },
+          "visualThemeId": "forest",
+          "firstClearXp": 60,
+          "rewardAbilityId": null,
+          "combatAllowed": true,
+          "route": [],
+          "start": null,
+          "exit": null,
+          "collectibles": [],
+          "requiredRegions": [],
+          "requiredEnemies": [],
+          "requiredRescues": [],
+          "levelId": "forest"
+        },
+        {
+          "id": "holding_the_outpost",
+          "revision": 1,
+          "includeInBuild": false,
+          "title": {
+            "en": "Holding the Outpost",
+            "fr": "Tenir l’avant-poste"
+          },
+          "description": {
+            "en": "Clear the remaining cultist positions near Val Outpost, then return to report. The garrison needs breathing room.",
+            "fr": "Élimine les dernières positions des cultistes près de l’Avant-poste du Val, puis reviens faire ton rapport. La garnison a besoin de répit."
+          },
+          "visualThemeId": "forest",
+          "firstClearXp": 76,
+          "rewardAbilityId": null,
+          "combatAllowed": true,
+          "route": [],
+          "start": null,
+          "exit": null,
+          "collectibles": [],
+          "requiredRegions": [],
+          "requiredEnemies": [],
+          "requiredRescues": [],
+          "levelId": "forest"
+        }
+      ]
+    }
+  ]
+}

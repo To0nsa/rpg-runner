@@ -492,7 +492,8 @@ class LevelStore {
       }
       countsByLevelId[levelId] = (countsByLevelId[levelId] ?? 0) + 1;
       final status = _normalizedString(map['status']);
-      if (!isRuntimeEligibleChunkStatus(status)) {
+      if (!isRuntimeEligibleChunkStatus(status) ||
+          (map['usage'] ?? 'runner') != 'runner') {
         continue;
       }
       final assemblyGroupId = _normalizedString(

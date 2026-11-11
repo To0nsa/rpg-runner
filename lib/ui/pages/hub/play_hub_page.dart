@@ -1,3 +1,7 @@
+import '../../campaign/campaign_catalog.dart';
+import '../../campaign/campaign_map.dart';
+import 'components/hub_select_card_frame.dart';
+import 'components/hub_select_card_body.dart';
 import '../../text/build_name_text.dart';
 
 import 'package:rpg_runner/ui/l10n/app_localization.dart';
@@ -169,13 +173,11 @@ class _PlayHubPageState extends State<PlayHubPage> {
                                   .pushNamed(UiRoutes.leaderboards),
                   ),
                   SizedBox(height: ui.space.lg),
-                  Center(
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: ui.space.md,
-                      runSpacing: ui.space.md,
-                      children: [
-                        HubSelectedLevelCard(
+                  Row(
+                    spacing: ui.space.md,
+                    children: [
+                      Expanded(
+                        child: HubSelectedLevelCard(
                           levelId: selection.selectedLevelId,
                           runModeLabel: _runModeLabel(
                             selection.selectedRunMode,
@@ -185,7 +187,9 @@ class _PlayHubPageState extends State<PlayHubPage> {
                               Navigator.of(context)
                                   .pushNamed(UiRoutes.setupLevel),
                         ),
-                        HubSelectCharacterCard(
+                      ),
+                      Expanded(
+                        child: HubSelectCharacterCard(
                           characterId: selection.selectedCharacterId,
                           buildName: buildDisplayName(
                             selection.buildName,
@@ -198,8 +202,23 @@ class _PlayHubPageState extends State<PlayHubPage> {
                               Navigator.of(context)
                                   .pushNamed(UiRoutes.selectCharacter),
                         ),
-                      ],
-                    ),
+                      ),
+                      Expanded(
+                        child: HubSelectCardFrame(
+                          onTap: () =>
+                              Navigator.of(context)
+                                  .pushNamed(UiRoutes.campaign),
+                          background: const ValOutpostArtwork(),
+                          child: HubSelectCardBody(
+                            label: context.l10n.campaignHeading,
+                            title: CampaignCatalog.chapters.first.title(
+                              Localizations.localeOf(context).languageCode,
+                            ),
+                            subtitle: context.l10n.campaignChapterReward,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: ui.space.lg),
                   Center(
@@ -225,6 +244,8 @@ enum _RunStartSource { main, weekly }
 
 String _runModeLabel(RunMode runMode, AppLocalizations l10n) {
   switch (runMode) {
+    case RunMode.campaign:
+      return l10n.campaignHeading;
     case RunMode.practice:
       return l10n.uiPracticeHeading;
     case RunMode.competitive:

@@ -13,6 +13,11 @@ Each accepted, replay-validated Practice, Competitive or Weekly run earns
 `floor(validatedScore / 200)` XP. A zero-score run earns zero XP but still counts
 as a played run. Developer Practice, pending runs and rejected runs earn none.
 XP is awarded once after settlement, even if a submission is delivered again.
+Campaign instead awards catalog XP only on first successful clears: Val Outpost
+grants 40/48/60/76, totaling 224 and reaching level 3 from a new account. Failure
+and repeats give no XP; collected gold remains repeatable. Campaign XP and unlocks
+wait for verification and never use the score-derived local XP preview. See
+[Campaign](campaign.md).
 The run result shows its gold and XP immediately without a pending label. Once
 the replay is safely journaled, Hub and Profile include that local XP in the
 displayed total and level. Settlement replaces this presentation without adding

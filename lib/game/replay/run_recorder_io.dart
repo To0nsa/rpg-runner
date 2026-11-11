@@ -117,6 +117,7 @@ class FileRunRecorder implements RunRecorder {
       runSessionId: header.runSessionId,
       boardId: header.boardId,
       boardKey: header.boardKey,
+      campaign: header.campaign,
       tickHz: header.tickHz,
       seed: header.seed,
       levelId: header.levelId,

@@ -18,7 +18,7 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 ### 1.2 Non-goals (for early phases)
 
-- Full narrative campaign UI.
+- Branching narrative/dialogue UI. Finite chapter and mission navigation is supported.
 - Complex economy screens (multiple currencies, bundles, seasonal battlepass UI).
 - Social features beyond leaderboard/ghost.
 
@@ -79,6 +79,15 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 ---
 
 ## 3. Information Architecture
+
+### Campaign
+
+The hub keeps Level Selection, Character Selection and Campaign in one fitted
+row. Campaign has a Val Outpost map crop, its own regional map and ordered mission
+cards. Each card shows assignment, prerequisites, first-clear rewards and best
+score; launch uses the selected build. Draft layouts remain Coming soon. Verified
+clears unlock the next mission, first-clear skills and the chapter character.
+See [Campaign](campaign.md) for rewards and bidirectional play rules.
 
 ### System messages
 

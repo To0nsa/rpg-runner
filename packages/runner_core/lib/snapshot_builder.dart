@@ -21,6 +21,8 @@
 /// - [PlayerHudSnapshot] — Player resource bars, cooldowns, affordability flags.
 library;
 
+import 'snapshots/campaign_snapshot.dart';
+
 import 'snapshots/boss_arena_snapshot.dart';
 import 'snapshots/boss_victory_blessing_snapshot.dart';
 
@@ -156,6 +158,7 @@ class SnapshotBuilder {
   /// - [stagedTerrainRenderSnapshot]: Optional compiler-owned terrain render
   ///   data from the same terrain publication as collision and navigation.
   GameStateSnapshot build({
+    CampaignSnapshot? campaign,
     required int tick,
     required int runId,
     required int seed,
@@ -415,6 +418,7 @@ class SnapshotBuilder {
 
     // ─── Assemble final snapshot ───
     return GameStateSnapshot(
+      campaign: campaign,
       tick: tick,
       runId: runId,
       seed: seed,

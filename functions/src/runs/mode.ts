@@ -1,6 +1,6 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
-export const runModes = ["practice", "competitive", "weekly"] as const;
+export const runModes = ["practice", "competitive", "weekly", "campaign"] as const;
 export type RunModeValue = (typeof runModes)[number];
 
 export function parseRunMode(
@@ -20,6 +20,6 @@ export function parseRunMode(
 }
 
 export function runModeRequiresBoard(mode: RunModeValue): boolean {
-  return mode !== "practice";
+  return mode === "competitive" || mode === "weekly";
 }
 

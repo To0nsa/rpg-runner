@@ -19,7 +19,7 @@ export function parseLoadActiveBoardRequest(raw: unknown): LoadActiveBoardReques
   const data = requireObject(raw, "request");
   rejectClientAuthorityTime(data);
   const mode = parseRunMode(data.mode, "mode");
-  if (mode === "practice") {
+  if (mode !== "competitive" && mode !== "weekly") {
     throw new HttpsError(
       "invalid-argument",
       "runBoardsLoadActive supports competitive|weekly only.",

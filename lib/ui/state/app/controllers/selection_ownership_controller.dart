@@ -13,6 +13,11 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
   }
 
   Future<void> setRunMode(RunMode runMode) async {
+    if (runMode == RunMode.campaign) {
+      throw ArgumentError(
+        'Campaign launches a mission without changing runner selection.',
+      );
+    }
     final resolvedLevelId = _effectiveLevelForMode(
       mode: runMode,
       selectedLevelId: _selection.selectedLevelId,
@@ -29,6 +34,11 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     required RunMode runMode,
     required LevelId levelId,
   }) async {
+    if (runMode == RunMode.campaign) {
+      throw ArgumentError(
+        'Campaign launches a mission without changing runner selection.',
+      );
+    }
     final resolvedLevelId = _effectiveLevelForMode(
       mode: runMode,
       selectedLevelId: levelId,
@@ -42,6 +52,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
   }
 
   Future<void> setCharacter(PlayerCharacterId id) async {
+    if (!_app.isCharacterUnlocked(id)) throw StateError('Character is locked.');
     final nextSelection = _selection.copyWith(selectedCharacterId: id);
     await _updateSelectionOptimistically(nextSelection);
   }
@@ -233,6 +244,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
   }
 
   Future<void> selectBuild(PlayerCharacterId id, int index) async {
+    if (!_app.isCharacterUnlocked(id)) throw StateError('Character is locked.');
     if (!_app.isBuildUnlocked(index)) {
       throw StateError('This build is locked.');
     }
@@ -410,7 +422,12 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     final projectedSelection = SelectionState.fromJson(
       Map<String, dynamic>.from(selectionRaw),
     );
-    _selection = projectedSelection;
+    _selection =
+        _app.isCharacterUnlocked(projectedSelection.selectedCharacterId)
+        ? projectedSelection
+        : projectedSelection.copyWith(
+            selectedCharacterId: PlayerCharacterId.eloise,
+          );
   }
 
   EquippedLoadoutDef _withAbilityInLoadout({

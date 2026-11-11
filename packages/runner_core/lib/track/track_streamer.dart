@@ -33,6 +33,8 @@ class SpawnEnemyRequest {
     required this.fallbackSupportY,
     this.source = EnemySpawnRequestSource.authoredMarker,
     this.placement = SpawnPlacementMode.ground,
+    this.occurrenceId,
+    this.markerSalt,
   });
 
   final EnemyId enemyId;
@@ -48,6 +50,8 @@ class SpawnEnemyRequest {
 
   /// Authored marker placement intent resolved by world terrain authority.
   final SpawnPlacementMode placement;
+  final String? occurrenceId;
+  final int? markerSalt;
 }
 
 /// Metadata for a newly spawned chunk, returned by [TrackStreamer.step].
@@ -567,6 +571,8 @@ class TrackStreamer {
           x: x,
           fallbackSupportY: groundTopY,
           placement: m.placement,
+          occurrenceId: _finiteSource?.occurrences[chunkIndex].id,
+          markerSalt: _finiteSource == null ? null : m.salt,
         ),
       );
     }

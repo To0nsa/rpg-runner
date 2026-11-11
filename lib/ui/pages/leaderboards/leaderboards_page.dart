@@ -46,7 +46,7 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
 
     final selection = context.read<AppState>().selection;
     _runFilter = switch (selection.selectedRunMode) {
-      RunMode.practice => LeaderboardsRunFilter.practice,
+      RunMode.practice || RunMode.campaign => LeaderboardsRunFilter.practice,
       RunMode.competitive => LeaderboardsRunFilter.competitive,
       RunMode.weekly => LeaderboardsRunFilter.weekly,
     };
@@ -445,6 +445,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
               context.l10n.leaderboardTitle(
                 level: widget.levelId.localizedName(context.l10n).toUpperCase(),
                 mode: switch (widget.runMode) {
+                  RunMode.campaign => context.l10n.campaignHeading,
                   RunMode.practice => context.l10n.uiPracticeHeading,
                   RunMode.competitive => context.l10n.uiCompetitiveHeading,
                   RunMode.weekly => context.l10n.uiWeeklyHeading,

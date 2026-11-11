@@ -1,3 +1,7 @@
+import 'package:run_protocol/campaign_binding.dart';
+
+import '../../campaign/campaign_catalog.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -74,7 +78,7 @@ part 'controllers/developer_controller.dart';
 part 'controllers/inbox_controller.dart';
 part 'controllers/achievements_controller.dart';
 
-const String _defaultGameCompatVersion = '2026.11.10';
+const String _defaultGameCompatVersion = '2026.11.11';
 
 const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
 const int _runTicketPrefetchCacheMaxEntries = 4;
@@ -428,6 +432,14 @@ class AppState extends ChangeNotifier {
     levelId: levelId,
   );
 
+  /// Character entitlement is separate from retained equipment and build ownership.
+  bool isCharacterUnlocked(PlayerCharacterId id) =>
+      isDeveloperMode ||
+      id != PlayerCharacterId.bountyHunter ||
+      CampaignCatalog.chapters
+          .where((chapter) => chapter.rewardCharacter == id)
+          .any((chapter) => progression.campaign.chapterCleared(chapter));
+
   Future<void> setCharacter(PlayerCharacterId id) =>
       _selectionOwnershipController.setCharacter(id);
 
@@ -613,10 +625,12 @@ class AppState extends ChangeNotifier {
     RunMode? expectedMode,
     LevelId? expectedLevelId,
     String? ghostEntryId,
+    String? campaignMissionId,
   }) => _runStartController.prepareRunStartDescriptor(
     expectedMode: expectedMode,
     expectedLevelId: expectedLevelId,
     ghostEntryId: ghostEntryId,
+    campaignMissionId: campaignMissionId,
   );
 
   Future<void> _enqueueOwnershipCommand(OwnershipPendingCommand command) =>
@@ -702,6 +716,11 @@ class AppState extends ChangeNotifier {
     _selection = canonical.selection;
     _meta = canonical.meta;
     _progression = canonical.progression;
+    if (!isCharacterUnlocked(_selection.selectedCharacterId)) {
+      _selection = _selection.copyWith(
+        selectedCharacterId: PlayerCharacterId.eloise,
+      );
+    }
     _ownershipRevision = canonical.revision;
     _runSubmissionController.reconcileRewardPreviews();
   }

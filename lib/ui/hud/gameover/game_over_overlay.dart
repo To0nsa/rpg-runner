@@ -1,3 +1,5 @@
+import '../../campaign/campaign_results_panel.dart';
+
 import 'package:game_presentation/enemy_text.dart';
 import 'package:game_presentation/gear_text.dart';
 import 'package:game_presentation/game_localization.dart';
@@ -45,6 +47,8 @@ class GameOverOverlay extends StatefulWidget {
     required this.showExitButton,
     required this.levelId,
     required this.runMode,
+    this.campaignMissionId,
+    this.onNextCampaignMission,
     required this.runEndedEvent,
     required this.scoreTuning,
     required this.tickHz,
@@ -66,6 +70,8 @@ class GameOverOverlay extends StatefulWidget {
   final bool showExitButton;
   final LevelId levelId;
   final RunMode runMode;
+  final String? campaignMissionId;
+  final ValueChanged<String>? onNextCampaignMission;
   final RunEndedEvent? runEndedEvent;
   final ScoreTuning scoreTuning;
   final int tickHz;
@@ -231,6 +237,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   }
 
   int _runRewardXp() {
+    if (widget.runMode == RunMode.campaign) return 0;
     final status = widget.runSubmissionStatus;
     if (status?.isTerminal == true && status?.isRewardFinal != true) return 0;
     return PlayerProgress.xpForScore(
@@ -488,6 +495,12 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                       mainAxisSize: MainAxisSize.max,
                       children: [
                         GameOverHeader(
+                          title: widget.runMode == RunMode.campaign
+                              ? (widget.runEndedEvent?.reason ==
+                                        RunEndReason.missionCompleted
+                                    ? context.l10n.runMissionCompleted
+                                    : context.l10n.runMissionFailed)
+                              : null,
                           subtitleDeathReason: subtitleDeathReason,
                           displayScore: showScoreInHeader
                               ? _feedController.displayScore
@@ -551,7 +564,21 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                   flex: 1,
                   child: Align(
                     alignment: Alignment.topCenter,
-                    child: widget.isDeveloperPractice
+                    child: widget.campaignMissionId != null
+                        ? CampaignResultsPanel(
+                            missionId: widget.campaignMissionId!,
+                            completed:
+                                widget.runEndedEvent?.reason ==
+                                RunEndReason.missionCompleted,
+                            onNext:
+                                mayLeaveGameOver &&
+                                    widget.onNextCampaignMission != null
+                                ? (id) => _completeThen(
+                                    () => widget.onNextCampaignMission!(id),
+                                  )
+                                : null,
+                          )
+                        : widget.isDeveloperPractice
                         ? Text(
                             context.l10n.practiceNoRewards,
                             style: ui.text.body,
@@ -587,6 +614,10 @@ class _RunEndText {
   String? _buildSubtitleDeathReason(RunEndedEvent? event) {
     if (event == null) return null;
     switch (event.reason) {
+      case RunEndReason.missionCompleted:
+        return l10n.runMissionCompleted;
+      case RunEndReason.missionFailed:
+        return l10n.runMissionFailed;
       case RunEndReason.bossEncounterFailed:
         return l10n.runBossFailed;
       case RunEndReason.gaveUp:

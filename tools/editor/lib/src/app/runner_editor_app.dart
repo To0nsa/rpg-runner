@@ -3,6 +3,7 @@ import 'package:tool_ui/tool_ui.dart';
 
 import '../chunks/chunk_domain_plugin.dart';
 import '../training/training_field_domain_plugin.dart';
+import '../campaign/campaign_domain_plugin.dart';
 import '../entities/entity_domain_plugin.dart';
 import '../domain/authoring_plugin_registry.dart';
 import '../levels/level_domain_plugin.dart';
@@ -26,6 +27,7 @@ void runEditorApp({required String initialWorkspacePath}) {
       PrefabDomainPlugin(),
       ChunkDomainPlugin(),
       TrainingFieldDomainPlugin(),
+      CampaignDomainPlugin(),
       LevelDomainPlugin(),
       ParallaxDomainPlugin(),
       TerrainMaterialDomainPlugin(),

@@ -363,6 +363,21 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return routeBinding.buildPage(
       controller,
       navigation: EditorHomeRouteNavigation(
+        onOpenCampaignChunk: (location) => _navigate(
+          EditorNavigationLocation(
+            routeId: chunkCreatorRouteId,
+            page: location,
+          ),
+          prompt: 'Open this shared chunk in Chunk Creator?',
+          loadDocument: (plugin, workspace) =>
+              (plugin as ChunkDomainPlugin).loadForLevel(
+                workspace,
+                target: ChunkLevelTarget(
+                  location.levelId!,
+                  chunkKey: location.chunkKey,
+                ),
+              ),
+        ),
         initialLocation: routeId == _selectedRouteId
             ? _initialLocation
             : _repairOriginLocation,

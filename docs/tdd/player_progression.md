@@ -7,6 +7,12 @@ run eligibility. They do not backfill these historical lifetime totals.
 Build-slot authorization uses confirmed account level derived from lifetime XP;
 local reward previews never unlock a slot. See [character builds](character_builds.md).
 
+Campaign uses the same transaction and counters, with an optional `campaign`
+mode count (missing old values decode as zero). Its trusted first-clear XP
+replaces score-derived XP; accepted campaign results must contain player-stat
+evidence. Local campaign previews never grant XP. See
+[campaign authority](campaign_runtime.md#ticket-replay-and-account-authority).
+
 ## Authority and data flow
 
 Core records actual HP lost in `DamageSystem`'s post-mitigation callback.

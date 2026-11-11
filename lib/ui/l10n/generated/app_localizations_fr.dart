@@ -68,7 +68,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get developerModeHelp =>
-      'Profil local avec tous les équipements et toutes les compétences. Entraînement uniquement, sans récompenses de compte.';
+      'Profil local avec tous les équipements et toutes les compétences. Entraînement et campagne, sans récompenses de compte.';
 
   @override
   String get developerPracticeHelp =>
@@ -1246,7 +1246,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get uiDeveloperModePracticeOnly =>
-      'MODE DÉVELOPPEUR • Entraînement uniquement';
+      'MODE DÉVELOPPEUR • Jeu local uniquement';
 
   @override
   String get uiWeeklyUnavailableInThisBuild =>
@@ -3045,4 +3045,81 @@ class AppLocalizationsFr extends AppLocalizations {
     });
     return '$_temp5';
   }
+
+  @override
+  String get runMissionCompleted => 'Mission accomplie';
+
+  @override
+  String get runMissionFailed => 'Mission échouée';
+
+  @override
+  String get campaignHeading => 'Campagne';
+
+  @override
+  String get campaignRegionalMap => 'Carte régionale';
+
+  @override
+  String get campaignChapterReward => 'Récompense du chapitre : Willow';
+
+  @override
+  String campaignFirstClearXp({required int xp}) {
+    return 'Première réussite : $xp EXP';
+  }
+
+  @override
+  String get campaignDoubleJumpReward => 'Débloque le double saut';
+
+  @override
+  String get campaignCollectedGold =>
+      'Conserve l’or collecté à chaque tentative validée';
+
+  @override
+  String campaignBestScore({required int score}) {
+    return 'Meilleur score : $score';
+  }
+
+  @override
+  String get campaignPreviousRequired =>
+      'Termine la mission précédente pour débloquer';
+
+  @override
+  String get campaignComingSoon => 'À venir';
+
+  @override
+  String get campaignReplay => 'Rejouer';
+
+  @override
+  String get campaignStart => 'Commencer';
+
+  @override
+  String get campaignWillowLocked =>
+      'Termine le chapitre de l’Avant-poste du Val pour débloquer Willow';
+
+  @override
+  String get campaignVerificationPending =>
+      'Ta réussite et les récompenses de première réussite sont accordées après validation.';
+
+  @override
+  String get campaignNextMission => 'Mission suivante';
+
+  @override
+  String campaignObjectives({required int completed, required int required}) {
+    return 'Objectifs : $completed/$required';
+  }
+
+  @override
+  String get campaignReachExit => 'Rejoins la sortie';
+
+  @override
+  String get campaignEquipDoubleJump => 'Équipe le double saut pour Éloïse';
+
+  @override
+  String get campaignDoubleJumpEquipped => 'Double saut équipé';
+
+  @override
+  String get campaignEquipFailed =>
+      'Impossible d’équiper le double saut. Réessaie.';
+
+  @override
+  String get campaignWillowUnlocked => 'Chapitre terminé — Willow débloqué';
 }

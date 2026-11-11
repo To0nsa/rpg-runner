@@ -5,6 +5,11 @@ release builds for hosting. Native targets retain the explicit debug-only option
 for local testing; native profile/release builds still require account-backed
 runs. No target automatically switches after a connection failure.
 
+The same local profile can launch included campaign missions from Campaign.
+These use the compiled finite mission runtime and bypass chapter/character locks
+locally, with no recording, settlement or account rewards. Runner preferences
+stay Practice. Draft missions must still be authored and included before launch.
+
 Android debug builds install as **rpg_runner Dev**, separately from
 release/profile. The first dev install starts with fresh preferences. Enable
 Developer mode through Options after normal sign-in, or use the explicit debug

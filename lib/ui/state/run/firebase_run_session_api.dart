@@ -28,6 +28,7 @@ class FirebaseRunSessionApi implements RunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) async {
     try {
       final response = await _source.createRunSession(
@@ -37,6 +38,7 @@ class FirebaseRunSessionApi implements RunSessionApi {
         mode: mode,
         levelId: levelId,
         gameCompatVersion: gameCompatVersion,
+        missionId: missionId,
       );
       final rawTicket = response['runTicket'] ?? response;
       return RunTicket.fromJson(rawTicket);
@@ -206,6 +208,7 @@ abstract class FirebaseRunSessionSource {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   });
 
   Future<Map<String, dynamic>> createUploadGrant({
@@ -251,6 +254,7 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) async {
     final callable = _functions.httpsCallable(createCallableName);
     final result = await callable.call(<String, Object?>{
@@ -261,6 +265,7 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
       'mode': mode.name,
       'levelId': levelId.name,
       'gameCompatVersion': gameCompatVersion,
+      'missionId': ?missionId,
     });
     return _decodeMap(result.data);
   }

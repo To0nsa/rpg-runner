@@ -1,3 +1,6 @@
+import 'package:runner_core/campaign/campaign_registry.dart';
+import 'package:run_protocol/campaign_binding.dart';
+
 import 'dart:convert';
 
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -40,6 +43,160 @@ import 'package:replay_validator/src/validated_replay_archiver.dart';
 import 'package:replay_validator/src/validator_worker.dart';
 
 void main() {
+  for (final mismatched in [false, true]) {
+    test(
+      'campaign missing catalog retries, mismatched replay rejects: $mismatched',
+      () async {
+        final ticketBinding = CampaignBinding(
+          missionId: 'unavailable_campaign_fixture',
+          contentDigest: campaignContentDigest,
+        );
+        final replay = ReplayBlobV1.withComputedDigest(
+          runSessionId: 'campaign_missing',
+          tickHz: 60,
+          seed: 1,
+          levelId: 'field',
+          playerCharacterId: 'eloise',
+          loadoutSnapshot: _defaultLoadoutSnapshot(),
+          totalTicks: 1,
+          commandStream: const [],
+          campaign: mismatched
+              ? CampaignBinding(
+                  missionId: 'different_campaign_fixture',
+                  contentDigest: campaignContentDigest,
+                )
+              : ticketBinding,
+        );
+        final bytes = utf8.encode(jsonEncode(replay.toJson()));
+        final repo = _FakeRunSessionRepository(
+          leaseResult: RunSessionLeaseAcquireResult(
+            status: RunSessionLeaseStatus.acquired,
+            session: _session(
+              runSessionId: replay.runSessionId,
+              mode: RunMode.campaign,
+              campaign: ticketBinding,
+              seed: 1,
+              digest: replay.canonicalSha256,
+              contentLengthBytes: bytes.length,
+              validationAttempt: 1,
+            ),
+          ),
+        );
+        final worker = DeterministicValidatorWorker(
+          replayLoader: _FakeReplayLoader(
+            bytesByRunSession: {replay.runSessionId: bytes},
+          ),
+          boardRepository: const _FakeBoardRepository(),
+          runSessionRepository: repo,
+          metrics: _FakeValidatorMetrics(),
+          clockMs: () => 10000,
+        );
+        final result = await worker.validateRunSession(
+          runSessionId: replay.runSessionId,
+        );
+        expect(
+          result.status,
+          mismatched
+              ? ValidationDispatchStatus.rejected
+              : ValidationDispatchStatus.retryScheduled,
+        );
+        expect(repo.acceptedSettlementHandoffs, isEmpty);
+      },
+    );
+  }
+
+  test('compiled campaign app outcome matches ticket replay worker', () async {
+    final id = Platform.environment['CAMPAIGN_REPLAY_FIXTURE']!;
+    for (final tickHz in [30, 120]) {
+      final binding = CampaignBinding(
+        missionId: id,
+        contentDigest: campaignContentDigest,
+      );
+      final app = GameCore.campaign(
+        missionId: id,
+        contentDigest: campaignContentDigest,
+        playerCharacter: PlayerCharacterRegistry.eloise,
+        seed: 1,
+        tickHz: tickHz,
+        equippedLoadout: const EquippedLoadoutDef(
+          mask: 0,
+          projectileSlotSpellId: ProjectileId.iceBolt,
+        ),
+      );
+      final frames = <ReplayCommandFrameV1>[];
+      void travel(double destination) {
+        for (var budget = 0; budget < 20 * tickHz && !app.gameOver; budget++) {
+          if ((app.playerPosX - destination).abs() < 6) break;
+          final axis = destination > app.playerPosX ? 1.0 : -1.0;
+          frames.add(ReplayCommandFrameV1(tick: app.tick + 1, moveAxis: axis));
+          app.applyCommands([MoveAxisCommand(tick: app.tick + 1, axis: axis)]);
+          app.stepOneTick();
+        }
+      }
+
+      travel(900);
+      expect(app.gameOver, isFalse);
+      expect(app.playerPosX, greaterThan(890));
+      travel(40);
+      expect(app.gameOver, isFalse);
+      expect(app.playerPosX, lessThan(50));
+      travel(1150);
+      final ended = app.drainEvents().whereType<RunEndedEvent>().single;
+      expect(ended.reason, RunEndReason.missionCompleted);
+      final replay = ReplayBlobV1.withComputedDigest(
+        runSessionId: 'campaign_$tickHz',
+        tickHz: tickHz,
+        seed: 1,
+        levelId: 'field',
+        playerCharacterId: 'eloise',
+        loadoutSnapshot: _defaultLoadoutSnapshot(),
+        totalTicks: app.tick,
+        commandStream: frames,
+        campaign: binding,
+        clientSummary: {'score': 999999, 'goldEarned': 999999},
+      );
+      final bytes = utf8.encode(jsonEncode(replay.toJson()));
+      final repo = _FakeRunSessionRepository(
+        leaseResult: RunSessionLeaseAcquireResult(
+          status: RunSessionLeaseStatus.acquired,
+          session: _session(
+            runSessionId: replay.runSessionId,
+            mode: RunMode.campaign,
+            campaign: binding,
+            seed: 1,
+            tickHz: tickHz,
+            digest: replay.canonicalSha256,
+            contentLengthBytes: bytes.length,
+            validationAttempt: 1,
+          ),
+        ),
+      );
+      final worker = DeterministicValidatorWorker(
+        replayLoader: _FakeReplayLoader(
+          bytesByRunSession: {replay.runSessionId: bytes},
+        ),
+        boardRepository: const _FakeBoardRepository(),
+        runSessionRepository: repo,
+        metrics: _FakeValidatorMetrics(),
+        clockMs: () => 10000,
+      );
+      expect(
+        (await worker.validateRunSession(runSessionId: replay.runSessionId))
+            .status,
+        ValidationDispatchStatus.accepted,
+      );
+      final validated = repo.acceptedSettlementHandoffs.single;
+      expect(validated.campaign, binding);
+      expect(validated.boardId, isNull);
+      expect(validated.endedReason, ended.reason.name);
+      expect(validated.tick, ended.tick);
+      expect(validated.goldEarned, ended.goldEarned);
+      expect(validated.stats['collectibles'], 2);
+      expect(validated.stats['excludedScoreTicks'], ended.tick);
+      expect(validated.score, lessThan(999999));
+    }
+  }, skip: Platform.environment['CAMPAIGN_REPLAY_FIXTURE'] == null);
+
   // These routes reach the rescue after Field's three safe chunks.
   for (final fixture in [(182, 60), (235, 60), (182, 30), (235, 30)]) {
     test('authored rescue survives normal scrolling and replays $fixture', () async {
@@ -475,7 +632,7 @@ void main() {
         contentLengthBytes: replayBytes.length,
         validationAttempt: 1,
         tickHz: replayBlob.tickHz,
-        gameCompatVersion: '2026.11.10',
+        gameCompatVersion: '2026.11.11',
       );
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
@@ -1754,7 +1911,7 @@ ValidatorRunSession _session({
   String? storageGeneration = '123',
   String? ticketRunSessionId,
   String playerCharacterId = 'eloise',
-  String gameCompatVersion = '2026.11.10',
+  String gameCompatVersion = '2026.11.11',
 
   String? rulesetVersion,
   String? scoreVersion,
@@ -1762,6 +1919,7 @@ ValidatorRunSession _session({
   String? loadoutDigest,
   Map<String, Object?>? loadoutSnapshot,
   int tickHz = 60,
+  CampaignBinding? campaign,
 }) {
   assert(
     ReplayDigest.isValidSha256Hex(digest),
@@ -1783,6 +1941,7 @@ ValidatorRunSession _session({
       runSessionId: ticketRunSessionId ?? runSessionId,
       uid: 'uid_1',
       mode: mode,
+      campaign: campaign,
       boardId: mode.requiresBoard ? 'board_1' : null,
       boardKey: boardKey,
       seed: seed,

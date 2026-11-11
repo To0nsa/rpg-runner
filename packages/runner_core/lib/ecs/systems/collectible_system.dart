@@ -24,6 +24,7 @@ class CollectibleSystem {
     required double cameraLeft,
     required CollectibleTuning tuning,
     required void Function(int value) onCollected,
+    bool cullBehindCamera = true,
   }) {
     final collectibles = world.collectible;
     if (collectibles.denseEntities.isEmpty) return;
@@ -51,7 +52,7 @@ class CollectibleSystem {
       );
 
       // 1. Culling: Despawn if far behind the camera.
-      if (centerX < despawnLimit) {
+      if (cullBehindCamera && centerX < despawnLimit) {
         _toDespawn.add(e);
         continue;
       }

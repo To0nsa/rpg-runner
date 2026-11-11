@@ -1,4 +1,5 @@
 export 'board_key.dart';
+export 'campaign_binding.dart';
 export 'board_manifest.dart';
 export 'codex_run_progress.dart';
 export 'leaderboard_entry.dart';

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../chunks/chunk_domain_plugin.dart';
 import '../../../training/training_field_domain_plugin.dart';
+import '../../../campaign/campaign_domain_plugin.dart';
+import '../campaign/campaign_page.dart';
 import '../trainingField/training_field_page.dart';
 import '../../../entities/entity_domain_plugin.dart';
 import '../../../levels/level_domain_plugin.dart';
@@ -64,6 +66,7 @@ class EditorHomeRouteNavigation {
   const EditorHomeRouteNavigation({
     this.initialLocation,
     this.onOpenChunkForLevel,
+    this.onOpenCampaignChunk,
     this.onShellStateChanged,
     this.onRepairDependency,
     this.onOpenPrefabTarget,
@@ -72,6 +75,7 @@ class EditorHomeRouteNavigation {
 
   final EditorPageLocation? initialLocation;
   final Future<bool> Function(LevelCreatorChunkTarget)? onOpenChunkForLevel;
+  final Future<bool> Function(ChunkCreatorLocation)? onOpenCampaignChunk;
 
   /// Requests a shell-control rebuild after page-owned lock state changes.
   final VoidCallback? onShellStateChanged;
@@ -89,6 +93,7 @@ const String prefabCreatorRouteId = 'prefab_creator';
 const String chunkCreatorRouteId = 'chunk_creator';
 const String levelCreatorRouteId = 'level_creator';
 const String trainingFieldRouteId = 'training_field';
+const String campaignRouteId = 'campaign';
 const String parallaxEditorRouteId = 'parallax_editor';
 const String terrainMaterialsRouteId = 'terrain_materials';
 
@@ -120,6 +125,18 @@ final List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
     label: 'Level Creator',
     pluginId: LevelDomainPlugin.pluginId,
     buildPage: _buildLevelCreatorPage,
+  ),
+  EditorHomeRoute(
+    id: campaignRouteId,
+    label: 'Campaign',
+    pluginId: CampaignDomainPlugin.pluginId,
+    buildPage: ({required key, required controller, required navigation}) =>
+        CampaignPage(
+          key: key,
+          controller: controller,
+          onOpenChunk: navigation.onOpenCampaignChunk,
+          onShellStateChanged: navigation.onShellStateChanged,
+        ),
   ),
   EditorHomeRoute(
     id: trainingFieldRouteId,

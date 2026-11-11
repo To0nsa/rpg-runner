@@ -118,8 +118,13 @@ final class PlayerProgress {
         return MapEntry(
           key,
           Map<String, int>.unmodifiable({
-            for (final mode in ['practice', 'competitive', 'weekly'])
-              mode: _count(value[mode]),
+            for (final mode in [
+              'practice',
+              'competitive',
+              'weekly',
+              'campaign',
+            ])
+              mode: _count(value[mode] ?? (mode == 'campaign' ? 0 : null)),
           }),
         );
       }),

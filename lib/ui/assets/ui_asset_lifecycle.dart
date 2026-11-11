@@ -131,6 +131,12 @@ class UiAssetLifecycle {
       await Future.wait([
         getIdle(characterId),
         precacheParallaxLayers(layers, context),
+        _precacheImageOnce(
+          const AssetImage(
+            'assets/images/maps/theodonis_region_unlabelled.png',
+          ),
+          context,
+        ),
       ]);
       trimHubCaches();
     } catch (_) {

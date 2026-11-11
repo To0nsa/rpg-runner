@@ -79,6 +79,8 @@ export function applyRunAchievements(args: {
   nowMs: number;
 }): boolean {
   const run = args.validatedRun;
+  // Campaign has finite objectives and separate rewards; runner milestones exclude it.
+  if (run.mode === "campaign") return false;
   // Retained legacy evidence earns its original rewards without invented metrics.
   if (run.playerRunStats === undefined || run.codex === undefined ||
       run.distanceMeters === undefined || run.durationSeconds === undefined ||

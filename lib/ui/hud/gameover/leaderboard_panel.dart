@@ -59,7 +59,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   }
 
   Future<void> _loadLeaderboard() async {
-    if (widget.runMode != RunMode.practice) {
+    if (widget.runMode.requiresBoard) {
       OnlineLeaderboardBoardData? data;
       try {
         data = await context.read<AppState>().loadOnlineLeaderboardData(
@@ -116,6 +116,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final runModeLabel = switch (widget.runMode) {
+      RunMode.campaign => context.l10n.campaignHeading,
       RunMode.practice => context.l10n.uiPractice,
       RunMode.competitive => context.l10n.uiCompetitive,
       RunMode.weekly => context.l10n.uiWeekly,
@@ -128,7 +129,7 @@ class _LeaderboardPanelState extends State<LeaderboardPanel> {
     final textStyle = spec.rowTextStyle;
 
     Widget content;
-    if (widget.runMode != RunMode.practice) {
+    if (widget.runMode.requiresBoard) {
       content = Center(
         child: Text(
           !_loaded

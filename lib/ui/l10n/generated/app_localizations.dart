@@ -203,7 +203,7 @@ abstract class AppLocalizations {
   /// Developer profile has no online rewards.
   ///
   /// In en, this message translates to:
-  /// **'Local profile with all equipment and abilities. Practice only; no account rewards.'**
+  /// **'Local profile with all equipment and abilities. Practice and campaign play; no account rewards.'**
   String get developerModeHelp;
 
   /// Browser build always runs locally.
@@ -1750,7 +1750,7 @@ abstract class AppLocalizations {
   /// Player-facing text on pages/hub/play_hub_page.dart. Keep French informal (tu). Do not translate player-authored names.
   ///
   /// In en, this message translates to:
-  /// **'DEVELOPER MODE • Practice only'**
+  /// **'DEVELOPER MODE • Local play only'**
   String get uiDeveloperModePracticeOnly;
 
   /// Player-facing text on pages/hub/play_hub_page.dart. Keep French informal (tu). Do not translate player-authored names.
@@ -4135,6 +4135,138 @@ abstract class AppLocalizations {
     required String service,
     required String slot,
   });
+
+  /// Result subtitle for a verified Core mission success.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission complete'**
+  String get runMissionCompleted;
+
+  /// Result subtitle when a required mission objective is lost.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission failed'**
+  String get runMissionFailed;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign'**
+  String get campaignHeading;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Regional map'**
+  String get campaignRegionalMap;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter reward: Willow'**
+  String get campaignChapterReward;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'First clear: {xp} XP'**
+  String campaignFirstClearXp({required int xp});
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock double jump'**
+  String get campaignDoubleJumpReward;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep collected gold on every verified attempt'**
+  String get campaignCollectedGold;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Best score: {score}'**
+  String campaignBestScore({required int score});
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the previous mission to unlock'**
+  String get campaignPreviousRequired;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get campaignComingSoon;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Replay'**
+  String get campaignReplay;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Start mission'**
+  String get campaignStart;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the Val Outpost chapter to unlock Willow'**
+  String get campaignWillowLocked;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Your clear and first-clear rewards unlock after verification.'**
+  String get campaignVerificationPending;
+
+  /// Campaign navigation, mission progress or chapter reward label.
+  ///
+  /// In en, this message translates to:
+  /// **'Next mission'**
+  String get campaignNextMission;
+
+  /// Required campaign objective progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Objectives: {completed}/{required}'**
+  String campaignObjectives({required int completed, required int required});
+
+  /// All campaign requirements are met; reach the authored exit.
+  ///
+  /// In en, this message translates to:
+  /// **'Reach the exit'**
+  String get campaignReachExit;
+
+  /// Verified campaign reward and explicit equip action.
+  ///
+  /// In en, this message translates to:
+  /// **'Equip double jump for Éloïse'**
+  String get campaignEquipDoubleJump;
+
+  /// Verified campaign reward and explicit equip action.
+  ///
+  /// In en, this message translates to:
+  /// **'Double jump equipped'**
+  String get campaignDoubleJumpEquipped;
+
+  /// Verified campaign reward and explicit equip action.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not equip double jump. Try again.'**
+  String get campaignEquipFailed;
+
+  /// Verified campaign reward and explicit equip action.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter complete — Willow unlocked'**
+  String get campaignWillowUnlocked;
 }
 
 class _AppLocalizationsDelegate

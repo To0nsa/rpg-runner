@@ -1,3 +1,4 @@
+import 'campaign_binding.dart';
 import 'codecs/json_integer.dart';
 import 'board_key.dart';
 import 'codecs/json_value_copy.dart';
@@ -155,6 +156,7 @@ final class ReplayBlobV1 {
     required this.totalTicks,
     required List<ReplayCommandFrameV1> commandStream,
     required this.canonicalSha256,
+    this.campaign,
     this.boardId,
     this.boardKey,
     this.commandEncodingVersion = kCommandEncodingVersion1,
@@ -198,6 +200,9 @@ final class ReplayBlobV1 {
         'must be non-negative',
       );
     }
+    if (campaign != null && (boardId != null || boardKey != null)) {
+      throw ArgumentError('Campaign replays must omit board fields.');
+    }
     if ((boardId == null) != (boardKey == null)) {
       throw ArgumentError(
         'boardId and boardKey must both be set or both be null.',
@@ -226,6 +231,7 @@ final class ReplayBlobV1 {
 
   final int replayVersion;
   final String runSessionId;
+  final CampaignBinding? campaign;
   final String? boardId;
   final BoardKey? boardKey;
   final int tickHz;
@@ -248,6 +254,7 @@ final class ReplayBlobV1 {
     required Map<String, Object?> loadoutSnapshot,
     required int totalTicks,
     required List<ReplayCommandFrameV1> commandStream,
+    CampaignBinding? campaign,
     String? boardId,
     BoardKey? boardKey,
     int commandEncodingVersion = kCommandEncodingVersion1,
@@ -257,6 +264,7 @@ final class ReplayBlobV1 {
     final payload = <String, Object?>{
       'replayVersion': replayVersion,
       'runSessionId': runSessionId,
+      'campaign': ?campaign?.toJson(),
       'boardId': ?boardId,
       'boardKey': ?boardKey?.toJson(),
       'tickHz': tickHz,
@@ -275,6 +283,7 @@ final class ReplayBlobV1 {
     return ReplayBlobV1(
       replayVersion: replayVersion,
       runSessionId: runSessionId,
+      campaign: campaign,
       boardId: boardId,
       boardKey: boardKey,
       tickHz: tickHz,
@@ -307,6 +316,9 @@ final class ReplayBlobV1 {
       final blob = ReplayBlobV1(
         replayVersion: replayVersion,
         runSessionId: readRequiredString(json, 'runSessionId'),
+        campaign: json['campaign'] == null
+            ? null
+            : CampaignBinding.fromJson(json['campaign']),
         boardId: readOptionalString(json, 'boardId'),
         boardKey: json['boardKey'] == null
             ? null
@@ -335,6 +347,7 @@ final class ReplayBlobV1 {
     return <String, Object?>{
       'replayVersion': replayVersion,
       'runSessionId': runSessionId,
+      if (campaign != null) 'campaign': campaign!.toJson(),
       if (boardId != null) 'boardId': boardId,
       if (boardKey != null) 'boardKey': boardKey!.toJson(),
       'tickHz': tickHz,

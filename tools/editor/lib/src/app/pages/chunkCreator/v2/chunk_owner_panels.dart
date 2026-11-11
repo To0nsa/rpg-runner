@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_models.dart';
 import '../../shared/editor_inline_id_form.dart';
+
 import 'package:tool_ui/tool_ui.dart';
+
 import 'chunk_owner_preview.dart';
 import 'chunk_owner_order.dart';
 import 'chunk_v2_owner_form.dart';
@@ -315,6 +317,7 @@ class ChunkOwnerEditDetails extends StatelessWidget {
     required this.editFormKey,
     required this.isDirty,
     required this.onDuplicate,
+    this.onCopyMode,
     required this.onDelete,
     required this.onDirtyChanged,
     required this.onCancelEdit,
@@ -327,6 +330,7 @@ class ChunkOwnerEditDetails extends StatelessWidget {
   final GlobalKey<ChunkV2OwnerFormState> editFormKey;
   final bool isDirty;
   final VoidCallback onDuplicate;
+  final VoidCallback? onCopyMode;
   final VoidCallback onDelete;
   final ValueChanged<bool> onDirtyChanged;
   final VoidCallback onCancelEdit;
@@ -344,7 +348,7 @@ class ChunkOwnerEditDetails extends StatelessWidget {
       ),
       const SizedBox(height: 8),
       Text(
-        'revision ${source.revision}\n'
+        'revision ${source.revision} · ${source.usage}\n'
         '${source.width}×${source.height} px · tile ${source.tileSize} px · '
         '${source.collisionShapes.length} shape(s) · '
         '${source.prefabs.length} prefab(s) · ${source.markers.length} marker(s)',
@@ -354,6 +358,16 @@ class ChunkOwnerEditDetails extends StatelessWidget {
         spacing: 8,
         runSpacing: 8,
         children: <Widget>[
+          if (onCopyMode != null)
+            OutlinedButton.icon(
+              onPressed: _lifecycleEnabled ? onCopyMode : null,
+              icon: const Icon(Icons.copy_all_outlined),
+              label: Text(
+                source.usage == 'campaign'
+                    ? 'Copy to Runner'
+                    : 'Copy to Campaign',
+              ),
+            ),
           Tooltip(
             message: 'Duplicate ${source.chunkKey} with a new chunk key.',
             child: OutlinedButton.icon(

@@ -1,3 +1,4 @@
+import { campaignCharacterUnlocked, initialCampaignProgress } from "../campaign/progression.js";
 import { buildUnlockLevels, selectionSchemaVersion } from "./character_builds.js";
 import { initialAchievementProgress, readAchievementProgress } from "./achievements.js";
 import type {
@@ -121,6 +122,7 @@ export function starterProgression(args: {
 }): JsonObject {
   const progression = structuredClone({
     gold: 0,
+    campaign: initialCampaignProgress(),
     awardedRunIds: [],
     codex: initialCodexProgress(),
     enemyDefeats: initialEnemyDefeats(),
@@ -190,6 +192,7 @@ export function normalizeCanonicalState(
   const progression = isJsonObject(candidate.progression)
     ? structuredClone(candidate.progression)
     : fallback.progression;
+  if (!campaignCharacterUnlocked(progression, selection.characterId)) selection.characterId = "eloise";
   progression.achievements = readAchievementProgress(progression.achievements);
   normalizeProgressionStore({
     progression,

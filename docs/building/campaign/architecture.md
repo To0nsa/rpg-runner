@@ -1,10 +1,10 @@
 # Campaign architecture proposal
 
-Status: proposed. Requirements and scope are in the [plan index](README.md);
-execution is tracked only in [Implementation](implementation.md).
-Initial finite scheduler and camera primitives now exist; their limited
-[implemented contract](../../tdd/campaign_runtime.md) does not yet provide the
-mission lifecycle described below.
+Status: design reference for the implemented campaign platform. The
+[current technical contract](../../tdd/campaign_runtime.md) and
+[game behavior](../../gdd/campaign.md) supersede tentative choices below.
+The [single checklist](implementation.md) records local evidence and remaining
+production-layout/device acceptance; this document is not a second task ledger.
 
 ## Domain and ownership
 

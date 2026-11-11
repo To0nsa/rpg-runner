@@ -6,6 +6,9 @@
 /// contract lives in `docs/tdd/runner_core_simulation_contract.md`.
 library;
 
+import 'campaign/campaign_registry.dart';
+import 'levels/level_id.dart';
+
 import 'ecs/systems/derf_transformation_system.dart';
 import 'navigation/actor_navigation_profiles.dart';
 import 'navigation/terrain_graph_materializer.dart';
@@ -18,6 +21,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'camera/autoscroll_camera.dart';
+import 'camera/finite_follow_camera.dart';
+import 'campaign/campaign_mission_definition.dart';
+import 'campaign/campaign_session.dart';
 import 'bosses/boss_arena_system.dart';
 import 'bosses/boss_victory_blessing_system.dart';
 import 'bosses/boss_arena_spawn_adapter.dart';
@@ -351,7 +357,89 @@ class GameCore {
     trainingField: TrainingFieldSession(definition),
   );
 
+  /// Production campaign construction resolves only compiled, digest-bound missions.
+  /// The regional identity is independent of the finite mission's stable ID.
+  factory GameCore.campaign({
+    required String missionId,
+    required String contentDigest,
+    required PlayerCharacterDefinition playerCharacter,
+    required int seed,
+    required int tickHz,
+    int runId = 0,
+    EquippedLoadoutDef? equippedLoadout,
+    TerrainCandidatePreparation terrainPreparation = prepareTerrainCandidate,
+    TerrainGraphMaterializer graphMaterializer =
+        const TerrainGraphMaterializer.eager(),
+  }) {
+    final mission = campaignMissions[missionId];
+    final regionalName = campaignRegionalLevelIds[missionId];
+    if (mission == null ||
+        regionalName == null ||
+        contentDigest != campaignContentDigest) {
+      throw StateError(
+        'Campaign mission content is unavailable or incompatible.',
+      );
+    }
+    if (tickHz <= 0 || seed <= 0) {
+      throw ArgumentError('Mission tickHz and seed must be positive.');
+    }
+    return GameCore._fromLevel(
+      campaign: CampaignSession(mission),
+      terrainPreparation: terrainPreparation,
+      graphMaterializer: graphMaterializer,
+      seed: seed,
+      tickHz: tickHz,
+      runId: runId,
+      levelDefinition: mission.buildLevel(
+        regionalLevelId: LevelId.values.byName(regionalName),
+      ),
+      playerCharacter: playerCharacter,
+      equippedLoadoutOverride: equippedLoadout,
+      projectileCatalog: const ProjectileCatalog(),
+      spellBookCatalog: const SpellBookCatalog(),
+      enemyCatalog: const EnemyCatalog(),
+      weaponCatalog: const WeaponCatalog(),
+      accessoryCatalog: const AccessoryCatalog(),
+      terrainHarnessGeometry: null,
+      stagedTerrainCatalogOverride: mission.terrainCatalog,
+    );
+  }
+
+  /// Captured finite mission play. Authenticated hosts must resolve their own
+  /// trusted catalog; this tooling boundary cannot issue tickets or rewards.
+  factory GameCore.campaignPlaytest({
+    required CampaignMissionDefinition mission,
+    required PlayerCharacterDefinition playerCharacter,
+    EquippedLoadoutDef? equippedLoadout,
+    int seed = 1,
+    int tickHz = defaultTickHz,
+    int runId = 0,
+    TerrainCandidatePreparation terrainPreparation = prepareTerrainCandidate,
+  }) {
+    if (tickHz <= 0 || seed <= 0) {
+      throw ArgumentError('Mission tickHz and seed must be positive.');
+    }
+    return GameCore._fromLevel(
+      campaign: CampaignSession(mission),
+      terrainPreparation: terrainPreparation,
+      seed: seed,
+      tickHz: tickHz,
+      runId: runId,
+      levelDefinition: mission.buildLevel(),
+      playerCharacter: playerCharacter,
+      equippedLoadoutOverride: equippedLoadout,
+      projectileCatalog: const ProjectileCatalog(),
+      spellBookCatalog: const SpellBookCatalog(),
+      enemyCatalog: const EnemyCatalog(),
+      weaponCatalog: const WeaponCatalog(),
+      accessoryCatalog: const AccessoryCatalog(),
+      terrainHarnessGeometry: null,
+      stagedTerrainCatalogOverride: mission.terrainCatalog,
+    );
+  }
+
   GameCore._fromLevel({
+    CampaignSession? campaign,
     TrainingFieldSession? trainingField,
     TerrainCandidatePreparation terrainPreparation = prepareTerrainCandidate,
     TerrainGraphMaterializer graphMaterializer =
@@ -369,7 +457,8 @@ class GameCore {
     required EquippedLoadoutDef? equippedLoadoutOverride,
     required TerrainGeometry? terrainHarnessGeometry,
     required StagedTerrainCatalog? stagedTerrainCatalogOverride,
-  }) : _trainingField = trainingField,
+  }) : _campaign = campaign,
+       _trainingField = trainingField,
        _terrainPreparation = terrainPreparation,
        _graphMaterializer = graphMaterializer,
        _levelDefinition = levelDefinition,
@@ -449,18 +538,27 @@ class GameCore {
       levelDefinition.tuning.camera,
       movement: _movement,
     );
-    _camera = AutoscrollCamera(
-      viewWidth: virtualWidth.toDouble(),
-      viewHeight: virtualHeight.toDouble(),
-      tuning: _cameraTuning,
-      initial: CameraState(
-        centerX: virtualWidth * 0.5,
-        targetX: virtualWidth * 0.5,
-        centerY: levelDefinition.cameraCenterY,
-        targetY: levelDefinition.cameraCenterY,
-        speedX: 0.0,
-      ),
-    );
+    _camera = _campaign == null
+        ? AutoscrollCamera(
+            viewWidth: virtualWidth.toDouble(),
+            viewHeight: virtualHeight.toDouble(),
+            tuning: _cameraTuning,
+            initial: CameraState(
+              centerX: virtualWidth * 0.5,
+              targetX: virtualWidth * 0.5,
+              centerY: levelDefinition.cameraCenterY,
+              targetY: levelDefinition.cameraCenterY,
+              speedX: 0.0,
+            ),
+          )
+        : FiniteFollowCamera(
+            worldLeft: 0,
+            worldRight: _campaign.definition.worldWidth,
+            viewWidth: virtualWidth.toDouble(),
+            viewHeight: virtualHeight.toDouble(),
+            centerY: levelDefinition.cameraCenterY,
+            playerX: _campaign.definition.worldX(_campaign.definition.start),
+          );
 
     final terrainGeometry = _terrainHarnessGeometry;
     _stagedTerrainCatalog = terrainGeometry == null && _trackTuning.enabled
@@ -581,6 +679,16 @@ class GameCore {
       enemyRequests: initialEnemySpawns,
       spawnedChunks: initialSpawnedChunks,
     );
+    final campaign = _campaign;
+    if (campaign != null) {
+      for (final point in campaign.definition.collectibles) {
+        _spawnService.spawnCollectibleAt(
+          campaign.definition.worldX(point),
+          point.y,
+        );
+      }
+      campaign.applyBounds(_world, _player);
+    }
 
     // Build startup animation state without advancing gameplay time so the
     // ready overlay can render the authoritative initial world immediately.
@@ -896,7 +1004,9 @@ class GameCore {
     final playerCollider = playerArchetype.collider;
 
     // Position so collider bottom touches ground.
-    final spawnY = groundTopY - (playerCollider.offsetY + playerCollider.halfY);
+    final spawnY =
+        (_campaign?.definition.start.y ?? groundTopY) -
+        (playerCollider.offsetY + playerCollider.halfY);
     final equippedLoadout =
         _equippedLoadoutOverride ??
         EquippedLoadoutDef(
@@ -944,7 +1054,9 @@ class GameCore {
       _world,
       player: _player,
       archetype: playerArchetype,
-      supportYTicks: _trainingField == null
+      supportYTicks: _campaign != null
+          ? physicsCoordinateToTicks(_campaign.definition.start.y)
+          : _trainingField == null
           ? null
           : physicsCoordinateToTicks(_trainingField.definition.playerStartY),
     );
@@ -1002,6 +1114,7 @@ class GameCore {
   /// Core level configuration for this run.
   final LevelDefinition _levelDefinition;
   final TrainingFieldSession? _trainingField;
+  final CampaignSession? _campaign;
 
   /// Queues a local selection for the next marked chunk; mutation happens only
   /// inside the next simulation tick, after its terrain has been published.
@@ -1107,7 +1220,9 @@ class GameCore {
   late final NpcDeathStateSystem _npcDeathStateSystem = NpcDeathStateSystem(
     tickHz: _movement.tickHz,
   );
-  final EncounterSystem _encounters = EncounterSystem();
+  late final EncounterSystem _encounters = EncounterSystem(
+    expireBehindCamera: _campaign == null,
+  );
   late final _bossArenas = BossArenaSystem(tickHz: tickHz);
   final _bossResourceSupply = BossResourceSupplySystem();
   late final _bossResourceSupplySpawns = BossResourceSupplySpawnAdapter(
@@ -1367,7 +1482,7 @@ class GameCore {
   // ─── Camera ───
 
   /// Autoscrolling camera that follows and pushes the player.
-  late final AutoscrollCamera _camera;
+  late final CameraView _camera;
 
   // ─── Event Queue ───
 
@@ -1919,6 +2034,7 @@ class GameCore {
     );
 
     // ─── Phase 3: AI, input, and movement ───
+    _campaign?.applyBounds(_world, _player);
     _bossArenas.control(_world, player: _player, tick: tick);
     // Visibility gates must lock newly spawned Derfs before navigation/combat.
     _derfTransformationSystem.step(
@@ -2023,16 +2139,30 @@ class GameCore {
       return;
     }
 
-    _camera.updateTick(
-      dtSeconds: _movement.dtSeconds,
-      playerRightX: _playerRightX(),
-      playerY: _playerYOrNull(),
-      stopAtCenterX: _bossArenas.cameraStopX,
-      stopAtCenterY: _bossArenas.cameraStopX == null ? null : virtualHeight / 2,
-      targetSpeedX: _cameraTuning.targetSpeedXFor(
-        _trackManager.difficultyAtWorldX(_camera.state.centerX),
-      ),
-    );
+    final camera = _camera;
+    if (camera is FiniteFollowCamera) {
+      camera.updateTick(
+        dtSeconds: _movement.dtSeconds,
+        playerX: _world.transform.posX[_world.transform.indexOf(_player)],
+        frameCenterX: _bossArenas.cameraStopX,
+        frameCenterY: _bossArenas.cameraStopX == null
+            ? null
+            : virtualHeight / 2,
+      );
+    } else if (camera is AutoscrollCamera) {
+      camera.updateTick(
+        dtSeconds: _movement.dtSeconds,
+        playerRightX: _playerRightX(),
+        playerY: _playerYOrNull(),
+        stopAtCenterX: _bossArenas.cameraStopX,
+        stopAtCenterY: _bossArenas.cameraStopX == null
+            ? null
+            : virtualHeight / 2,
+        targetSpeedX: _cameraTuning.targetSpeedXFor(
+          _trackManager.difficultyAtWorldX(_camera.state.centerX),
+        ),
+      );
+    }
     _bossArenas.afterCamera(
       _world,
       player: _player,
@@ -2048,7 +2178,8 @@ class GameCore {
       cameraRight: _camera.right(),
       cameraBottom: _camera.bottom(),
     );
-    if (!_bossArenas.arenaFramed &&
+    if (_campaign == null &&
+        !_bossArenas.arenaFramed &&
         _checkFellBehindCamera(cameraLeft: cameraLeft)) {
       _endRun(RunEndReason.fellBehindCamera);
       return;
@@ -2061,6 +2192,7 @@ class GameCore {
       player: _player,
       cameraLeft: cameraLeft,
       tuning: _collectibleTuning,
+      cullBehindCamera: _campaign == null,
       onCollected: (value) {
         collectibles += 1;
         collectibleScore += value;
@@ -2071,6 +2203,7 @@ class GameCore {
       player: _player,
       cameraLeft: cameraLeft,
       tuning: _restorationItemTuning,
+      cullBehindCamera: _campaign == null,
     );
 
     // ─── Phase 7: Spatial grid rebuild ───
@@ -2264,6 +2397,7 @@ class GameCore {
       groundTopY: effectiveGroundTopY,
       tuning: _trackTuning,
       retainForEncounter: (entity) =>
+          _campaign != null ||
           _encounters.retainsActor(_world, entity) ||
           _bossArenas.retainsActor(_world, entity),
     );
@@ -2291,6 +2425,7 @@ class GameCore {
       _endRun(RunEndReason.bossEncounterFailed);
       return;
     }
+    _campaign?.observeBeforeCleanup(_world);
     _enemyDeathStateSystem.step(
       _world,
       currentTick: tick,
@@ -2333,6 +2468,24 @@ class GameCore {
       return;
     }
 
+    // Fatal damage and objective loss beat exit overlap on this same tick.
+    final mission = _campaign;
+    if (mission != null) {
+      mission.completedBosses = _bossArenas.completedCount;
+      if (mission.failed) {
+        _endRun(RunEndReason.missionFailed);
+        return;
+      }
+      final transform = _world.transform.indexOf(_player);
+      if (mission.resolveLivingPlayer(
+        _world.transform.posX[transform],
+        _world.transform.posY[transform],
+      )) {
+        _endRun(RunEndReason.missionCompleted);
+        return;
+      }
+    }
+
     // ─── Phase 15: Resource regeneration ───
     // Final living-player support grants modifiers before this tick's regen.
     const WorldInteractionSystem().step(
@@ -2357,6 +2510,7 @@ class GameCore {
     _combatHurtboxSystem.step(_world);
 
     // ─── Phase 17: Cleanup ───
+    _campaign?.retireOutOfBoundsProjectiles(_world);
     _lifetimeSystem.step(_world);
   }
 
@@ -2516,6 +2670,7 @@ class GameCore {
 
   void _flushEncounterOutcomes() {
     for (final outcome in _encounters.drainOutcomes()) {
+      _campaign?.recordRescue(outcome);
       _events.add(EncounterResolvedEvent(outcome: outcome));
     }
   }
@@ -2562,7 +2717,10 @@ class GameCore {
         allowSameSupportClamp: enemyId != EnemyId.unocoDemon,
       ),
     );
-    if (!placement.accepted) return;
+    if (!placement.accepted) {
+      _campaign?.registerEnemy(request, null);
+      return;
+    }
     final body = placement.bodyCenter!;
     final bodyX = body.xTicks / terrainPhysicsTicksPerWorldUnit;
     final bodyY = body.yTicks / terrainPhysicsTicksPerWorldUnit;
@@ -2571,6 +2729,7 @@ class GameCore {
         ? fallbackSupportY
         : supportPoint.yTicks / terrainPhysicsTicksPerWorldUnit;
 
+    EntityId entity;
     switch (enemyId) {
       case EnemyId.bringerOfDeath:
       case EnemyId.voidbornGoddess:
@@ -2582,19 +2741,19 @@ class GameCore {
           'Arena-only actors must be spawned by their owning arena.',
         );
       case EnemyId.unocoDemon:
-        _spawnService.spawnUnocoDemon(
+        entity = _spawnService.spawnUnocoDemon(
           spawnX: bodyX,
           groundTopY: resolvedSupportY,
           spawnBodyY: bodyY,
         );
       case EnemyId.grojib:
-        _spawnService.spawnGroundEnemy(
+        entity = _spawnService.spawnGroundEnemy(
           spawnX: bodyX,
           groundTopY: resolvedSupportY,
           spawnBodyY: bodyY,
         );
       case EnemyId.hashash:
-        _spawnService.spawnGroundEnemy(
+        entity = _spawnService.spawnGroundEnemy(
           enemyId: EnemyId.hashash,
           spawnX: bodyX,
           groundTopY: resolvedSupportY,
@@ -2602,13 +2761,14 @@ class GameCore {
           spawnTick: tick,
         );
       case EnemyId.derf:
-        _spawnService.spawnGroundEnemy(
+        entity = _spawnService.spawnGroundEnemy(
           enemyId: EnemyId.derf,
           spawnX: bodyX,
           groundTopY: resolvedSupportY,
           spawnBodyY: bodyY,
         );
     }
+    _campaign?.registerEnemy(request, entity);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -2668,7 +2828,9 @@ class GameCore {
     damageTaken100: _combatTotals.damageTaken100,
     rescuedNpcs: _encounters.rescuedNpcs,
     rescuePoints: _encounters.rescuePoints,
-    excludedScoreTicks: _bossArenas.excludedScoreTicks,
+    excludedScoreTicks: _campaign == null
+        ? _bossArenas.excludedScoreTicks
+        : tick,
   );
 
   /// Checks if the player's HP has reached zero.
@@ -2836,6 +2998,7 @@ class GameCore {
   /// Snapshots are immutable and safe to pass to async render code.
   GameStateSnapshot buildSnapshot() {
     return _snapshotBuilder.build(
+      campaign: _campaign?.snapshot(),
       tick: tick,
       runId: runId,
       seed: seed,

@@ -1,7 +1,10 @@
 # Campaign authoring and editor proposal
 
-Status: proposed. This document supports the single
-[implementation checklist](implementation.md).
+Status: design reference for the implemented campaign platform. The
+[current technical contract](../../tdd/campaign_runtime.md) and
+[game behavior](../../gdd/campaign.md) supersede tentative choices below.
+The [single checklist](implementation.md) records local evidence and remaining
+production-layout/device acceptance; this document is not a second task ledger.
 
 ## Source organization
 

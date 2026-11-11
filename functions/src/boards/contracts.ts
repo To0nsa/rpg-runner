@@ -9,7 +9,7 @@ export const boardStatuses = [
 export type BoardStatus = (typeof boardStatuses)[number];
 
 export interface BoardKeyRecord {
-  mode: Exclude<RunModeValue, "practice">;
+  mode: Exclude<RunModeValue, "practice" | "campaign">;
   levelId: string;
   windowId: string;
   rulesetVersion: string;
@@ -18,7 +18,7 @@ export interface BoardKeyRecord {
 
 export interface BoardManifestRecord {
   boardId: string;
-  mode: Exclude<RunModeValue, "practice">;
+  mode: Exclude<RunModeValue, "practice" | "campaign">;
   levelId: string;
   windowId: string;
   boardKey: BoardKeyRecord;

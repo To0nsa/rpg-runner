@@ -8,10 +8,12 @@ class GameOverHeader extends StatelessWidget {
     super.key,
     required this.subtitleDeathReason,
     required this.displayScore,
+    this.title,
   });
 
   final String? subtitleDeathReason;
   final int? displayScore;
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +22,7 @@ class GameOverHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          context.l10n.gameOverTitle,
+          title ?? context.l10n.gameOverTitle,
           style: ui.text.title.copyWith(
             color: ui.colors.textPrimary,
             fontSize: 28,

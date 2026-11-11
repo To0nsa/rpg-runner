@@ -68,7 +68,7 @@
   "@developerModeTitle": {
     "description": "Local development profile toggle."
   },
-  "developerModeHelp": "Local profile with all equipment and abilities. Practice only; no account rewards.",
+  "developerModeHelp": "Local profile with all equipment and abilities. Practice and campaign play; no account rewards.",
   "@developerModeHelp": {
     "description": "Developer profile has no online rewards."
   },
@@ -1566,7 +1566,7 @@
   "@uiWeeklyHeading": {
     "description": "Player-facing text on pages/leaderboards/leaderboards_page.dart. Keep French informal (tu). Do not translate player-authored names."
   },
-  "uiDeveloperModePracticeOnly": "DEVELOPER MODE • Practice only",
+  "uiDeveloperModePracticeOnly": "DEVELOPER MODE • Local play only",
   "@uiDeveloperModePracticeOnly": {
     "description": "Player-facing text on pages/hub/play_hub_page.dart. Keep French informal (tu). Do not translate player-authored names."
   },
@@ -3668,5 +3668,111 @@
         "type": "String"
       }
     }
+  },
+  "runMissionCompleted": "Mission complete",
+  "runMissionFailed": "Mission failed",
+  "@runMissionCompleted": {
+    "description": "Result subtitle for a verified Core mission success."
+  },
+  "@runMissionFailed": {
+    "description": "Result subtitle when a required mission objective is lost."
+  },
+  "campaignHeading": "Campaign",
+  "campaignRegionalMap": "Regional map",
+  "campaignChapterReward": "Chapter reward: Willow",
+  "campaignFirstClearXp": "First clear: {xp} XP",
+  "@campaignFirstClearXp": {
+    "placeholders": {
+      "xp": {
+        "type": "int"
+      }
+    },
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "campaignDoubleJumpReward": "Unlock double jump",
+  "campaignCollectedGold": "Keep collected gold on every verified attempt",
+  "campaignBestScore": "Best score: {score}",
+  "@campaignBestScore": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    },
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "campaignPreviousRequired": "Complete the previous mission to unlock",
+  "campaignComingSoon": "Coming soon",
+  "campaignReplay": "Replay",
+  "campaignStart": "Start mission",
+  "campaignWillowLocked": "Complete the Val Outpost chapter to unlock Willow",
+  "campaignVerificationPending": "Your clear and first-clear rewards unlock after verification.",
+  "campaignNextMission": "Next mission",
+  "@campaignHeading": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignRegionalMap": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignChapterReward": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignDoubleJumpReward": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignCollectedGold": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignPreviousRequired": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignComingSoon": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignReplay": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignStart": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignWillowLocked": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignVerificationPending": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "@campaignNextMission": {
+    "description": "Campaign navigation, mission progress or chapter reward label."
+  },
+  "campaignObjectives": "Objectives: {completed}/{required}",
+  "campaignReachExit": "Reach the exit",
+  "@campaignObjectives": {
+    "description": "Required campaign objective progress.",
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
+    }
+  },
+  "@campaignReachExit": {
+    "description": "All campaign requirements are met; reach the authored exit."
+  },
+  "campaignEquipDoubleJump": "Equip double jump for Éloïse",
+  "campaignDoubleJumpEquipped": "Double jump equipped",
+  "campaignEquipFailed": "Could not equip double jump. Try again.",
+  "campaignWillowUnlocked": "Chapter complete — Willow unlocked",
+  "@campaignEquipDoubleJump": {
+    "description": "Verified campaign reward and explicit equip action."
+  },
+  "@campaignDoubleJumpEquipped": {
+    "description": "Verified campaign reward and explicit equip action."
+  },
+  "@campaignEquipFailed": {
+    "description": "Verified campaign reward and explicit equip action."
+  },
+  "@campaignWillowUnlocked": {
+    "description": "Verified campaign reward and explicit equip action."
   }
 }

@@ -49,6 +49,7 @@ class RunStartPreparation extends ChangeNotifier {
         expectedMode: request.expectedMode,
         expectedLevelId: request.expectedLevelId,
         ghostEntryId: request.ghostEntryId,
+        campaignMissionId: request.campaignMissionId,
       );
       return _disposed ? null : descriptor;
     } catch (error, stack) {

@@ -56,7 +56,7 @@ export function parseLeaderboardLoadActiveBoardDataRequest(
   const data = requireRequestObject(raw);
   rejectClientAuthorityTime(data);
   const mode = parseRunMode(data.mode, "mode");
-  if (mode === "practice") {
+  if (mode !== "competitive" && mode !== "weekly") {
     throw new HttpsError(
       "invalid-argument",
       "leaderboardLoadActiveBoardData supports competitive|weekly only.",

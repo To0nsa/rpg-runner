@@ -26,7 +26,7 @@ import 'run_startup_diagnostics.dart';
 /// The required dependency that prevented a run from becoming playable.
 enum RunStartupFailure { world, recorder }
 
-/// Owns one attempt for an online or web/native-debug Practice descriptor.
+/// Owns one online attempt or a local web/native-debug Practice/campaign attempt.
 ///
 /// The controller stays paused until the host starts it. Readiness requires the
 /// initial rendered world and, for online runs, the recorder. Ghost failures are
@@ -39,27 +39,39 @@ class RunnerRunSession extends ChangeNotifier {
   }) {
     if (descriptor.isDeveloperPractice &&
         (!developerPracticeAllowed ||
-            descriptor.runMode != RunMode.practice ||
+            (descriptor.runMode != RunMode.practice &&
+                descriptor.runMode != RunMode.campaign) ||
             descriptor.boardId != null ||
             descriptor.boardKey != null ||
             descriptor.ghostReplayBootstrap != null)) {
       throw StateError(
-        'Developer sessions require web or native debug, local Practice only.',
+        'Developer sessions require web or native debug and unranked local play.',
       );
     }
     final character = PlayerCharacterRegistry.resolve(
       descriptor.playerCharacterId,
     );
     controller = GameController(
-      core: GameCore(
-        terrainPreparation: PreparedTerrainAssets().prepare,
-        seed: descriptor.seed,
-        runId: descriptor.runId,
-        tickHz: descriptor.tickHz,
-        levelDefinition: LevelRegistry.byId(descriptor.levelId),
-        playerCharacter: character,
-        equippedLoadoutOverride: descriptor.equippedLoadout,
-      ),
+      core: descriptor.campaign != null
+          ? GameCore.campaign(
+              missionId: descriptor.campaign!.missionId,
+              contentDigest: descriptor.campaign!.contentDigest,
+              terrainPreparation: PreparedTerrainAssets().prepare,
+              seed: descriptor.seed,
+              runId: descriptor.runId,
+              tickHz: descriptor.tickHz,
+              playerCharacter: character,
+              equippedLoadout: descriptor.equippedLoadout,
+            )
+          : GameCore(
+              terrainPreparation: PreparedTerrainAssets().prepare,
+              seed: descriptor.seed,
+              runId: descriptor.runId,
+              tickHz: descriptor.tickHz,
+              levelDefinition: LevelRegistry.byId(descriptor.levelId),
+              playerCharacter: character,
+              equippedLoadoutOverride: descriptor.equippedLoadout,
+            ),
       tickHz: descriptor.tickHz,
     )..setPaused(true);
     _constructionMicros = _startupWatch?.elapsedMicroseconds;
@@ -150,6 +162,7 @@ class RunnerRunSession extends ChangeNotifier {
             runSessionId: descriptor.runSessionId,
             boardId: descriptor.boardId,
             boardKey: descriptor.boardKey,
+            campaign: descriptor.campaign,
             tickHz: descriptor.tickHz,
             seed: descriptor.seed,
             levelId: descriptor.levelId.name,

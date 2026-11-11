@@ -1,3 +1,4 @@
+import 'package:run_protocol/campaign_binding.dart';
 import 'package:rpg_runner/ui/l10n/app_localization.dart';
 
 import 'dart:async';
@@ -64,6 +65,10 @@ import 'viewport/viewport_metrics.dart';
 /// presentation follows the live tick.
 /// Developer Practice on web or native debug skips recording and submission,
 /// preserving the normal simulation, loading, controls and score breakdown.
+/// Campaign uses the ticket's mission/content binding and a finite resident world.
+/// It requires RunMode.campaign, forbids boards/ghosts, and replaces survival HUD
+/// with objective/exit progress. First-clear XP/unlocks require canonical settlement;
+/// retry/next issue new tickets. Developer campaign attempts remain local.
 ///
 /// During play, missing terrain holds the next tick asynchronously and keeps
 /// controls mounted. Runtime failure offers same-run retry and exit; it never
@@ -103,6 +108,7 @@ class RunnerGameWidget extends StatefulWidget {
     this.playerCharacterId = PlayerCharacterId.eloise,
     this.runMode = RunMode.practice,
     this.equippedLoadout = const EquippedLoadoutDef(),
+    this.campaign,
     this.boardId,
     this.boardKey,
     this.ghostReplayBootstrap,
@@ -128,18 +134,20 @@ class RunnerGameWidget extends StatefulWidget {
   /// Legacy integer run identifier consumed by current in-run systems.
   final int runId;
 
-  /// Which core level definition to run.
+  /// Registered runner level or the campaign mission's regional identity.
   final LevelId levelId;
 
   /// Which player character to use for this run.
   final PlayerCharacterId playerCharacterId;
 
-  /// Menu-selected run mode (practice/competitive/weekly). Used by UI (e.g. leaderboard
-  /// namespacing) and may later affect rules/tuning.
+  /// Ticket-selected mode; campaign uses its separate mission binding.
   final RunMode runMode;
 
   /// Per-run loadout override (from menu / meta inventory).
   final EquippedLoadoutDef equippedLoadout;
+
+  /// Exact server-issued mission/content binding, required only for campaign.
+  final CampaignBinding? campaign;
 
   /// Server-issued board identity for competitive/weekly runs.
   final String? boardId;
@@ -150,7 +158,7 @@ class RunnerGameWidget extends StatefulWidget {
   /// Optional verified ghost replay payload to race against.
   final GhostReplayBootstrap? ghostReplayBootstrap;
 
-  /// Local Practice on web or native debug; no recording, rewards or leaderboards.
+  /// Local Practice/campaign on web or native debug; no recording or account rewards.
   final bool isDeveloperPractice;
 
   /// Arrows, floating joystick, or fixed joystick, retained on restart. All emit
@@ -239,6 +247,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       equippedLoadout: widget.equippedLoadout,
       boardId: widget.boardId,
       boardKey: widget.boardKey,
+      campaign: widget.campaign,
       ghostReplayBootstrap: widget.ghostReplayBootstrap,
       isDeveloperPractice: widget.isDeveloperPractice,
     );
@@ -494,12 +503,13 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   void _validateInitialRunInputs() {
     if (widget.isDeveloperPractice &&
         (!developerPracticeAllowed ||
-            widget.runMode != RunMode.practice ||
+            (widget.runMode != RunMode.practice &&
+                widget.runMode != RunMode.campaign) ||
             widget.boardId != null ||
             widget.boardKey != null ||
             widget.ghostReplayBootstrap != null)) {
       throw StateError(
-        'Developer runs require web or native debug, local Practice only.',
+        'Developer runs require web or native debug and unranked local play.',
       );
     }
     if (widget.runSessionId.trim().isEmpty) {
@@ -521,6 +531,13 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
           '${widget.runMode.name} runs.',
         );
       }
+    }
+    if ((widget.runMode == RunMode.campaign) != (widget.campaign != null)) {
+      throw StateError('Campaign mode requires an exact mission binding.');
+    }
+    if (!widget.runMode.requiresBoard &&
+        (widget.boardId != null || widget.boardKey != null)) {
+      throw StateError('Unranked runs cannot carry board bindings.');
     }
     final ghostBootstrap = widget.ghostReplayBootstrap;
     if (ghostBootstrap != null) {
@@ -705,7 +722,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     unawaited(_restartGame());
   }
 
-  Future<void> _restartGame() async {
+  Future<void> _restartGame({String? campaignMissionId}) async {
     final appState = _maybeAppState();
     if (appState == null) {
       _showRestartFailure(
@@ -722,6 +739,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     final preparation = RunStartPreparation(
       appState: appState,
       request: RunStartBootstrapArgs(
+        campaignMissionId: campaignMissionId ?? _descriptor.campaign?.missionId,
         expectedMode: _runMode,
         expectedLevelId: _levelId,
       ),
@@ -1000,6 +1018,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                         levelId: _controller.snapshot.levelIdentity
                             .requireRegisteredId(),
                         runMode: _runMode,
+                        campaignMissionId: _descriptor.campaign?.missionId,
+                        onNextCampaignMission: _restartInFlight
+                            ? null
+                            : (id) => _restartGame(campaignMissionId: id),
                         isDeveloperPractice: _descriptor.isDeveloperPractice,
                         runEndedEvent: runEndedEvent,
                         scoreTuning: _controller.scoreTuning,

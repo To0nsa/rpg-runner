@@ -11,6 +11,8 @@ import 'encounter_limits.dart';
 /// Run-local rescue lifecycle. The coordinator supplies phase boundaries;
 /// this owner alone decides participation, terminal outcomes and awards.
 final class EncounterSystem {
+  EncounterSystem({this.expireBehindCamera = true});
+  final bool expireBehindCamera;
   final Map<EncounterKey, _EncounterState> _states = {};
   List<_EncounterState>? _ordered;
   final List<EncounterOutcome> _outcomes = [];
@@ -72,6 +74,7 @@ final class EncounterSystem {
 
   /// Call before stream teardown and again after camera motion, before combat.
   void expire(EcsWorld world, {required double cameraLeft, required int tick}) {
+    if (!expireBehindCamera) return;
     for (final state in _orderedStates()) {
       if (state.unresolved && cameraLeft >= state.occurrence.abandonmentX) {
         _finish(

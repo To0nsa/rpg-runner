@@ -45,6 +45,11 @@ Every level supports two run types:
 - Same competitive constraints: fixed seed + leaderboard + Top 10 ghosts.
 - Surfaced prominently in UI, but does **not** replace the player's normal selected level by default.
 
+**Campaign (finite authored missions)**
+- Separate chapter navigation, exact chunk routes and free movement in both directions.
+- Verified sequential mission clears, first-clear XP/skills and chapter character rewards.
+- No campaign leaderboard or ghost; see [Val Outpost](campaign.md).
+
 ### Meta loop
 1. Progress through runs to earn rewards (**in-game currency**).
 2. Spend rewards in the meta to unlock weapons, abilities, and Codex entries.
@@ -151,7 +156,7 @@ A playable slice that proves the loop:
 ## Non-goals (for now)
 - No in-run loadout changes
 - No complex meta economy
-- No giant open-world or story campaign
+- No giant open-world or dialogue-heavy campaign; finite authored chapters are supported.
 - No heavy PvP (leaderboard/ghosts only)
 
 ## Future features (not committed)

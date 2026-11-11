@@ -1,3 +1,4 @@
+import 'campaign_binding.dart';
 import 'codecs/json_integer.dart';
 import 'board_key.dart';
 import 'codecs/json_value_copy.dart';
@@ -20,6 +21,7 @@ final class RunTicket {
     required this.issuedAtMs,
     required this.expiresAtMs,
     required this.singleUseNonce,
+    this.campaign,
     this.boardId,
     this.boardKey,
     this.rulesetVersion,
@@ -54,6 +56,9 @@ final class RunTicket {
         'expiresAtMs',
         'must be greater than issuedAtMs',
       );
+    }
+    if ((mode == RunMode.campaign) != (campaign != null)) {
+      throw ArgumentError('Only campaign runs require a campaign binding.');
     }
     if (mode.requiresBoard) {
       if (boardId == null ||
@@ -99,7 +104,7 @@ final class RunTicket {
           boardOpensAtMs != null ||
           boardClosesAtMs != null) {
         throw ArgumentError(
-          'Practice tickets must omit board, window, and board-version fields.',
+          'Unranked tickets must omit board, window, and board-version fields.',
         );
       }
     }
@@ -108,6 +113,7 @@ final class RunTicket {
   final String runSessionId;
   final String uid;
   final RunMode mode;
+  final CampaignBinding? campaign;
   final String? boardId;
   final BoardKey? boardKey;
   final int seed;
@@ -136,6 +142,7 @@ final class RunTicket {
       'runSessionId': runSessionId,
       'uid': uid,
       'mode': mode.name,
+      if (campaign != null) 'campaign': campaign!.toJson(),
       if (boardId != null) 'boardId': boardId,
       if (boardKey != null) 'boardKey': boardKey!.toJson(),
       'seed': seed,
@@ -166,6 +173,9 @@ final class RunTicket {
         runSessionId: readRequiredString(json, 'runSessionId'),
         uid: readRequiredString(json, 'uid'),
         mode: RunMode.parse(json['mode'], fieldName: 'mode'),
+        campaign: json['campaign'] == null
+            ? null
+            : CampaignBinding.fromJson(json['campaign']),
         boardId: readOptionalString(json, 'boardId'),
         boardKey: json['boardKey'] == null
             ? null

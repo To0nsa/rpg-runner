@@ -36,6 +36,7 @@ abstract final class ChunkV2FileCodec {
         'id',
         'revision',
         'status',
+        'usage',
         'levelId',
         'tileSize',
         'width',
@@ -143,6 +144,12 @@ abstract final class ChunkV2FileCodec {
         sourcePath: '$sourcePath.revision',
       ),
       status: status,
+      usage: root.containsKey('usage')
+          ? StrictAuthoringJson.enumString(root['usage'], const {
+              'runner',
+              'campaign',
+            }, sourcePath: '$sourcePath.usage')
+          : 'runner',
       levelId: StrictAuthoringJson.nonEmptyString(
         root['levelId'],
         sourcePath: '$sourcePath.levelId',

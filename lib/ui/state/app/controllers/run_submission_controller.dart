@@ -45,7 +45,10 @@ final class _AppStateRunSubmissionController extends _AppStateController {
   int get previewXp => _visibleRewardPreviews.fold(
     0,
     (total, pending) =>
-        total + PlayerProgress.xpForScore(_summaryCount(pending, 'score')),
+        total +
+        (pending.runMode == RunMode.campaign
+            ? 0
+            : PlayerProgress.xpForScore(_summaryCount(pending, 'score'))),
   );
 
   bool get hasRewardPreview => previewGold > 0 || previewXp > 0;

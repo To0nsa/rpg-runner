@@ -226,6 +226,7 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
       .where(
         (item) =>
             includedLevelIds.contains(item.source.levelId) &&
+            item.source.usage == 'runner' &&
             isRuntimeEligibleChunkStatus(item.source.status),
       )
       .toList();
@@ -299,6 +300,7 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
     chunks: compiled.where(
       (item) =>
           includedLevelIds.contains(item.chunk.levelId) &&
+          parsedByKey[item.chunk.chunkKey]!.source.usage == 'runner' &&
           isRuntimeEligibleChunkStatus(item.chunk.status),
     ),
     manifest: PolygonTerrainSeamManifest(

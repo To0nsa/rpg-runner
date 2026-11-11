@@ -120,6 +120,7 @@ final class _RecordingRunSessionSource implements FirebaseRunSessionSource {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) async {
     clientRequestIds.add(clientRequestId);
     if (failure case final error?) throw error;

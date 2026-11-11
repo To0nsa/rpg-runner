@@ -15,10 +15,11 @@ export function resolveWindowForMode(
   nowMs: number,
 ): ResolvedWindow {
   switch (mode) {
+    case "campaign":
     case "practice":
       throw new HttpsError(
         "invalid-argument",
-        "Practice mode does not use board windows.",
+        "Unranked modes do not use board windows.",
       );
     case "competitive":
       return resolveCompetitiveWindow(nowMs);

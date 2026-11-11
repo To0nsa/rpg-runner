@@ -236,7 +236,7 @@ class SelectionState {
           ? levelId
           : LevelRegistry.defaultLevelId,
       selectedRunMode: _enumFromName(
-        RunMode.values,
+        const [RunMode.practice, RunMode.competitive, RunMode.weekly],
         _stringOrNull(json['runMode']) ?? _stringOrNull(json['runType']),
         RunMode.practice,
       ),

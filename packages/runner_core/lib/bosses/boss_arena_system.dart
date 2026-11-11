@@ -31,6 +31,9 @@ final class BossArenaSystem {
   double? get cameraStopX => _current?.cameraCenterX;
   bool get failed => _current?.phase == BossArenaPhase.failed;
   bool get arenaFramed => _current?.framed ?? false;
+  int get completedCount => _arenas.values
+      .where((a) => a.phase == BossArenaPhase.defeated && !a.retained)
+      .length;
 
   /// Supply is exposed only for the current combat occurrence, independently
   /// of the boss's attack phases. Resolve fatal outcomes before consuming it.

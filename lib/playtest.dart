@@ -11,6 +11,7 @@ export 'package:runner_core/playtest/chunk_playtest_scenario.dart'
 export 'package:runner_core/playtest/level_playtest_scenario.dart'
     show LevelPlaytestScenario, LevelPlaytestChunkSample;
 export 'package:runner_core/playtest/playtest_scenario.dart';
+export 'package:runner_core/playtest/campaign_playtest_scenario.dart';
 
 export 'playtest/runner_playtest_host.dart';
 export 'playtest/runner_playtest_appearance.dart';

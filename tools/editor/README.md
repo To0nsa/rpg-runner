@@ -919,3 +919,26 @@ after creation. Flow offers connection inspection and creation for missing
 routes; seed samples show the actual available choices at each position. See the
 [connection contract](../../docs/tdd/chunk_connections.md) for supported profiles,
 Level migration, exact admission and release compatibility.
+
+## Campaign authoring
+
+Open **Campaign**, select a mission, and append chunks from its library in exact
+order. Place the player start, exit and objectives with the typed marker controls.
+Edit the selected occurrence in **Chunk Creator**; use **Copy to Campaign** to
+make an independent layout before changing it. Copying preserves encounters;
+remove unwanted content yourself for Reporting for Duty. **Copy to Runner** makes
+an inactive runner draft. Shared prefabs and materials remain shared references.
+
+Save and Undo use the normal workspace transaction. F5 captures the current mission
+for local Play; Build publishes only missions explicitly included in their settings.
+The four Val Outpost missions start as excluded drafts for manual layout authoring.
+See the [runtime/source contract](../../docs/tdd/campaign_runtime.md).
+
+For **Reporting for Duty**, find Forest `rocky_grove` easy/normal sources in Chunk
+Creator, use **Copy to Campaign**, edit each independent copy and remove its
+unwanted encounters, then Save. Append those copies and `trainingcamp` copies to
+the mission in the desired order. Set a supported player start and an exit, add
+gold pickups, and keep combat disabled. F5 verifies the captured unsaved mission;
+test outward and return travel with basic jump before enabling **Include in Build**.
+Save the mission and run the shared Build action. The same generated catalog must
+ship with game, issuer and replay worker for authenticated launch.

@@ -70,7 +70,11 @@ final class _AppStateRunStartController extends _AppStateController {
     RunMode? expectedMode,
     LevelId? expectedLevelId,
     String? ghostEntryId,
+    String? campaignMissionId,
   }) async {
+    if (campaignMissionId != null) {
+      return _prepareCampaign(campaignMissionId, ghostEntryId: ghostEntryId);
+    }
     final developer = _app._developerController;
     if (developer != null) {
       return developer.prepareRun(
@@ -163,6 +167,69 @@ final class _AppStateRunStartController extends _AppStateController {
     return descriptor.copyWith(ghostReplayBootstrap: ghostReplayBootstrap);
   }
 
+  Future<RunStartDescriptor> _prepareCampaign(
+    String id, {
+    String? ghostEntryId,
+  }) async {
+    final mission = CampaignCatalog.mission(id);
+    if (mission == null || !mission.available || ghostEntryId != null) {
+      throw const RunStartRemoteException(
+        code: 'level-unavailable',
+        message: 'Campaign mission unavailable.',
+      );
+    }
+    final developer = _app._developerController;
+    if (developer != null) {
+      final local = await developer.prepareRun();
+      return local.copyWith(
+        runMode: RunMode.campaign,
+        levelId: mission.levelId,
+        campaign: CampaignBinding(
+          missionId: id,
+          contentDigest: CampaignCatalog.contentDigest,
+        ),
+      );
+    }
+    await ensureOwnershipSyncedBeforeRunStart();
+    final session = await _ensureAuthSession();
+    final canonical = await _ownershipApi.loadCanonicalState(
+      userId: session.userId,
+      sessionId: session.sessionId,
+    );
+    _applyCanonicalState(canonical);
+    if (!_app.progression.campaign.isUnlocked(mission)) {
+      throw const RunStartRemoteException(
+        code: 'failed-precondition',
+        message: 'Complete the previous mission first.',
+      );
+    }
+    final ticket = await _runSessionApi.createRunSession(
+      userId: session.userId,
+      sessionId: session.sessionId,
+      mode: RunMode.campaign,
+      levelId: mission.levelId,
+      missionId: id,
+      gameCompatVersion: _defaultGameCompatVersion,
+    );
+    if (ticket.mode != RunMode.campaign ||
+        ticket.campaign?.missionId != id ||
+        ticket.campaign?.contentDigest != CampaignCatalog.contentDigest ||
+        ticket.levelId != mission.levelId.name) {
+      throw const RunStartRemoteException(
+        code: 'update-required',
+        message: 'Campaign content changed.',
+      );
+    }
+    unawaited(
+      _runSubmissionCoordinator.prepareUpload(
+        userId: session.userId,
+        sessionId: session.sessionId,
+        runSessionId: ticket.runSessionId,
+      ),
+    );
+    return _runStartDescriptorFromTicket(ticket);
+  }
+
   Future<RunTicket?> _takeValidPrefetchedRunTicket({
     required AuthSession session,
     required RunMode mode,
@@ -233,7 +300,10 @@ final class _AppStateRunStartController extends _AppStateController {
   }
 
   RunStartDescriptor _runStartDescriptorFromTicket(RunTicket ticket) {
-    final parsedLevelId = _levelIdFromWire(ticket.levelId);
+    final parsedLevelId = _levelIdFromWire(
+      ticket.levelId,
+      requireAvailable: ticket.campaign == null,
+    );
     final parsedCharacterId = _characterIdFromWire(ticket.playerCharacterId);
     final fallbackLoadout = _selection.loadoutFor(parsedCharacterId);
     final equippedLoadout = _equippedLoadoutFromSnapshot(
@@ -251,6 +321,7 @@ final class _AppStateRunStartController extends _AppStateController {
       equippedLoadout: equippedLoadout,
       boardId: ticket.boardId,
       boardKey: ticket.boardKey,
+      campaign: ticket.campaign,
     );
   }
 
@@ -265,13 +336,14 @@ final class _AppStateRunStartController extends _AppStateController {
     return positive == 0 ? 1 : positive;
   }
 
-  LevelId _levelIdFromWire(String levelId) {
+  LevelId _levelIdFromWire(String levelId, {bool requireAvailable = true}) {
     final parsed = _enumByName(
       LevelId.values,
       levelId,
       fieldName: 'runTicket.levelId',
     );
-    _requireAvailableLevel(parsed);
+    // Campaign availability belongs to its compiled mission, not the runner pool.
+    if (requireAvailable) _requireAvailableLevel(parsed);
     return parsed;
   }
 

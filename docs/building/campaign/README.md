@@ -1,10 +1,9 @@
 # Campaign: Val Outpost
 
-Status: implementation started November 11, 2026. Initial Core finite-selection,
-resident-track and bidirectional-camera primitives are implemented; see the
-[current contract](../../tdd/campaign_runtime.md). Playable mission integration,
-editor, progression and UI remain pending. Implementation is authorized;
-deployment and account/data mutations remain separate.
+Status: campaign systems implemented locally November 11, 2026. See the
+[current contract](../../tdd/campaign_runtime.md), [game behavior](../../gdd/campaign.md)
+and [acceptance checklist](implementation.md). The user owns production layouts;
+all four remain excluded drafts. Deployment and account resets are not authorized.
 
 ## Outcome
 
@@ -67,17 +66,18 @@ remaining work here until completion, then archive the folder with repaired link
   the user edits the duplicate afterward, including removing encounters for
   Reporting for Duty. The converter has no encounter-removal option or preset.
 
-## Proposed baseline and limits
+## Implementation defaults and limits
 
-Missions two through four still need titles, assignments, and encounter details
-within the cultist premise. A fresh account begins with Éloïse; Willow becomes
+Editable missions two through four are Signs in the Grove, The Supply Trail and
+Holding the Outpost, using the cultist premise. Their layouts remain to be authored.
+A fresh account begins with Éloïse; Willow becomes
 available after chapter completion and for subsequent replays. Keep personal best
 scores and once-only unlock rewards. Retain mission state for the entire attempt;
 restart begins a fresh attempt. Replaying completed missions is supported.
 
 Interpret Double Jump's initial reward as Éloïse's existing `eloise.double_jump`;
-granting Willow's separate version is not yet specified. XP distribution among
-the four missions and gold amounts remain tuning decisions. The 224-XP budget
+granting Willow's separate version is not yet specified. First-clear XP defaults to 40/48/60/76; accepted attempts keep collected
+gold. The 224-XP budget
 assumes a fresh account at level 1 with zero XP and the intended first-clear reward
 collection; retries and other activities are not an account XP cap.
 
@@ -99,8 +99,9 @@ Current [Level Creator](../../tdd/editor_level_workspace.md) orders sections but
 still selects chunks within them. Its non-looping setting continues the final
 section. [Training Field](../../tdd/training_field.md) sets automatic camera speed
 to zero but retains forward following and is a disposable, unrewarded local mode.
-The normal streamer discards old chunks; Core's terminal reasons currently cover
-failure/abandonment rather than successful mission completion.
+At planning time the normal streamer discarded old chunks and terminal reasons
+covered failure/abandonment. Campaign now has separate finite lifetime and success
+contracts; this section records the inspected baseline.
 
 The [existing regional map](../../../lib/ui/pages/library/location_map.dart)
 supplies artwork and anchors, but its Library unlock logic is not campaign

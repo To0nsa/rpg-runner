@@ -1,3 +1,5 @@
+import 'package:runner_core/campaign/campaign_registry.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -124,7 +126,9 @@ class DeterministicValidatorWorker implements ValidatorWorker {
 
   static const Duration _ticketValidity = Duration(hours: 24);
   static const Duration _allowedAuthorityClockSkew = Duration(minutes: 5);
-  static const Set<String> _supportedGameCompatVersions = <String>{'2026.11.10'};
+  static const Set<String> _supportedGameCompatVersions = <String>{
+    '2026.11.11',
+  };
 
   static const Set<String> _supportedRulesetVersions = <String>{'rules-v2'};
   static const Set<String> _supportedScoreVersions = <String>{'score-v4'};
@@ -956,6 +960,12 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         message: 'Replay loadoutSnapshot does not match ticket snapshot.',
       );
     }
+    if (replayBlob.campaign != ticket.campaign) {
+      throw const _ValidationRejectedException(
+        reason: 'campaign_binding_mismatch',
+        message: 'Replay campaign binding does not match the ticket.',
+      );
+    }
     _validateModeAndBoardBinding(replayBlob: replayBlob, session: session);
     _validateCommandStream(replayBlob);
   }
@@ -1067,22 +1077,42 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       fieldName: 'runTicket.levelId',
     );
     // Missing compiled content is worker configuration failure, not replay fraud.
-    LevelRegistry.requireAvailable(levelId);
+    final campaign = ticket.campaign;
+    if (campaign == null) {
+      LevelRegistry.requireAvailable(levelId);
+    } else if (campaign.contentDigest != campaignContentDigest ||
+        campaignRegionalLevelIds[campaign.missionId] != ticket.levelId ||
+        !campaignMissions.containsKey(campaign.missionId)) {
+      throw StateError(
+        'Compiled campaign content does not match the issued ticket.',
+      );
+    }
     final characterId = _enumByName(
       PlayerCharacterId.values,
       ticket.playerCharacterId,
       fieldName: 'runTicket.playerCharacterId',
     );
     final loadout = _loadoutFromSnapshot(ticket.loadoutSnapshot);
-    final core = GameCore(
-      graphMaterializer: graphMaterializer,
-      seed: ticket.seed,
-      runId: 1,
-      tickHz: ticket.tickHz,
-      levelDefinition: LevelRegistry.byId(levelId),
-      playerCharacter: PlayerCharacterRegistry.resolve(characterId),
-      equippedLoadoutOverride: loadout,
-    );
+    final core = campaign != null
+        ? GameCore.campaign(
+            missionId: campaign.missionId,
+            contentDigest: campaign.contentDigest,
+            graphMaterializer: graphMaterializer,
+            seed: ticket.seed,
+            runId: 1,
+            tickHz: ticket.tickHz,
+            playerCharacter: PlayerCharacterRegistry.resolve(characterId),
+            equippedLoadout: loadout,
+          )
+        : GameCore(
+            graphMaterializer: graphMaterializer,
+            seed: ticket.seed,
+            runId: 1,
+            tickHz: ticket.tickHz,
+            levelDefinition: LevelRegistry.byId(levelId),
+            playerCharacter: PlayerCharacterRegistry.resolve(characterId),
+            equippedLoadoutOverride: loadout,
+          );
 
     final simulation = RewardTiming.instance.measureSync(
       session.runSessionId,
@@ -1129,6 +1159,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       boardId: ticket.boardId,
       boardKey: ticket.boardKey,
       mode: ticket.mode,
+      campaign: ticket.campaign,
       accepted: true,
       score: breakdown.totalPoints,
       distanceMeters: distanceUnitsToMeters(runEnded.distance),
@@ -1271,6 +1302,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       boardId: session.runTicket.boardId,
       boardKey: session.runTicket.boardKey,
       mode: session.runTicket.mode,
+      campaign: session.runTicket.campaign,
       accepted: false,
       rejectionReason: rejectionReason,
       score: 0,

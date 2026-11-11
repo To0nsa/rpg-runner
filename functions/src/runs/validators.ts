@@ -17,6 +17,7 @@ interface RunSessionCreateRequest {
   clientRequestId: string;
   mode: RunModeValue;
   levelId: string;
+  missionId?: string;
   gameCompatVersion: string;
 }
 
@@ -49,6 +50,9 @@ export function parseRunSessionCreateRequest(
   assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
   rejectClientAuthorityTime(data);
+  const mode = parseRunMode(data.mode, "mode");
+  const missionId = mode === "campaign" ? requireBoundedIdentifier(data.missionId, "missionId", 64) : undefined;
+  if (mode !== "campaign" && data.missionId !== undefined) throw new HttpsError("invalid-argument", "Only campaign requests may supply missionId.");
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
     sessionId: requireNonEmptyString(data.sessionId, "sessionId"),
@@ -57,7 +61,8 @@ export function parseRunSessionCreateRequest(
       "clientRequestId",
       96,
     ),
-    mode: parseRunMode(data.mode, "mode"),
+    mode,
+    missionId,
     levelId: requireNonEmptyString(data.levelId, "levelId"),
     gameCompatVersion: requireNonEmptyString(
       data.gameCompatVersion,

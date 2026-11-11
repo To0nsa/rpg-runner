@@ -1,3 +1,4 @@
+import { authorizeCampaignMission, campaignCharacterUnlocked } from "../campaign/progression.js";
 import { selectedLoadout } from "../ownership/character_builds.js";
 import { randomUUID } from "node:crypto";
 
@@ -50,6 +51,7 @@ interface CreateRunSessionArgs {
   clientRequestId?: string;
   mode: RunModeValue;
   levelId: string;
+  missionId?: string;
   gameCompatVersion: string;
   supportedGameCompatVersions?: ReadonlySet<string>;
   nowMs?: number;
@@ -81,6 +83,7 @@ export async function createRunSession(
       clientRequestId,
       mode: args.mode,
       levelId: args.levelId,
+      ...(args.missionId ? { missionId: args.missionId } : {}),
       gameCompatVersion: args.gameCompatVersion,
     }),
   );
@@ -115,6 +118,15 @@ export async function createRunSession(
   });
   canonicalLoadMs = Date.now() - canonicalLoadStartMs;
   const snapshot = deriveStartSnapshot(canonicalState.selection, canonicalState.progression);
+  if (!campaignCharacterUnlocked(canonicalState.progression, snapshot.playerCharacterId)) {
+    throw new HttpsError("failed-precondition", "The selected character is locked.");
+  }
+  const campaign = args.mode === "campaign"
+    ? authorizeCampaignMission(canonicalState.progression, args.missionId, args.levelId) : undefined;
+  if (args.mode !== "campaign" && args.missionId !== undefined) {
+    throw new HttpsError("invalid-argument", "Only campaign requests may supply missionId.");
+  }
+  if (campaign) { snapshot.mode = "campaign"; snapshot.levelId = args.levelId; }
   const authorizedLoadout = normalizeAuthorizedLoadout({
     loadout: snapshot.loadoutSnapshot,
     meta: canonicalState.meta,
@@ -162,7 +174,7 @@ export async function createRunSession(
     | undefined;
   let runTicket: JsonObject;
   if (runModeRequiresBoard(snapshot.mode)) {
-    if (snapshot.mode === "practice") {
+    if (snapshot.mode === "practice" || snapshot.mode === "campaign") {
       throw new HttpsError(
         "failed-precondition",
         "Practice mode cannot require a board.",
@@ -228,8 +240,9 @@ export async function createRunSession(
       runSessionId,
       uid: args.uid,
       mode: snapshot.mode,
-      // Assigned with route history in the issuance transaction below.
-      seed: 0,
+      ...(campaign ? { campaign } : {}),
+      // Runner practice is assigned with route history in the transaction below.
+      seed: campaign ? 1 : 0,
       tickHz: defaultTickHz,
       gameCompatVersion: args.gameCompatVersion,
       levelId: snapshot.levelId,
@@ -298,6 +311,14 @@ export async function createRunSession(
         activeLimit: activeLimit ?? null,
         wouldRejectActiveLimit,
       } as const;
+    }
+    if (snapshot.mode === "campaign") {
+      const profile = await tx.get(canonicalDocRef(args.db, args.uid, canonicalState.profileId));
+      const progression = profile.get("progression") as JsonObject;
+      authorizeCampaignMission(progression, args.missionId, args.levelId);
+      if (!campaignCharacterUnlocked(progression, snapshot.playerCharacterId)) {
+        throw new HttpsError("failed-precondition", "The selected character is locked.");
+      }
     }
     if (snapshot.mode === "practice") {
       const profileRef = canonicalDocRef(args.db, args.uid, canonicalState.profileId);
@@ -410,7 +431,7 @@ function readConfiguredActiveSessionLimit(): number | undefined {
 
 async function loadBoardManifestWithProvisioningFallback(args: {
   db: Firestore;
-  mode: Exclude<RunModeValue, "practice">;
+  mode: Exclude<RunModeValue, "practice" | "campaign">;
   levelId: string;
   gameCompatVersion: string;
   nowMs: number;

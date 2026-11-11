@@ -18,6 +18,7 @@ import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
 import '../chunks/chunk_domain_plugin.dart';
+import '../campaign/campaign_domain_plugin.dart';
 import '../chunks/chunk_v2_file_codec.dart';
 import '../chunks/chunk_v2_models.dart';
 import '../levels/level_domain_models.dart';
@@ -60,6 +61,7 @@ final class PlaytestPreparationInput {
     String? selectedChunkKey,
     Iterable<String>? selectedChunkKeys,
     this.seed = playtestDefaultSeed,
+    this.campaignMission,
   }) : level = level.normalized(),
        theme = theme.normalized(),
        chunkSources = Map.unmodifiable(
@@ -76,6 +78,7 @@ final class PlaytestPreparationInput {
        );
 
   final String workspaceRoot;
+  final CampaignMissionSource? campaignMission;
   final LevelDef level;
   final ParallaxThemeDef theme;
   final Map<String, String> chunkSources;
@@ -102,6 +105,7 @@ final class PlaytestPreparationInput {
       'tiles': tileContents,
       'materials': terrainMaterialContents,
       'seed': seed,
+      if (campaignMission != null) 'campaignMission': campaignMission!.toJson(),
       'selectedChunkKeys': selectedChunkKeys,
     }),
   );
@@ -392,6 +396,45 @@ Future<PlaytestPreparationInput> _capture({
   return input;
 }
 
+Future<PlaytestPreparationInput> captureCampaignPlaytestPreparationInput({
+  required CampaignDocument document,
+  required String workspaceRoot,
+}) async {
+  final m = document.selected;
+  final level = document.chunks.levels.firstWhere(
+    (l) => l.levelId == m.levelId,
+  );
+  final theme = document.chunks.parallaxThemes.firstWhere(
+    (t) => t.parallaxThemeId == m.visualThemeId,
+  );
+  final keys = m.route.map((o) => o.chunkKey).toSet();
+  final input = PlaytestPreparationInput(
+    workspaceRoot: workspaceRoot,
+    level: level.copyWith(visualThemeId: m.visualThemeId),
+    theme: theme,
+    campaignMission: m,
+    selectedChunkKeys: keys,
+    chunkSources: {
+      for (final c in document.chunks.chunks.where(
+        (c) => keys.contains(c.chunkKey),
+      ))
+        document.chunks.sourcePathByChunkKey[c.chunkKey]!:
+            ChunkV2FileCodec.encode(c),
+    },
+    prefabContents: document.dependencies[PrefabStore.prefabDefsPath]!,
+    tileContents: document.dependencies[PrefabStore.tileDefsPath]!,
+    terrainMaterialContents:
+        document.dependencies[terrainMaterialDefsSourcePath]!,
+    sourceBaseline: {
+      ...document.dependencies,
+      campaignSourcePath: document.baseline,
+    },
+    repositoryChunkPaths: await _chunkPaths(workspaceRoot),
+  );
+  await _verifySourceGeneration(input);
+  return input;
+}
+
 Future<List<String>> _chunkPaths(String workspaceRoot) async {
   final root = Directory(
     p.join(workspaceRoot, 'assets/authoring/level/chunks'),
@@ -438,41 +481,42 @@ Future<PlaytestPreparationResult> preparePlaytestInBackground(
     final appearance = compiled.appearance;
     if (scenario == null || appearance == null) return compiled;
     final level = switch (scenario) {
+      CampaignPlaytestScenario value => value.mission.buildLevel(),
       ChunkPlaytestScenario value => value.levelDefinition,
       LevelPlaytestScenario value => value.levelDefinition,
       _ => throw StateError('Unsupported playtest scope.'),
     };
     final source = level.chunkPatternSource;
-    final base = switch (source) {
-      ChunkPatternListSource value => value,
-      FirstChunkPatternSource value => value.baseSource,
-      AssembledChunkPatternSource value => value.baseSource,
-      _ => throw StateError('Playtest requires a list-backed pattern source.'),
-    };
+    final base = scenario is CampaignPlaytestScenario
+        ? null
+        : switch (source) {
+            ChunkPatternListSource value => value,
+            FirstChunkPatternSource value => value.baseSource,
+            AssembledChunkPatternSource value => value.baseSource,
+            _ => throw StateError(
+              'Playtest requires a list-backed pattern source.',
+            ),
+          };
+    final patterns = scenario is CampaignPlaytestScenario
+        ? scenario.mission.route.occurrences.map((o) => o.pattern).toList()
+        : [
+            ...base!.earlyPatterns,
+            ...base.easyPatterns,
+            ...base.normalPatterns,
+            ...base.hardPatterns,
+          ];
     final assets =
-        await RunnerWorkspaceAssetBundle(workspaceRoot: input.workspaceRoot)
-            .capture(
-              appearance.requiredAssetKeys(
-                scenario: scenario,
-                patterns: [
-                  ...base.earlyPatterns,
-                  ...base.easyPatterns,
-                  ...base.normalPatterns,
-                  ...base.hardPatterns,
-                ],
-              ),
-            );
+        await RunnerWorkspaceAssetBundle(
+          workspaceRoot: input.workspaceRoot,
+        ).capture(
+          appearance.requiredAssetKeys(scenario: scenario, patterns: patterns),
+        );
     final assetIssues = await Isolate.run(
       () => validateCapturedPlaytestAssets(
         assets: assets,
         materialContents: input.terrainMaterialContents,
         materialKeys: appearance.terrainMaterials.keys.toSet(),
-        patterns: [
-          ...base.earlyPatterns,
-          ...base.easyPatterns,
-          ...base.normalPatterns,
-          ...base.hardPatterns,
-        ],
+        patterns: patterns,
       ),
     );
     if (assetIssues.isNotEmpty) {
@@ -545,7 +589,12 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
       (a, b) => a.stagedTerrain.chunkKey.compareTo(b.stagedTerrain.chunkKey),
     );
     final active = runtimeChunks
-        .where((c) => isRuntimeEligibleChunkStatus(c.stagedTerrain.status))
+        .where(
+          (c) =>
+              isRuntimeEligibleChunkStatus(c.stagedTerrain.status) &&
+              (input.selectedChunkKeys != null ||
+                  c.compiled.chunk.usage == 'runner'),
+        )
         .toList();
     for (final chunk in active) {
       if (input.selectedChunkKeys != null &&
@@ -582,9 +631,10 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
         .toList(growable: false);
     final sourceLevel = input.level;
     for (final chunk in runtimeChunks) {
-      if (!sourceLevel.chunkThemeGroups.contains(
-        chunk.stagedTerrain.assemblyGroupId,
-      )) {
+      if (input.campaignMission == null &&
+          !sourceLevel.chunkThemeGroups.contains(
+            chunk.stagedTerrain.assemblyGroupId,
+          )) {
         throw PlaytestPreparationException(
           code: 'unknown_chunk_group_id',
           message:
@@ -660,7 +710,25 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
             chunks: selectedChunks,
             tier: tier,
           );
-    final PlaytestScenario scenario = selectedChunks == null
+    final mission = input.campaignMission;
+    final campaign = mission == null
+        ? null
+        : compileCampaignMission(
+            source: mission,
+            chunkContentsByKey: {
+              for (final e in input.chunkSources.entries)
+                decodePolygonTerrainChunk(e.value).chunkKey: e.value,
+            },
+            prefabContents: input.prefabContents,
+            tileContents: input.tileContents,
+          );
+    final PlaytestScenario scenario = campaign != null
+        ? CampaignPlaytestScenario(
+            mission: campaign.definition,
+            playerCharacter: PlayerCharacterRegistry.eloise,
+            seed: input.seed,
+          )
+        : selectedChunks == null
         ? LevelPlaytestScenario(
             levelDefinition: level,
             terrainChunks: runtimeChunks.map((c) => c.stagedTerrain),
@@ -677,7 +745,7 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
             playerCharacter: PlayerCharacterRegistry.eloise,
             equippedLoadout: const EquippedLoadoutDef(),
           );
-    final appearanceChunks = selectedChunks ?? active;
+    final appearanceChunks = campaign?.chunks ?? selectedChunks ?? active;
     final referencedMaterials = <String>{
       for (final chunk in appearanceChunks)
         for (final water in chunk.stagedTerrain.waterRegions) water.materialKey,

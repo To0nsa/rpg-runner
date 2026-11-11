@@ -9,7 +9,7 @@ final class BoardKey {
     required this.rulesetVersion,
     required this.scoreVersion,
   }) {
-    if (mode == RunMode.practice) {
+    if (!mode.requiresBoard) {
       throw ArgumentError.value(mode, 'mode', 'cannot be practice');
     }
     _requireNonEmpty(levelId, 'levelId');
@@ -37,7 +37,7 @@ final class BoardKey {
   factory BoardKey.fromJson(Object? raw) {
     final json = asObjectMap(raw, fieldName: 'boardKey');
     final mode = RunMode.parse(json['mode'], fieldName: 'boardKey.mode');
-    if (mode == RunMode.practice) {
+    if (!mode.requiresBoard) {
       throw FormatException('boardKey.mode cannot be practice.');
     }
     return BoardKey(

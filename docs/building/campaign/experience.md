@@ -1,9 +1,10 @@
 # Campaign experience and Val Outpost proposal
 
-Status: planned experience, updated with the user's November 11, 2026 story,
-mission-one, character-unlock, and level-3 decisions. The [plan index](README.md)
-distinguishes those requirements from remaining design defaults. The game has
-not yet implemented these changes.
+Status: design reference for the implemented campaign platform. The
+[current technical contract](../../tdd/campaign_runtime.md) and
+[game behavior](../../gdd/campaign.md) supersede tentative choices below.
+The [single checklist](implementation.md) records local evidence and remaining
+production-layout/device acceptance; this document is not a second task ledger.
 
 ## Story placement and content ownership
 

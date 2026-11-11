@@ -7,6 +7,10 @@ These are source assets, not generated runtime output. Read the
 
 Preserve stable IDs, ordinals, canonical ordering and explicit schema versions.
 Current level source is v3, chunks v2, Prefabs v3 and terrain materials v3.
+Campaign schema 1 lives in `campaign/chapter_defs.json`. Missions reference exact
+chunk occurrences and remain excluded until their route/start/exit validate.
+Chunk-v2 `usage` defaults to runner; campaign-only copies must not enter runner
+pools. Copying preserves encounters; authors remove them on the copied source.
 Verify constants in the owning codecs when changing schemas; normal loaders
 must not migrate implicitly. Keep inclusion/deprecation separate from identity.
 

@@ -3,6 +3,33 @@ import 'package:run_protocol/codecs/json_integer.dart';
 import 'package:run_protocol/codecs/json_value_reader.dart';
 
 void main() {
+  _expectArgumentError(
+    () => CampaignBinding(missionId: '../bad', contentDigest: 'a' * 64),
+  );
+  _expectArgumentError(
+    () => CampaignBinding(
+      missionId: 'mission',
+      contentDigest: 'a' * 64,
+      rewardPolicyVersion: 2,
+    ),
+  );
+  _expectFormatException(
+    () => CampaignBinding.fromJson({
+      'missionId': 'mission',
+      'contentDigest': 'bad',
+      'rewardPolicyVersion': 1,
+    }),
+  );
+  _expectArgumentError(
+    () => BoardKey(
+      mode: RunMode.campaign,
+      levelId: 'forest',
+      windowId: 'none',
+      rulesetVersion: 'v1',
+      scoreVersion: 'v1',
+    ),
+  );
+
   _expectFormatException(() => readRequiredInt({'value': 1e100}, 'value'));
   _expectFormatException(() => readOptionalInt({'value': -1e100}, 'value'));
   _expectArgumentError(() => LoadoutDigest.sha256ForMap({'mask': 0.5}));

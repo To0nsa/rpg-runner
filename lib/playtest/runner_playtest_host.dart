@@ -6,6 +6,7 @@ import 'package:runner_core/game_core.dart';
 import 'package:runner_core/playtest/chunk_playtest_scenario.dart';
 import 'package:runner_core/playtest/level_playtest_scenario.dart';
 import 'package:runner_core/playtest/playtest_scenario.dart';
+import 'package:runner_core/playtest/campaign_playtest_scenario.dart';
 
 import 'runner_playtest_appearance.dart';
 
@@ -390,6 +391,13 @@ class _RunnerPlaytestHostState extends State<RunnerPlaytestHost>
   _RunnerPlaytestRuntime _createRuntime(int generation) {
     final controller = GameController(
       core: switch (widget.scenario) {
+        CampaignPlaytestScenario scenario => GameCore.campaignPlaytest(
+          mission: scenario.mission,
+          playerCharacter: scenario.playerCharacter,
+          equippedLoadout: scenario.equippedLoadout,
+          seed: scenario.seed,
+          tickHz: scenario.tickHz,
+        ),
         ChunkPlaytestScenario scenario => GameCore.chunkPlaytest(
           scenario: scenario,
         ),

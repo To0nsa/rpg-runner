@@ -373,6 +373,7 @@ class _StaticRunSessionApi implements RunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) async {
     return RunTicket(
       runSessionId: 'run_1',

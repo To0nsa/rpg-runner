@@ -25,6 +25,7 @@ final class ChunkV2FileData {
     required this.id,
     required this.revision,
     required this.status,
+    this.usage = 'runner',
     required this.levelId,
     required this.tileSize,
     required this.width,
@@ -56,6 +57,7 @@ final class ChunkV2FileData {
   final String id;
   final int revision;
   final String status;
+  final String usage;
   final String levelId;
   final int tileSize;
 
@@ -91,6 +93,7 @@ final class ChunkV2FileData {
     String? id,
     int? revision,
     String? status,
+    String? usage,
     String? levelId,
     int? tileSize,
     int? width,
@@ -113,6 +116,7 @@ final class ChunkV2FileData {
     id: id ?? this.id,
     revision: revision ?? this.revision,
     status: status ?? this.status,
+    usage: usage ?? this.usage,
     levelId: levelId ?? this.levelId,
     tileSize: tileSize ?? this.tileSize,
     width: width ?? this.width,
@@ -137,6 +141,7 @@ final class ChunkV2FileData {
     'id': id,
     'revision': revision,
     'status': status,
+    if (usage != 'runner') 'usage': usage,
     'levelId': levelId,
     'tileSize': tileSize,
     'width': width,

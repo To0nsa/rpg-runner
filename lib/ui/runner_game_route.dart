@@ -1,3 +1,4 @@
+import 'package:run_protocol/campaign_binding.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -22,6 +23,10 @@ import 'state/ownership/selection_state.dart';
 /// Except for web or native-debug [isDeveloperPractice] runs, [runSessionId], [runId],
 /// [seed] and [tickHz] must come from a server-issued run session ticket.
 /// Developer Practice uses the same gameplay without replay or account writes.
+/// Campaign requires [runMode] campaign and the ticket's [campaign] binding.
+/// [levelId] remains the regional level; mission identity comes from the binding.
+/// Campaign has no board or ghost, retains the finite world, and follows both ways.
+/// First-clear XP and unlocks appear only after canonical settlement.
 /// Web embeddings must use this local mode; browser online replays are unavailable.
 /// The hosted widget keeps its loading presentation visible while initial
 /// render assets, upcoming terrain, and the selected ghost playback buffer and
@@ -60,6 +65,7 @@ Route<void> createRunnerGameRoute({
   RunMode runMode = RunMode.practice,
   EquippedLoadoutDef equippedLoadout = const EquippedLoadoutDef(),
   String? boardId,
+  CampaignBinding? campaign,
   BoardKey? boardKey,
   GhostReplayBootstrap? ghostReplayBootstrap,
   bool isDeveloperPractice = false,
@@ -102,6 +108,7 @@ Route<void> createRunnerGameRoute({
         equippedLoadout: equippedLoadout,
         boardId: boardId,
         boardKey: boardKey,
+        campaign: campaign,
         ghostReplayBootstrap: ghostReplayBootstrap,
         isDeveloperPractice: isDeveloperPractice,
         onExit: () => Navigator.of(context).maybePop(),

@@ -45,13 +45,17 @@ class CameraState {
   }
 }
 
-/// Deterministic auto-scroll camera (Core).
-///
-/// Mirrors the reference behavior:
-/// - baseline target speed with ease-in acceleration
-/// - camera center eases toward a monotonic target X (never moves backward)
-/// - player can pull the target forward only after passing a follow threshold
-class AutoscrollCamera {
+/// Shared read-only framing used by streaming, presentation and encounter code.
+abstract interface class CameraView {
+  CameraState get state;
+  double left();
+  double right();
+  double top();
+  double bottom();
+}
+
+/// Runner camera with a monotonic target and automatic scrolling.
+class AutoscrollCamera implements CameraView {
   AutoscrollCamera({
     required this.viewWidth,
     required this.viewHeight,
@@ -64,12 +68,17 @@ class AutoscrollCamera {
   final double viewHeight;
   final CameraTuningDerived _tuning;
 
+  @override
   CameraState get state => _state;
   CameraState _state;
 
+  @override
   double left() => _state.centerX - viewWidth * 0.5;
+  @override
   double right() => _state.centerX + viewWidth * 0.5;
+  @override
   double top() => _state.centerY - viewHeight * 0.5;
+  @override
   double bottom() => _state.centerY + viewHeight * 0.5;
 
   /// The X coordinate where the player starts pushing the camera forward.

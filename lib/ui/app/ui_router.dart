@@ -1,3 +1,4 @@
+import '../campaign/campaign_page.dart';
 import '../l10n/app_localization.dart';
 
 import 'package:flutter/material.dart';
@@ -53,6 +54,8 @@ class UiRouter {
         return _pageRoute(settings, LoaderPage(args: args));
       case UiRoutes.hub:
         return _pageRoute(settings, const PlayHubPage());
+      case UiRoutes.campaign:
+        return _pageRoute(settings, const CampaignPage());
       case UiRoutes.setupLevel:
         return _pageRoute(settings, const LevelSetupPage());
       case UiRoutes.setupLoadout:
@@ -104,6 +107,7 @@ class UiRouter {
             equippedLoadout: args.equippedLoadout,
             boardId: args.boardId,
             boardKey: args.boardKey,
+            campaign: args.campaign,
             ghostReplayBootstrap: args.ghostReplayBootstrap,
             isDeveloperPractice: args.isDeveloperPractice,
             settings: settings,

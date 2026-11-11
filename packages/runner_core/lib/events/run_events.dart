@@ -16,6 +16,12 @@ enum RunEndReason {
 
   /// A mandatory boss was lost without a valid combat defeat.
   bossEncounterFailed,
+
+  /// A living player satisfied every required objective and entered the exit.
+  missionCompleted,
+
+  /// A required mission target or rescue was lost.
+  missionFailed,
 }
 
 /// Identifies the category of damage source that caused death.

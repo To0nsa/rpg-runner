@@ -1,3 +1,5 @@
+import 'campaign_progress.dart';
+
 import 'package:runner_core/players/player_character_definition.dart';
 
 import 'achievement_progress.dart';
@@ -349,6 +351,7 @@ class ProgressionState {
     this.store = TownStoreState.initial,
     this.weekly = WeeklyProgressState.initial,
     this.codex = CodexProgress.empty,
+    this.campaign = CampaignProgress.empty,
     this.enemyDefeats = EnemyDefeats.empty,
     this.playerProgress = PlayerProgress.empty,
     this.achievements = AchievementProgress.empty,
@@ -359,6 +362,7 @@ class ProgressionState {
   final TownStoreState store;
   final WeeklyProgressState weekly;
   final CodexProgress codex;
+  final CampaignProgress campaign;
   final EnemyDefeats enemyDefeats;
   final PlayerProgress playerProgress;
   final AchievementProgress achievements;
@@ -382,6 +386,7 @@ class ProgressionState {
     TownStoreState? store,
     WeeklyProgressState? weekly,
     CodexProgress? codex,
+    CampaignProgress? campaign,
     EnemyDefeats? enemyDefeats,
     PlayerProgress? playerProgress,
     AchievementProgress? achievements,
@@ -392,6 +397,7 @@ class ProgressionState {
       store: store ?? this.store,
       weekly: weekly ?? this.weekly,
       codex: codex ?? this.codex,
+      campaign: campaign ?? this.campaign,
       enemyDefeats: enemyDefeats ?? this.enemyDefeats,
       playerProgress: playerProgress ?? this.playerProgress,
       achievements: achievements ?? this.achievements,
@@ -406,6 +412,7 @@ class ProgressionState {
       'store': store.toJson(),
       'weeklyProgress': weekly.toJson(),
       'codex': codex.toJson(),
+      'campaign': campaign.toJson(),
       'enemyDefeats': enemyDefeats.toJson(),
       'playerProgress': playerProgress.toJson(),
       'achievements': achievements.toJson(),
@@ -438,6 +445,7 @@ class ProgressionState {
       store: store,
       weekly: weekly,
       codex: CodexProgress.fromJson(json['codex']),
+      campaign: CampaignProgress.fromJson(json['campaign']),
       enemyDefeats: EnemyDefeats.fromJson(
         json['enemyDefeats'],
         legacyCodexKills: CodexProgress.legacyKillsFromJson(json['codex']),

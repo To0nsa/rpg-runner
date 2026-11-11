@@ -213,6 +213,7 @@ final class PolygonTerrainChunkSource {
     required this.id,
     required this.revision,
     required this.status,
+    this.usage = 'runner',
     required this.levelId,
     required this.tileSize,
     required this.width,
@@ -243,6 +244,7 @@ final class PolygonTerrainChunkSource {
   final String id;
   final int revision;
   final String status;
+  final String usage;
   final String levelId;
   final int tileSize;
   final int width;
@@ -493,6 +495,7 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
       'id',
       'revision',
       'status',
+      'usage',
       'levelId',
       'tileSize',
       'width',
@@ -736,6 +739,12 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
     chunkKey: _string(root['chunkKey'], '$sourcePath.chunkKey'),
     id: _string(root['id'], '$sourcePath.id'),
     revision: _positiveInt(root['revision'], '$sourcePath.revision'),
+    usage: root.containsKey('usage')
+        ? _enum(root['usage'], const {
+            'runner',
+            'campaign',
+          }, '$sourcePath.usage')
+        : 'runner',
     status: _enum(root['status'], const {
       'active',
       'deprecated',

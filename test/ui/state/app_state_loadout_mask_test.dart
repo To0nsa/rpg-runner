@@ -21,8 +21,77 @@ import 'package:rpg_runner/ui/state/boards/run_boards_api.dart';
 import 'package:rpg_runner/ui/state/run/run_session_api.dart';
 import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
+import 'package:rpg_runner/ui/state/ownership/campaign_progress.dart';
+import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 
 void main() {
+  test('campaign does not become a persisted runner selection mode', () {
+    expect(
+      SelectionState.fromJson({
+        ...SelectionState.defaults.toJson(),
+        'runMode': 'campaign',
+      }).selectedRunMode,
+      RunMode.practice,
+    );
+  });
+  test(
+    'canonical chapter clears gate Willow without deleting saved builds',
+    () async {
+      final selection = SelectionState.defaults.copyWith(
+        selectedCharacterId: PlayerCharacterId.bountyHunter,
+      );
+      for (final cleared in [false, true]) {
+        final progress = CampaignProgress.fromJson({
+          'schemaVersion': 1,
+          'missions': {
+            if (cleared)
+              for (final mission in CampaignCatalog.chapters.first.missions)
+                mission.id: {'cleared': true, 'attempts': 1, 'bests': {}},
+          },
+        });
+        final state = AppState(
+          authApi: _StaticAuthApi.authenticated(),
+          loadoutOwnershipApi: _ScriptedOwnershipApi(
+            OwnershipCanonicalState(
+              profileId: 'campaign',
+              revision: 1,
+              selection: selection,
+              meta: const MetaService().createNew(),
+              progression: ProgressionState.initial.copyWith(
+                campaign: progress,
+              ),
+            ),
+          ),
+        );
+        addTearDown(state.dispose);
+        await state.bootstrap(force: true);
+        expect(
+          state.isCharacterUnlocked(PlayerCharacterId.bountyHunter),
+          cleared,
+        );
+        expect(
+          state.selection.selectedCharacterId,
+          cleared ? PlayerCharacterId.bountyHunter : PlayerCharacterId.eloise,
+        );
+        expect(
+          state.selection.toJson()['buildsByCharacter'],
+          selection.toJson()['buildsByCharacter'],
+        );
+        if (!cleared) {
+          await expectLater(
+            state.setCharacter(PlayerCharacterId.bountyHunter),
+            throwsStateError,
+          );
+          await expectLater(
+            state.selectBuild(PlayerCharacterId.bountyHunter, 0),
+            throwsStateError,
+          );
+        }
+      }
+    },
+  );
+
+
   test('bootstrap hydrates AppState from canonical ownership state', () async {
     final customLoadout = const EquippedLoadoutDef(
       projectileSlotSpellId: ProjectileId.holyBolt,
@@ -757,6 +826,7 @@ class _ScriptedRunSessionApi implements RunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) async {
     createRunSessionCalls += 1;
     return ticket;
@@ -807,6 +877,7 @@ class _RecordingRunSessionApi extends _ScriptedRunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) async {
     lastLevelId = levelId;
     return super.createRunSession(

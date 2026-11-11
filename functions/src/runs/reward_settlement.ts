@@ -1,3 +1,4 @@
+import { applyCampaignProgress } from "../campaign/progression.js";
 import { applyRunAchievements } from "../ownership/achievements.js";
 import { writeRunCompletionReceipt } from "./completion_receipt.js";
 import { performance } from "node:perf_hooks";
@@ -159,7 +160,10 @@ export async function settleAcceptedRunSession(args: {
         const previousProgress = resolvedCanonical.canonical.progression.playerProgress;
         const previousXp = previousProgress && typeof previousProgress === "object" && !Array.isArray(previousProgress)
           ? previousProgress.totalXp : 0;
+        const campaign = applyCampaignProgress({ canonical: resolvedCanonical.canonical,
+          validatedRun: validatedRunSnapshot.data() as Record<string, unknown>, session, nowMs });
         const playerChanged = applyPlayerProgress({
+          campaignXp: campaign.xp,
           progression: resolvedCanonical.canonical.progression,
           validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
           session,
@@ -198,7 +202,7 @@ export async function settleAcceptedRunSession(args: {
           nowMs,
         });
         writeLevelMessages();
-        if ((discoveriesChanged || playerChanged || achievementsChanged) && !reconciled.canonicalChanged) {
+        if ((discoveriesChanged || playerChanged || achievementsChanged || campaign.changed) && !reconciled.canonicalChanged) {
           reconciled.canonicalState.revision += 1;
           reconciled.canonicalChanged = true;
         }
@@ -405,6 +409,15 @@ function assertMatchingSettlementContext(args: {
     args.validatedRun.goldEarned,
     "validated run goldEarned",
   );
+  const ticket = args.session.runTicket as Record<string, unknown> | undefined;
+  const campaign = ticket?.campaign;
+  if ((mode === "campaign" && (campaign == null ||
+        !isDeepStrictEqual(campaign, args.validatedRun.campaign))) ||
+      (mode !== "campaign" && (campaign != null || args.validatedRun.campaign != null))) {
+    throw new SettlementInvariantViolationError(
+      `run ${args.runSessionId} has mismatched campaign settlement context.`,
+    );
+  }
   if (
     readRequiredNonNegativeInteger(
       args.rewardGrant.goldAmount,
@@ -433,7 +446,7 @@ function assertMatchingSettlementContext(args: {
     );
   }
 
-  const requiresBoard = mode !== "practice";
+  const requiresBoard = mode === "competitive" || mode === "weekly";
   if (requiresBoard && (boardId == null || args.session.boardKey == null)) {
     throw new SettlementInvariantViolationError(
       `run ${args.runSessionId} is board-bound but has no board context.`,
@@ -441,7 +454,7 @@ function assertMatchingSettlementContext(args: {
   }
   if (!requiresBoard && (boardId != null || args.session.boardKey != null)) {
     throw new SettlementInvariantViolationError(
-      `practice run ${args.runSessionId} must not have board context.`,
+      `unranked run ${args.runSessionId} must not have board context.`,
     );
   }
 }
@@ -466,9 +479,9 @@ function readOptionalNonEmptyString(value: unknown): string | null {
 function readRequiredRunMode(
   value: unknown,
   fieldName: string,
-): "practice" | "competitive" | "weekly" {
+): "practice" | "competitive" | "weekly" | "campaign" {
   const mode = readRequiredString(value, fieldName);
-  if (mode === "practice" || mode === "competitive" || mode === "weekly") {
+  if (mode === "practice" || mode === "competitive" || mode === "weekly" || mode === "campaign") {
     return mode;
   }
   throw new SettlementInvariantViolationError(

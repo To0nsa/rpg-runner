@@ -9,6 +9,8 @@
 // parallelism. Runtime readiness holds missing publications before simulation;
 // failure recovery retries within the same run and recorder.
 // Boss entrances and arena completion remain inside that same run session.
+// Campaign hosts pass RunMode.campaign and the ticket's CampaignBinding. Finite
+// missions have no board/ghost; only verified settlement unlocks progress and XP.
 // The running HUD includes left/top off-screen actor markers measured from the
 // visible viewport; indicators remain presentation-only and pass touches through.
 // RunnerControlScheme.automatic selects desktop keyboard/mouse or mobile touch;
@@ -27,6 +29,8 @@
 export 'package:runner_core/levels/level_id.dart';
 export 'package:runner_core/players/player_character_definition.dart';
 export 'package:runner_core/players/player_character_registry.dart';
+export 'package:run_protocol/campaign_binding.dart';
+export 'package:run_protocol/run_mode.dart';
 
 export 'ui/runner_game_route.dart';
 export 'ui/controls/movement_control_mode.dart';

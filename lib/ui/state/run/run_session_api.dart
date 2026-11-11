@@ -117,6 +117,7 @@ abstract class RunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   });
 
   Future<RunUploadGrant> createUploadGrant({
@@ -153,6 +154,7 @@ class NoopRunSessionApi implements RunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) {
     throw const RunStartRemoteException(
       code: 'unimplemented',

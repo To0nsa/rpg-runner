@@ -23,6 +23,7 @@ class RestorationItemSystem {
     required EntityId player,
     required double cameraLeft,
     required RestorationItemTuning tuning,
+    bool cullBehindCamera = true,
   }) {
     final items = world.restorationItem;
     // Early exit if no items exist to process.
@@ -80,7 +81,7 @@ class RestorationItemSystem {
       );
 
       // 1. Despawn Logic (Garbage Collection)
-      if (cx < despawnLimit) {
+      if (cullBehindCamera && cx < despawnLimit) {
         _toDespawn.add(e);
         continue;
       }

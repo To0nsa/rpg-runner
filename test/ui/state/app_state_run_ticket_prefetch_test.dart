@@ -590,6 +590,7 @@ class _RecordingRunSessionApi implements RunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) {
     createRunSessionCalls += 1;
     requestedModes.add(mode);

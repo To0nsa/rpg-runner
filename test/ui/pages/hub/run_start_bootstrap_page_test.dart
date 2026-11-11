@@ -177,6 +177,7 @@ class _SuccessRunSessionApi implements RunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     return RunTicket(
@@ -256,6 +257,7 @@ class _ThrowingRunSessionApi implements RunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) async {
     createRunSessionCalls += 1;
     throw RunStartRemoteException(

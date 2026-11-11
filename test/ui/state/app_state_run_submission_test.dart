@@ -23,6 +23,31 @@ import 'package:rpg_runner/ui/run/run_reward_diagnostics.dart';
 
 void main() {
   test(
+    'campaign preview keeps gold without granting score XP or a clear',
+    () async {
+      final app = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _StaticOwnershipApi(),
+        runSubmissionSpoolStore: _InMemorySpoolStore(),
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap();
+      await app.journalRunReplay(
+        runSessionId: 'campaign_local',
+        runMode: RunMode.campaign,
+        replayArtifactId: 'campaign_replay',
+        canonicalSha256: 'a' * 64,
+        contentLengthBytes: 256,
+        provisionalSummary: {'goldEarned': 9, 'score': 100000},
+      );
+      expect(app.displayedGold, 9);
+      expect(app.displayedPlayerProgress.totalXp, 0);
+      expect(app.progression.campaign.isCleared('reporting_for_duty'), isFalse);
+    },
+  );
+
+
+  test(
     'local rewards display once while canonical gold and gifts stay unchanged',
     () async {
       final api = _MutableRunSessionApi(
@@ -1123,6 +1148,7 @@ class _FakeRunSessionApi implements RunSessionApi {
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
+    String? missionId,
   }) {
     throw UnimplementedError();
   }

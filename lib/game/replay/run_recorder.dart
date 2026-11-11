@@ -1,3 +1,4 @@
+import 'package:run_protocol/campaign_binding.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/replay_blob.dart';
 
@@ -14,11 +15,13 @@ class RunRecorderHeader {
     required this.levelId,
     required this.playerCharacterId,
     required this.loadoutSnapshot,
+    this.campaign,
     this.boardId,
     this.boardKey,
   });
 
   final String runSessionId;
+  final CampaignBinding? campaign;
   final String? boardId;
   final BoardKey? boardKey;
   final int tickHz;

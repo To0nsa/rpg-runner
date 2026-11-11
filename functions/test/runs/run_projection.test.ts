@@ -1,3 +1,4 @@
+import { campaignCatalog } from "../../src/campaign/generated_catalog.js";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
@@ -293,8 +294,8 @@ test("player stats and score XP settle once across run modes", async () => {
   assert.deepEqual(canonical.progression.playerProgress, {
     schemaVersion: 1, totalXp: 112, acceptedRuns: 3,
     runsByLevel: {
-      forest: { practice: 1, competitive: 1, weekly: 0 },
-      field: { practice: 0, competitive: 0, weekly: 1 },
+      forest: { practice: 1, competitive: 1, weekly: 0, campaign: 0 },
+      field: { practice: 0, competitive: 0, weekly: 1, campaign: 0 },
     },
     damageDealt100: 12845, damageTaken100: 1078,
   });
@@ -369,7 +370,7 @@ test("invalid player stats abort settlement and preserve legacy account state", 
   const afterSuccess = await loadOrCreateCanonicalState({ db, uid });
   assert.deepEqual(afterSuccess.progression.playerProgress, {
     schemaVersion: 1, totalXp: 50, acceptedRuns: 1,
-    runsByLevel: { forest: { practice: 1, competitive: 0, weekly: 0 } },
+    runsByLevel: { forest: { practice: 1, competitive: 0, weekly: 0, campaign: 0 } },
     damageDealt100: 150, damageTaken100: 25,
   });
   assert.deepEqual(afterSuccess.progression.enemyDefeats, {
@@ -454,7 +455,7 @@ test("legacy Codex kills transfer once to the shared defeat map", async () => {
   });
   assert.deepEqual(canonical.progression.playerProgress, {
     schemaVersion: 1, totalXp: 50, acceptedRuns: 1,
-    runsByLevel: { forest: { practice: 0, competitive: 1, weekly: 0 } },
+    runsByLevel: { forest: { practice: 0, competitive: 1, weekly: 0, campaign: 0 } },
     damageDealt100: 50, damageTaken100: 5,
   });
   assert.equal((await profileRef.get()).get("progression.codex.enemyKills"), undefined);
@@ -565,6 +566,33 @@ test("invalid achievement evidence rolls back run gold and terminal settlement",
   assert.equal(canonical.progression.gold, 0);
   assert.equal(readAchievementProgress(canonical.progression.achievements).entries[0].value, 0);
   assert.equal((await db.collection("run_sessions").doc(runSessionId).get()).get("state"), "settlement_pending");
+});
+
+test("campaign first-clear settlement is atomic across retries and simultaneous attempts", async () => {
+  const mission = campaignCatalog.chapters[0]!.missions[0]!;
+  const campaign = { missionId: mission.id, contentDigest: campaignCatalog.contentDigest,
+    rewardPolicyVersion: campaignCatalog.rewardPolicyVersion };
+  const ids: string[] = [];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const id = await seedCodexRun("practice", "forest", 500000, {});
+    await db.collection("run_sessions").doc(id).update({ mode: "campaign", "runTicket.campaign": campaign });
+    await db.collection("validated_runs").doc(id).update({ mode: "campaign", campaign,
+      endedReason: "missionCompleted", tick: 100, distanceMeters: 100, durationSeconds: 3,
+      playerRunStats: { schemaVersion: 1, damageDealt100: 0, damageTaken100: 0 } });
+    await db.collection("reward_grants").doc(id).update({ mode: "campaign" });
+    ids.push(id);
+  }
+  const results = await Promise.all(ids.flatMap((runSessionId) => [
+    settleAcceptedRunSession({ db, runSessionId, nowMs }),
+    settleAcceptedRunSession({ db, runSessionId, nowMs }),
+  ]));
+  assert.deepEqual(results.sort(), ["already_settled", "already_settled", "settled", "settled"]);
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal((canonical.progression.playerProgress as { totalXp: number }).totalXp, 40);
+  assert.equal(canonical.progression.gold, 2);
+  const progress = canonical.progression.campaign as { missions: Record<string, { cleared: boolean; attempts: number }> };
+  assert.equal(progress.missions[mission.id]!.cleared, true);
+  assert.equal(progress.missions[mission.id]!.attempts, 2);
 });
 
 async function seedCodexRun(

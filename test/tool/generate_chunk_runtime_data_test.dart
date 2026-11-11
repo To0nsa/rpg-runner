@@ -9,43 +9,97 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../tool/level_definition_generation.dart' as level_source;
 
 void main() {
-  test(
-    'Training Field generates separately from registered levels and checks freshness',
-    () async {
-      final root = await Directory.systemTemp.createTemp('training_generator_');
-      addTearDown(() => root.deleteSync(recursive: true));
-      _writeValidSmokeFixture(root.path);
-      const path = 'assets/authoring/level/training_field.json';
-      _writeFile(root.path, path, File(path).readAsStringSync());
-      final generated = await _runGenerate(workingDirectory: root.path);
-      expect(
-        generated.exitCode,
-        0,
-        reason: '${generated.stdout}\n${generated.stderr}',
-      );
-      final output = File(
-        '${root.path}/packages/runner_core/lib/training/authored_training_field.dart',
-      );
-      expect(output.readAsStringSync(), contains("chunkKey: 'training_field_2'"));
-      expect(
-        File('${root.path}/packages/runner_core/lib/levels/level_id.dart')
-            .readAsStringSync(),
-        isNot(contains('training')),
-      );
-      final fresh = await _runDryRun(workingDirectory: root.path);
-      expect(fresh.exitCode, 0, reason: fresh.stderr);
-      final source = File('${root.path}/$path');
-      final json = jsonDecode(source.readAsStringSync()) as Map<String, dynamic>;
-      json['enemySpawn']['x'] = 350;
-      source.writeAsStringSync(jsonEncode(json));
-      final stale = await _runDryRun(workingDirectory: root.path);
-      expect(stale.exitCode, 1);
-      expect(stale.stderr, contains('authored_training_field.dart'));
-      expect((await _runGenerate(workingDirectory: root.path)).exitCode, 0);
-      expect(output.readAsStringSync(), contains('enemySpawnX: 350'));
-    },
-    timeout: Timeout(Duration(minutes: Platform.isWindows ? 6 : 2)),
-  );
+  test('campaign generates a trusted finite registry and replays the real worker at 30 and 120 Hz', () async {
+    final root = await Directory.systemTemp.createTemp('campaign_generator_');
+    addTearDown(() => root.deleteSync(recursive: true));
+    _writeValidSmokeFixture(root.path);
+    final catalog = jsonDecode(
+      File('assets/authoring/campaign/chapter_defs.json').readAsStringSync(),
+    ) as Map<String, dynamic>;
+    final missions = (catalog['chapters'] as List).first['missions'] as List;
+    for (final raw in missions) {
+      raw['levelId'] = 'field';
+      raw['visualThemeId'] = 'field';
+    }
+    final mission = missions.first as Map<String, dynamic>;
+    mission['includeInBuild'] = true;
+    mission['route'] = [
+      for (final id in ['first', 'last'])
+        {'id': id, 'levelId': 'field', 'chunkKey': 'chunk_ok'},
+    ];
+    mission['start'] = {'occurrenceId': 'first', 'x': 100, 'y': 224};
+    mission['exit'] = {
+      'origin': {'occurrenceId': 'last', 'x': 500, 'y': 0},
+      'width': 100,
+      'height': 270,
+    };
+    mission['requiredRegions'] = [
+      {
+        'origin': {'occurrenceId': 'first', 'x': 20, 'y': 0},
+        'width': 60,
+        'height': 270,
+      },
+    ];
+    mission['collectibles'] = [
+      for (final id in ['first', 'last'])
+        {'occurrenceId': id, 'x': 300, 'y': 205},
+    ];
+    _writeFile(
+      root.path,
+      'assets/authoring/campaign/chapter_defs.json',
+      jsonEncode(catalog),
+    );
+    final generated = await _runGenerate(workingDirectory: root.path);
+    expect(
+      generated.exitCode,
+      0,
+      reason: '${generated.stdout} ${generated.stderr}',
+    );
+    final probe = await _runCompiledRegistryProbe(root.path, '');
+    expect(probe.exitCode, 0, reason: '${probe.stdout} ${probe.stderr}');
+    final replay = await _runGeneratedTrapWorker(
+      root.path,
+      '',
+      campaignId: mission['id'] as String,
+    );
+    expect(replay.exitCode, 0, reason: '${replay.stdout} ${replay.stderr}');
+    final fresh = await _runDryRun(workingDirectory: root.path);
+    expect(fresh.exitCode, 0, reason: fresh.stderr);
+  }, timeout: const Timeout(Duration(minutes: 6)));
+
+  test('Training Field generates separately from registered levels and checks freshness', () async {
+    final root = await Directory.systemTemp.createTemp('training_generator_');
+    addTearDown(() => root.deleteSync(recursive: true));
+    _writeValidSmokeFixture(root.path);
+    const path = 'assets/authoring/level/training_field.json';
+    _writeFile(root.path, path, File(path).readAsStringSync());
+    final generated = await _runGenerate(workingDirectory: root.path);
+    expect(
+      generated.exitCode,
+      0,
+      reason: '${generated.stdout}\n${generated.stderr}',
+    );
+    final output = File(
+      '${root.path}/packages/runner_core/lib/training/authored_training_field.dart',
+    );
+    expect(output.readAsStringSync(), contains("chunkKey: 'training_field_2'"));
+    expect(
+      File('${root.path}/packages/runner_core/lib/levels/level_id.dart')
+          .readAsStringSync(),
+      isNot(contains('training')),
+    );
+    final fresh = await _runDryRun(workingDirectory: root.path);
+    expect(fresh.exitCode, 0, reason: fresh.stderr);
+    final source = File('${root.path}/$path');
+    final json = jsonDecode(source.readAsStringSync()) as Map<String, dynamic>;
+    json['enemySpawn']['x'] = 350;
+    source.writeAsStringSync(jsonEncode(json));
+    final stale = await _runDryRun(workingDirectory: root.path);
+    expect(stale.exitCode, 1);
+    expect(stale.stderr, contains('authored_training_field.dart'));
+    expect((await _runGenerate(workingDirectory: root.path)).exitCode, 0);
+    expect(output.readAsStringSync(), contains('enemySpawnX: 350'));
+  }, timeout: Timeout(Duration(minutes: Platform.isWindows ? 6 : 2)));
   test(
     'decoration rotation survives generated Dart and registry loading',
     () async {
@@ -795,44 +849,48 @@ void main() {
     },
   );
 
-  test(
-    'generator dry-run reports every missing output without writing',
-    () async {
-      final fixtureRoot = await Directory.systemTemp.createTemp(
-        'chunk_generator_missing_outputs_',
+  test('generator dry-run reports every missing output without writing', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'chunk_generator_missing_outputs_',
+    );
+    try {
+      _writeValidSmokeFixture(fixtureRoot.path);
+
+      final result = await _runDryRun(workingDirectory: fixtureRoot.path);
+
+      expect(result.exitCode, 1);
+      expect(
+        'generated_output_missing'.allMatches(result.stderr as String),
+        hasLength(8),
       );
-      try {
-        _writeValidSmokeFixture(fixtureRoot.path);
-
-        final result = await _runDryRun(workingDirectory: fixtureRoot.path);
-
-        expect(result.exitCode, 1);
-        expect(
-          'generated_output_missing'.allMatches(result.stderr as String),
-          hasLength(7),
-        );
-        expect(
-          result.stderr,
-          contains('Generated output drift found in 7 file(s).'),
-        );
-        expect(
-          File(
-            _joinPath(<String>[
-              fixtureRoot.path,
-              'packages',
-              'runner_core',
-              'lib',
-              'track',
-              'authored_chunk_patterns.dart',
-            ]),
-          ).existsSync(),
-          isFalse,
-        );
-      } finally {
-        fixtureRoot.deleteSync(recursive: true);
-      }
-    },
-  );
+      expect(
+        result.stderr,
+        contains('Generated output drift found in 8 file(s).'),
+      );
+      expect(result.stderr, contains('campaign_registry.dart'));
+      expect(
+        File(
+          '${fixtureRoot.path}/packages/runner_core/lib/campaign/campaign_registry.dart',
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(
+          _joinPath(<String>[
+            fixtureRoot.path,
+            'packages',
+            'runner_core',
+            'lib',
+            'track',
+            'authored_chunk_patterns.dart',
+          ]),
+        ).existsSync(),
+        isFalse,
+      );
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
 
   test('generator dry-run reports exact stale committed output', () async {
     final fixtureRoot = await Directory.systemTemp.createTemp(
@@ -1613,8 +1671,9 @@ void _writeValidSmokeFixture(String rootPath) {
 
 Future<ProcessResult> _runGeneratedTrapWorker(
   String rootPath,
-  String id,
-) async {
+  String id, {
+  String? campaignId,
+}) async {
   final configFile = File(
     'services/replay_validator/.dart_tool/package_config.json',
   ).absolute;
@@ -1643,10 +1702,17 @@ Future<ProcessResult> _runGeneratedTrapWorker(
           .absolute
           .path,
       '--plain-name',
-      'compiled content app outcome matches ticket replay worker',
+      campaignId != null
+          ? 'compiled campaign app outcome matches ticket replay worker'
+          : 'compiled content app outcome matches ticket replay worker',
     ],
     workingDirectory: rootPath,
-    environment: {'TRAP_REPLAY_FIXTURE': id},
+    environment: {
+      if (campaignId != null)
+        'CAMPAIGN_REPLAY_FIXTURE': campaignId
+      else
+        'TRAP_REPLAY_FIXTURE': id,
+    },
   );
 }
 

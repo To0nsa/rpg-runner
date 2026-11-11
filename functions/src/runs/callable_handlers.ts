@@ -119,7 +119,7 @@ export async function handleRunSessionCreate(
   if (!uid) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
-  const { userId, clientRequestId, mode, levelId, gameCompatVersion } =
+  const { userId, clientRequestId, mode, levelId, missionId, gameCompatVersion } =
     parseRunSessionCreateRequest(request.data);
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
@@ -139,6 +139,7 @@ export async function handleRunSessionCreate(
     clientRequestId,
     mode,
     levelId,
+    missionId,
     gameCompatVersion,
     nowMs,
   });

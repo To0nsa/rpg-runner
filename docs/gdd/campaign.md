@@ -1,0 +1,48 @@
+# Campaign: Val Outpost
+
+Implemented locally November 11, 2026; the four production layouts are excluded
+drafts for the user to author in the editor. See the
+[runtime and progression contract](../tdd/campaign_runtime.md).
+
+Campaign has a third main-menu card alongside Level and Character Selection.
+It shows the regional map cropped around Val Outpost. Open Campaign, select Val
+on the map, then choose a mission. Mission one has no completion prerequisite;
+later missions require verified clears of their predecessors. An unbuilt draft
+shows Coming soon. Each entry shows assignment, first-clear rewards and current
+content-version personal best, and uses the selected character/build.
+
+The chapter follows **Le feu de joie**, chapter 3 of **Les Soleils d'or**, using
+the user's supplied premise: cultists have been seen nearby and Val needs help.
+No additional scenario canon is assumed. The opening teaches through play without
+calling itself a tutorial. The editable mission defaults are:
+
+| Mission | Assignment | First-clear XP |
+| --- | --- | ---: |
+| Reporting for Duty | Cross the Forêt des Moyen-Ducs and reach Val Outpost; movement and basic jumping, no encounters | 40 |
+| Signs in the Grove | Investigate cultist activity in the grove | 48 |
+| The Supply Trail | Clear cultists threatening the outpost's supply route | 60 |
+| Holding the Outpost | Remove the remaining cultist threat around Val | 76 |
+
+The user builds the exact layouts, objectives and encounter distribution. The
+first mission starts from Forest rocky_grove easy/normal copies and ends in
+trainingcamp copies. Copying preserves all content; the author removes encounters
+from the duplicates before validating this combat-free mission.
+
+Missions contain an exact finite sequence of chunks. Players and camera move in
+both directions without forced scrolling. Collected items and defeated enemies
+stay consumed on return. All required targets/visit regions/rescues and authored
+bosses must be completed before entering the exit. Death or required-objective
+failure wins over success on the same tick. Restart resets the whole attempt.
+
+Verified first completion of Reporting for Duty unlocks Éloïse's Double Jump.
+It does not silently change builds; the results screen can equip it explicitly.
+Four clears unlock Willow in every game mode. Existing pre-release accounts use
+the same lock, retaining their equipment and builds. Developer local play has
+all characters and skills but grants no account rewards.
+
+First clears grant 224 XP in total, putting a new zero-XP account at the start of
+level 3 under the unchanged XP curve. Failed attempts and repeats grant no XP;
+every verified attempt keeps collected gold. Score uses finite progress, combat
+and pickups without survival-time points. Backtracking and waiting do not farm
+score. There are no campaign boards, ghosts, stars, checkpoints or mid-mission
+saves. Next becomes available after verification, using a fresh ticket.

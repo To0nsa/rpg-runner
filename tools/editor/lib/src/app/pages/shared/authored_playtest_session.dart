@@ -224,7 +224,9 @@ class AuthoredPlaytestOverlay extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Text(
-                result.scenario is ChunkPlaytestScenario
+                result.scenario is CampaignPlaytestScenario
+                    ? 'Play mission — exact authored route · Free movement in both directions · Local rewards only.'
+                    : result.scenario is ChunkPlaytestScenario
                     ? 'Test chunk — focused loop · Authored markers without the level enemy-free opening.'
                     : 'Play level — seeded run · Actual difficulty, sections, and enemy-free opening.',
               ),

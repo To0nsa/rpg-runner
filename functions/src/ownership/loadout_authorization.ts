@@ -1,3 +1,4 @@
+import { campaignCharacterUnlocked } from "../campaign/progression.js";
 import { isDeepStrictEqual } from "node:util";
 import { buildAt, buildUnlockLevels, isBuildUnlocked, record, selectionSchemaVersion, validBuildName } from "./character_builds.js";
 import type { JsonObject } from "./contracts.js";
@@ -49,6 +50,7 @@ export function normalizeAuthorizedSelection(args: {
       runMode === null || !knownRunModes.includes(runMode as (typeof knownRunModes)[number]) ||
       (legacyRunType !== null && legacyRunType !== runMode) ||
       characterId === null || !isKnownCharacterId(characterId)) return null;
+  if (!campaignCharacterUnlocked(args.progression, characterId)) return null;
   const branches = asRecord(selection.buildsByCharacter);
   if (branches === null) return null;
   const normalizedBranches: JsonObject = {};

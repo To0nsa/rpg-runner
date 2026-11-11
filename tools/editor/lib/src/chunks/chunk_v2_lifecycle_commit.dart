@@ -91,10 +91,17 @@ final class ChunkV2DuplicateOperation extends ChunkV2LifecycleOperation {
   const ChunkV2DuplicateOperation({
     required this.sourceChunkKey,
     this.targetId,
+    this.targetUsage,
+    this.targetLevelId,
+    this.targetGroupId,
+    this.targetDifficulty,
   });
 
   final String sourceChunkKey;
   final String? targetId;
+
+  /// Explicit mode copy. Geometry and all encounter content stay intact.
+  final String? targetUsage, targetLevelId, targetGroupId, targetDifficulty;
 }
 
 /// Replaces one owner's explicit identity and metadata in one revision.
@@ -322,13 +329,37 @@ final class ChunkV2LifecycleCommitPolicy {
     if (keyIssue != null) return keyIssue;
     final idIssue = _idIssue(document, chunkKey);
     if (idIssue != null) return idIssue;
+    final usage = operation.targetUsage ?? source.usage;
+    final levelId = operation.targetLevelId ?? source.levelId;
+    final group = operation.targetGroupId ?? source.assemblyGroupId;
+    final difficulty = operation.targetDifficulty ?? source.difficulty;
+    final level = document.levels
+        .where((l) => l.levelId == levelId)
+        .firstOrNull;
+    if (!{'runner', 'campaign'}.contains(usage) ||
+        level == null ||
+        !level.chunkThemeGroups.contains(group) ||
+        !{'early', 'easy', 'normal', 'hard'}.contains(difficulty)) {
+      return const _LifecycleRejection(
+        code: 'chunk_copy_destination_invalid',
+        message: 'Select a valid destination level, group, tier and usage.',
+      );
+    }
     return _addCreatedOwner(
       document,
       source.copyWith(
         chunkKey: chunkKey,
         id: chunkKey,
         revision: 1,
-        status: chunkStatusActive,
+        usage: usage,
+        levelId: levelId,
+        assemblyGroupId: group,
+        difficulty: difficulty,
+        // Runner copies require an explicit active-status edit before joining a
+        // random pool. Campaign copies need explicit mission/build inclusion.
+        status: operation.targetUsage == 'runner'
+            ? chunkStatusDeprecated
+            : chunkStatusActive,
       ),
     );
   }

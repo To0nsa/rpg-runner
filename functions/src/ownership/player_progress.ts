@@ -31,6 +31,7 @@ export function applyPlayerProgress(args: {
   progression: JsonObject;
   validatedRun: Record<string, unknown>;
   session: Record<string, unknown>;
+  campaignXp?: number;
 }): boolean {
   const raw = args.validatedRun.playerRunStats;
   if (raw === undefined || raw === null) return false;
@@ -43,7 +44,7 @@ export function applyPlayerProgress(args: {
   const taken = integer(evidence.damageTaken100, "run damage taken");
   const levelId = nonEmptyString(args.session.levelId, "run level");
   const mode = args.session.mode;
-  if (mode !== "practice" && mode !== "competitive" && mode !== "weekly") {
+  if (mode !== "practice" && mode !== "competitive" && mode !== "weekly" && mode !== "campaign") {
     fail("Unsupported run mode for player progression.");
   }
   const current = args.progression.playerProgress === undefined
@@ -51,14 +52,14 @@ export function applyPlayerProgress(args: {
     : record(args.progression.playerProgress, "player progression");
   if (current.schemaVersion !== 1) fail("Unsupported player progression version.");
   const runsByLevel = readRunsByLevel(current.runsByLevel);
-  const levelRuns = runsByLevel[levelId] ?? { practice: 0, competitive: 0, weekly: 0 };
+  const levelRuns = runsByLevel[levelId] ?? { practice: 0, competitive: 0, weekly: 0, campaign: 0 };
   runsByLevel[levelId] = {
     ...levelRuns,
     [mode]: add(levelRuns[mode], 1, `${levelId} ${mode} runs`),
   };
   args.progression.playerProgress = {
     schemaVersion: 1,
-    totalXp: add(current.totalXp, Math.floor(score / xpScoreDivisor), "lifetime XP"),
+    totalXp: add(current.totalXp, (mode === "campaign" ? integer(args.campaignXp, "campaign XP") : Math.floor(score / xpScoreDivisor)), "lifetime XP"),
     acceptedRuns: add(current.acceptedRuns, 1, "accepted runs"),
     runsByLevel,
     damageDealt100: add(current.damageDealt100, dealt, "lifetime damage dealt"),
@@ -67,10 +68,10 @@ export function applyPlayerProgress(args: {
   return true;
 }
 
-function readRunsByLevel(raw: unknown): Record<string, { practice: number; competitive: number; weekly: number }> {
+function readRunsByLevel(raw: unknown): Record<string, { practice: number; competitive: number; weekly: number; campaign: number }> {
   if (raw === undefined) return {};
   const levels = record(raw, "runs by level");
-  const result: Record<string, { practice: number; competitive: number; weekly: number }> = {};
+  const result: Record<string, { practice: number; competitive: number; weekly: number; campaign: number }> = {};
   for (const [level, value] of Object.entries(levels)) {
     nonEmptyString(level, "run level");
     const counts = record(value, `${level} runs`);
@@ -78,6 +79,7 @@ function readRunsByLevel(raw: unknown): Record<string, { practice: number; compe
       practice: integer(counts.practice, `${level} practice runs`),
       competitive: integer(counts.competitive, `${level} competitive runs`),
       weekly: integer(counts.weekly, `${level} weekly runs`),
+      campaign: integer(counts.campaign ?? 0, `${level} campaign runs`),
     };
   }
   return result;

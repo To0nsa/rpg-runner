@@ -36,6 +36,9 @@ import 'dart:math' as math;
 import '../chunk_creator_location.dart';
 
 import 'package:flutter/material.dart';
+
+import 'chunk_mode_copy_dialog.dart';
+
 import 'package:runner_content_pipeline/runner_content_pipeline.dart'
     show prefabSupportsCenterRotation;
 import 'package:terrain_materials/terrain_materials.dart';
@@ -63,7 +66,9 @@ import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_inline_id_form.dart';
+
 import 'package:tool_ui/tool_ui.dart';
+
 import '../../shared/editor_owner_draft_state.dart';
 import '../../shared/editor_pending_changes_dialog.dart';
 import '../../shared/editor_scene_view_utils.dart';
@@ -889,6 +894,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       editFormKey: _ownerEditFormKey,
       isDirty: _ownerEditDirty,
       onDuplicate: () => _duplicateOwner(document, source),
+      onCopyMode: () => _copyOwnerMode(document, source),
       onDelete: () => _deleteOwner(document, _sceneOrNull!, source),
       onDirtyChanged: _setOwnerEditDirty,
       onCancelEdit: _closeOwnerEditor,
@@ -4032,6 +4038,27 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _clearOwnerEditorState();
     _syncOwnerAfterSessionMutation(
       preferredChunkKey: duplicateKeys.firstOrNull,
+    );
+  }
+
+  Future<void> _copyOwnerMode(
+    ChunkV2Document document,
+    ChunkV2FileData chunk,
+  ) async {
+    final operation = await showDialog<ChunkV2DuplicateOperation>(
+      context: context,
+      builder: (_) => ChunkModeCopyDialog(document: document, source: chunk),
+    );
+    if (!mounted || operation == null) return;
+    final beforeKeys = document.chunks.map((c) => c.chunkKey).toSet();
+    final next = _dispatchLifecycle(document, operation);
+    if (next == null) return;
+    _clearOwnerEditorState();
+    _syncOwnerAfterSessionMutation(
+      preferredChunkKey: next.chunks
+          .where((c) => !beforeKeys.contains(c.chunkKey))
+          .firstOrNull
+          ?.chunkKey,
     );
   }
 

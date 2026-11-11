@@ -306,6 +306,10 @@
     },
     "progression": {
       "gold": 75,
+      "campaign": {
+        "schemaVersion": 1,
+        "missions": {}
+      },
       "awardedRunIds": [],
       "codex": {
         "schemaVersion": 2,

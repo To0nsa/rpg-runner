@@ -72,7 +72,9 @@ class _TrainingFieldTabState extends State<TrainingFieldTab>
   }
 
   void _createSession() {
-    final selection = context.read<AppState>().selection;
+    final app = context.read<AppState>();
+    final selection = app.selection;
+    if (!app.isCharacterUnlocked(selection.selectedCharacterId)) return;
     final character = PlayerCharacterRegistry.resolve(
       selection.selectedCharacterId,
     );
@@ -259,7 +261,10 @@ class _TrainingFieldTabState extends State<TrainingFieldTab>
 
   @override
   Widget build(BuildContext context) {
-    final session = _session!;
+    final session = _session;
+    if (session == null) {
+      return Center(child: Text(context.l10n.campaignWillowLocked));
+    }
     final movement =
         context.watch<ControlSettings?>()?.movementMode ??
         MovementControlMode.arrows;

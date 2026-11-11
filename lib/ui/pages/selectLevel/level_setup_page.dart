@@ -178,7 +178,8 @@ class _LevelSetupPageState extends State<LevelSetupPage> {
                     RunMode.competitive => Text(
                       context.l10n.uiCompetitiveHeading,
                     ),
-                    RunMode.weekly => const SizedBox.shrink(),
+                    RunMode.weekly ||
+                    RunMode.campaign => const SizedBox.shrink(),
                   },
                 ),
               ),

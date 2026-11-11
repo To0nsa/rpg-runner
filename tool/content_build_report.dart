@@ -40,6 +40,7 @@ final class ContentBuildSnapshot {
 
   static const sourceRoots = <String, String>{
     'assets/authoring/level': '.json',
+    'assets/authoring/campaign': '.json',
     'assets/images/level/atlases': '.png',
     'assets/images/parallax': '.png',
     'assets/images/entities/traps': '.png',
@@ -53,6 +54,8 @@ final class ContentBuildSnapshot {
   static const _generatedInputs = {
     'packages/runner_core/lib/track/authored_chunk_patterns.dart',
     'packages/runner_core/lib/track/staged_authored_terrain.dart',
+    'packages/runner_core/lib/campaign/campaign_registry.dart',
+    'packages/runner_core/lib/campaign/authored_campaign_terrain.dart',
     'packages/runner_core/lib/training/authored_training_field.dart',
     'packages/runner_core/lib/training/authored_training_terrain.dart',
     'packages/runner_core/lib/levels/level_id.dart',

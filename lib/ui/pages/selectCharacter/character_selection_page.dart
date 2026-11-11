@@ -84,7 +84,10 @@ class _CharacterSelectionPageState extends State<CharacterSelectionPage> {
                           key: ValueKey('character-card-${character.id.name}'),
                           character: character,
                           selected: selected == character.id,
-                          enabled: !_saving,
+                          enabled:
+                              !_saving &&
+                              state.isCharacterUnlocked(character.id),
+                          locked: !state.isCharacterUnlocked(character.id),
                           onSelect: () => _select(character.id),
                           builds: state.selection.buildsFor(character.id),
                           isUnlocked: state.isBuildUnlocked,
@@ -117,13 +120,14 @@ class _CharacterCard extends StatelessWidget {
     required this.character,
     required this.selected,
     required this.enabled,
+    required this.locked,
     required this.onSelect,
     required this.onBuild,
     required this.builds,
     required this.isUnlocked,
   });
   final PlayerCharacterDefinition character;
-  final bool selected, enabled;
+  final bool selected, enabled, locked;
   final VoidCallback onSelect;
   final ValueChanged<int> onBuild;
   final CharacterBuilds builds;
@@ -211,29 +215,41 @@ class _CharacterCard extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          for (
-                            var index = 0;
-                            index < SelectionState.buildCount;
-                            index++
-                          ) ...[
-                            if (index > 0) SizedBox(height: ui.space.sm),
-                            _BuildButton(
-                              key: ValueKey(
-                                'build-${character.id.name}-$index',
+                          if (locked) ...[
+                            const Icon(Icons.lock_outline),
+                            Flexible(
+                              child: Text(
+                                context.l10n.campaignWillowLocked,
+                                textAlign: TextAlign.center,
+                                style: ui.text.cardSubtitle,
                               ),
-                              name: buildDisplayName(
-                                builds.builds[index].name,
-                                index,
-                                context.l10n,
-                              ),
-                              selected:
-                                  selected && builds.selectedIndex == index,
-                              requiredLevel:
-                                  SelectionState.buildUnlockLevels[index],
-                              unlocked: isUnlocked(index),
-                              onPressed: enabled ? () => onBuild(index) : null,
                             ),
-                          ],
+                          ] else
+                            for (
+                              var index = 0;
+                              index < SelectionState.buildCount;
+                              index++
+                            ) ...[
+                              if (index > 0) SizedBox(height: ui.space.sm),
+                              _BuildButton(
+                                key: ValueKey(
+                                  'build-${character.id.name}-$index',
+                                ),
+                                name: buildDisplayName(
+                                  builds.builds[index].name,
+                                  index,
+                                  context.l10n,
+                                ),
+                                selected:
+                                    selected && builds.selectedIndex == index,
+                                requiredLevel:
+                                    SelectionState.buildUnlockLevels[index],
+                                unlocked: isUnlocked(index),
+                                onPressed: enabled
+                                    ? () => onBuild(index)
+                                    : null,
+                              ),
+                            ],
                         ],
                       ),
                     ),

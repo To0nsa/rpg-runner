@@ -1,3 +1,4 @@
+import 'campaign_binding.dart';
 import 'codecs/json_integer.dart';
 import 'board_key.dart';
 import 'codex_run_progress.dart';
@@ -23,6 +24,7 @@ final class ValidatedRun {
     required this.replayDigest,
     required this.replayStorageRef,
     required this.createdAtMs,
+    this.campaign,
     this.boardId,
     this.boardKey,
     this.rejectionReason,
@@ -72,6 +74,9 @@ final class ValidatedRun {
         'must be non-empty when set',
       );
     }
+    if ((mode == RunMode.campaign) != (campaign != null)) {
+      throw ArgumentError('Only campaign runs require a campaign binding.');
+    }
     if (mode.requiresBoard) {
       if (boardId == null || boardKey == null) {
         throw ArgumentError(
@@ -85,7 +90,7 @@ final class ValidatedRun {
         );
       }
     } else if (boardId != null || boardKey != null) {
-      throw ArgumentError('Practice validated runs must omit board fields.');
+      throw ArgumentError('Unranked validated runs must omit board fields.');
     }
     if (!ReplayDigest.isValidSha256Hex(replayDigest)) {
       throw ArgumentError.value(
@@ -113,6 +118,7 @@ final class ValidatedRun {
 
   final String runSessionId;
   final String uid;
+  final CampaignBinding? campaign;
   final String? boardId;
   final BoardKey? boardKey;
   final RunMode mode;
@@ -151,6 +157,7 @@ final class ValidatedRun {
     return ValidatedRun(
       runSessionId: runSessionId,
       uid: uid,
+      campaign: campaign,
       boardId: boardId,
       boardKey: boardKey,
       mode: mode,
@@ -176,6 +183,7 @@ final class ValidatedRun {
     return <String, Object?>{
       'runSessionId': runSessionId,
       'uid': uid,
+      if (campaign != null) 'campaign': campaign!.toJson(),
       if (boardId != null) 'boardId': boardId,
       if (boardKey != null) 'boardKey': boardKey!.toJson(),
       'mode': mode.name,
@@ -204,6 +212,9 @@ final class ValidatedRun {
       return ValidatedRun(
         runSessionId: readRequiredString(json, 'runSessionId'),
         uid: readRequiredString(json, 'uid'),
+        campaign: json['campaign'] == null
+            ? null
+            : CampaignBinding.fromJson(json['campaign']),
         boardId: readOptionalString(json, 'boardId'),
         boardKey: json['boardKey'] == null
             ? null

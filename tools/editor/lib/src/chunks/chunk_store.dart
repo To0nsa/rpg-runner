@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+
 import 'package:path/path.dart' as p;
 
 import '../workspace/editor_workspace.dart';
@@ -306,6 +308,7 @@ class ChunkStore {
       throw ChunkV2SaveException(code: error.code, message: error.message);
     }
     if (!savePlan.hasChanges) return;
+    _requireCampaignReferencesRetained(workspace, document);
 
     final finalPaths = _v2FinalPathByChunkKey(
       document,
@@ -343,7 +346,10 @@ class ChunkStore {
     final transaction = WorkspaceWriteTransaction(artifacts);
     try {
       transaction.apply(
-        beforeReplace: () => _requireV2SourcesFresh(workspace, document),
+        beforeReplace: () {
+          _requireV2SourcesFresh(workspace, document);
+          _requireCampaignReferencesRetained(workspace, document);
+        },
         verifyReplacements: () =>
             _requireV2PlanInstalled(workspace, document, savePlan),
       );
@@ -673,4 +679,33 @@ String _slugify(String raw) {
     return 'chunk';
   }
   return slug;
+}
+
+/// A shared chunk can be edited in place, but its consumers must be rebound
+/// before a delete, identity change or move to another regional owner is saved.
+void _requireCampaignReferencesRetained(
+  EditorWorkspace workspace,
+  ChunkV2Document document,
+) {
+  final file = File(workspace.resolve(campaignSourcePath));
+  if (!file.existsSync()) return;
+  final catalog = CampaignCatalogSource.decode(file.readAsStringSync());
+  final chunks = {for (final chunk in document.chunks) chunk.chunkKey: chunk};
+  final originalKeys = {
+    for (final text in document.baselineContentsByChunkKey.values)
+      ChunkV2FileCodec.decode(text).chunkKey,
+  };
+  for (final mission in catalog.missions) {
+    for (final occurrence in mission.route) {
+      if (!originalKeys.contains(occurrence.chunkKey)) continue;
+      final chunk = chunks[occurrence.chunkKey];
+      if (chunk == null || chunk.levelId != occurrence.levelId) {
+        throw ChunkV2SaveException(
+          code: 'chunk_v2_campaign_reference',
+          message:
+              '${occurrence.chunkKey} is used by ${mission.id}. Update its campaign occurrence before moving, renaming or deleting it.',
+        );
+      }
+    }
+  }
 }

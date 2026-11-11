@@ -104,16 +104,15 @@ ChunkV2SeamAnalysis analyzeChunkV2Seams({
 }) {
   final orderedLevels = List<LevelDef>.of(
     levels.where(
-      (level) =>
-          level.status != levelStatusDeprecated || level.includeInBuild,
+      (level) => level.status != levelStatusDeprecated || level.includeInBuild,
     ),
-  )
-    ..sort((left, right) => left.levelId.compareTo(right.levelId));
+  )..sort((left, right) => left.levelId.compareTo(right.levelId));
   final scheduledLevelIds = orderedLevels.map((level) => level.levelId).toSet();
   final orderedChunks = List<ChunkV2FileData>.of(
     chunks.where(
       (chunk) =>
           chunk.status == chunkStatusActive &&
+          chunk.usage == 'runner' &&
           scheduledLevelIds.contains(chunk.levelId),
     ),
   )..sort(_compareChunks);

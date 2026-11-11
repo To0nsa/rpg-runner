@@ -9,6 +9,7 @@ import 'boss_victory_blessing_snapshot.dart';
 
 import '../levels/level_identity.dart';
 import 'camera_snapshot.dart';
+import 'campaign_snapshot.dart';
 import 'entity_render_snapshot.dart';
 import 'enums.dart';
 import 'player_hud_snapshot.dart';
@@ -40,6 +41,7 @@ class GameStateSnapshot {
     this.interactions = const [],
     this.bossArena,
     this.bossVictoryBlessing,
+    this.campaign,
   });
 
   /// Current simulation tick.
@@ -84,6 +86,7 @@ class GameStateSnapshot {
   final List<WorldInteractionSnapshot> interactions;
   final BossArenaSnapshot? bossArena;
   final BossVictoryBlessingSnapshot? bossVictoryBlessing;
+  final CampaignSnapshot? campaign;
 
   /// Compiler-owned terrain fill data published with the active terrain bundle.
   ///

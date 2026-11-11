@@ -1,3 +1,5 @@
+import '../../campaign/campaign_hud.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
@@ -322,7 +324,9 @@ class GameOverlay extends StatefulWidget {
                         child: Align(
                           alignment: Alignment.topCenter,
                           heightFactor: 1,
-                          child: SurvivalTimerOverlay(controller: controller),
+                          child: controller.snapshot.campaign != null
+                              ? CampaignHud(controller: controller)
+                              : SurvivalTimerOverlay(controller: controller),
                         ),
                       ),
                     if (!trainingField)
