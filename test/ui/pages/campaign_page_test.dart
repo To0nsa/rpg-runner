@@ -11,7 +11,6 @@ import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/campaign/campaign_page.dart';
 import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
-import 'package:rpg_runner/ui/campaign/campaign_chapter_rewards.dart';
 import 'package:rpg_runner/ui/campaign/campaign_chapter_dialog.dart';
 import 'package:rpg_runner/ui/campaign/campaign_map.dart';
 import 'package:rpg_runner/ui/campaign/generated_campaign_catalog.dart';
@@ -126,57 +125,6 @@ void main() {
       );
     },
   );
-  for (final locale in ['en', 'fr']) {
-    testWidgets('chapter reward names and amounts fit compact $locale UI', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(568, 320);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final source =
-          (campaignCatalogData['chapters'] as List).first
-              as Map<String, Object?>;
-      final chapter = CampaignChapter({
-        ...source,
-        'rewardXp': 75,
-        'rewardGold': 250,
-        'rewardItems': [
-          {'kind': 'gear', 'slot': 'mainWeapon', 'itemId': 'cinderedge'},
-          {
-            'kind': 'ability',
-            'slot': 'jump',
-            'itemId': 'eloise.double_jump',
-            'characterId': 'eloise',
-          },
-        ],
-      });
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: Locale(locale),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: ThemeData(
-            extensions: [UiTokens.standard, UiButtonTheme.standard],
-          ),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: CampaignChapterRewards(chapter: chapter),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find.textContaining(locale == 'fr' ? '75 EXP' : '75 XP'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('250'), findsOneWidget);
-      expect(find.text('Willow'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-    });
-  }
   testWidgets(
     'chapter modal starts its mission through the shared bootstrap route',
     (tester) async {
@@ -301,10 +249,7 @@ void main() {
                 ),
               ),
               home: const PlayHubPage(),
-              routes: {
-                UiRoutes.campaign: (_) => const CampaignPage(),
-                UiRoutes.selectCharacter: (_) => const CharacterSelectionPage(),
-              },
+              routes: {UiRoutes.campaign: (_) => const CampaignPage()},
             ),
           ),
         );
@@ -373,12 +318,6 @@ void main() {
           boundary,
           'missions_${size.width.toInt()}_$language',
         );
-        await tester.tap(find.byIcon(Icons.person_outline));
-        await tester.pumpAndSettle();
-        expect(find.byType(CharacterSelectionPage), findsOneWidget);
-        await tester.tap(find.byType(BackButton));
-        await tester.pumpAndSettle();
-        _expectChapterPanel(tester, size);
         await tester.ensureVisible(
           find.textContaining(chapter.missions.last.title(language)),
         );

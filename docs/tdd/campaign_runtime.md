@@ -207,8 +207,8 @@ The inbox gift rollout gate is unchanged and does not govern campaign rewards.
 New fields are included in the generated shared content digest. Reward policy
 version remains 1: the ticket/evidence/catalogue digest match already fences
 old content from this settlement policy. Client progress serialization preserves
-chapter receipts; menus show authored rewards using shared catalogue presentation
-and localized XP/gold labels, while results acknowledge only settled rewards.
+chapter receipts; results acknowledge only settled rewards. The chapter modal
+omits reward details.
 Current Val Outpost completion XP/gold/items default to zero/zero/empty, preserving
 the existing 224 mission XP and Willow balance until explicitly edited.
 
@@ -228,12 +228,12 @@ controller lifetime. Resize and reset restore the centered crop. Shared
 `MapCallout` and `MapLabelButton` controls bind chapter coordinates to labels kept
 inside the initial toolbar/system-safe area. Chapter selection opens a dialog
 route containing `CampaignChapterDialog`, flush left at two-thirds of the viewport
-width and full height. Its title and dismiss control stay fixed; chapter details,
-build selection, rewards and mission cards scroll within system-safe content.
+width and full height. Its title and dismiss control stay fixed; the chapter
+description and mission cards scroll within system-safe content.
 Close, system Back and the outside barrier dismiss it without resetting the map
 transform. The dialog watches canonical `AppState` and retains the existing
-mission availability/unlock checks and shared run-bootstrap route. Character
-selection and run launch are pushed above the panel.
+mission availability/unlock checks and shared run-bootstrap route. Run launch is
+pushed above the panel.
 
 ## Verification scope
 

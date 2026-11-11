@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:game_presentation/character_text.dart';
-import 'package:game_presentation/game_localization.dart';
 import 'package:provider/provider.dart';
 
 import '../app/ui_routes.dart';
 import '../components/app_button.dart';
 import '../l10n/app_localization.dart';
 import '../state/app/app_state.dart';
-import '../text/build_name_text.dart';
 import '../theme/ui_tokens.dart';
 import 'campaign_catalog.dart';
-import 'campaign_chapter_rewards.dart';
 
 /// Chapter selection stays over the map in a full-height, left two-thirds panel.
 /// Content scrolls independently of the title and dismiss control.
@@ -111,19 +107,6 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(chapter.description(language)),
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: () =>
-                              Navigator.of(context)
-                                  .pushNamed(UiRoutes.selectCharacter),
-                          icon: const Icon(Icons.person_outline),
-                          label: Text(
-                            '${characterDisplayName(state.selection.selectedCharacterId, strings: context.gameL10n)} · ${buildDisplayName(state.selection.buildName, state.selection.selectedBuildIndexFor(state.selection.selectedCharacterId), context.l10n)}',
-                            style: ui.text.body,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        CampaignChapterRewards(chapter: chapter),
                         const SizedBox(height: 12),
                         for (
                           var index = 0;
@@ -193,14 +176,7 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
               ),
               const SizedBox(height: 8),
               Text(mission.description(language), style: ui.text.body),
-              const SizedBox(height: 6),
-              Text(
-                context.l10n.campaignFirstClearXp(xp: mission.firstClearXp),
-                style: ui.text.cardSubtitle,
-              ),
-              if (mission.rewardAbilityId != null)
-                Text(context.l10n.campaignDoubleJumpReward),
-              Text(context.l10n.campaignCollectedGold),
+              if (score != null || !unlocked) const SizedBox(height: 6),
               if (score != null)
                 Text(context.l10n.campaignBestScore(score: score)),
               if (!unlocked) Text(context.l10n.campaignPreviousRequired),

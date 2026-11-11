@@ -14,9 +14,10 @@ scroll below a fixed title and Close button; Close, Back or a tap outside restor
 the same map view.
 
 Mission one has no completion prerequisite; later missions require verified clears
-of their predecessors. An unbuilt draft shows Coming soon. Each entry shows
-assignment, first-clear rewards and current content-version personal best, and
-uses the selected character/build.
+of their predecessors. An unbuilt draft shows Coming soon. Each entry shows its
+assignment, access/clear status and current content-version personal best.
+The modal omits the selected character/build and chapter/mission reward details.
+Missions use the selected character/build.
 
 The chapter follows **Le feu de joie**, chapter 3 of **Les Soleils d'or**, using
 the user's supplied premise: cultists have been seen nearby and Val needs help.
