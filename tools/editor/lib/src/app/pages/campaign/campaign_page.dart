@@ -488,7 +488,7 @@ class _CampaignPageState extends State<CampaignPage>
                 payload: {'id': id},
               ),
             ),
-            onMoveEarlier: (id, target) => widget.controller.applyCommand(
+            onReorderMission: (id, target) => widget.controller.applyCommand(
               AuthoringCommand(
                 kind: CampaignDomainPlugin.reorderMission,
                 payload: {'id': id, 'targetIndex': target},

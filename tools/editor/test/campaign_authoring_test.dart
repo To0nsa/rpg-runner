@@ -806,6 +806,55 @@ void main() {
       document.selected.id,
       document.catalog.chapters.last.missions.last.id,
     );
+    final firstId = document.catalog.chapters.last.missions.first.id;
+    final lastId = document.catalog.chapters.last.missions.last.id;
+    Finder reorder(String id, IconData icon) => find.descendant(
+      of: find.byKey(ValueKey('campaign_mission_$id')),
+      matching: find.widgetWithIcon(IconButton, icon),
+    );
+    expect(
+      tester.widget<IconButton>(reorder(firstId, Icons.arrow_upward)).onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(reorder(lastId, Icons.arrow_downward))
+          .onPressed,
+      isNull,
+    );
+    await tap(reorder(firstId, Icons.arrow_downward));
+    final reordered = controller.document as CampaignDocument;
+    expect(reordered.catalog.chapters.last.missions.map((m) => m.id), [
+      lastId,
+      firstId,
+    ]);
+    expect(reordered.selected.id, lastId);
+    expect(
+      tester
+          .widget<IconButton>(reorder(firstId, Icons.arrow_downward))
+          .onPressed,
+      isNull,
+    );
+    await tap(reorder(firstId, Icons.arrow_upward));
+    expect(
+      (controller.document as CampaignDocument).catalog.chapters.last.missions
+          .map((m) => m.id),
+      [firstId, lastId],
+    );
+    controller.undo();
+    await _pumpWorkspace(tester);
+    expect(
+      (controller.document as CampaignDocument).catalog.chapters.last.missions
+          .map((m) => m.id),
+      [lastId, firstId],
+    );
+    controller.redo();
+    await _pumpWorkspace(tester);
+    expect(
+      (controller.document as CampaignDocument).catalog.chapters.last.missions
+          .map((m) => m.id),
+      [firstId, lastId],
+    );
     await tap(inside('Chapter settings'));
     await fill('Chapter title (en)', 'Northern Pass');
     await tap(find.text('Apply'));

@@ -927,6 +927,9 @@ Outpost**) to select a mission. Each chapter contains its own mission list and
 settings; collapsing it changes only the workspace view. **Create chapter** asks
 for English/French titles, descriptions and a regional-map position (0–1 from
 left/top to right/bottom). **Chapter settings** edits those details later.
+Each mission has **Move mission earlier / later** arrows. The first/last boundary
+disables the corresponding arrow; reordering changes sequential prerequisites
+and supports Undo/Redo.
 
 Campaign uses the same layout as Level Creator: chapter/mission library on the
 left, persistent preview and workspace tabs in the centre, and contextual

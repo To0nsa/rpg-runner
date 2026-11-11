@@ -13,14 +13,14 @@ class CampaignChapterSection extends StatefulWidget {
     required this.onRewards,
     required this.onAddMission,
     required this.onSelectMission,
-    required this.onMoveEarlier,
+    required this.onReorderMission,
   });
   final CampaignChapterSource chapter;
   final int number;
   final String selectedMissionId;
   final VoidCallback onSettings, onRewards, onAddMission;
   final ValueChanged<String> onSelectMission;
-  final void Function(String, int) onMoveEarlier;
+  final void Function(String, int) onReorderMission;
 
   @override
   State<CampaignChapterSection> createState() => _CampaignChapterSectionState();
@@ -89,6 +89,7 @@ class _CampaignChapterSectionState extends State<CampaignChapterSection> {
         ),
         for (var i = 0; i < chapter.missions.length; i++)
           ListTile(
+            key: ValueKey('campaign_mission_${chapter.missions[i].id}'),
             selected: chapter.missions[i].id == widget.selectedMissionId,
             title: Text('${i + 1}. ${chapter.missions[i].title['en']}'),
             subtitle: Text(
@@ -99,14 +100,31 @@ class _CampaignChapterSectionState extends State<CampaignChapterSection> {
                   : 'Draft · excluded from Build',
             ),
             onTap: () => widget.onSelectMission(chapter.missions[i].id),
-            trailing: i == 0
-                ? null
-                : IconButton(
-                    tooltip: 'Move mission earlier',
-                    icon: const Icon(Icons.arrow_upward),
-                    onPressed: () =>
-                        widget.onMoveEarlier(chapter.missions[i].id, i - 1),
-                  ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Move mission earlier',
+                  icon: const Icon(Icons.arrow_upward),
+                  onPressed: i == 0
+                      ? null
+                      : () => widget.onReorderMission(
+                          chapter.missions[i].id,
+                          i - 1,
+                        ),
+                ),
+                IconButton(
+                  tooltip: 'Move mission later',
+                  icon: const Icon(Icons.arrow_downward),
+                  onPressed: i == chapter.missions.length - 1
+                      ? null
+                      : () => widget.onReorderMission(
+                          chapter.missions[i].id,
+                          i + 1,
+                        ),
+                ),
+              ],
+            ),
           ),
         OutlinedButton.icon(
           onPressed: chapter.missions.length < 16 ? widget.onAddMission : null,
