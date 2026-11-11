@@ -85,12 +85,14 @@ occurrence identity; the workspace blocks removing an occurrence with markers.
 The workspace follows Level Creator's 3:8:4 library/workspace/settings layout,
 using the same responsive panel shell and `ToolPreviewWorkspace` preview/tab
 sizing. The left panel owns chapters and missions. Contents reuses
-`AuthoredChunkCard` and `ChunkCompositionPreview` for searchable authored chunks;
-Route owns exact occurrence ordering, while Markers owns typed
-start/exit/objective/pickup controls. The persistent preview shows selected chunk
-art in Contents or the assembled geometry in Route/Markers. The right inspector
-shows mission/reward status, selected chunk usage and validation, with the existing
-revision-checked settings dialogs. Narrow panels remain mounted behind tabs.
+`AuthoredChunkCard` and `ChunkCompositionPreview` for searchable campaign-only
+chunks. Runner layouts must first be copied using Chunk Creator's Copy to Campaign
+action to appear in Contents. Route owns exact occurrence ordering, while Markers
+owns typed start/exit/objective/pickup controls. The persistent preview shows
+selected chunk art in Contents or the assembled geometry in Route/Markers. The
+right inspector shows mission/reward status, selected chunk usage and validation,
+with the existing revision-checked settings dialogs. Narrow panels remain mounted
+behind tabs.
 Geometry opens in Chunk Creator through guarded navigation. Back reloads
 dependencies and restores mission, workspace tab, search and valid chunk/occurrence
 selections. These view values never enter content history. Play hides and excludes

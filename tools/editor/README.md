@@ -936,7 +936,7 @@ Campaign uses the same layout as Level Creator: chapter/mission library on the
 left, persistent preview and workspace tabs in the centre, and contextual
 **Settings** on the right. Smaller windows expose **Chapters / Workspace /
 Settings** as tabs without losing your selection or chunk search. **Contents**
-browses shared chunk cards with visual previews; **Route** controls the exact
+browses only Campaign chunks with visual previews; **Route** controls the exact
 sequence; **Markers** contains start, exit, pickups and objectives. The settings
 panel shows rewards, build status, selected chunk usage and validation. Open
 **Mission settings** there to edit the mission. Back from Chunk Creator restores
@@ -951,8 +951,10 @@ not change allocated IDs, and Save seals new chapter/mission identities; creatio
 can be undone before Save. The current catalog admits 32 chapters and 16 missions
 per chapter.
 
-Append chunks from **Contents** in exact order, then reorder, duplicate or remove
-occurrences in **Route**. Place the player start, exit and objectives in **Markers**.
+To reuse a Runner layout, use **Copy to Campaign** in **Chunk Creator** first.
+Append campaign chunks from **Contents** in exact order, then reorder, duplicate
+or remove occurrences in **Route**. Place the player start, exit and objectives
+in **Markers**.
 Edit the selected occurrence in **Chunk Creator**; use **Copy to Campaign** to
 make an independent layout before changing it. Both **Copy to Campaign** and
 **Copy to Runner** let you edit the suggested chunk name and omit enemy markers,

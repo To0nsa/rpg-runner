@@ -740,6 +740,19 @@ void main() {
           (pageKey.currentState as EditorPageNavigationState)
                   .navigationLocation!
               as CampaignLocation;
+      final runner = original.chunks.chunks.firstWhere(
+        (chunk) => chunk.usage == 'runner',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Find chunk'),
+        runner.chunkKey,
+      );
+      await _pumpWorkspace(tester);
+      expect(
+        find.byKey(ValueKey('campaign_chunk_${runner.chunkKey}')),
+        findsNothing,
+      );
+      expect(find.text('No campaign chunks match this search.'), findsOneWidget);
       await tester.enterText(
         find.widgetWithText(TextField, 'Find chunk'),
         'forest_campaign_fixture',

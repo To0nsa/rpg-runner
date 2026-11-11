@@ -29,6 +29,7 @@ class CampaignContents extends StatelessWidget {
     final visible = chunks
         .where(
           (c) =>
+              c.usage == 'campaign' &&
               '${c.levelId} ${c.assemblyGroupId} ${c.difficulty} ${c.chunkKey} ${c.usage} ${c.tags.join(' ')}'
                   .toLowerCase()
                   .contains(query),
@@ -42,16 +43,17 @@ class CampaignContents extends StatelessWidget {
           controller: searchController,
           decoration: const InputDecoration(
             labelText: 'Find chunk',
-            hintText: 'Region, group, tier, usage or key',
+            hintText: 'Region, group, tier, tag or key',
             prefixIcon: Icon(Icons.search),
           ),
         ),
         const SizedBox(height: 8),
         const Text(
-          'Append chunks in route order. Edit chunk opens Chunk Creator, where Copy to Campaign creates an independent layout.',
+          'Append campaign chunks in route order. To reuse a runner layout, open Chunk Creator and use Copy to Campaign.',
         ),
         const SizedBox(height: 12),
-        if (visible.isEmpty) const Text('No chunks match this search.'),
+        if (visible.isEmpty)
+          const Text('No campaign chunks match this search.'),
         for (final chunk in visible)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
