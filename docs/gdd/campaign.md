@@ -14,10 +14,13 @@ bars. The map remains visible on the right. Details scroll below a fixed title a
 Close button; Close, Back or a tap outside restores the same map view.
 
 Mission one has no completion prerequisite; later missions require verified clears
-of their predecessors. An unbuilt draft shows Coming soon. Each entry shows its
-assignment, access/clear status and current content-version personal best.
+of their predecessors. An unbuilt draft shows Coming soon. Built missions show a
+disabled Locked button with a lock icon until unlocked, then a Play button with a
+play icon, including on repeat attempts. Each entry shows its assignment,
+access/clear status and current content-version personal best.
 Level titles match the chapter heading's font and size. Descriptions sit on the
 left with the mission action button on the right in the same row.
+The button communicates locked access without a separate prerequisite sentence.
 The modal omits the selected character/build and chapter/mission reward details.
 Missions use the selected character/build.
 

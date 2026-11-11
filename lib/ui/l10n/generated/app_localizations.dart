@@ -314,7 +314,7 @@ abstract class AppLocalizations {
   /// **'Riposte ready · release to counter'**
   String get riposteReady;
 
-  /// Run HUD text. Play
+  /// Button label to start or resume gameplay.
   ///
   /// In en, this message translates to:
   /// **'Play'**
@@ -4190,29 +4190,17 @@ abstract class AppLocalizations {
   /// **'Best score: {score}'**
   String campaignBestScore({required int score});
 
-  /// Campaign navigation, mission progress or chapter reward label.
+  /// Disabled level button shown with a lock icon until earlier missions have verified clears.
   ///
   /// In en, this message translates to:
-  /// **'Complete the previous mission to unlock'**
-  String get campaignPreviousRequired;
+  /// **'Locked'**
+  String get campaignLocked;
 
   /// Campaign navigation, mission progress or chapter reward label.
   ///
   /// In en, this message translates to:
   /// **'Coming soon'**
   String get campaignComingSoon;
-
-  /// Campaign navigation, mission progress or chapter reward label.
-  ///
-  /// In en, this message translates to:
-  /// **'Replay'**
-  String get campaignReplay;
-
-  /// Campaign navigation, mission progress or chapter reward label.
-  ///
-  /// In en, this message translates to:
-  /// **'Start mission'**
-  String get campaignStart;
 
   /// Campaign navigation, mission progress or chapter reward label.
   ///

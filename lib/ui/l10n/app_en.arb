@@ -152,7 +152,7 @@
   },
   "commonPlay": "Play",
   "@commonPlay": {
-    "description": "Run HUD text. Play"
+    "description": "Button label to start or resume gameplay."
   },
   "commonPause": "Pause",
   "@commonPause": {
@@ -3700,10 +3700,8 @@
     },
     "description": "Campaign navigation, mission progress or chapter reward label."
   },
-  "campaignPreviousRequired": "Complete the previous mission to unlock",
+  "campaignLocked": "Locked",
   "campaignComingSoon": "Coming soon",
-  "campaignReplay": "Replay",
-  "campaignStart": "Start mission",
   "campaignWillowLocked": "Complete the Val Outpost chapter to unlock Willow",
   "campaignVerificationPending": "Your clear and first-clear rewards unlock after verification.",
   "campaignNextMission": "Next mission",
@@ -3722,16 +3720,10 @@
   "@campaignCollectedGold": {
     "description": "Campaign navigation, mission progress or chapter reward label."
   },
-  "@campaignPreviousRequired": {
-    "description": "Campaign navigation, mission progress or chapter reward label."
+  "@campaignLocked": {
+    "description": "Disabled level button shown with a lock icon until earlier missions have verified clears."
   },
   "@campaignComingSoon": {
-    "description": "Campaign navigation, mission progress or chapter reward label."
-  },
-  "@campaignReplay": {
-    "description": "Campaign navigation, mission progress or chapter reward label."
-  },
-  "@campaignStart": {
     "description": "Campaign navigation, mission progress or chapter reward label."
   },
   "@campaignWillowLocked": {

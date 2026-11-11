@@ -3060,17 +3060,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get campaignPreviousRequired =>
-      'Complete the previous mission to unlock';
+  String get campaignLocked => 'Locked';
 
   @override
   String get campaignComingSoon => 'Coming soon';
-
-  @override
-  String get campaignReplay => 'Replay';
-
-  @override
-  String get campaignStart => 'Start mission';
 
   @override
   String get campaignWillowLocked =>

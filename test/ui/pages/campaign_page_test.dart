@@ -125,71 +125,109 @@ void main() {
       );
     },
   );
-  testWidgets(
-    'chapter modal starts its mission through the shared bootstrap route',
-    (tester) async {
-      final source = (campaignCatalogData['chapters'] as List).first as Map;
-      final mission = (source['missions'] as List).first as Map;
-      final chapter = CampaignChapter({
-        ...Map<String, Object?>.from(source),
-        'missions': [
-          {...Map<String, Object?>.from(mission), 'available': true},
-        ],
-      });
-      final state = AppState(
-        authApi: _UnusedAuth(),
-        loadoutOwnershipApi: _UnusedOwnership(),
-      );
-      addTearDown(state.dispose);
-      RunStartBootstrapArgs? launched;
-      await tester.pumpWidget(
-        ChangeNotifierProvider<AppState>.value(
-          value: state,
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            theme: ThemeData(
-              extensions: [UiTokens.standard, UiButtonTheme.standard],
-            ),
-            home: Builder(
-              builder: (context) => Scaffold(
-                body: TextButton(
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (_) => CampaignChapterDialog(chapter: chapter),
+  for (final language in ['en', 'fr']) {
+    testWidgets(
+      'chapter modal gates mission actions and starts through bootstrap in $language',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(568, 320);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
+        final source = (campaignCatalogData['chapters'] as List).first as Map;
+        final missions = source['missions'] as List;
+        final chapter = CampaignChapter({
+          ...Map<String, Object?>.from(source),
+          'missions': [
+            for (var index = 0; index < 3; index++)
+              {
+                ...Map<String, Object?>.from(missions[index] as Map),
+                'available': index < 2,
+              },
+          ],
+        });
+        final state = AppState(
+          authApi: _UnusedAuth(),
+          loadoutOwnershipApi: _UnusedOwnership(),
+        );
+        addTearDown(state.dispose);
+        RunStartBootstrapArgs? launched;
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppState>.value(
+            value: state,
+            child: MaterialApp(
+              locale: Locale(language),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: ThemeData(
+                extensions: [UiTokens.standard, UiButtonTheme.standard],
+              ),
+              home: Builder(
+                builder: (context) => Scaffold(
+                  body: TextButton(
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (_) => CampaignChapterDialog(chapter: chapter),
+                    ),
+                    child: const Text('Open chapter'),
                   ),
-                  child: const Text('Open chapter'),
                 ),
               ),
+              onGenerateRoute: (settings) {
+                expect(settings.name, UiRoutes.runBootstrap);
+                launched = settings.arguments as RunStartBootstrapArgs;
+                return MaterialPageRoute<void>(
+                  settings: settings,
+                  builder: (_) => Scaffold(appBar: AppBar()),
+                );
+              },
             ),
-            onGenerateRoute: (settings) {
-              expect(settings.name, UiRoutes.runBootstrap);
-              launched = settings.arguments as RunStartBootstrapArgs;
-              return MaterialPageRoute<void>(
-                settings: settings,
-                builder: (_) => Scaffold(appBar: AppBar()),
-              );
-            },
           ),
-        ),
-      );
-      await tester.tap(find.text('Open chapter'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byType(AppButton));
-      await tester.tap(find.byType(AppButton));
-      await tester.pumpAndSettle();
-      expect(launched?.campaignMissionId, chapter.missions.first.id);
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-      expect(find.byType(CampaignChapterDialog), findsOneWidget);
-      expect(
-        tester.widget<AppButton>(find.byType(AppButton)).onPressed,
-        isNotNull,
-      );
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
+        );
+        await tester.tap(find.text('Open chapter'));
+        await tester.pumpAndSettle();
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(CampaignChapterDialog)),
+        )!;
+        final play = find.widgetWithText(AppButton, l10n.commonPlay);
+        final locked = find.widgetWithText(AppButton, l10n.campaignLocked);
+        final comingSoon = find.widgetWithText(
+          AppButton,
+          l10n.campaignComingSoon,
+        );
+        expect(play, findsOneWidget);
+        expect(locked, findsOneWidget);
+        expect(comingSoon, findsOneWidget);
+        expect(
+          find.descendant(of: play, matching: find.byIcon(Icons.play_arrow)),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: locked,
+            matching: find.byIcon(Icons.lock_outline),
+          ),
+          findsOneWidget,
+        );
+        expect(tester.widget<AppButton>(locked).onPressed, isNull);
+        expect(tester.widget<AppButton>(comingSoon).onPressed, isNull);
+        _expectMissionLayout(tester, chapter, language);
+        await tester.ensureVisible(locked);
+        await tester.tap(locked);
+        await tester.pumpAndSettle();
+        expect(launched, isNull);
+        await tester.ensureVisible(play);
+        await tester.tap(play);
+        await tester.pumpAndSettle();
+        expect(launched?.campaignMissionId, chapter.missions.first.id);
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        expect(find.byType(CampaignChapterDialog), findsOneWidget);
+        expect(tester.widget<AppButton>(play).onPressed, isNotNull);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
   for (final size in [const Size(568, 320), const Size(1280, 720)]) {
     for (final language in ['en', 'fr']) {
       testWidgets('campaign navigation and three-card row at $size $language', (
@@ -471,15 +509,20 @@ void _expectMissionLayout(
     final title = find.text('${index + 1}. ${mission.title(language)}');
     expect(renderedStyle(title), renderedStyle(heading));
     final card = find.ancestor(of: title, matching: find.byType(Card));
-    final action = tester.getRect(
-      find.descendant(of: card, matching: find.byType(AppButton)),
+    final actionFinder = find.descendant(
+      of: card,
+      matching: find.byType(AppButton),
     );
+    final action = tester.getRect(actionFinder);
     final description = tester.getRect(
       find.text(mission.description(language)),
     );
     final buttonLabel = tester.renderObject<RenderParagraph>(
       find.descendant(
-        of: find.descendant(of: card, matching: find.byType(AppButton)),
+        of: find.descendant(
+          of: actionFinder,
+          matching: find.text(tester.widget<AppButton>(actionFinder).label),
+        ),
         matching: find.byType(RichText),
       ),
     );

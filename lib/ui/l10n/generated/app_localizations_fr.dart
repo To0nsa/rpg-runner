@@ -3079,17 +3079,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get campaignPreviousRequired =>
-      'Termine la mission précédente pour débloquer';
+  String get campaignLocked => 'Verrouillé';
 
   @override
   String get campaignComingSoon => 'À venir';
-
-  @override
-  String get campaignReplay => 'Rejouer';
-
-  @override
-  String get campaignStart => 'Commencer';
 
   @override
   String get campaignWillowLocked =>

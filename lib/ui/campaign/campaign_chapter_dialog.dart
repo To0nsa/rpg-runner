@@ -185,12 +185,9 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
                           mission.description(language),
                           style: ui.text.body,
                         ),
-                        if (score != null || !unlocked)
-                          const SizedBox(height: 6),
+                        if (score != null) const SizedBox(height: 6),
                         if (score != null)
                           Text(context.l10n.campaignBestScore(score: score)),
-                        if (!unlocked)
-                          Text(context.l10n.campaignPreviousRequired),
                       ],
                     ),
                   ),
@@ -199,9 +196,14 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
                     size: AppButtonSize.xxs,
                     label: !mission.available
                         ? context.l10n.campaignComingSoon
-                        : cleared
-                        ? context.l10n.campaignReplay
-                        : context.l10n.campaignStart,
+                        : unlocked
+                        ? context.l10n.commonPlay
+                        : context.l10n.campaignLocked,
+                    icon: !mission.available
+                        ? null
+                        : unlocked
+                        ? Icons.play_arrow
+                        : Icons.lock_outline,
                     onPressed: mission.available && unlocked && !_starting
                         ? () => _start(mission)
                         : null,

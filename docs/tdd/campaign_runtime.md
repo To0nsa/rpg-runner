@@ -238,6 +238,9 @@ height of that safe rectangle, including after rotation. Its title and dismiss
 control stay fixed; the chapter description and mission cards scroll below.
 Chapter and mission headings use the same explicit title style. Mission
 descriptions and progress sit left of a compact action button in one row.
+Draft availability takes precedence over progress: drafts show Coming soon;
+built missions show disabled Locked with a lock icon or enabled Play with a play
+icon according to canonical unlocks (or the existing developer bypass).
 Close, system Back and the outside barrier dismiss it without resetting the map
 transform. The dialog watches canonical `AppState` and retains the existing
 mission availability/unlock checks and shared run-bootstrap route. Run launch is
