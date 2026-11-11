@@ -13,6 +13,7 @@ class PlayButton extends StatelessWidget {
     this.label,
     this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.lg,
+    this.fillWidth = false,
     this.showLoadingIndicator = true,
     this.loadingIndicatorSize,
   });
@@ -22,6 +23,9 @@ class PlayButton extends StatelessWidget {
   final String? label;
   final AppButtonVariant variant;
   final AppButtonSize size;
+
+  /// Fills the available width, for actions aligned beneath a selection card.
+  final bool fillWidth;
   final bool showLoadingIndicator;
   final double? loadingIndicatorSize;
 
@@ -31,11 +35,14 @@ class PlayButton extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: [
-        AppButton(
-          label: label ?? context.l10n.playButton,
-          variant: variant,
-          size: size,
-          onPressed: isLoading ? null : onPressed,
+        SizedBox(
+          width: fillWidth ? double.infinity : null,
+          child: AppButton(
+            label: label ?? context.l10n.playButton,
+            variant: variant,
+            size: size,
+            onPressed: isLoading ? null : onPressed,
+          ),
         ),
         if (isLoading && showLoadingIndicator)
           SizedBox(

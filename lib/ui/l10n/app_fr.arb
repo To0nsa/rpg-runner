@@ -589,7 +589,7 @@
   "skillHeading": "{slot, select, primary{COMPÉTENCES PRINCIPALES} secondary{COMPÉTENCES SECONDAIRES} projectile{COMPÉTENCES DE PROJECTILE} mobility{COMPÉTENCES DE MOBILITÉ} spell{COMPÉTENCES DE SORT} jump{COMPÉTENCES DE SAUT} other{COMPÉTENCES DE TERRAIN}}",
   "messageHeader": "Jeu · {date}",
   "messageGiftCount": "{count, plural, =1{1 cadeau d’objet ou de compétence} other{{count} cadeaux d’objets ou de compétences}}",
-  "weeklyBadge": "HEBDOMADAIRE {window} • {level}",
+  "weeklyBadge": "{window, select, unknown{RUNNER HEBDOMADAIRE} other{RUNNER HEBDOMADAIRE - {window}}}",
   "scoreboardTitle": "Classement {mode} — {level}",
   "leaderboardTitle": "CLASSEMENT {mode} — {level}",
   "rankTotal": " / {count}",

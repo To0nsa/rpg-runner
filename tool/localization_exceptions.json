@@ -69,6 +69,13 @@
     ]
   },
   {
+    "file": "lib/ui/pages/hub/play_hub_page.dart",
+    "reason": "ICU selector for an unavailable weekly window; never rendered as player text.",
+    "literals": [
+      "'unknown'"
+    ]
+  },
+  {
     "file": "lib/ui/pages/library/codex_widgets.dart",
     "reason": "ICU discovery-state selectors.",
     "literals": [

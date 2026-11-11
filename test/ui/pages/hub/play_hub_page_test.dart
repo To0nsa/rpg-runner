@@ -5,15 +5,18 @@ import 'package:runner_core/meta/meta_service.dart';
 import 'package:run_protocol/submission_status.dart';
 
 import 'package:rpg_runner/ui/app/ui_routes.dart';
+import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 import 'package:rpg_runner/ui/components/app_button.dart';
 import 'package:rpg_runner/ui/components/gold_display.dart';
 import 'package:rpg_runner/ui/components/player_level_bar.dart';
 import 'package:rpg_runner/ui/pages/hub/components/hub_top_row.dart';
+import 'package:rpg_runner/ui/pages/hub/components/hub_select_card_frame.dart';
 import 'package:rpg_runner/ui/pages/hub/play_hub_page.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/ownership/campaign_progress.dart';
 import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/ownership/player_progress.dart';
@@ -23,8 +26,123 @@ import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
+import 'package:rpg_runner/ui/l10n/app_localization.dart';
 
 void main() {
+  for (final size in [const Size(568, 320), const Size(1280, 720)]) {
+    for (final language in ['en', 'fr']) {
+      testWidgets('hub play buttons match their cards at $size in $language', (
+        tester,
+      ) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final app = AppState(
+          authApi: _StaticAuthApi(),
+          loadoutOwnershipApi: _NoopOwnershipApi(
+            gold: 0,
+            weekly: WeeklyProgressState.initial.copyWith(
+              currentWindowId: '2026-W05',
+            ),
+          ),
+        );
+        addTearDown(app.dispose);
+        await app.bootstrap(force: true);
+        await tester.pumpWidget(
+          _TestApp(appState: app, locale: Locale(language)),
+        );
+        await tester.pump();
+        expect(
+          find.text(
+            language == 'en'
+                ? 'WEEKLY RUNNER - W05'
+                : 'RUNNER HEBDOMADAIRE - W05',
+          ),
+          findsOneWidget,
+        );
+        final cards = find.byType(HubSelectCardFrame);
+        expect(cards, findsNWidgets(3));
+        for (final (key, index) in [
+          ('hub-runner-play', 0),
+          ('hub-campaign-play', 2),
+        ]) {
+          final card = tester.getRect(cards.at(index));
+          final button = tester.getRect(
+            find.descendant(
+              of: find.byKey(ValueKey(key)),
+              matching: find.byType(AppButton),
+            ),
+          );
+          expect(button.left, closeTo(card.left, .01));
+          expect(button.width, closeTo(card.width, .01));
+          expect(
+            button.top - card.bottom,
+            closeTo(UiTokens.standard.space.sm, .01),
+          );
+        }
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
+    }
+  }
+
+  for (final cleared in [false, true]) {
+    testWidgets(
+      'campaign quick play follows verified progress (cleared: $cleared)',
+      (tester) async {
+        final missions = CampaignCatalog.chapters
+            .expand((chapter) => chapter.missions)
+            .toList();
+        final progress = cleared
+            ? CampaignProgress.fromJson({
+                'schemaVersion': 1,
+                'missions': {
+                  for (final mission in missions)
+                    mission.id: {'cleared': true, 'attempts': 1, 'bests': {}},
+                },
+              })
+            : CampaignProgress.empty;
+        final app = AppState(
+          authApi: _StaticAuthApi(),
+          loadoutOwnershipApi: _NoopOwnershipApi(gold: 0, campaign: progress),
+        );
+        addTearDown(app.dispose);
+        await app.bootstrap(force: true);
+        final selection = app.selection;
+        final observer = _RecordingNavigatorObserver();
+        await tester.pumpWidget(
+          _RoutedTestApp(appState: app, observer: observer),
+        );
+        await tester.pump();
+        final campaignButton = find.descendant(
+          of: find.byKey(const ValueKey('hub-campaign-play')),
+          matching: find.byType(AppButton),
+        );
+        final eligible = missions
+            .where(
+              (mission) => mission.available && progress.isUnlocked(mission),
+            )
+            .toList();
+        if (eligible.isEmpty) {
+          expect(tester.widget<AppButton>(campaignButton).onPressed, isNull);
+        } else {
+          await tester.tap(campaignButton);
+          await tester.pumpAndSettle();
+          expect(observer.pushedRouteNames.last, UiRoutes.runBootstrap);
+          final args = observer.lastArguments as RunStartBootstrapArgs;
+          expect(args.campaignMissionId, eligible.last.id);
+          expect(app.selection, same(selection));
+          Navigator.of(tester.element(find.text('Run Bootstrap Placeholder')))
+              .pop();
+          await tester.pumpAndSettle();
+          expect(tester.widget<AppButton>(campaignButton).onPressed, isNotNull);
+        }
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
+
   testWidgets(
     'hub does not infer local earnings from server provisional gold',
     (tester) async {
@@ -133,10 +251,7 @@ void main() {
     );
     await tester.pump();
 
-    final play = find.byWidgetPredicate(
-      (widget) => widget is AppButton && widget.label == 'PLAY',
-    );
-    await tester.tap(play.last);
+    await tester.tap(find.byKey(const ValueKey('hub-runner-play')));
     await tester.pump();
     ownership.playerProgress = const PlayerProgress(
       totalXp: 260,
@@ -185,7 +300,7 @@ void main() {
         _RoutedTestApp(appState: app, observer: _RecordingNavigatorObserver()),
       );
       await tester.pump();
-      await tester.tap(find.widgetWithText(AppButton, 'PLAY').last);
+      await tester.tap(find.byKey(const ValueKey('hub-runner-play')));
       await tester.pump();
       await app.journalRunReplay(
         runSessionId: 'hub_local_reward',
@@ -250,10 +365,7 @@ void main() {
     );
     await tester.pump();
 
-    final play = find.byWidgetPredicate(
-      (widget) => widget is AppButton && widget.label == 'PLAY',
-    );
-    await tester.tap(play.last);
+    await tester.tap(find.byKey(const ValueKey('hub-runner-play')));
     await tester.pump();
     await tester.pump();
     Navigator.of(tester.element(find.text('Run Bootstrap Placeholder'))).pop();
@@ -334,13 +446,14 @@ void main() {
         .widget<FutureBuilder<IdleAnimBundle>>(previewFinder)
         .future;
 
-    final playButtonFinder = find.byWidgetPredicate(
-      (widget) => widget is AppButton && widget.label == 'PLAY',
-    );
-    await tester.tap(playButtonFinder.last);
+    await tester.tap(find.byKey(const ValueKey('hub-runner-play')));
     await tester.pump();
 
     expect(observer.pushedRouteNames, contains(UiRoutes.runBootstrap));
+    expect(
+      (observer.lastArguments as RunStartBootstrapArgs).campaignMissionId,
+      isNull,
+    );
     expect(
       tester.widget<FutureBuilder<IdleAnimBundle>>(previewFinder).future,
       same(idleFutureBeforeTap),
@@ -349,9 +462,10 @@ void main() {
 }
 
 class _TestApp extends StatelessWidget {
-  const _TestApp({required this.appState});
+  const _TestApp({required this.appState, this.locale = const Locale('en')});
 
   final AppState appState;
+  final Locale locale;
 
   @override
   Widget build(BuildContext context) {
@@ -361,6 +475,9 @@ class _TestApp extends StatelessWidget {
         Provider<UiAssetLifecycle>(create: (_) => UiAssetLifecycle()),
       ],
       child: MaterialApp(
+        locale: locale,
+        localizationsDelegates: RunnerLocalizations.delegates,
+        supportedLocales: RunnerLocalizations.supportedLocales,
         theme: ThemeData(
           useMaterial3: true,
           extensions: [UiTokens.standard, UiButtonTheme.standard],
@@ -409,11 +526,13 @@ class _RoutedTestApp extends StatelessWidget {
 
 class _RecordingNavigatorObserver extends NavigatorObserver {
   final List<String?> pushedRouteNames = <String?>[];
+  Object? lastArguments;
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
     pushedRouteNames.add(route.settings.name);
+    lastArguments = route.settings.arguments;
   }
 }
 
@@ -454,12 +573,19 @@ class _StaticAuthApi implements AuthApi {
 }
 
 class _NoopOwnershipApi extends LoadoutOwnershipApi {
-  _NoopOwnershipApi({required this.gold, this.playerProgress});
+  _NoopOwnershipApi({
+    required this.gold,
+    this.playerProgress,
+    this.weekly,
+    this.campaign,
+  });
 
   int gold;
   int revision = 0;
   List<String> appliedRewardGrantIds = [];
   PlayerProgress? playerProgress;
+  final WeeklyProgressState? weekly;
+  final CampaignProgress? campaign;
 
   OwnershipCanonicalState get _canonical => OwnershipCanonicalState(
     profileId: 'profile_hub',
@@ -469,6 +595,8 @@ class _NoopOwnershipApi extends LoadoutOwnershipApi {
     progression: ProgressionState.initial.copyWith(
       gold: gold,
       playerProgress: playerProgress,
+      weekly: weekly,
+      campaign: campaign,
       appliedRewardGrantIds: appliedRewardGrantIds,
     ),
   );

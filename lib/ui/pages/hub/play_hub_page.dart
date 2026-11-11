@@ -12,7 +12,6 @@ import '../../app/ui_routes.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/play_button.dart';
-import '../../levels/level_id_ui.dart';
 import 'components/weekly_badge_row.dart';
 import 'components/hub_menu_icon_column.dart';
 import 'components/hub_select_character_card.dart';
@@ -52,6 +51,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
 
   Future<void> _startRun({
     _RunStartSource source = _RunStartSource.main,
+    String? campaignMissionId,
   }) async {
     if (_preparingRunStart) return;
     _xpBeforeRun = context.read<AppState>().displayedPlayerProgress.totalXp;
@@ -64,7 +64,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
       if (!mounted) return;
       await Navigator.of(context).pushNamed(
         UiRoutes.runBootstrap,
-        arguments: const RunStartBootstrapArgs(),
+        arguments: RunStartBootstrapArgs(campaignMissionId: campaignMissionId),
       );
     } catch (error) {
       debugPrint('Run start preparation failed: $error');
@@ -104,6 +104,15 @@ class _PlayHubPageState extends State<PlayHubPage> {
     final selection = appState.selection;
     final profile = appState.profile;
     final gold = appState.displayedGold;
+    final campaignMission = CampaignCatalog.chapters
+        .expand((chapter) => chapter.missions)
+        .where(
+          (mission) =>
+              mission.available &&
+              (appState.isDeveloperMode ||
+                  progression.campaign.isUnlocked(mission)),
+        )
+        .lastOrNull;
 
     return MenuScaffold(
       showAppBar: false,
@@ -219,15 +228,42 @@ class _PlayHubPageState extends State<PlayHubPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: ui.space.lg),
-                  Center(
-                    child: PlayButton(
-                      isLoading:
-                          _preparingRunStart &&
-                          _runStartSource == _RunStartSource.main,
-                      showLoadingIndicator: false,
-                      onPressed: _preparingRunStart ? null : () => _startRun(),
-                    ),
+                  SizedBox(height: ui.space.sm),
+                  Row(
+                    spacing: ui.space.md,
+                    children: [
+                      Expanded(
+                        child: PlayButton(
+                          key: const ValueKey('hub-runner-play'),
+                          fillWidth: true,
+                          isLoading:
+                              _preparingRunStart &&
+                              _runStartSource == _RunStartSource.main,
+                          showLoadingIndicator: false,
+                          onPressed: _preparingRunStart
+                              ? null
+                              : () => _startRun(),
+                        ),
+                      ),
+                      const Spacer(),
+                      Expanded(
+                        child: PlayButton(
+                          key: const ValueKey('hub-campaign-play'),
+                          fillWidth: true,
+                          isLoading:
+                              _preparingRunStart &&
+                              _runStartSource == _RunStartSource.campaign,
+                          showLoadingIndicator: false,
+                          onPressed:
+                              _preparingRunStart || campaignMission == null
+                              ? null
+                              : () => _startRun(
+                                  source: _RunStartSource.campaign,
+                                  campaignMissionId: campaignMission.id,
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -239,7 +275,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
   }
 }
 
-enum _RunStartSource { main, weekly }
+enum _RunStartSource { main, weekly, campaign }
 
 String _runModeLabel(RunMode runMode, AppLocalizations l10n) {
   switch (runMode) {
@@ -263,12 +299,10 @@ String _weeklyBadgeTitle(
   if (!appState.weeklyFeaturedLevelAvailable) {
     return l10n.uiWeeklyUnavailableInThisBuild;
   }
-  final weeklyLevelName = appState.weeklyFeaturedLevelId
-      .localizedName(l10n)
-      .toUpperCase();
   final weekly = progression.weekly;
   return l10n.weeklyBadge(
-    window: weekly.currentWindowId,
-    level: weeklyLevelName,
+    window: weekly.currentWindowId.isEmpty
+        ? 'unknown'
+        : weekly.currentWindowId.split('-').last,
   );
 }

@@ -2763,8 +2763,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String weeklyBadge({required String window, required String level}) {
-    return 'WEEKLY $window • $level';
+  String weeklyBadge({required String window}) {
+    String _temp0 = intl.Intl.selectLogic(window, {
+      'unknown': 'WEEKLY RUNNER',
+      'other': 'WEEKLY RUNNER - $window',
+    });
+    return '$_temp0';
   }
 
   @override

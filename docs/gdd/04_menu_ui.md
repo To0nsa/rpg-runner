@@ -82,8 +82,15 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 ### Campaign
 
-The hub keeps Level Selection, Character Selection and Campaign in one fitted
-row. Campaign has a Val Outpost map crop, its own regional map and ordered mission
+The hub keeps Runner Level Selection, Character Selection and Campaign in one
+fitted row. Runner and Campaign each have a Play button directly below their
+card, matching its width. Runner Play uses the selected runner setup. Campaign
+Play starts the last available, unlocked mission in authored chapter/mission
+order, including a replay when that mission is already complete. Draft missions
+are skipped; the button is disabled when no playable mission is unlocked.
+Developer Practice retains its existing mission unlock bypass. Both actions use
+the shared run-loading flow. Campaign has a Val Outpost map crop, its own regional
+map and ordered mission
 cards. Each card shows assignment, prerequisites, first-clear rewards and best
 score; launch uses the selected build. Draft layouts remain Coming soon. Verified
 clears unlock the next mission, first-clear skills and the chapter character.
@@ -208,15 +215,18 @@ Start fast. Show current setup summaries without clutter.
 
 ### Layout
 
-- **Primary CTA:** `Start Run` (dominant).
+- **Primary actions:** Play below Runner Level Selection and Campaign, each
+  matching its card's width; the Character Selection column has no Play button.
 
 - **Compact summary card: Selected Level**
   - name + small thumbnail
   - **Run Type badge**: `Practice (Random)` or `Competitive (Season)`
   - `Edit` button
   - **Weekly badge (en-avant)**
-    - small badge line under the level summary, always visible but visually subordinate to Start Run
-    - shows: `Weekly Challenge` + optional countdown (e.g. “ends in 2d 14h”)
+    - shared row above the selection cards, with its own Play and Leaderboard actions
+    - shows: `WEEKLY RUNNER - WXX`, using the week suffix from the existing
+      weekly progress window without its year or the featured level name; before
+      a window is available, shows `WEEKLY RUNNER`
     - **`Weekly` quick button**:
       - starts the weekly run immediately (no extra navigation)
       - optional secondary action: `Weekly LB` (opens Leaderboards pre-filtered to Weekly)

@@ -2781,8 +2781,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String weeklyBadge({required String window, required String level}) {
-    return 'HEBDOMADAIRE $window • $level';
+  String weeklyBadge({required String window}) {
+    String _temp0 = intl.Intl.selectLogic(window, {
+      'unknown': 'RUNNER HEBDOMADAIRE',
+      'other': 'RUNNER HEBDOMADAIRE - $window',
+    });
+    return '$_temp0';
   }
 
   @override

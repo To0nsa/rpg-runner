@@ -3355,14 +3355,11 @@
       }
     }
   },
-  "weeklyBadge": "WEEKLY {window} • {level}",
+  "weeklyBadge": "{window, select, unknown{WEEKLY RUNNER} other{WEEKLY RUNNER - {window}}}",
   "@weeklyBadge": {
-    "description": "Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.",
+    "description": "Main-menu weekly runner row. Window is the week suffix from the account's weekly window, e.g. W05, or unknown before a window is available. Omit the year and featured level name.",
     "placeholders": {
       "window": {
-        "type": "String"
-      },
-      "level": {
         "type": "String"
       }
     }

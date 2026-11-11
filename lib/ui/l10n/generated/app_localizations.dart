@@ -3816,11 +3816,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 item / skill gift} other{{count} item / skill gifts}}'**
   String messageGiftCount({required int count});
 
-  /// Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.
+  /// Main-menu weekly runner row. Window is the week suffix from the account's weekly window, e.g. W05, or unknown before a window is available. Omit the year and featured level name.
   ///
   /// In en, this message translates to:
-  /// **'WEEKLY {window} • {level}'**
-  String weeklyBadge({required String window, required String level});
+  /// **'{window, select, unknown{WEEKLY RUNNER} other{WEEKLY RUNNER - {window}}}'**
+  String weeklyBadge({required String window});
 
   /// Player UI display or accessibility text. Values are supplied from existing game state; French uses tu.
   ///
