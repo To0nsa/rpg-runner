@@ -15,7 +15,7 @@ class CameraState {
   final double centerX;
 
   /// The "ideal" center position the camera is trying to reach.
-  /// This leads [centerX] and pulls it forward via smoothing.
+  /// The selected camera policy moves [centerX] toward it via smoothing.
   final double targetX;
 
   /// Current visual center Y of the camera view.
@@ -24,7 +24,7 @@ class CameraState {
   /// The "ideal" Y center the camera is trying to reach.
   final double targetY;
 
-  /// Current scroll speed (pixels/second).
+  /// Current horizontal speed (world units/second); leftward motion is negative.
   final double speedX;
 
   /// Creates a copy with updated fields.

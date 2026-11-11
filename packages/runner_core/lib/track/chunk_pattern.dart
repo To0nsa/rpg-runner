@@ -49,6 +49,19 @@ class ChunkPattern {
 
   /// Mandatory arena lifecycle, independent of rescue objectives.
   final BossArenaDefinition? bossArena;
+
+  /// Detaches editable collection inputs before a captured route starts.
+  /// Placement values are immutable; each occurrence keeps its own runtime state.
+  ChunkPattern immutableCopy() => ChunkPattern(
+    name: name,
+    chunkKey: chunkKey,
+    assemblyGroupId: assemblyGroupId,
+    spawnMarkers: List.unmodifiable(spawnMarkers),
+    visualSprites: List.unmodifiable(visualSprites),
+    traps: List.unmodifiable(traps),
+    encounters: List.unmodifiable(encounters),
+    bossArena: bossArena,
+  );
 }
 
 /// Default chunk assembly group used when source omits explicit sequencing.

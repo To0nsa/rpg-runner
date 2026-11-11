@@ -55,6 +55,7 @@ class ChunkPatternSelection {
     required this.pattern,
     required this.tier,
     this.assembly,
+    this.occurrenceId,
   });
 
   final ChunkPattern pattern;
@@ -63,6 +64,9 @@ class ChunkPatternSelection {
   final ChunkPatternTier tier;
 
   final ChunkAssemblySelection? assembly;
+
+  /// Authored finite-route identity; procedural selections use their index.
+  final String? occurrenceId;
 }
 
 /// Resolves a [ChunkPattern] for a given chunk index and progression state.

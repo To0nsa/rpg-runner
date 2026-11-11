@@ -15,7 +15,6 @@ import '../track/chunk_pattern_source.dart';
 import '../track/staged_terrain_catalog.dart';
 import '../track/staged_terrain_data.dart';
 import '../track/staged_terrain_world_geometry.dart';
-import '../traps/trap_placement.dart';
 import '../traps/trap_validation.dart';
 
 /// Stable preparation failure surfaced to an authoring host.
@@ -60,16 +59,8 @@ ChunkPatternTier playtestTierForDifficulty(String difficulty) =>
       ),
     };
 
-ChunkPattern immutablePlaytestPattern(ChunkPattern source) => ChunkPattern(
-  name: source.name,
-  chunkKey: source.chunkKey,
-  assemblyGroupId: source.assemblyGroupId,
-  spawnMarkers: List<SpawnMarker>.unmodifiable(source.spawnMarkers),
-  visualSprites: List<ChunkVisualSpriteRel>.unmodifiable(source.visualSprites),
-  traps: List<TrapPlacement>.unmodifiable(source.traps),
-  encounters: List.unmodifiable(source.encounters),
-  bossArena: source.bossArena,
-);
+ChunkPattern immutablePlaytestPattern(ChunkPattern source) =>
+    source.immutableCopy();
 
 /// Typed tooling inputs must pass the same complete-roster placement as runtime.
 void validatePlaytestEncounters(

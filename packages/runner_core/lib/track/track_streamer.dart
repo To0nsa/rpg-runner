@@ -1,4 +1,4 @@
-/// Infinite-runner track streaming system.
+/// Deterministic procedural streaming and finite-route residency.
 ///
 /// Selects pre-authored chunks and emits their visual and spawn metadata.
 /// Polygon terrain is published separately from the same selected chunk keys;
@@ -13,6 +13,7 @@ import '../tuning/track_tuning.dart';
 import '../util/deterministic_rng.dart' show mix32;
 import 'chunk_pattern.dart';
 import 'chunk_pattern_source.dart';
+import 'finite_chunk_pattern_source.dart';
 
 /// Callback to spawn an enemy at a world X position.
 typedef SpawnEnemy = void Function(SpawnEnemyRequest request);
@@ -57,6 +58,7 @@ class TrackSpawnedChunk {
     required this.patternName,
     required this.tier,
     this.chunkKey,
+    this.occurrenceId,
   });
 
   /// Sequential chunk number (0 = first chunk).
@@ -74,6 +76,9 @@ class TrackSpawnedChunk {
 
   /// Stable authored identity key, or null in scheduler-only fixtures.
   final String? chunkKey;
+
+  /// Stable authored route occurrence, absent for procedural streaming.
+  final String? occurrenceId;
 }
 
 /// Immutable selection identity for one currently streamed chunk.
@@ -93,6 +98,7 @@ class ActiveTrackChunkSnapshot {
     this.encounters = const [],
     this.bossArena,
     this.assembly,
+    this.occurrenceId,
   });
 
   /// Deterministic sequential streamed instance index.
@@ -120,6 +126,9 @@ class ActiveTrackChunkSnapshot {
 
   /// Exact selected Flow occurrence; null for automatic/standalone chunks.
   final ChunkAssemblySelection? assembly;
+
+  /// Stable authored route occurrence, absent for procedural streaming.
+  final String? occurrenceId;
 }
 
 /// Result of a single [TrackStreamer.step] call.
@@ -144,6 +153,9 @@ class TrackStreamStepResult {
 /// 3. Rebuilds the active selection and prefab-visual snapshots.
 ///
 /// Pattern selection is deterministic given [seed] and chunk index.
+/// A [FiniteChunkPatternSource] instead publishes its entire route once and
+/// retains it for return travel. This controls track lifetime only: the mission
+/// host must also retain ECS actors/items and provide bounded movement/camera.
 class TrackStreamer {
   /// Creates a streamer seeded for deterministic generation.
   TrackStreamer({
@@ -156,7 +168,18 @@ class TrackStreamer {
     this.normalPatternChunks = 0,
     required this.noEnemyChunks,
   }) : _nextChunkIndex = 0,
-       _nextChunkStartX = 0.0;
+       _nextChunkStartX = 0.0 {
+    if (_finiteSource != null &&
+        (noEnemyChunks != 0 ||
+            !tuning.chunkWidth.isFinite ||
+            tuning.chunkWidth <= 0 ||
+            !(tuning.chunkWidth * _finiteSource!.length).isFinite)) {
+      throw ArgumentError(
+        'Finite routes require a finite positive width and no opening '
+        'enemy suppression.',
+      );
+    }
+  }
 
   /// RNG seed for pattern selection and spawn rolls.
   final int seed;
@@ -169,6 +192,18 @@ class TrackStreamer {
 
   /// Pattern source for early vs full difficulty selection.
   final ChunkPatternSource patternSource;
+
+  FiniteChunkPatternSource? get _finiteSource => switch (patternSource) {
+    FiniteChunkPatternSource source => source,
+    _ => null,
+  };
+
+  bool _shouldSpawn(int index, double startX, double cameraRight) {
+    final finite = _finiteSource;
+    return finite == null
+        ? startX <= cameraRight + tuning.spawnAheadMargin
+        : index < finite.length;
+  }
 
   /// Number of chunks that should request the `early` tier.
   final int earlyPatternChunks;
@@ -224,10 +259,10 @@ class TrackStreamer {
     bool Function(int chunkIndex)? retainChunk,
   }) {
     if (!tuning.enabled) return activeChunks;
-    final spawnLimit = cameraRight + tuning.spawnAheadMargin;
     final cullLimit = cameraLeft - tuning.cullBehindMargin;
-    if (_nextChunkStartX > spawnLimit &&
-        (_active.isEmpty ||
+    if (!_shouldSpawn(_nextChunkIndex, _nextChunkStartX, cameraRight) &&
+        (_finiteSource != null ||
+            _active.isEmpty ||
             _active.first.endX >= cullLimit ||
             (retainChunk?.call(_active.first.index) ?? false))) {
       return activeChunks;
@@ -235,7 +270,7 @@ class TrackStreamer {
     final selected = List<ActiveTrackChunkSnapshot>.of(activeChunks);
     var nextIndex = _nextChunkIndex;
     var nextStart = _nextChunkStartX;
-    while (nextStart <= spawnLimit) {
+    while (_shouldSpawn(nextIndex, nextStart, cameraRight)) {
       final choice = patternSource.selectionFor(
         seed: seed,
         chunkIndex: nextIndex,
@@ -251,6 +286,7 @@ class TrackStreamer {
           chunkKey: pattern.chunkKey,
           tier: choice.tier,
           assembly: choice.assembly,
+          occurrenceId: choice.occurrenceId,
           traps: List.unmodifiable(pattern.traps),
           encounters: List.unmodifiable(pattern.encounters),
           bossArena: pattern.bossArena,
@@ -259,7 +295,8 @@ class TrackStreamer {
       nextIndex += 1;
       nextStart += tuning.chunkWidth;
     }
-    while (selected.isNotEmpty &&
+    while (_finiteSource == null &&
+        selected.isNotEmpty &&
         selected.first.endX < cullLimit &&
         !(retainChunk?.call(selected.first.index) ?? false)) {
       selected.removeAt(0);
@@ -273,6 +310,7 @@ class TrackStreamer {
   /// them or emitting spawns. Inclusive spawning precedes strict culling at a
   /// shared boundary; a real tick may skip either intermediate state. Callers
   /// must match the entire actual selection before using prepared data.
+  /// A finite route has at most one upcoming state: its complete initial route.
   List<List<ActiveTrackChunkSnapshot>> upcomingSelections({
     required double viewWidth,
     required int count,
@@ -283,6 +321,14 @@ class TrackStreamer {
       );
     }
     if (!tuning.enabled) return const [];
+    if (_finiteSource != null) {
+      if (count == 0 || _nextChunkIndex == _finiteSource!.length) {
+        return const [];
+      }
+      return List.unmodifiable([
+        selectionForStep(cameraLeft: 0, cameraRight: viewWidth),
+      ]);
+    }
     final active = List<ActiveTrackChunkSnapshot>.of(_activeChunksSnapshot);
     var nextIndex = _nextChunkIndex;
     var nextStart = _nextChunkStartX;
@@ -308,6 +354,7 @@ class TrackStreamer {
             chunkKey: pattern.chunkKey,
             tier: selection.tier,
             assembly: selection.assembly,
+            occurrenceId: selection.occurrenceId,
             traps: List<TrapPlacement>.unmodifiable(pattern.traps),
             bossArena: pattern.bossArena,
             encounters: List<EncounterDefinition>.unmodifiable(
@@ -346,8 +393,7 @@ class TrackStreamer {
     final spawnedChunks = <TrackSpawnedChunk>[];
 
     // ── Spawn new chunks ahead of the camera ──
-    final spawnLimitX = cameraRight + tuning.spawnAheadMargin;
-    while (_nextChunkStartX <= spawnLimitX) {
+    while (_shouldSpawn(_nextChunkIndex, _nextChunkStartX, cameraRight)) {
       final chunkIndex = _nextChunkIndex;
       final startX = _nextChunkStartX;
       final endX = startX + tuning.chunkWidth;
@@ -398,6 +444,7 @@ class TrackStreamer {
           chunkKey: pattern.chunkKey,
           tier: selection.tier,
           assembly: selection.assembly,
+          occurrenceId: selection.occurrenceId,
           visualSprites: visualSprites,
           pendingHashashSpawns: pendingHashashSpawns,
           traps: List<TrapPlacement>.unmodifiable(pattern.traps),
@@ -414,6 +461,7 @@ class TrackStreamer {
           patternName: pattern.name,
           tier: selection.tier,
           chunkKey: pattern.chunkKey,
+          occurrenceId: selection.occurrenceId,
         ),
       );
 
@@ -424,7 +472,8 @@ class TrackStreamer {
 
     // ── Cull old chunks behind the camera ──
     final cullLimitX = cameraLeft - tuning.cullBehindMargin;
-    while (_active.isNotEmpty &&
+    while (_finiteSource == null &&
+        _active.isNotEmpty &&
         _active.first.endX < cullLimitX &&
         !(retainChunk?.call(_active.first.index) ?? false)) {
       _active.removeAt(0); // O(n) but chunk count is small (~3-5).
@@ -452,6 +501,7 @@ class TrackStreamer {
             chunkKey: c.chunkKey,
             tier: c.tier,
             assembly: c.assembly,
+            occurrenceId: c.occurrenceId,
             traps: c.traps,
             encounters: c.encounters,
             bossArena: c.bossArena,
@@ -505,7 +555,7 @@ class TrackStreamer {
       );
       if ((roll % 100) >= m.chancePercent) continue;
 
-      if (m.enemyId == EnemyId.hashash) {
+      if (m.enemyId == EnemyId.hashash && _finiteSource == null) {
         pendingHashashSpawns += 1;
         continue;
       }
@@ -567,7 +617,7 @@ class TrackStreamer {
   static const double _hashashEdgeSpawnInsetX = -96.0;
 }
 
-/// Tracks a spawned chunk's geometry while it's within camera culling bounds.
+/// Retains one selected occurrence's metadata for its streaming lifetime.
 class _ActiveChunk {
   _ActiveChunk({
     required this.index,
@@ -580,6 +630,7 @@ class _ActiveChunk {
     required this.visualSprites,
     required this.traps,
     required this.encounters,
+    this.occurrenceId,
     this.bossArena,
     this.pendingHashashSpawns = 0,
   });
@@ -598,6 +649,8 @@ class _ActiveChunk {
 
   /// Stable authored chunk identity, if the fixture provides one.
   final String? chunkKey;
+
+  final String? occurrenceId;
 
   /// Resolved authored difficulty after any automatic-pool fallback.
   final ChunkPatternTier tier;

@@ -1,6 +1,7 @@
 # Campaign implementation checklist
 
-Status: planning prepared November 11, 2026; gameplay implementation not started.
+Status: implementation started November 11, 2026; initial Core primitives added,
+playable campaign integration pending.
 This is the sole progress checklist for the campaign workstream. Design details
 are linked from the [plan index](README.md).
 
@@ -53,6 +54,10 @@ not a second checklist.
 
 Owners: Core, pipeline/generator, game/controller, local session/play host, protocol
 and validator wherever shared outcomes/replays change. Depends on M0.
+
+- [x] Establish independently tested finite source/resident scheduler and bounded
+  bidirectional camera primitives, without admitting campaign into normal runs.
+  This is a foundation only; the integration gates below remain open.
 
 - [ ] Compile a finite route of a few reused chunks with stable occurrences,
   guaranteed enemy/item placement, a supported start, objective, and exit.
@@ -237,9 +242,62 @@ progress checklist. The level-3 budget is 100 + 124 = 224 XP, checked against
 `functions/src/ownership/player_progress.ts` and the current progression GDD.
 These are documentation/source checks; no gameplay or converter tests ran.
 
-Completed: planning package and updated requirement capture. Next concrete action,
-when implementation is requested: M0 contract/residency/conversion/entitlement audit
-and the M1 fixture specification. Production layouts are not needed for that
-technical work. Remaining decisions are the last three assignments/titles, XP
-split and gold tuning, Willow's separate Double Jump eligibility, and legacy
-availability handling, as described in [Experience](experience.md).
+Implementation baseline: clean `1ee69a66`. The initial Core foundation adds
+immutable exact route occurrences, whole-route track residency, stable occurrence
+IDs on scheduler output, single marker emission and a bounded bidirectional
+camera. Existing runner selection and auto-scrolling remain unchanged. The
+[implemented contract](../../tdd/campaign_runtime.md) records the boundary: these
+components are not yet a complete mission or a production campaign entry point.
+
+Next concrete action: finish M0's content/wire/admission decisions, then integrate
+the M1 local mission fixture with physical bounds, ECS lifetime, terrain admission,
+objectives and terminal/replay consumers. Measure whole-route collision/navigation
+cost before admitting production route sizes. No campaign UI, editor converter,
+account gating, rewards or deployment is complete. Production layouts are not
+needed for that technical work. Remaining design decisions are the last three
+assignments/titles, XP split and gold tuning, Willow's separate Double Jump
+eligibility, and legacy availability handling, as described in
+[Experience](experience.md).
+
+Foundation validation, local worktree over `1ee69a66`:
+
+- Repository root: `dart analyze packages/runner_core` passed after removing an
+  import made unused by the shared immutable-pattern capture. Formatting of all
+  nine changed/new implementation and test files passed.
+- Repository root: `dart run tool/generate_chunk_runtime_data.dart --dry-run`
+  passed (88 chunk files, three levels, three parallax themes, three materials);
+  no generated files changed. `dart run
+  packages/runner_core/tool/update_navigation_revision.dart --check` passed with
+  unchanged revision `bd2274e0b71f13d538e131be959817d040eb11182da317b2db98903ed26a1e98`.
+- `packages/runner_core`: the three new finite-source/streamer/camera test files
+  plus `test/track/track_streamer_active_chunks_test.dart` passed all 18 tests.
+  Full `test` execution passed 2,646 tests; five fresh-process checks failed only
+  because child Dart processes could not write SDK telemetry under the sandbox.
+  Rerunning the five affected files with SDK filesystem access passed all 40
+  tests: `slopes_golden_geometry_test.dart`, `terrain_player_signatures_test.dart`,
+  `enemy_terrain_signatures_test.dart`, `terrain_spawn_placement_test.dart`, and
+  `terrain_surface_extractor_test.dart`. No gameplay assertion remained failing.
+  The full run includes the existing Field/Forest traversal matrix and controls;
+  it does not establish campaign traversal, whose integrated fixture is pending.
+- Repository root: `flutter --suppress-analytics test --no-pub` with the eight
+  targets `test/core/track_streamer_spawn_placement_test.dart`,
+  `test/core/track_streamer_identity_passthrough_test.dart`,
+  `test/core/track_streamer_hashash_deferred_spawn_test.dart`,
+  `test/core/autoscroll_camera_test.dart`, `test/core/camera_vertical_follow_test.dart`,
+  `test/core/command_scheduling_test.dart`, `test/core/determinism_test.dart`, and
+  `test/core/fixed_point_pilot_test.dart` passed all 21 tests.
+- Repository root: `git diff --check` passed. An inline Python check validated
+  seven campaign Markdown files and 44 local link targets, URL-decoding filenames
+  before checking their existence.
+
+Environment detail: the initial `dart` SDK wrapper stalled on restricted local
+SDK access and was cancelled. Direct SDK commands used
+`C:/Users/Toonsa/flutter/bin/cache/dart-sdk/bin/dart.exe --suppress-analytics`.
+`dart test` then tried a blocked pub.dev advisory lookup before testing; package
+tests instead invoked the existing runner with
+`dart --packages=../../.dart_tool/package_config.json
+../../.dart_tool/pub/bin/test/test.dart-3.13.1.snapshot <targets>` from the Core
+package. The full run used `test --reporter compact`; the five-file retry used
+`--reporter expanded`. No dependencies or global analytics settings were changed.
+No editor, UI campaign, replay-worker, backend/emulator, device, performance or
+deployment acceptance is claimed by these component and runner-regression checks.

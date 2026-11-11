@@ -1,9 +1,10 @@
 # Campaign: Val Outpost
 
-Status: proposed implementation, documented November 11, 2026. No campaign
-runtime, editor, progression, or UI changes have been implemented by this plan.
-The current request authorizes preparing this planning folder. Deployment and
-account/data changes remain separate from implementation.
+Status: implementation started November 11, 2026. Initial Core finite-selection,
+resident-track and bidirectional-camera primitives are implemented; see the
+[current contract](../../tdd/campaign_runtime.md). Playable mission integration,
+editor, progression and UI remain pending. Implementation is authorized;
+deployment and account/data mutations remain separate.
 
 ## Outcome
 

@@ -120,8 +120,11 @@ source drift must preserve the original and recover the new draft predictably.
 Use the [validation routing index](../../../.agent/README.md#validation) for working
 directories and the current owning instructions for mandatory checks. The examples
 below are command templates for implementation, not commands run for this plan.
-Replace test targets with the actual new/affected files; no campaign tests exist
-merely because they are described here.
+Replace test targets with the actual new/affected files. Current Core component
+tests are `test/track/finite_chunk_pattern_source_test.dart`,
+`test/track/finite_track_streamer_test.dart`, and
+`test/camera/finite_follow_camera_test.dart` in `packages/runner_core`;
+the remaining mission/editor/reward scenarios in this plan still require integration.
 
 | Scope and working directory | Appropriate command |
 | --- | --- |

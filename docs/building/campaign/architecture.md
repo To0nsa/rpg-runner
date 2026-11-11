@@ -2,6 +2,9 @@
 
 Status: proposed. Requirements and scope are in the [plan index](README.md);
 execution is tracked only in [Implementation](implementation.md).
+Initial finite scheduler and camera primitives now exist; their limited
+[implemented contract](../../tdd/campaign_runtime.md) does not yet provide the
+mission lifecycle described below.
 
 ## Domain and ownership
 

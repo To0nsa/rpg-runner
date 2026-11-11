@@ -4,7 +4,8 @@
   bidirectional movement, two-way chunk conversion, user-authored routes, campaign
   map, and verified progression. The post-Le feu de joie chapter starts with an
   encounter-free arrival, awards Double Jump, unlocks Willow after four missions,
-  and targets level 3. Planning is prepared; implementation has not started.
+  and targets level 3. Finite selection/residency and bidirectional camera
+  primitives are implemented; they are not yet a playable campaign session.
   Next: settle shared contracts and the finite-world lifetime policy, then prove
   one playable return-trip mission using the single linked checklist.
 
