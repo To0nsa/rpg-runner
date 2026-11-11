@@ -32,7 +32,7 @@ Dependencies: source inspection and confirmed requirements in this folder.
   assumptions and run mode/outcome producer-consumer boundaries.
 - [ ] Settle chapter/mission/occurrence identities, schema, source ownership,
   campaign-only variant admission, two-way conversion semantics, inclusion rules,
-  no-encounter admission, and dependency fingerprint.
+  mission-one content validation, and dependency fingerprint.
 - [ ] Specify finite bounds, camera follow, terrain residency, actor activation,
   lifetime/timer semantics, objective ordering, and successful terminal outcome.
 - [ ] Specify mode/ticket/replay/result/account fields and compatibility, including
@@ -69,8 +69,8 @@ and validator wherever shared outcomes/replays change. Depends on M0.
   local fixtures. Authenticated issuance/settlement remains M3.
 - [ ] Validate Éloïse's basic-jump traversal and explicitly unlocked local Willow
   regression cases, return-path navigation, same-tick terminal ordering, repeated
-  chunk occurrences, and no duplicated enemies/items/score. Cover encounter-free
-  admission using source chunks that originally contain enemies.
+  chunk occurrences, and no duplicated enemies/items/score. Validate the
+  encounter-free result of ordinary edits to copies that originally had enemies.
 - [ ] Measure initial terrain preparation, return travel, frame/tick costs, and
   memory against the declared small-route budget; record residency decision.
 - [ ] Update implemented simulation/output documentation and relevant embedding
@@ -91,9 +91,10 @@ needed. Depends on the M1 production mission path.
 - [ ] Add exact route ordering, occurrence IDs, continuous preview, source reuse,
   where-used impact, and explicit shared-source/variant workflows.
 - [ ] Add Copy to Campaign / Copy to Runner with fresh identities, source
-  preservation, destination owner/group/tier/usage, encounter-free copying,
+  preservation, destination owner/group/tier/usage, supported encounter preservation,
   adaptation reports, transactional Save, and destination validation. Prove
-  supported layout round-trip fidelity without silently dropping metadata.
+  supported layout round-trip fidelity without silently dropping metadata. Leave
+  encounter removal to the user's subsequent edits; provide no removal preset.
 - [ ] Add start/exit/objective authoring, mission settings, and chapter prerequisite
   controls using existing geometry and presentation components.
 - [ ] Validate source references, inclusion, bounds, actual seams, target ownership,
@@ -222,7 +223,14 @@ manual layout ownership, and runner/campaign chunk copying in both directions.
 This revision still changes planning only; no production layout or character
 availability has been modified.
 
-Revision validation from repository root: `git diff --check` passed; the inline
+Converter clarification from clean `c95dff1d`: preserve supported encounters during
+copying. The user will edit each duplicate afterward; remove the proposed
+encounter-removal option/preset and automatic mission-specific suppression from
+the plan. Reporting for Duty still requires encounter-free final authored content.
+Clarification validation from repository root: `git diff --check` and the inline
+`python -` link/whitespace check passed for six campaign documents and 37 links.
+
+Previous revision validation from repository root: `git diff --check` passed; the inline
 `python -` documentation check resolved all 39 local links/anchors across six
 campaign files and two index entries, with valid whitespace/newlines and one
 progress checklist. The level-3 budget is 100 + 124 = 224 XP, checked against

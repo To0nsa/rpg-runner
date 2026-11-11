@@ -100,11 +100,12 @@ Living enemies retain their defined state when the player leaves and returns.
 
 Required encounters and instructional resources use guaranteed placement. Disable
 automatic runner spawn/item policies for missions unless explicitly admitted by
-the mission rules. Mission one explicitly forbids all combat encounters, including
-ambient enemies, rescue groups, bosses, and automatic/scripted spawns inherited
-from a referenced chunk. Admit a typed mission-level no-encounter policy or a
-validated stripped copy; keep source runner content intact. Source spawn
-probabilities, early-chunk enemy suppression, and camera-edge spawns cannot
+the mission rules. Mission one has no combat encounters: the user removes unwanted
+ambient enemies, rescue groups, bosses, and combat spawn placements by editing the
+copied chunks. Validate the resulting content; do not add a converter removal
+option or a mission-specific runtime filter that hides retained encounters.
+Keep source runner content intact. Source spawn probabilities, early-chunk enemy
+suppression, and camera-edge spawns cannot
 accidentally remove or relocate an objective target in later missions.
 Reuse the seeded combat RNG, with deterministic initialization and activation
 ordering; fixed layouts do not require removing crits or AI randomness.

@@ -57,8 +57,9 @@ Keep geometric edits in Chunk Creator. Mission sources place mission-owned start
 exit, and objective regions and can refer to a specific occurrence's source
 encounter/marker. Avoid an unrestricted nested override system. If ordinary combat
 placements differ, create a variant until a repeated, concrete need justifies a
-typed override. A typed mission-wide no-encounter rule is required for the first
-mission unless all copied combat content is explicitly stripped and validated.
+typed override. The user removes unwanted encounters from the copied chunks
+through ordinary authoring. Mission one's absence of encounters is a content
+acceptance requirement, not a conversion preset or runtime suppression feature.
 Compiler admission must reject unsupported spawn policies for mandatory targets
 in later missions rather than silently changing them.
 
@@ -75,7 +76,7 @@ pools and included campaign builds until explicitly admitted.
 Use the existing polygon/prefab chunk representation, compiler, store, and Save
 transaction instead of creating separate runner and campaign geometry formats.
 Copy geometry, local coordinates, scenery placements, supported materials,
-platforms, water, traps, and other compatible layout records without lossy
+platforms, water, traps, encounters, and other compatible records without lossy
 reconstruction. Shared prefab/material/atlas references remain shared dependencies;
 independent chunk layout does not mean copying all referenced assets. Surface
 that distinction so editing a shared prefab is not mistaken for editing only the
@@ -84,14 +85,15 @@ future source layout edits into the copy.
 
 | Direction | Required destination handling |
 | --- | --- |
-| Runner to campaign | Pick the campaign source owner/usage; preserve layout; explicitly retain compatible encounters or strip them; validate intended reverse traversal and prevent implicit runner spawn/pacing rules |
+| Runner to campaign | Pick the campaign source owner/usage; preserve layout and compatible encounters; validate intended reverse traversal and prevent implicit runner spawn/pacing rules |
 | Campaign to runner | Pick the runner level, assembly group, and tier; reconcile supported encounter markers; omit mission-only start/exit/objective bindings with an explicit report; validate runner dimensions, joins, and pool admission |
 
-For Reporting for Duty, support an encounter-free copy preset that strips ambient
-enemies, rescue/boss encounters, and combat spawn hooks while preserving chosen
-geometry/scenery. Report retained hazards separately. No encounter stripping may
-write back to the source Forest pool. The compiled mission still validates its
-no-encounter invariant, preventing later edits from silently adding combat.
+The converter offers no encounter-removal option or encounter-free preset.
+For Reporting for Duty, the user copies the chosen chunks, then manually removes
+unwanted enemies/encounters and adjusts the layout through the existing editor.
+These edits affect the duplicate only. Validate the finished mission's absence of
+combat content and inspect any remaining hazards before accepting it as the
+introductory route; copying alone does not satisfy that content requirement.
 
 Campaign objectives live on the mission/occurrence. Copying a campaign chunk to
 runner must leave the original mission and its references untouched, and must not
@@ -119,7 +121,7 @@ The workspace provides:
 - Chapter/mission library with draft, included, and readiness states.
 - Chunk library filtered by source owner, group, difficulty, and compatibility.
 - Ordered route strip with insert, move, duplicate occurrence, and remove actions.
-- Copy to Campaign / Copy to Runner with destination settings, encounter handling,
+- Copy to Campaign / Copy to Runner with destination settings, compatibility checks,
   conversion report, and new-draft navigation.
 - Continuous assembled preview with seams, bounds, source names, and instance IDs.
 - Context inspector for mission details, occurrence source, start, exit, objectives,
@@ -194,8 +196,9 @@ play a return trip, save/reopen, and build without hand-editing JSON. Include
 shared-source drift, invalid drafts, Undo after Save, and failed-save recovery
 in that acceptance sequence.
 
-Also convert a runner grove source to an encounter-free campaign copy, edit the
-copy, and verify the original is unchanged. Convert a campaign copy back to a
-runner draft with explicit group/tier, inspect the adaptation report, and verify
+Also convert a runner grove source to a campaign copy with its supported encounter
+content preserved, manually edit/remove encounters from the copy, and verify the
+original is unchanged. Convert a campaign copy back to a runner draft with
+explicit group/tier, inspect the adaptation report, and verify
 supported layout fidelity, fresh identities, reference integrity, and destination
 admission. No conversion should publish a new runner pool member automatically.

@@ -126,11 +126,12 @@ Both outward and intended return paths must be valid with the basic jump. Do not
 place a Double Jump requirement before awarding the skill at the end.
 
 Several reusable grove sources contain guaranteed enemy markers, including Derf.
-No encounters must be an explicit admitted mission rule or a validated conversion
-that strips combat content, covering ambient enemies, rescue groups, bosses, and
-automatic/scripted spawning. Do not remove their markers from shared runner
-sources. Validate any remaining hazards for the introductory traversal; absence
-of enemies does not itself prove a forgiving route.
+The converter preserves supported encounter content. The user will edit the copied
+chunks to remove unwanted ambient enemies, rescue groups, bosses, and combat spawn
+placements. There is no converter removal option or encounter-free preset. Validate
+the final mission content and any remaining hazards for the introductory traversal;
+absence of enemies does not itself prove a forgiving route. Shared runner sources
+remain unchanged.
 
 First verified completion grants Double Jump once. The initial ability mapping is
 `eloise.double_jump`, since Willow is locked; awarding `bounty_hunter.double_jump`

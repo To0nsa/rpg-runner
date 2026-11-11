@@ -15,7 +15,7 @@ diff/link validation; do not run application suites merely to publish the plan.
 | Objectives | Required versus optional targets, repeated source instances, exit before readiness, success once, death/success ordering, failure/abandonment | M1 |
 | Replay | Same input/ticket/content gives same terminal tick, objective results, stats, score, and reward inputs; tampering/mismatch rejected | M1/M3 |
 | Editor | Create/reorder/variant/repair/play/save/reopen/build; dependency drift, unsaved capture isolation, Undo after Save, failed-save recovery | M2 |
-| Chunk conversion | Both copy directions, fresh identities, unchanged source, supported layout fidelity, encounter stripping, explicit metadata-loss report, destination admission | M2 |
+| Chunk conversion | Both copy directions, fresh identities, unchanged source, supported layout/encounter fidelity, independent manual edits, explicit metadata-loss report, destination admission | M2 |
 | Generated content | Exact dependency closure and freshness; shared edits invalidate all affected missions; independent source ownership retained | M2 |
 | Admission | First mission open with Éloïse; locked Willow rejected in all gameplay entry paths; prerequisites/content/build rechecked; no accidental board requirement | M3 |
 | Settlement | Duplicate/concurrent mission and chapter grants, already-owned skill/character, response loss, reconnect, account deletion/switch, old records | M3 |
@@ -101,9 +101,11 @@ capped/reset to the tutorial target. Assert no automatic level-5 Build 2 unlock.
 ## Conversion and encounter-free content
 
 Use runner sources containing actual enemy markers, not only empty fixtures.
-Copy to Campaign with combat stripped, verify no enemy/rescue/boss/automatic spawn
-appears over the whole forward-and-return route, and confirm the original source
-bytes and runner behavior remain unchanged. Verify retained hazards separately.
+Copy to Campaign and verify supported markers/encounters remain in the duplicate.
+Then remove them through ordinary editor commands and verify no enemy/rescue/boss
+or automatic combat spawn appears over the finished forward-and-return route.
+Confirm the original source bytes and runner behavior remain unchanged. Verify
+retained hazards separately. Conversion itself must not remove supported encounters.
 
 Edit the copied layout and prove the source layout remains independent; document
 the shared prefab/material dependencies. Copy back to Runner, remap destination

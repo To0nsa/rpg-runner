@@ -62,7 +62,9 @@ remaining work here until completion, then archive the folder with repaired link
   and geometry are not required now; tooling and small technical fixtures come first.
 - The editor includes a chunk converter that duplicates layouts from runner to
   campaign and from campaign to runner, preserving the source and validating the
-  new copy for its destination mode.
+  new copy for its destination mode. Supported encounter content is copied too;
+  the user edits the duplicate afterward, including removing encounters for
+  Reporting for Duty. The converter has no encounter-removal option or preset.
 
 ## Proposed baseline and limits
 
