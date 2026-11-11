@@ -1538,9 +1538,9 @@
   "@uiCharacterSelection": {
     "description": "Player-facing text on pages/hub/components/hub_select_character_card.dart. Keep French informal (tu). Do not translate player-authored names."
   },
-  "uiLevelSelection": "LEVEL SELECTION",
+  "uiLevelSelection": "RUNNER LEVEL SELECTION",
   "@uiLevelSelection": {
-    "description": "Player-facing text on pages/hub/components/hub_select_level_card.dart. Keep French informal (tu). Do not translate player-authored names."
+    "description": "Uppercase main-menu card heading for selecting an endless runner level, distinct from Campaign missions. Keep French informal (tu)."
   },
   "uiLeaderboard": "Leaderboard",
   "@uiLeaderboard": {

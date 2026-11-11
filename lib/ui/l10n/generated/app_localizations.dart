@@ -1705,10 +1705,10 @@ abstract class AppLocalizations {
   /// **'CHARACTER SELECTION'**
   String get uiCharacterSelection;
 
-  /// Player-facing text on pages/hub/components/hub_select_level_card.dart. Keep French informal (tu). Do not translate player-authored names.
+  /// Uppercase main-menu card heading for selecting an endless runner level, distinct from Campaign missions. Keep French informal (tu).
   ///
   /// In en, this message translates to:
-  /// **'LEVEL SELECTION'**
+  /// **'RUNNER LEVEL SELECTION'**
   String get uiLevelSelection;
 
   /// Player-facing text on pages/hub/components/weekly_badge_row.dart. Keep French informal (tu). Do not translate player-authored names.

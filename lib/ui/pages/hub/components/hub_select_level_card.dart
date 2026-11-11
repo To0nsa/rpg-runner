@@ -28,6 +28,8 @@ class HubSelectedLevelCard extends StatelessWidget {
       background: LevelCardArtwork(levelId: levelId),
       child: HubSelectCardBody(
         label: context.l10n.uiLevelSelection,
+        labelTextAlign: TextAlign.center,
+        labelMaxLines: 2,
         title: levelId.localizedName(context.l10n).toUpperCase(),
         subtitle: runModeLabel,
       ),

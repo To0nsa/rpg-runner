@@ -1219,7 +1219,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uiCharacterSelection => 'CHARACTER SELECTION';
 
   @override
-  String get uiLevelSelection => 'LEVEL SELECTION';
+  String get uiLevelSelection => 'RUNNER LEVEL SELECTION';
 
   @override
   String get uiLeaderboard => 'Leaderboard';

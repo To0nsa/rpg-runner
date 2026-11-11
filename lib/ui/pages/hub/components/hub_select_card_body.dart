@@ -11,7 +11,8 @@ class HubSelectCardBody extends StatelessWidget {
     super.key,
     required this.label,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
+    this.labelTextAlign = TextAlign.start,
     this.labelMaxLines = 1,
     this.titleMaxLines = 1,
     this.subtitleMaxLines = 1,
@@ -20,7 +21,10 @@ class HubSelectCardBody extends StatelessWidget {
 
   final String label;
   final String title;
-  final String subtitle;
+  /// Optional supporting text; omitting it also removes its spacing.
+  final String? subtitle;
+  /// Horizontal alignment of the heading across the card's content width.
+  final TextAlign labelTextAlign;
   final int labelMaxLines;
   final int titleMaxLines;
   final int subtitleMaxLines;
@@ -29,14 +33,19 @@ class HubSelectCardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
+    final subtitle = this.subtitle;
     final base = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: ui.text.cardLabel,
-          maxLines: labelMaxLines,
-          overflow: TextOverflow.ellipsis,
+        SizedBox(
+          width: double.infinity,
+          child: Text(
+            label,
+            style: ui.text.cardLabel,
+            textAlign: labelTextAlign,
+            maxLines: labelMaxLines,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         SizedBox(height: ui.space.xs),
         Text(
@@ -45,13 +54,15 @@ class HubSelectCardBody extends StatelessWidget {
           maxLines: titleMaxLines,
           overflow: TextOverflow.ellipsis,
         ),
-        SizedBox(height: ui.space.xxs),
-        Text(
-          subtitle,
-          style: ui.text.cardSubtitle,
-          maxLines: subtitleMaxLines,
-          overflow: TextOverflow.ellipsis,
-        ),
+        if (subtitle != null) ...[
+          SizedBox(height: ui.space.xxs),
+          Text(
+            subtitle,
+            style: ui.text.cardSubtitle,
+            maxLines: subtitleMaxLines,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ],
     );
 

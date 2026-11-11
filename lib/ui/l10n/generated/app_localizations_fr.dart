@@ -1223,7 +1223,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get uiCharacterSelection => 'CHOIX DU PERSONNAGE';
 
   @override
-  String get uiLevelSelection => 'CHOIX DU NIVEAU';
+  String get uiLevelSelection => 'CHOIX DU NIVEAU RUNNER';
 
   @override
   String get uiLeaderboard => 'Classement';

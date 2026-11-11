@@ -210,11 +210,10 @@ class _PlayHubPageState extends State<PlayHubPage> {
                                   .pushNamed(UiRoutes.campaign),
                           background: const ValOutpostArtwork(),
                           child: HubSelectCardBody(
-                            label: context.l10n.campaignHeading,
+                            label: context.l10n.campaignHeading.toUpperCase(),
                             title: CampaignCatalog.chapters.first.title(
                               Localizations.localeOf(context).languageCode,
                             ),
-                            subtitle: context.l10n.campaignChapterReward,
                           ),
                         ),
                       ),
