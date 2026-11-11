@@ -18,7 +18,6 @@ import '../../state/ownership/enemy_defeats.dart';
 import '../../state/ownership/progression_state.dart';
 import '../../state/presentation/library_progress_tracker.dart';
 import '../../theme/ui_tokens.dart';
-import '../../theme/ui_world_palette.dart';
 import 'codex_entry_page.dart';
 import 'codex_widgets.dart';
 import 'location_map.dart';
@@ -101,9 +100,7 @@ class _LibraryPageState extends State<LibraryPage> {
             bottom: 0,
             width: leftInset + railWidth,
             child: ColoredBox(
-              color: _section == _LibrarySection.locations
-                  ? UiWorldPalette.ash500.withValues(alpha: .72)
-                  : Colors.transparent,
+              color: Colors.transparent,
               child: SafeArea(
                 left: false,
                 right: false,

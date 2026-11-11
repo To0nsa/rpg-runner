@@ -130,9 +130,9 @@ derivative is registered as a Flutter asset. `LocationMap` composes that image
 with a Théodonis label and two interactive targets at normalized map
 coordinates. It uses `InteractiveViewer`, the Town map's `MapCallout`, and the
 shared unframed `MapLabelButton` for pan, zoom and anchored labels. The artwork
-fills the screen behind the transparent app bar and a translucent grey icon
-rail, cropping edges when needed. Initial location labels and reset respect
-the toolbar, rail and system insets; geographic pins retain image coordinates.
+fills the screen behind the transparent app bar and icon rail, cropping edges
+when needed. Initial location labels and reset respect the toolbar, rail and
+system insets; geographic pins retain image coordinates.
 The noninteractive Théodonis label also uses a callout to clear the toolbar.
 Panning reveals cropped areas, and reset restores the initial framing.
 The modal reuses the location reading surface and its live unlock gate.
