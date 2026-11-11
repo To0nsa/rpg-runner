@@ -1,8 +1,24 @@
 # Campaign experience and Val Outpost proposal
 
-Status: proposed design. The [plan index](README.md) distinguishes confirmed
-requirements from defaults. Mission titles, count within the requested range,
-encounters, and economy below are not established canon or final tuning.
+Status: planned experience, updated with the user's November 11, 2026 story,
+mission-one, character-unlock, and level-3 decisions. The [plan index](README.md)
+distinguishes those requirements from remaining design defaults. The game has
+not yet implemented these changes.
+
+## Story placement and content ownership
+
+These events follow chapter 3, **Le feu de joie**, of **Les Soleils d'or**.
+Cultists have been spotted at several locations and Val Outpost calls the player
+for help getting rid of them. The user supplied this chronology and premise.
+The chapter-3 scenario text was not available among the inspected local Markdown
+sources; do not infer named cultists, rituals, outcomes, or a connection to Willow
+from the title. Additional story details require user-provided or inspected canon.
+
+The user will build the levels by hand. The implementation supplies authoring
+capabilities, progression, and runtime validation; it does not choose or overwrite
+their final geometry. Small disposable technical fixtures establish behavior
+before the authored production layouts exist. The bidirectional chunk converter
+in [Authoring](authoring.md) helps prepare independent layouts for either mode.
 
 ## Entry and navigation
 
@@ -46,12 +62,24 @@ Back returns through mission list, map, and main menu coherently.
 
 Each mission entry shows title, availability/completion, personal best (or an
 honest unplayed state), and reward information. Details show the short assignment,
-required objectives, selected character/build, first-clear entitlement, and any
-repeat reward. Distinguish score from currency/XP. Avoid adding star/medal systems
-until a concrete design need is agreed.
+required objectives, selected character/build, skill/character unlocks, first-clear
+entitlement, and any repeat reward. Distinguish score from currency/XP. Avoid
+adding star/medal systems until a concrete design need is agreed.
 
-Use the player's selected character and build as the default. The first chapter
-must be completable with both starter builds and without optional purchases.
+Fresh accounts begin the chapter with Éloïse. Willow is visibly locked in character
+selection with the requirement to complete Val Outpost's four missions. The lock
+applies to gameplay selection/admission across modes, including Training Field;
+it is not just a campaign menu restriction. Chapter completion unlocks Willow,
+with a clear character reward presentation and her valid starter build. Do not
+automatically replace the player's current character or saved builds.
+
+Use an owned, available character/build. Mission one must work with Éloïse's basic
+jump and no optional purchases. Missions two through four can introduce the
+Double Jump earned at mission one; if needed for traversal, provide an explicit
+equip opportunity and check the actual loadout before launch. Unlocking a skill
+does not silently overwrite the selected build. After Willow is unlocked, verify
+replaying all missions with her available starter abilities and any explicitly
+required earned skills; do not assume her separate Double Jump is already owned.
 Explain relevant controls through brief contextual prompts derived from the
 current input method and equipped actions. Do not demand an unavailable named
 skill or gate success on dismissing a UI prompt. Accessible objective text stays
@@ -72,33 +100,73 @@ reward presentation and recovery patterns rather than inventing a second wallet.
 
 ## Opening chapter outline
 
-Four missions are the working baseline; three remain within the user's scope.
-Teaching is embedded in assignments and spatial design, never a chapter named
-Tutorial. These titles and situations are proposals to validate against local
-canon and playtesting:
+The chapter contains four missions. Reporting for Duty has the defined arrival
+objective below. Missions two through four still need assignments, titles, and
+encounters within the cultist premise; no rescue or boss is currently required.
 
-| Order and working title | Assignment and teaching focus | Content direction |
+| Mission | Confirmed content | Reward/progression |
 | --- | --- | --- |
-| 1. Reporting for Duty | Reach a marked destination; learn movement, jumping, and returning along a safe path | Outpost/camp scenery, forgiving geometry, clear landmarks, an optional return trip before exit |
-| 2. The Forest Road | Clear a short patrol route; introduce basic combat, mobility, and resource use | A few guaranteed regular enemies, deliberate attack spacing, readable resource placement |
-| 3. The Missing Patrol | Complete an ally rescue; combine threat prioritization and resource management | Reuse the rescue encounter system with explicit mission targets and recoverable approaches |
-| 4. Hold the Road | Complete a modest concluding encounter and reach the exit | Combine movement, combat, and support decisions; a boss is optional and requires separate beginner tuning |
+| 1. Reporting for Duty | Cross the Forêt des Moyen-Ducs to reach Val Outpost; introduce movement and jumping; no encounters | Double Jump unlock, earned XP and collected gold |
+| 2. Title pending | Address the reported cultist presence; exact assignment and route pending | Mission-specific XP/gold policy pending |
+| 3. Title pending | Address the reported cultist presence; exact assignment and route pending | Mission-specific XP/gold policy pending |
+| 4. Title pending | Conclude the Val Outpost chapter; exact assignment and encounter pending | Earned XP/gold plus Willow unlock on chapter completion |
 
-If playtesting favors three missions, combine the second and third only if the
-learning load remains manageable. Finalize count/order before persistent public
-mission IDs and rewards are released. Titles can change later without changing
-identity. All missions use explicit chunk sequences, with custom variants where
-the original runner geometry cannot support safe return travel.
+### Reporting for Duty
 
-Start by surveying existing Forest entrance, camp, grove, and encounter sources;
-do not promise that an existing chunk is bidirectionally traversable before
-testing it. Favor adaptation of a few coherent sources over importing the full
-endless Forest progression or its boss sequence.
+The route begins in the forest and ends on arrival at the outpost, using Forest
+`rocky_grove` chunks in `easy` and `normal` tiers before `trainingcamp` chunks.
+The user's "medium" and "training_camp" correspond to those existing authored
+IDs. Exact chunk IDs, order, length, and edits belong to the user. The internal
+return-trip test fixture is not this mission's story or production layout.
 
-Val Outpost is already described as a road-patrol and survival-training post in
-the [Codex GDD](../../gdd/codex.md). Keep narrative brief, grounded in patrols,
-travelers, duty, and limited resources. Named personnel, plot developments, and
-new institutions need canon support before becoming authored text.
+The initial crossing teaches ordinary movement and jumping. Completion is reaching
+the authored outpost arrival region, without a combat, rescue, or boss objective.
+Free backtracking remains supported before completion.
+Both outward and intended return paths must be valid with the basic jump. Do not
+place a Double Jump requirement before awarding the skill at the end.
+
+Several reusable grove sources contain guaranteed enemy markers, including Derf.
+No encounters must be an explicit admitted mission rule or a validated conversion
+that strips combat content, covering ambient enemies, rescue groups, bosses, and
+automatic/scripted spawning. Do not remove their markers from shared runner
+sources. Validate any remaining hazards for the introductory traversal; absence
+of enemies does not itself prove a forgiving route.
+
+First verified completion grants Double Jump once. The initial ability mapping is
+`eloise.double_jump`, since Willow is locked; awarding `bounty_hunter.double_jump`
+as well remains a separate scope decision. Already-owned skills are idempotent,
+with no automatic compensation or duplicate grant. The current Training catalogue
+offers Double Jump; this reward does not implicitly remove its existing purchase
+path. Show an explicit equip action after earning it, preserving saved builds.
+
+The user calls the route the Middle Dukes forest. Existing game copy uses
+Forêt des Moyen-Ducs in French and Long-Eared Owls' Forest in English, documented
+in the [Codex GDD](../../gdd/codex.md). Use the canonical French location identity
+in planning and settle player-facing English naming through localization; do not
+silently rename the existing region across the game.
+
+### Chapter rewards and XP target
+
+Willow is a once-only chapter-completion entitlement for clearing all four required
+missions. Her internal character ID remains `bountyHunter`; do not introduce a
+second Willow identity. Repeating the final mission cannot reinitialize her builds
+or re-grant ownership. Existing profiles/builds and currently selected Willow
+require a deliberate compatibility path when the new lock is introduced.
+
+For a fresh account at level 1 and zero XP, the target is the **start of level 3**:
+100 XP to level 2 plus 124 XP to level 3, totaling **224 XP**. Allocate that budget
+across the four missions' intended first-clear rewards. Exact distribution and
+gold amounts are not set. The target is not a cap or reset for players who have
+earned XP through retries, other modes, or prior play.
+
+Current runner XP is `floor(validatedScore / 200)`. A quiet introductory mission
+and a fixed chapter XP target need an explicit campaign XP policy; do not distort
+score or accidentally add both the old score-derived grant and the new budget.
+Settle how earned/collected XP maps to verified completion and any pickup evidence
+before M3, without assuming a new physical XP collectible is already implemented.
+Budget the intended first-clear collection path, and state how skipped optional
+pickups, failure, and replay affect the total. The account's level formula stays
+unchanged. Level 3 does not unlock Build 2, which currently requires level 5.
 
 World references consulted in the parent repository are creative guidance, not
 runtime dependencies: [Identity](../../../../Brand/Identity.md),
@@ -111,12 +179,16 @@ Use the local palette/theme and existing map artwork for the first delivery.
 
 ## Economy and scope decisions
 
-| Decision | Proposed default | Resolve by |
+| Decision | Requirement or remaining default | Resolve by |
 | --- | --- | --- |
-| Mission count and titles | Four working missions as above; three allowed | M4 before final chapter authoring and persistent public identity freeze |
-| Character/build access | Current selected build; both starter builds viable | M1 acceptance, then M4 content balance |
+| Mission count and titles | Four; Reporting for Duty confirmed, other titles/assignments pending | User content design before production identity freeze |
+| First mission layout | User-authored rocky_grove easy/normal to trainingcamp; no encounters; basic jump | M2 authoring support, then user layout validation |
+| Character/build access | Éloïse initially; Willow locked until chapter clear; preserve builds | M0 entitlement contract, M3 admission, M4 replay balance |
 | Unlock rule | Clear previous required mission; no minimum score | M0 contract, implemented in M3 |
-| First-clear reward | Once-only gold/XP; exact amounts untuned | M3 trusted reward policy, finalized in M4 |
+| Skill reward | Mission one grants Double Jump once; Éloïse mapping initially; Willow variant not decided | M3 trusted ability grant and equip presentation |
+| Chapter reward | Unlock Willow once after four clears | M3 trusted chapter entitlement |
+| Chapter XP | Target 224 XP for the intended fresh-account first pass, reaching level 3; mission split pending | M3 policy, M4 economy verification |
+| Gold | Earned/collected mission gold; amounts untuned | M3 trusted reward policy, finalized in M4 |
 | Repeat reward | Explicit bounded policy; no repeat first-clear bonus; prototype can use zero | M3 before rewarded integration |
 | Score formula | Objective/combat/rescue performance; no idle-time income; optional capped efficiency bonus | M1 deterministic prototype, final version at M4 |
 | Failure/abandonment rewards | No campaign completion or first-clear reward; any ordinary earned reward requires explicit policy | M3 settlement contract |

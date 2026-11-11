@@ -12,7 +12,7 @@ execution is tracked only in [Implementation](implementation.md).
 | Route occurrence | Stable instance ID referencing one source chunk at an exact sequence position |
 | Source chunk | Existing reusable geometry, scenery, and authored gameplay definitions |
 | Mission attempt | Ticket/content binding, selected build, fixed-tick state, objective state, terminal outcome |
-| Account campaign progress | Verified clears, reward entitlements, and versioned personal best records |
+| Account campaign progress | Verified clears, mission/chapter reward entitlements, character availability, and versioned personal best records |
 
 Chapter, mission, source-level, and source-chunk identities remain distinct.
 The existing `forest` runner level and its persisted identity are not renamed or
@@ -100,8 +100,12 @@ Living enemies retain their defined state when the player leaves and returns.
 
 Required encounters and instructional resources use guaranteed placement. Disable
 automatic runner spawn/item policies for missions unless explicitly admitted by
-the mission rules. Source spawn probabilities, early-chunk enemy suppression, and
-camera-edge spawns cannot accidentally remove or relocate an objective target.
+the mission rules. Mission one explicitly forbids all combat encounters, including
+ambient enemies, rescue groups, bosses, and automatic/scripted spawns inherited
+from a referenced chunk. Admit a typed mission-level no-encounter policy or a
+validated stripped copy; keep source runner content intact. Source spawn
+probabilities, early-chunk enemy suppression, and camera-edge spawns cannot
+accidentally remove or relocate an objective target in later missions.
 Reuse the seeded combat RNG, with deterministic initialization and activation
 ordering; fixed layouts do not require removing crits or AI randomness.
 
@@ -148,7 +152,7 @@ campaign mission discriminator/compatibility representation in M0 before changin
 any public payload. Do not temporarily send campaign runs as Practice.
 
 The server resolves the mission and prerequisites, binds the current compatible
-content/build to the ticket, and rejects locked or unavailable missions. The
+content/build to the ticket, and rejects locked missions or characters. The
 validator resolves its own trusted artifact and simulates the recorded commands;
 the client cannot supply a replacement route, completion flag, score, or reward.
 Editor and Developer Practice mission play remain local and cannot grant account
@@ -170,6 +174,15 @@ derive it from simulation ticks, cap it, and avoid encouraging beginners to rush
 Personal bests are comparable only within a declared mission scoring/content
 compatibility key. Preserve historic records when a revision breaks comparability.
 
+Campaign XP has a declared trusted policy separate from personal-best score. The
+user's first-chapter target is 224 cumulative XP on an intended fresh-account first
+pass, reaching the start of level 3 under the unchanged account curve. Specify
+the per-mission distribution and any collected-XP evidence before M3; do not
+apply existing `floor(score / 200)` XP on top of a replacement campaign grant.
+Use the same policy for local reward preview and verified settlement. Repeated
+missions, skipped optional pickups, and failed attempts need explicit rules;
+the introductory target must never reset or cap an existing account's XP.
+
 Account progress records stable mission completion independently from best-score
 versions. Successful verified completion unlocks the next mission; score is not
 an introductory progression gate. A revision does not erase a clear or recreate
@@ -177,12 +190,38 @@ its first-clear reward entitlement. Chapter completion derives from its required
 mission set, with explicit policy if that set later changes.
 
 Extend the existing Functions settlement authority to atomically apply campaign
-progress, gold/XP, first-clear entitlement, and the completion receipt using one
-canonical revision. Idempotency needs both run identity and an account/mission
-first-clear entitlement: two different successful tickets cannot both receive the
-first-clear bonus. Bind trusted reward-policy identity at issuance; reward amounts
+progress, gold/XP, skill/character grants, mission/chapter entitlements, and the
+completion receipt using one canonical revision. Idempotency needs both run
+identity and an account/mission first-clear entitlement: two different successful
+tickets cannot both receive the first-clear bonus. Bind trusted reward-policy
+identity at issuance; reward amounts
 must never come from a client-authored completion report. Replays may receive only
 the explicitly configured repeat reward.
+
+Mission one grants Double Jump once, initially mapped to `eloise.double_jump`.
+All four required clears grant the Willow character entitlement, retaining the
+existing `bountyHunter` identity. Reuse canonical ability/inventory mutation logic
+for typed rewards and add explicit character availability authority. Already-owned
+skills and already-unlocked characters are no-ops for ownership, not a reason to
+duplicate gold/XP or rebuild saved equipment. Character unlock prepares any missing
+valid starter data without overwriting existing builds or changing active selection.
+Initial provisioned Willow gear/abilities alone do not imply character availability.
+
+The current game exposes both playable characters and fresh profiles already
+contain Willow's starter branches. A visible lock alone is insufficient. Define
+the canonical character entitlement, profile defaults/old-profile decoding, chapter
+completion grant, and serialization/revision behavior together. Enforce availability
+on character selection, saved-build restoration, all authenticated run modes,
+restart, and Training Field. Catalogue or Admin browsing must not bypass the gate;
+availability and ownership of individual items remain distinct. Developer Practice
+may explicitly expose locked content only through its isolated local profile.
+
+Plan compatibility for accounts already using Willow: preserve their builds,
+gear, XP, and history while defining eligibility under the chapter gate and a
+safe available-character selection when required. Resolve existing tickets under
+the versioned admission/cutover contract; do not retroactively invent chapter
+clears or erase account data. Any legacy exception must be explicit before release.
+The character gate is a cross-mode behavior change and needs corresponding tests.
 
 Reuse durable client submission and full canonical receipts. Treat local results
 as presentation until verification settles prerequisites; a pending completion

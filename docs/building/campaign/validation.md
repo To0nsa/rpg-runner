@@ -15,12 +15,14 @@ diff/link validation; do not run application suites merely to publish the plan.
 | Objectives | Required versus optional targets, repeated source instances, exit before readiness, success once, death/success ordering, failure/abandonment | M1 |
 | Replay | Same input/ticket/content gives same terminal tick, objective results, stats, score, and reward inputs; tampering/mismatch rejected | M1/M3 |
 | Editor | Create/reorder/variant/repair/play/save/reopen/build; dependency drift, unsaved capture isolation, Undo after Save, failed-save recovery | M2 |
+| Chunk conversion | Both copy directions, fresh identities, unchanged source, supported layout fidelity, encounter stripping, explicit metadata-loss report, destination admission | M2 |
 | Generated content | Exact dependency closure and freshness; shared edits invalidate all affected missions; independent source ownership retained | M2 |
-| Admission | First mission open, locked missions rejected, prerequisites/content/build rechecked, no accidental ranked board requirement | M3 |
-| Settlement | Duplicate delivery and two distinct first-clear attempts, response loss, reconnect, account deletion/switch, old records | M3 |
+| Admission | First mission open with Éloïse; locked Willow rejected in all gameplay entry paths; prerequisites/content/build rechecked; no accidental board requirement | M3 |
+| Settlement | Duplicate/concurrent mission and chapter grants, already-owned skill/character, response loss, reconnect, account deletion/switch, old records | M3 |
 | UI | Three-card single row, crop/anchor, map/list/details/back flow, lock/clear/pending states, first versus repeat rewards, best score | M3/M4 |
-| Content | Complete chapter with both starter builds; no locked-skill dependency; required encounters/resources guaranteed | M4 |
-| Regression | Practice/Competitive/Weekly, Training Field, runner camera/assembly, Library rules, achievements, existing rewards/ghosts | M1-M4 as affected |
+| Content | Encounter-free mission-one arrival with basic jump; four missions with earned skills; unlocked Willow replay; user-authored layouts preserved | M4 |
+| Chapter economy | Intended first pass from level 1/zero XP ends at 224 XP/start of level 3; Double Jump after mission one; Willow after four clears; no duplicate score-XP grant | M3/M4 |
+| Regression | Practice/Competitive/Weekly and Training Field with intended character gate; runner camera/assembly, Library rules, achievements, rewards/ghosts | M1-M4 as affected |
 | Performance | Startup, terrain preparation, left/right travel, camera motion, graph fallback, frame/tick time and memory on representative hardware | M1/M4 |
 
 ## Traversal proof
@@ -50,7 +52,10 @@ Diagnose geometry, graph planning, and movement execution separately. Do not
 teleport actors, skip chunks, widen tolerances to hide failures, or increase
 character/enemy capabilities merely to make reused terrain pass.
 
-Player traversal is required for both starter characters. Ground enemies need
+Player traversal follows progression availability: Éloïse with basic jump in
+Reporting for Duty, the actual earned/equipped skills in later missions, then
+Willow replay after character unlock. Do not equip Double Jump early simply to
+make mission one's imported grove geometry pass. Ground enemies need
 continuous pursuit/reversal checks across the joins they are allowed to use;
 flying enemies and confined bosses need their own behavior-appropriate checks.
 Pursuit tests alone do not prove spawn, combat, resource pacing, camera, objective,
@@ -76,8 +81,37 @@ Exercise successful settlement twice for one run and concurrently for two
 different runs clearing the same mission. Only one first-clear entitlement can
 be consumed. Replayed completions can update a compatible personal best without
 re-granting that entitlement. Content revisions preserve progression but do not
-mix incompatible score records. Receipts/canonical revisions, prerequisites,
-retry recovery, account deletion, and other reward projections remain consistent.
+mix incompatible score records. Also prove two concurrent final-mission results
+unlock Willow once without resetting existing builds, and an already-owned
+Double Jump grant does not multiply rewards. Receipts/canonical revisions,
+prerequisites, retry recovery, account deletion, and other projections remain consistent.
+
+Try selecting/starting locked Willow through runner modes, campaign, saved-build
+restoration, restart, and Training Field, including a stale pre-lock local
+selection. Merely hiding a character card cannot satisfy the gate. Verify the
+chosen old-profile/old-ticket compatibility policy and retention of inventory,
+builds, XP, and accepted history. Local developer access stays isolated.
+
+Use the actual campaign XP policy for the intended four first clears and assert
+224 total XP, level 3, and zero XP into that level from a fresh account. Test
+repeat/failure/skipped optional collection separately against the documented policy;
+do not imply they must finish at the same total. Existing XP is additive and never
+capped/reset to the tutorial target. Assert no automatic level-5 Build 2 unlock.
+
+## Conversion and encounter-free content
+
+Use runner sources containing actual enemy markers, not only empty fixtures.
+Copy to Campaign with combat stripped, verify no enemy/rescue/boss/automatic spawn
+appears over the whole forward-and-return route, and confirm the original source
+bytes and runner behavior remain unchanged. Verify retained hazards separately.
+
+Edit the copied layout and prove the source layout remains independent; document
+the shared prefab/material dependencies. Copy back to Runner, remap destination
+IDs/references, choose a valid group/tier, and inspect the report for mission-only
+data that cannot transfer. Compare supported geometry/scenery without relying on
+identical IDs. Invalid seams/unsupported metadata remain drafts or clear failures,
+never silently admitted pool members. Failed Save, identity collision, Undo, and
+source drift must preserve the original and recover the new draft predictably.
 
 ## Focused commands and existing starting points
 

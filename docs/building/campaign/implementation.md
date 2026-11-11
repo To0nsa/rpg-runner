@@ -25,18 +25,24 @@ Dependencies: source inspection and confirmed requirements in this folder.
 
 - [x] Record requested experience, bidirectional movement, current limitations,
   proposed scope, ownership, and dependency order in one planning folder.
+- [x] Incorporate the user's post-Le feu de joie cultist premise, encounter-free
+  arrival mission, manual layout ownership, Double Jump/Willow unlocks, level-3
+  XP target, and bidirectional chunk-copy converter requirement.
 - [ ] Recheck current source/worktree and trace all forward-camera lifetime
   assumptions and run mode/outcome producer-consumer boundaries.
 - [ ] Settle chapter/mission/occurrence identities, schema, source ownership,
-  campaign-only variant admission, inclusion rules, and dependency fingerprint.
+  campaign-only variant admission, two-way conversion semantics, inclusion rules,
+  no-encounter admission, and dependency fingerprint.
 - [ ] Specify finite bounds, camera follow, terrain residency, actor activation,
   lifetime/timer semantics, objective ordering, and successful terminal outcome.
 - [ ] Specify mode/ticket/replay/result/account fields and compatibility, including
   mission identity versus existing `levelId`, digests, versions, and old records.
-- [ ] Record the trusted reward-policy projection and account/mission entitlement
-  model; enumerate projections that admit or exclude campaign results.
+- [ ] Record trusted gold/XP/ability/character reward projections and mission/chapter
+  entitlements, Willow availability across modes, and existing-account/ticket
+  compatibility; enumerate other eligible projections. Target 224 first-pass XP.
 - [ ] Define the small mission fixture, supported size/performance targets, and
-  exact behavior checks before implementing the shared contracts.
+  exact behavior checks before implementing the shared contracts. The fixture is
+  separate from the user's encounter-free Reporting for Duty layout.
 
 Acceptance: each invariant has one owner; no unresolved identity, lifetime, or
 wire assumption forces a contradictory M1 implementation. Reward amounts and
@@ -61,8 +67,10 @@ and validator wherever shared outcomes/replays change. Depends on M0.
 - [ ] Integrate affected shared event/recording/result consumers and demonstrate
   replay parity through the validator's production simulation path with trusted
   local fixtures. Authenticated issuance/settlement remains M3.
-- [ ] Validate both starter characters, return-path navigation, same-tick terminal
-  ordering, repeated chunk occurrences, and no duplicated enemies/items/score.
+- [ ] Validate Éloïse's basic-jump traversal and explicitly unlocked local Willow
+  regression cases, return-path navigation, same-tick terminal ordering, repeated
+  chunk occurrences, and no duplicated enemies/items/score. Cover encounter-free
+  admission using source chunks that originally contain enemies.
 - [ ] Measure initial terrain preparation, return travel, frame/tick costs, and
   memory against the declared small-route budget; record residency decision.
 - [ ] Update implemented simulation/output documentation and relevant embedding
@@ -82,6 +90,10 @@ needed. Depends on the M1 production mission path.
   revision/history, transactional Save, and source/dependency drift handling.
 - [ ] Add exact route ordering, occurrence IDs, continuous preview, source reuse,
   where-used impact, and explicit shared-source/variant workflows.
+- [ ] Add Copy to Campaign / Copy to Runner with fresh identities, source
+  preservation, destination owner/group/tier/usage, encounter-free copying,
+  adaptation reports, transactional Save, and destination validation. Prove
+  supported layout round-trip fidelity without silently dropping metadata.
 - [ ] Add start/exit/objective authoring, mission settings, and chapter prerequisite
   controls using existing geometry and presentation components.
 - [ ] Validate source references, inclusion, bounds, actual seams, target ownership,
@@ -92,6 +104,9 @@ needed. Depends on the M1 production mission path.
   applicable navigation preparation; keep generated artifacts generated.
 - [ ] Recreate and modify the M1 mission entirely through the editor, including a
   variant and a repaired return-path seam, then save/reopen/play/build it.
+- [ ] Provide the user with the workflow to copy Forest rocky_grove easy/normal
+  layouts and trainingcamp layouts into the first mission. Do not select or
+  author their production route as part of the tooling milestone.
 - [ ] Update implemented editor/content pipeline documentation and instructions
   only where ownership changes.
 
@@ -110,12 +125,21 @@ contracts. Depends on M1 contracts and M2 compiled catalogue.
 - [ ] Add campaign map, independent Val Outpost access, mission selection/details,
   selected-build launch, results, retry/next/chapter navigation, and recovery UI.
 - [ ] Complete authenticated campaign admission with prerequisite/content/build
-  checks, no board fields, and server-owned mission/reward policy resolution.
+  and character-availability checks, no board fields, and server-owned
+  mission/reward policy resolution. Apply Willow's lock to selection, all run
+  modes, saved-build restoration, restart, and Training Field.
 - [ ] Update all request/ticket/replay/result codecs, repositories, fixtures,
   compatibility/digests, and worker admission as one coherent contract change.
 - [ ] Extend verified settlement and full canonical receipts with mission clears,
   comparable personal bests, chapter progress, once-only first-clear entitlements,
   and explicit repeat/failure rewards.
+- [ ] Grant mission-one Double Jump through existing ability ownership and grant
+  Willow once for four verified clears. Handle already-owned content, concurrent
+  grants, explicit equip/selection UI, and starter initialization without erasing
+  existing builds or equating provisioned gear with character availability.
+- [ ] Define campaign XP distribution totaling 224 on the intended new-account
+  first pass and keep score-derived runner XP from being applied a second time.
+  Reconcile preview/receipt, level gifts, and retained account XP consistently.
 - [ ] Integrate durable submission, pending-progress presentation, response-loss
   recovery, duplicate/concurrent settlement, account switching/deletion, and
   retained-data decoding. Next-mission admission uses canonical progress.
@@ -127,22 +151,28 @@ contracts. Depends on M1 contracts and M2 compiled catalogue.
   exclusions narrowly to reflect finite campaign chapters without claiming an
   open-world or large dialogue campaign.
 
-Acceptance: a new account can open Val Outpost and start mission one; verified
-success grants the configured reward once and unlocks the next mission. Locked
-mission requests, forged outcomes, incompatible content, and duplicate first-clear
-grants are rejected. Existing runner modes retain their behavior.
+Acceptance: a new account starts with Éloïse and sees Willow locked. Mission-one
+success grants Double Jump once and unlocks the next mission; four clears unlock
+Willow once. The intended first pass ends at 224 XP/level 3. Locked mission or
+character requests, forged outcomes, incompatible content, and duplicate grants
+are rejected. Runner rules remain unchanged apart from the deliberate shared
+character-availability gate.
 
 ## M4: Val Outpost chapter and product acceptance
 
-Owners: authored content/editor, game/UI, Core tuning, presentation/localization,
-trusted reward catalogue. Depends on M2 authoring and M3 progression.
+Owners: user-authored level layouts, editor/content integration, game/UI, Core
+tuning, presentation/localization, trusted reward catalogue. Depends on M2
+authoring, M3 progression, and the user's production layouts when available.
 
-- [ ] Finalize three or four missions, stable IDs/order, localized titles and
-  assignments, explicit objectives, prompts, and chunk choices.
-- [ ] Author every mission through the editor with guaranteed teaching encounters,
-  supported return paths, and first-clear/repeat rewards from trusted policies.
-- [ ] Tune both starter characters without purchased skills; ensure contextual
-  prompts match actual loadouts and input devices.
+- [ ] Finalize four mission IDs/order and the three remaining assignments/titles
+  within the cultist premise; keep Reporting for Duty's arrival objective and
+  explicit absence of encounters. Localize text/prompts without inventing canon.
+- [ ] Integrate and validate the user's editor-authored layouts when provided,
+  including supported return paths and mission/chapter reward policies. Exact
+  chunk selection and geometry remain the user's responsibility.
+- [ ] Verify Reporting for Duty with Éloïse's basic jump, earned Double Jump for
+  later missions where needed, and post-unlock Willow replay. Contextual prompts
+  must match actual loadouts/input and require no unearned purchased skill.
 - [ ] Complete chapter-wide player/enemy traversal, encounter, camera, replay,
   score, reward/unlock, localization, accessibility, and performance coverage.
 - [ ] Validate campaign/runner/Training Field regression boundaries and new/returning
@@ -151,8 +181,10 @@ trusted reward catalogue. Depends on M2 authoring and M3 progression.
   acceptance where hardware, sign-in, or backend deployment is unavailable.
 
 Acceptance: the whole introductory chapter is playable, understandable, revisitable,
-and reward-safe. Each mission has its own title, objective, results, rewards, and
-personal best; all intended return routes work with continuous actor state.
+and reward-safe. The user's encounter-free forest arrival and cultist context are
+preserved. Each mission has its own title, objective, results, rewards, and personal
+best; intended return routes work with the character/skills actually available at
+that progression stage. Chapter XP and both unlock milestones match the design.
 
 ## M5: release readiness and authorized rollout
 
@@ -177,14 +209,29 @@ adds planning documents and index links only. No application tests, runtime
 generation, replay simulations, emulator work, or deployment have been performed
 for campaign. Documentation validation is recorded in the task handoff.
 
-Planning validation on the documentation worktree over `1b8a77e2`, from repository
+Initial planning validation on the documentation worktree over `1b8a77e2`, from repository
 root: `git diff --check` passed. An inline `python -` check passed for all six
 campaign documents and the two new index entries: 36 local links/anchors resolved,
 new files had final newlines and no trailing whitespace, and only this file owns
 progress checkboxes. These are local documentation checks, not gameplay evidence.
 
-Completed: planning package and confirmed requirement capture. Next concrete
-action, when implementation is requested: M0 contract/residency audit and the M1
-fixture specification. There are no user-input blockers to planning. Mission
-titles/count, payouts, scoring coefficients, and shared-stat eligibility retain
-their explicit defaults/deadlines in [Experience](experience.md).
+Revision baseline: clean `c45d796f`, November 11, 2026. User decisions now fix the
+four-mission count, post-chapter-3 cultist premise, mission-one forest arrival with
+no encounters, Double Jump reward, Willow chapter unlock, 224-XP/level-3 target,
+manual layout ownership, and runner/campaign chunk copying in both directions.
+This revision still changes planning only; no production layout or character
+availability has been modified.
+
+Revision validation from repository root: `git diff --check` passed; the inline
+`python -` documentation check resolved all 39 local links/anchors across six
+campaign files and two index entries, with valid whitespace/newlines and one
+progress checklist. The level-3 budget is 100 + 124 = 224 XP, checked against
+`functions/src/ownership/player_progress.ts` and the current progression GDD.
+These are documentation/source checks; no gameplay or converter tests ran.
+
+Completed: planning package and updated requirement capture. Next concrete action,
+when implementation is requested: M0 contract/residency/conversion/entitlement audit
+and the M1 fixture specification. Production layouts are not needed for that
+technical work. Remaining decisions are the last three assignments/titles, XP
+split and gold tuning, Willow's separate Double Jump eligibility, and legacy
+availability handling, as described in [Experience](experience.md).

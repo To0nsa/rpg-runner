@@ -1,8 +1,9 @@
 # Documentation
 
 - [Campaign and Val Outpost plan](building/campaign/README.md): finite authored
-  missions, bidirectional movement, editor composition, campaign navigation, and
-  verified progression. Proposed work only; implementation has not started.
+  missions, bidirectional movement, runner/campaign chunk conversion, and campaign
+  navigation. The four-mission chapter plans Double Jump and Willow unlocks with
+  a level-3 XP target. Proposed work only; implementation has not started.
 
 - [Equipment and Training](gdd/town_services.md): permanent character catalogues,
   shared accessories and build comparisons; [technical contract](tdd/town_catalogue.md).
