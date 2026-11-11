@@ -365,10 +365,12 @@ void main() {
     ) async {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+      tester.view.padding = const FakeViewPadding(
+        left: 16,
+        top: 24,
+        bottom: 16,
+      );
+      addTearDown(tester.view.reset);
       final app = _CodexAppState();
       addTearDown(app.dispose);
       await tester.pumpWidget(_app(app, const LibraryPage(), textScale: 1.4));
@@ -376,9 +378,29 @@ void main() {
       await tester.pumpAndSettle();
       final viewer = find.byType(InteractiveViewer);
       expect(viewer, findsOneWidget);
+      final viewport = tester.getRect(viewer);
+      expect(viewport, Offset.zero & size);
+      final artwork = tester.getRect(
+        find.descendant(of: viewer, matching: find.byType(Image)),
+      );
+      expect(artwork.intersect(viewport), viewport);
+      final toolbarBottom = tester.getBottomRight(find.byType(AppBar)).dy;
+      final railRight = tester.getTopRight(find.byTooltip('Locations')).dx;
+      final cityLabel = tester.getRect(find.text('Théodonis'));
+      expect(cityLabel.top, greaterThanOrEqualTo(toolbarBottom));
+      expect(cityLabel.left, greaterThan(railRight));
+      expect(
+        tester.getTopLeft(find.byTooltip('Reset map')).dy,
+        greaterThanOrEqualTo(toolbarBottom),
+      );
       for (final id in [LevelId.field, LevelId.forest]) {
         final marker = find.byKey(ValueKey('codex-level-${id.name}'));
-        expect(tester.getRect(marker).overlaps(tester.getRect(viewer)), isTrue);
+        final bounds = tester.getRect(marker);
+        expect(bounds.left, greaterThan(railRight));
+        expect(bounds.top, greaterThanOrEqualTo(toolbarBottom));
+        expect(bounds.right, lessThanOrEqualTo(viewport.right));
+        expect(bounds.bottom, lessThanOrEqualTo(viewport.bottom - 16));
+        expect(bounds.overlaps(cityLabel), isFalse);
         await tester.tap(marker);
         await tester.pumpAndSettle();
         expect(find.text('Entry locked'), findsOneWidget);
@@ -393,6 +415,16 @@ void main() {
         ..setEntry(0, 0, initial.entry(0, 0) * 1.5)
         ..setEntry(1, 1, initial.entry(1, 1) * 1.5);
       await tester.pump();
+      final zoomed = controller.value.clone();
+      await tester.tap(find.byTooltip('Journal'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Locations'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<InteractiveViewer>(viewer).transformationController,
+        same(controller),
+      );
+      expect(controller.value, zoomed);
       await tester.tap(find.byTooltip('Reset map'));
       await tester.pumpAndSettle();
       expect(controller.value, initial);

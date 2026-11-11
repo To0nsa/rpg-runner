@@ -18,6 +18,7 @@ import '../../state/ownership/enemy_defeats.dart';
 import '../../state/ownership/progression_state.dart';
 import '../../state/presentation/library_progress_tracker.dart';
 import '../../theme/ui_tokens.dart';
+import '../../theme/ui_world_palette.dart';
 import 'codex_entry_page.dart';
 import 'codex_widgets.dart';
 import 'location_map.dart';
@@ -43,56 +44,100 @@ class _LibraryPageState extends State<LibraryPage> {
     );
     final accountKey = '${app.authSession.userId}:${app.profileId}';
     final ui = context.ui;
+    final railWidth = ui.space.lg + ui.sizes.tapTarget + ui.space.xs;
+    final leftInset = MediaQuery.paddingOf(context).left;
+    final readingPadding = EdgeInsets.only(left: railWidth, right: ui.space.lg);
     return MenuScaffold(
       title: context.l10n.libraryTitle(section: _sectionName(_section)),
+      overlayAppBar: true,
       background: ColoredBox(color: ui.colors.background),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: ui.space.lg),
-          child: Row(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          IndexedStack(
+            index: _section.index,
+            sizing: StackFit.expand,
             children: [
-              SingleChildScrollView(
-                child: MenuIconColumn(
-                  actions: [
-                    for (final section in _LibrarySection.values)
-                      MenuIconAction(
-                        icon: switch (section) {
-                          _LibrarySection.bestiary => Icons.pets,
-                          _LibrarySection.locations => Icons.map_outlined,
-                          _LibrarySection.journal =>
-                            Icons.auto_stories_outlined,
-                        },
-                        tooltip: _sectionName(section),
-                        selected: section == _section,
-                        onPressed: () => setState(() => _section = section),
-                      ),
-                  ],
+              SafeArea(
+                child: Padding(
+                  padding: readingPadding,
+                  child: _Bestiary(
+                    defeats: progress.enemyDefeats,
+                    active: _section == _LibrarySection.bestiary,
+                    tracker: app.libraryProgressTracker,
+                    accountKey: accountKey,
+                  ),
                 ),
               ),
-              SizedBox(width: ui.space.xs),
-              Expanded(
-                child: IndexedStack(
-                  index: _section.index,
-                  children: [
-                    _Bestiary(
-                      defeats: progress.enemyDefeats,
-                      active: _section == _LibrarySection.bestiary,
-                      tracker: app.libraryProgressTracker,
-                      accountKey: accountKey,
+              Builder(
+                builder: (context) {
+                  final media = MediaQuery.of(context);
+                  // Reserve the rail for map controls without shrinking the art.
+                  return MediaQuery(
+                    data: media.copyWith(
+                      padding: media.padding.copyWith(
+                        left: media.padding.left + railWidth,
+                      ),
                     ),
-                    _Locations(progress: progress.codex),
-                    CodexReadingView(
-                      title: CodexCatalog.openingTitle(context.l10n),
-                      subtitle: context.l10n.libraryBrand,
-                      paragraphs: [CodexCatalog.opening(context.l10n)],
-                    ),
-                  ],
+                    child: _Locations(progress: progress.codex),
+                  );
+                },
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: readingPadding,
+                  child: CodexReadingView(
+                    title: CodexCatalog.openingTitle(context.l10n),
+                    subtitle: context.l10n.libraryBrand,
+                    paragraphs: [CodexCatalog.opening(context.l10n)],
+                  ),
                 ),
               ),
             ],
           ),
-        ),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: leftInset + railWidth,
+            child: ColoredBox(
+              color: _section == _LibrarySection.locations
+                  ? UiWorldPalette.ash500.withValues(alpha: .72)
+                  : Colors.transparent,
+              child: SafeArea(
+                left: false,
+                right: false,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: leftInset + ui.space.lg,
+                    right: ui.space.xs,
+                  ),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: MenuIconColumn(
+                        actions: [
+                          for (final section in _LibrarySection.values)
+                            MenuIconAction(
+                              icon: switch (section) {
+                                _LibrarySection.bestiary => Icons.pets,
+                                _LibrarySection.locations => Icons.map_outlined,
+                                _LibrarySection.journal =>
+                                  Icons.auto_stories_outlined,
+                              },
+                              tooltip: _sectionName(section),
+                              selected: section == _section,
+                              onPressed: () =>
+                                  setState(() => _section = section),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

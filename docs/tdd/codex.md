@@ -129,13 +129,19 @@ a modal is open. The supplied regional JPEG remains untouched; an unlabelled
 derivative is registered as a Flutter asset. `LocationMap` composes that image
 with a Théodonis label and two interactive targets at normalized map
 coordinates. It uses `InteractiveViewer`, the Town map's `MapCallout`, and the
-shared unframed `MapLabelButton` for pan, zoom and anchored labels. The initial
-framing keeps both locations visible; portrait view fits the full map. The
-modal reuses the location reading surface and its live unlock gate.
+shared unframed `MapLabelButton` for pan, zoom and anchored labels. The artwork
+fills the screen behind the transparent app bar and a translucent grey icon
+rail, cropping edges when needed. Initial location labels and reset respect
+the toolbar, rail and system insets; geographic pins retain image coordinates.
+The noninteractive Théodonis label also uses a callout to clear the toolbar.
+Panning reveals cropped areas, and reset restores the initial framing.
+The modal reuses the location reading surface and its live unlock gate.
 Entry details and lists scroll; Library and `HubMenuIconColumn` share
 `MenuIconColumn`, which owns the icon-only `AppIconButton` sizing and spacing.
-Library retains section scroll state and exposes selection through semantics
-and the app-bar title (`Library · Bestiary`, `Library · Locations`, or
+Library keeps all sections mounted at a stable viewport size behind the overlay
+app bar; Bestiary and Journal inset their reading content below it. Switching
+sections retains scroll and map transforms. Library exposes selection through
+semantics and the app-bar title (`Library · Bestiary`, `Library · Locations`, or
 `Library · Journal`). Bestiary has no category filter. All widths use
 tooltip-labelled icons. Returning from Store
 or Library returns to the map.

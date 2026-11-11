@@ -62,26 +62,12 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
     return Size(width, width / LocationMap.aspectRatio);
   }
 
-  double get _fitScale => math.min(
-    widget.viewport.width / _scene.width,
-    widget.viewport.height / _scene.height,
-  );
-
   Matrix4 get _initialTransform {
     final scene = _scene;
-    final scale = widget.viewport.width < widget.viewport.height
-        ? _fitScale
-        : 1.0;
-    final x = (widget.viewport.width - scene.width * scale) / 2;
-    final centeredY = (widget.viewport.height - scene.height * scale) / 2;
-    final focusY = widget.viewport.height / 2 - scene.height * .39 * scale;
-    final y = scale == 1
-        ? focusY.clamp(widget.viewport.height - scene.height, 0.0)
-        : centeredY;
-    return Matrix4.identity()
-      ..setEntry(0, 0, scale)
-      ..setEntry(1, 1, scale)
-      ..setTranslationRaw(x, y, 0);
+    final x = (widget.viewport.width - scene.width) / 2;
+    final focusY = widget.viewport.height / 2 - scene.height * .39;
+    final y = focusY.clamp(widget.viewport.height - scene.height, 0.0);
+    return Matrix4.identity()..setTranslationRaw(x, y, 0);
   }
 
   @override
@@ -109,6 +95,19 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
     final ui = context.ui;
     final scene = _scene;
     Offset at(double x, double y) => Offset(scene.width * x, scene.height * y);
+    final initial = _initialTransform;
+    // Keep initial labels outside the toolbar and navigation rail; their pins
+    // retain image coordinates and can be revealed by panning cropped edges.
+    final visibleMap = MediaQuery.paddingOf(context)
+        .deflateRect(
+          Rect.fromLTWH(
+            -initial.storage[12],
+            -initial.storage[13],
+            widget.viewport.width,
+            widget.viewport.height,
+          ),
+        )
+        .deflate(ui.space.xs);
 
     return ColoredBox(
       color: ui.colors.background,
@@ -119,7 +118,7 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
             transformationController: _transform,
             constrained: false,
             alignment: Alignment.topLeft,
-            minScale: _fitScale,
+            minScale: 1,
             maxScale: 3,
             child: SizedBox(
               width: scene.width,
@@ -134,10 +133,20 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
                     errorBuilder: (_, _, _) =>
                         ColoredBox(color: ui.colors.background),
                   ),
-                  _MapLabel(
-                    center: at(.16, .145),
-                    text: context.l10n.townName,
-                    width: 160,
+                  MapCallout(
+                    anchor: at(.16, .145),
+                    labelCenter: at(.16, .35),
+                    visibleMap: visibleMap,
+                    child: IgnorePointer(
+                      child: SizedBox(
+                        width: 160,
+                        height: 36,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: _MapText(context.l10n.townName, size: 20),
+                        ),
+                      ),
+                    ),
                   ),
                   for (final place in [
                     (LevelId.field, at(.34, .145), at(.43, .22)),
@@ -146,7 +155,7 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
                     MapCallout(
                       anchor: place.$2,
                       labelCenter: place.$3,
-                      visibleMap: Offset.zero & scene,
+                      visibleMap: visibleMap,
                       child: MapLabelButton(
                         key: ValueKey('codex-level-${place.$1.name}'),
                         label: CodexCatalog.levelName(place.$1, context.l10n),
@@ -193,13 +202,15 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
           Positioned(
             right: ui.space.xs,
             top: ui.space.xs,
-            child: IconButton(
-              tooltip: context.l10n.uiResetMap,
-              onPressed: () => _transform.value = _initialTransform,
-              icon: const Icon(
-                Icons.center_focus_strong,
-                color: UiWorldPalette.mist200,
-                shadows: mapLabelShadows,
+            child: SafeArea(
+              child: IconButton(
+                tooltip: context.l10n.uiResetMap,
+                onPressed: () => _transform.value = _initialTransform,
+                icon: const Icon(
+                  Icons.center_focus_strong,
+                  color: UiWorldPalette.mist200,
+                  shadows: mapLabelShadows,
+                ),
               ),
             ),
           ),
@@ -207,29 +218,6 @@ class _LocationMapViewportState extends State<_LocationMapViewport> {
       ),
     );
   }
-}
-
-class _MapLabel extends StatelessWidget {
-  const _MapLabel({
-    required this.center,
-    required this.text,
-    required this.width,
-  });
-
-  final Offset center;
-  final String text;
-  final double width;
-
-  @override
-  Widget build(BuildContext context) => Positioned(
-    left: center.dx - width / 2,
-    top: center.dy - 18,
-    width: width,
-    height: 36,
-    child: IgnorePointer(
-      child: FittedBox(fit: BoxFit.scaleDown, child: _MapText(text, size: 20)),
-    ),
-  );
 }
 
 class _MapText extends StatelessWidget {

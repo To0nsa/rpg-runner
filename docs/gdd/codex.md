@@ -57,8 +57,12 @@ the Library is closed or another section is shown. On an unlock, the count
 changes to "Open" when the fill reaches the requirement. The same increase
 does not replay; already presented unlocked bars show "Open" immediately on
 later visits. Unlocked cards show an idle enemy portrait and name.
-Locations show an unlabelled map of the Théodonis region. Only Théodonis and
-the two discoverable locations have Flutter labels. Léonards’ farm and Val
+Locations show an unlabelled map of the Théodonis region across the entire
+screen, including behind the transparent AppBar. A translucent grey strip
+backs the left navigation icons. The map crops to fill the screen; dragging
+reveals its edges, and the location buttons start clear of the toolbar and rail.
+Only Théodonis and the two discoverable locations have Flutter labels, with
+lines to their map positions. Léonards’ farm and Val
 Outpost have clickable map labels and markers. Their icons show locked or open
 status; tapping either opens a modal with the current Competitive best score
 and discovery requirement, or the full location lore after unlock. The map can
