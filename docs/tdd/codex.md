@@ -128,8 +128,8 @@ Locations read the canonical Competitive best score directly, including while
 a modal is open. The supplied regional JPEG remains untouched; an unlabelled
 derivative is registered as a Flutter asset. `LocationMap` composes that image
 with a Théodonis label and two interactive targets at normalized map
-coordinates. It uses `InteractiveViewer`, the Town map's `MapCallout`, and the
-shared unframed `MapLabelButton` for pan, zoom and anchored labels. The artwork
+coordinates. It uses the shared `MapViewport`, `MapCallout`, and unframed
+`MapLabelButton` for pan, zoom and anchored labels. The artwork
 fills the screen behind the transparent app bar and icon rail, cropping edges
 when needed. Initial location labels and reset respect the toolbar, rail and
 system insets; geographic pins retain image coordinates.
@@ -164,6 +164,22 @@ combat/lore sections appear only inside the unlocked parent page. Direct
 construction with a summon ID resolves to the parent page and gate. Stored
 summon kill totals remain compatible evidence but are not independent unlocks.
 Moving the kill map out of Codex does not change kill credit or summon gates.
+
+## Shared map viewport
+
+Town, Library Locations and Campaign use `components/map_viewport.dart` for
+aspect-preserving full-screen artwork, pan/zoom, the reset control and controller
+lifetime. Each map supplies its asset, aspect ratio, initial focus and overlay
+builder; Town also caps decode width at 2048 pixels. The builder receives the
+viewport and scene sizes plus the initial safe viewport in scene coordinates.
+Toolbar, navigation rail and system insets constrain labels without moving pins
+or insetting the artwork. `MapCallout` and `MapLabelButton` live in `components/`.
+
+Town and Campaign center the artwork; Library centers the image point
+`(0.5, 0.39)`, clamped to the image bounds. Reset and viewport/artwork/framing
+changes restore that initial crop. Progress, labels, locale and Library section
+changes retain the current transform. Map-specific markers, layout, accessibility,
+unlock checks and navigation callbacks remain owned by their respective screens.
 
 ## City map asset
 

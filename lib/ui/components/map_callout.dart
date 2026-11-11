@@ -1,7 +1,7 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../theme/ui_world_palette.dart';
+import '../theme/ui_world_palette.dart';
 
 /// Places a label and routes its leader using the child's actual layout bounds.
 /// Keeping both in one render object avoids delayed measurements after font,

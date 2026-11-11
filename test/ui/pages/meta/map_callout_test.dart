@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rpg_runner/ui/pages/town/map_callout.dart';
+import 'package:rpg_runner/ui/components/map_callout.dart';
 
 void main() {
   testWidgets('leaders meet measured label edges without crossing the label', (

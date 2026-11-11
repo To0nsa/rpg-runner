@@ -220,10 +220,10 @@ records no replay, and grants no account progress.
 ## Campaign map presentation
 
 `CampaignPage` overlays its transparent toolbar only while the regional map is
-open. `CampaignRegionalMap` preserves the artwork's aspect ratio while covering
-the viewport, using an unconstrained `InteractiveViewer` for pan and zoom.
-Resize and reset restore the centered crop. Shared `MapCallout` and
-`MapLabelButton` controls bind the generated chapter coordinates to labels kept
+open. `CampaignRegionalMap` uses the same `MapViewport` as Town and Library
+Locations for aspect-preserving full-screen artwork, pan/zoom, reset and
+controller lifetime. Resize and reset restore the centered crop. Shared
+`MapCallout` and `MapLabelButton` controls bind chapter coordinates to labels kept
 inside the initial toolbar/system-safe area. Chapter selection and Back retain
 the existing mission-list flow; the list uses the normal inset menu layout.
 
