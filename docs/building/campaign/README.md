@@ -4,6 +4,10 @@ Status: campaign systems implemented locally November 11, 2026. See the
 [current contract](../../tdd/campaign_runtime.md), [game behavior](../../gdd/campaign.md)
 and [acceptance checklist](implementation.md). The user owns production layouts;
 all four remain excluded drafts. Deployment and account resets are not authorized.
+The [visual marker follow-up](implementation.md#m2-follow-up-visual-marker-authoring)
+plans Chunk Creator-style placement tools and occurrence-local gameplay content;
+it is not implemented yet and supersedes the earlier chunk-variant-only approach
+for these placements in the supporting authoring proposal.
 
 ## Outcome
 
@@ -115,6 +119,7 @@ adds that ownership/admission work rather than treating a disabled UI card as a 
 
 ## Next action
 
-When implementation is requested, start M0 in the [implementation checklist](implementation.md):
-settle the source/wire contracts and finite-world lifetime policy, then build the
-small return-trip test fixture before integrating the user's authored missions.
+Start V1 in the [visual marker follow-up](implementation.md#m2-follow-up-visual-marker-authoring):
+settle occurrence placement identity and source compatibility, then prove two
+uses of the same chunk can compile different content. Existing platform milestones
+are complete; production-layout, device and release acceptance remain open.

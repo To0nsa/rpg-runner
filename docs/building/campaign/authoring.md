@@ -5,6 +5,11 @@ Status: design reference for the implemented campaign platform. The
 [game behavior](../../gdd/campaign.md) supersede tentative choices below.
 The [single checklist](implementation.md) records local evidence and remaining
 production-layout/device acceptance; this document is not a second task ledger.
+The November 11 [visual marker follow-up](implementation.md#m2-follow-up-visual-marker-authoring)
+supersedes the chunk-variant-only placement guidance below: it plans typed,
+occurrence-local gameplay placements edited directly in Campaign. Base terrain
+remains shared chunk content. Follow that checklist for the new scope; the
+remaining proposal below records the original platform design.
 
 ## Source organization
 

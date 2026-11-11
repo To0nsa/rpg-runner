@@ -1,13 +1,11 @@
 # Current Implementation Plans
 
-- [Campaign and Val Outpost](campaign/README.md): planned finite missions with
-  bidirectional movement, two-way chunk conversion, user-authored routes, campaign
-  map, and verified progression. The post-Le feu de joie chapter starts with an
-  encounter-free arrival, awards Double Jump, unlocks Willow after four missions,
-  and targets level 3. Finite selection/residency and bidirectional camera
-  primitives are implemented; they are not yet a playable campaign session.
-  Next: settle shared contracts and the finite-world lifetime policy, then prove
-  one playable return-trip mission using the single linked checklist.
+- [Campaign and Val Outpost](campaign/README.md): finite missions, bidirectional
+  movement, chunk conversion, campaign menus and verified progression are
+  implemented locally. Next: [visual marker authoring](campaign/implementation.md#m2-follow-up-visual-marker-authoring)
+  with Chunk Creator-style tools and occurrence-local enemies, traps, rescues,
+  coins, restoration gems and blessing shrines. Production layouts, device
+  acceptance and authorized release remain open in the same checklist.
 
 - [Equipment and Training town services](town_services.md): permanent catalogues,
   independent character browsing and protected purchases. Implementation, dev
