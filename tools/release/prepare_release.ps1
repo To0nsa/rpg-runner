@@ -59,6 +59,7 @@ function Invoke-ReleaseComponent {
       Invoke-ReleaseCommand $probe @() $directory $log | Out-Null
     }
     "content-freshness" {
+      Invoke-ReleaseCommand dart @("run", "tool/generate_backend_catalog.dart", "--check") $Root $log | Out-Null
       Invoke-ReleaseCommand dart @("run", "packages/runner_core/tool/update_navigation_revision.dart", "--check") $Root $log | Out-Null
       Invoke-ReleaseCommand dart @("run", "tool/generate_chunk_runtime_data.dart", "--dry-run") $Root $log | Out-Null
     }

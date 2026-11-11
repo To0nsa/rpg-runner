@@ -11,6 +11,9 @@ probes. Run them from the repository root after root workspace resolution.
   failure must return a nonzero exit code without partial publication.
 - `generate_chunk_runtime_data.dart` owns the runtime source outputs. Update
   sources and regenerate; never hand-patch its output. Inspect the whole generated diff.
+- `generate_backend_catalog.dart` exports Core item/skill identities, equipment
+  eligibility and equivalent starter data to Functions. Its `--check` is
+  read-only; keep prices, grants and account authorization out of the export.
 - Keep migrations explicit and test-backed. Normal loading never upgrades source
   silently. Avoid adding a second build/export authority alongside the editor.
 - Probes/benchmarks must declare their inputs and limits. Live cloud or device

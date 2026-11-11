@@ -9,43 +9,16 @@ import type {
 import { normalizeProgressionStore } from "./store_state.js";
 import { initialPlayerProgress } from "./player_progress.js";
 import { initialCodexProgress, initialEnemyDefeats } from "./run_discoveries.js";
-import { knownCharacterIds, hunterGear, hunterStarterLoadout, hunterStarterOwnership } from "./character_catalog.js";
+import { knownCharacterIds } from "./character_catalog.js";
+import { coreAbilitySlots, coreGearSlots, coreStarterLoadouts, coreStarterMeta } from "./core_catalog.generated.js";
 
 export { knownCharacterIds } from "./character_catalog.js";
 export type KnownCharacterId = (typeof knownCharacterIds)[number];
 
-export const knownAbilitySlots = [
-  "primary",
-  "secondary",
-  "projectile",
-  "mobility",
-  "spell",
-  "jump",
-] as const;
+export const knownAbilitySlots = coreAbilitySlots;
 export type KnownAbilitySlot = (typeof knownAbilitySlots)[number];
-
-export const knownGearSlots = [
-  "mainWeapon",
-  "offhandWeapon",
-  "spellBook",
-  "accessory",
-] as const;
+export const knownGearSlots = coreGearSlots;
 export type KnownGearSlot = (typeof knownGearSlots)[number];
-
-const starterLoadout: JsonObject = {
-  mask: 7,
-  mainWeaponId: "plainsteel",
-  offhandWeaponId: "roadguard",
-  spellBookId: "apprenticePrimer",
-  projectileSlotSpellId: "acidBolt",
-  accessoryId: "strengthBelt",
-  abilityPrimaryId: "eloise.seeker_slash",
-  abilitySecondaryId: "eloise.shield_block",
-  abilityProjectileId: "eloise.snap_shot",
-  abilitySpellId: "eloise.arcane_haste",
-  abilityMobilityId: "eloise.dash",
-  abilityJumpId: "eloise.jump",
-};
 
 export function starterSelection(): JsonObject {
   return {
@@ -58,44 +31,14 @@ export function starterSelection(): JsonObject {
       selectedBuildIndex: 0,
       builds: buildUnlockLevels.map((_, index) => ({
         name: `Build ${index + 1}`,
-        loadout: structuredClone(id === "bountyHunter" ? hunterStarterLoadout : starterLoadout),
+        loadout: structuredClone(coreStarterLoadouts[id]),
       })),
     }])),
   };
 }
 
 export function starterMeta(): JsonObject {
-  return structuredClone({
-    schemaVersion: 3,
-    inventory: {
-      weapons: ["plainsteel", "roadguard", "hunterBlade", "hunterBombKit"],
-      spellBooks: ["apprenticePrimer", "hunterFieldKit"],
-      accessories: ["strengthBelt"],
-    },
-    equippedByCharacter: {
-      bountyHunter: hunterGear,
-      eloise: {
-        mainWeaponId: "plainsteel",
-        offhandWeaponId: "roadguard",
-        spellBookId: "apprenticePrimer",
-        accessoryId: "strengthBelt",
-      },
-    },
-    abilityOwnershipByCharacter: {
-      bountyHunter: hunterStarterOwnership,
-      eloise: {
-        projectileSpells: ["acidBolt", "holyBolt"],
-        abilitiesBySlot: {
-          primary: ["eloise.seeker_slash"],
-          secondary: ["eloise.shield_block"],
-          projectile: ["eloise.snap_shot"],
-          mobility: ["eloise.dash"],
-          spell: ["eloise.arcane_haste", "eloise.focus"],
-          jump: ["eloise.jump"],
-        },
-      },
-    },
-  } satisfies JsonObject);
+  return structuredClone(coreStarterMeta);
 }
 
 export function starterProgression(args: {

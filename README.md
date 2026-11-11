@@ -224,6 +224,32 @@ Run integration benchmark test:
 flutter drive --driver=test_driver/integration_test.dart --target=test/integration_test/core-fixed-point/core_fixed_point_benchmark_test.dart -d <deviceId> --profile
 ```
 
+## Generate the backend item and skill catalogue
+
+After changing existing Core item/ability catalogues or character equipment
+policies, run from the resolved root workspace:
+
+```powershell
+dart run tool/generate_backend_catalog.dart
+dart run tool/generate_backend_catalog.dart --check
+corepack pnpm functions:build
+```
+
+Commit the generated `functions/src/ownership/core_catalog.generated.ts` with
+its Core sources. The exporter owns identities, slots, eligibility and equivalent
+Core starter data; backend prices, purchase/reward policies and transactions stay
+in Functions. Add names/icons through the existing `game_presentation` mappings.
+Existing categories need no TypeScript ID/slot/character lists. New categories
+still need explicit backend support. See the
+[catalogue contract](docs/tdd/town_catalogue.md#core-catalogue-projection).
+
+Run `flutter test --no-pub test/tool/generate_backend_catalog_test.dart` to check
+Core parity, determinism, stale-output failures and gift-hash compatibility.
+Release/CI content freshness checks the generated module. The direct Functions
+package build remains Node-only for isolated cloud packaging. After an intentional
+catalogue change, build Functions and regenerate the Admin/town fixtures through
+their existing exporters; review any activation hash change before release.
+
 ## Test Level Traversal
 
 Run the reusable enemy traversal suite from the repository root:

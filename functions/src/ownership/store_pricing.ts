@@ -1,5 +1,4 @@
-import { playerEquippableProjectileIds } from "./projectile_spells.js";
-import { hunterAbilitiesBySlot, hunterBlades, hunterBombKits, hunterFieldKits } from "./character_catalog.js";
+import { coreCatalog, coreGearSlots, coreAbilitySlots } from "./core_catalog.generated.js";
 
 export const defaultPriceGold = 150;
 
@@ -17,18 +16,7 @@ export type StoreBucket = (typeof storeBuckets)[number];
 export const storeDomains = ["gear", "projectileSpell", "ability"] as const;
 export type StoreDomain = (typeof storeDomains)[number];
 
-export const storeSlots = [
-  "mainWeapon",
-  "offhandWeapon",
-  "spellBook",
-  "accessory",
-  "primary",
-  "secondary",
-  "projectile",
-  "mobility",
-  "jump",
-  "spell",
-] as const;
+export const storeSlots = [...coreGearSlots, ...coreAbilitySlots] as const;
 export type StoreSlot = (typeof storeSlots)[number];
 
 export const storeRefreshMethods = ["gold", "rewardedAd"] as const;
@@ -41,81 +29,17 @@ export interface StoreOfferDefinition {
   itemId: string;
 }
 
-export const storeOfferDefinitions: readonly StoreOfferDefinition[] = [
-  ...hunterBlades.map((itemId): StoreOfferDefinition => ({ bucket: "sword", domain: "gear", slot: "mainWeapon", itemId })),
-  ...hunterBombKits.map((itemId): StoreOfferDefinition => ({ bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId })),
-  ...hunterFieldKits.map((itemId): StoreOfferDefinition => ({ bucket: "spellBook", domain: "gear", slot: "spellBook", itemId })),
-  ...Object.entries(hunterAbilitiesBySlot).flatMap(([slot, names]) =>
-    names.map((name): StoreOfferDefinition => ({
-      bucket: slot === "spell" ? "spell" : "ability", domain: "ability",
-      slot: slot as StoreSlot, itemId: `bounty_hunter.${name}`,
-    }))),
-  // Swords.
-  { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "plainsteel" },
-  { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "waspfang" },
-  { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "cinderedge" },
-  { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "basiliskKiss" },
-  { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "frostbrand" },
-  { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "stormneedle" },
-  { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "nullblade" },
-  { bucket: "sword", domain: "gear", slot: "mainWeapon", itemId: "sunlitVow" },
-  // Shields.
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "roadguard" },
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "thornbark" },
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "cinderWard" },
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "tideguardShell" },
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "frostlockBuckler" },
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "ironBastion" },
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "stormAegis" },
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "nullPrism" },
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "warbannerGuard" },
-  { bucket: "shield", domain: "gear", slot: "offhandWeapon", itemId: "oathwallRelic" },
-  // Accessories.
-  { bucket: "accessory", domain: "gear", slot: "accessory", itemId: "speedBoots" },
-  { bucket: "accessory", domain: "gear", slot: "accessory", itemId: "goldenRing" },
-  { bucket: "accessory", domain: "gear", slot: "accessory", itemId: "teethNecklace" },
-  { bucket: "accessory", domain: "gear", slot: "accessory", itemId: "diamondRing" },
-  { bucket: "accessory", domain: "gear", slot: "accessory", itemId: "ironBoots" },
-  { bucket: "accessory", domain: "gear", slot: "accessory", itemId: "oathBeads" },
-  { bucket: "accessory", domain: "gear", slot: "accessory", itemId: "resilienceCape" },
-  { bucket: "accessory", domain: "gear", slot: "accessory", itemId: "strengthBelt" },
-  // Spellbooks.
-  { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "apprenticePrimer" },
-  { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "bastionCodex" },
-  { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "emberGrimoire" },
-  { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "tideAlmanac" },
-  { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "hexboundLexicon" },
-  { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "galeFolio" },
-  { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "nullTestament" },
-  { bucket: "spellBook", domain: "gear", slot: "spellBook", itemId: "crownOfFocus" },
-  // Projectile spells share the learn/equip allowlist.
-  ...playerEquippableProjectileIds.map((itemId): StoreOfferDefinition => ({
-    bucket: "projectileSpell", domain: "projectileSpell", slot: "projectile", itemId,
-  })),
-  // Spell-slot abilities.
-  { bucket: "spell", domain: "ability", slot: "spell", itemId: "eloise.arcane_haste" },
-  { bucket: "spell", domain: "ability", slot: "spell", itemId: "eloise.focus" },
-  { bucket: "spell", domain: "ability", slot: "spell", itemId: "eloise.arcane_ward" },
-  { bucket: "spell", domain: "ability", slot: "spell", itemId: "eloise.cleanse" },
-  { bucket: "spell", domain: "ability", slot: "spell", itemId: "eloise.vital_surge" },
-  { bucket: "spell", domain: "ability", slot: "spell", itemId: "eloise.mana_infusion" },
-  { bucket: "spell", domain: "ability", slot: "spell", itemId: "eloise.second_wind" },
-  // Non-spell abilities.
-  { bucket: "ability", domain: "ability", slot: "primary", itemId: "eloise.bloodletter_slash" },
-  { bucket: "ability", domain: "ability", slot: "primary", itemId: "eloise.bloodletter_cleave" },
-  { bucket: "ability", domain: "ability", slot: "primary", itemId: "eloise.seeker_slash" },
-  { bucket: "ability", domain: "ability", slot: "secondary", itemId: "eloise.aegis_riposte" },
-  { bucket: "ability", domain: "ability", slot: "secondary", itemId: "eloise.shield_block" },
-  { bucket: "ability", domain: "ability", slot: "projectile", itemId: "eloise.snap_shot" },
-  { bucket: "ability", domain: "ability", slot: "projectile", itemId: "eloise.quick_shot" },
-  { bucket: "ability", domain: "ability", slot: "projectile", itemId: "eloise.skewer_shot" },
-  { bucket: "ability", domain: "ability", slot: "projectile", itemId: "eloise.overcharge_shot" },
-  { bucket: "ability", domain: "ability", slot: "mobility", itemId: "eloise.dash" },
-  { bucket: "ability", domain: "ability", slot: "mobility", itemId: "eloise.double_dash" },
-  { bucket: "ability", domain: "ability", slot: "mobility", itemId: "eloise.roll" },
-  { bucket: "ability", domain: "ability", slot: "jump", itemId: "eloise.jump" },
-  { bucket: "ability", domain: "ability", slot: "jump", itemId: "eloise.double_jump" },
-];
+// Buckets and prices are backend economy policy; membership comes only from Core.
+const gearBuckets = {
+  mainWeapon: "sword", offhandWeapon: "shield", spellBook: "spellBook", accessory: "accessory",
+} as const;
+export const storeOfferDefinitions: readonly StoreOfferDefinition[] = coreCatalog.map(
+  ({ domain, slot, itemId }): StoreOfferDefinition => ({
+    bucket: domain === "gear" ? gearBuckets[slot] :
+      domain === "projectileSpell" ? "projectileSpell" : slot === "spell" ? "spell" : "ability",
+    domain, slot, itemId,
+  }),
+);
 
 const storeDefinitionsByBucket = new Map<StoreBucket, StoreOfferDefinition[]>();
 for (const bucket of storeBuckets) {

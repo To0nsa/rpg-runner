@@ -36,48 +36,46 @@ class AbilityCatalog implements AbilityResolver {
   ///
   /// Keys should remain stable because they are referenced by loadouts, tests,
   /// and persisted run/telemetry data.
-  static final Map<AbilityKey, AbilityDef> abilities =
-      Map<AbilityKey, AbilityDef>.unmodifiable(<AbilityKey, AbilityDef>{
-        ...unocoAbilityDefs,
-        ...derfAbilityDefs,
-        ...bringerAbilityDefs,
-        ...voidbornGoddessAbilityDefs,
-        ...shoggothAbilityDefs,
-        ...voidcallerAbilityDefs,
-        ...shoggothMinionAbilityDefs,
-        ...voidTentacleAbilityDefs,
-        ...grojibAbilityDefs,
-        ...hashashAbilityDefs,
-        ...eloiseAbilityDefs,
-        ...bountyHunterAbilityDefs,
-        ...npcAbilityDefs,
-      });
+  static final Map<AbilityKey, AbilityDef> abilities = _buildAbilities();
 
-  static final bool _integrityChecked = _validateIntegrity();
-
-  static bool _validateIntegrity() {
-    assert(() {
-      final seenIds = <AbilityKey>{};
-      for (final entry in abilities.entries) {
-        final key = entry.key;
-        final def = entry.value;
-        if (key != def.id) {
+  static Map<AbilityKey, AbilityDef> _buildAbilities() {
+    final result = <AbilityKey, AbilityDef>{};
+    // Validate before merging: map spreads would silently replace duplicate IDs.
+    // This must also hold in release/AOT and repository generation without asserts.
+    for (final source in [
+      unocoAbilityDefs,
+      derfAbilityDefs,
+      bringerAbilityDefs,
+      voidbornGoddessAbilityDefs,
+      shoggothAbilityDefs,
+      voidcallerAbilityDefs,
+      shoggothMinionAbilityDefs,
+      voidTentacleAbilityDefs,
+      grojibAbilityDefs,
+      hashashAbilityDefs,
+      eloiseAbilityDefs,
+      bountyHunterAbilityDefs,
+      npcAbilityDefs,
+    ]) {
+      for (final entry in source.entries) {
+        if (entry.key != entry.value.id) {
           throw StateError(
-            'AbilityCatalog key "$key" does not match AbilityDef.id "${def.id}".',
+            'AbilityCatalog key "${entry.key}" does not match AbilityDef.id "${entry.value.id}".',
           );
         }
-        if (!seenIds.add(def.id)) {
-          throw StateError('Duplicate AbilityDef.id "${def.id}" in catalog.');
+        if (result.containsKey(entry.key)) {
+          throw StateError(
+            'Duplicate AbilityDef.id "${entry.key}" in catalog.',
+          );
         }
+        result[entry.key] = entry.value;
       }
-      return true;
-    }());
-    return true;
+    }
+    return Map<AbilityKey, AbilityDef>.unmodifiable(result);
   }
 
   @override
   AbilityDef? resolve(AbilityKey key) {
-    assert(_integrityChecked);
     return abilities[key];
   }
 }

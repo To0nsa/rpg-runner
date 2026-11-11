@@ -3,12 +3,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { applyOwnershipCommand } from "../../src/ownership/apply_command.js";
 import { starterCanonicalState } from "../../src/ownership/defaults.js";
-import { hunterAbilitiesBySlot, hunterStarterLoadout, characterContentAllowed, hunterBlades, hunterBombKits, hunterFieldKits, hunterProjectiles, hunterStarterProjectiles } from "../../src/ownership/character_catalog.js";
+import { characterContentAllowed } from "../../src/ownership/character_catalog.js";
+import { coreStarterLoadouts } from "../../src/ownership/core_catalog.generated.js";
 import { normalizeAuthorizedLoadout, normalizeAuthorizedSelection } from "../../src/ownership/loadout_authorization.js";
 import { parseInboxRewards } from "../../src/inbox/gifts.js";
 import { normalizeProgressionStore, purchaseStoreOffer } from "../../src/ownership/store_state.js";
 import { storeOfferDefinitions, resolveStorePriceGold, storeOfferId } from "../../src/ownership/store_pricing.js";
 import type { JsonObject, OwnershipCommandEnvelope } from "../../src/ownership/contracts.js";
+
+const hunterStarterLoadout = coreStarterLoadouts.bountyHunter;
 
 test("fresh profiles include Willow and selection requires her complete branch", () => {
   const state = starterCanonicalState("default", "test");
@@ -23,12 +26,9 @@ test("fresh profiles include Willow and selection requires her complete branch",
 test("hunter has 24 purchasable abilities in the correct slots at existing prices", () => {
   const entries = storeOfferDefinitions.filter(d => d.itemId.startsWith("bounty_hunter."));
   assert.equal(entries.length, 24);
-  for (const [slot, names] of Object.entries(hunterAbilitiesBySlot)) {
-    for (const name of names) {
-      const entry = entries.find(d => d.slot === slot && d.itemId === `bounty_hunter.${name}`);
-      assert.ok(entry);
-      assert.equal(resolveStorePriceGold(entry), 150);
-    }
+  for (const entry of entries) {
+    assert.equal(characterContentAllowed("bountyHunter", entry.domain, entry.slot, entry.itemId), true);
+    assert.equal(resolveStorePriceGold(entry), 150);
   }
 });
 
@@ -122,12 +122,10 @@ test("42 items per character; new Willow items are purchasable, grantable and fa
   }
   const state = starterCanonicalState("default", "test");
   const ownership = (state.meta.abilityOwnershipByCharacter as JsonObject).bountyHunter as JsonObject;
-  assert.deepEqual(ownership.projectileSpells, [...hunterStarterProjectiles]);
-  const families = [
-    ["mainWeapon", hunterBlades], ["offhandWeapon", hunterBombKits],
-    ["spellBook", hunterFieldKits], ["projectile", hunterProjectiles],
-  ] as const;
-  for (const [slot, ids] of families) {
+  assert.deepEqual(ownership.projectileSpells, ["hunterPistol", "hunterCrossbow", "hunterShotgun"]);
+  for (const slot of ["mainWeapon", "offhandWeapon", "spellBook", "projectile"]) {
+    const ids = storeOfferDefinitions.filter(d => d.domain !== "ability" && d.slot === slot &&
+      characterContentAllowed("bountyHunter", d.domain, d.slot, d.itemId)).map(d => d.itemId);
     for (const itemId of ids) {
       const definition = storeOfferDefinitions.find(d => d.itemId === itemId)!;
       assert.ok(definition);

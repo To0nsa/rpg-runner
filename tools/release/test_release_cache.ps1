@@ -94,6 +94,18 @@ try {
     'input' | Set-Content -LiteralPath $path
   }
   $cache = Join-Path $fixture '.tmp/cache'
+  foreach ($component in @('content-freshness', 'client-checks')) {
+    $catalogPath = Join-Path $fixture 'functions/src/ownership/core_catalog.generated.ts'
+    New-Item -ItemType Directory -Force -Path (Split-Path $catalogPath) | Out-Null
+    $beforeCatalog = Get-ReleaseComponentInputs $fixture $component
+    "catalog $component" | Set-Content -LiteralPath $catalogPath
+    Assert-CacheTest ((Get-ReleaseComponentInputs $fixture $component) -ne $beforeCatalog) "generated catalog bytes invalidate $component evidence"
+  }
+  $catalogLogs = Join-Path $fixture '.tmp/catalog-logs'
+  New-Item -ItemType Directory -Force -Path $catalogLogs | Out-Null
+  Invoke-ReleaseComponent $fixture 'content-freshness' $catalogLogs
+  Assert-CacheTest ($global:cacheTrace.Contains('dart run tool/generate_backend_catalog.dart --check')) 'content freshness checks the generated backend catalog'
+  $global:cacheTrace.Clear()
   foreach ($relative in @('functions/tool/production_inventory.mjs', 'functions/tool/production_inventory.test.mjs')) {
     $beforeInventory = Get-ReleaseComponentInputs $fixture 'functions-build'
     $inventoryPath = Join-Path $fixture $relative

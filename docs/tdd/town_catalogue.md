@@ -7,6 +7,60 @@ change. See the [gameplay contract](../gdd/town_services.md).
 
 ## Server authority and retained clients
 
+### Core catalogue projection
+
+Core owns item/skill identities, allowed slots and character equipment families.
+`tool/generate_backend_catalog.dart` derives the checked-in
+`functions/src/ownership/core_catalog.generated.ts` from `CatalogItemId`,
+`AbilityCatalog`, `PlayerCharacterRegistry` and the actual
+`CharacterEquipmentPolicy`. Gear eligibility uses `allowsGear`; the reward
+helper's account-wide gear acceptance is deliberately not an equip permission.
+Projectile eligibility uses Core's player-item allowlist and equipment policy;
+ability membership/slots use the authored definitions and character namespaces.
+No names, icons, translations, damage or simulation tuning are exported.
+
+The exporter also projects starter loadouts from player catalogs and starter
+inventory/equipped gear/skill ownership from `MetaService.createNew()`. These
+semantics already belong to Core. Every starter reference is checked against
+the exported eligibility. Backend selection defaults, build locks, campaign
+character availability, prices, purchase rules, reward amounts and mutations
+remain explicit backend policy. Exporting a different starter is not an account
+migration; existing normalization and retirement handling remain unchanged.
+
+Generation rejects duplicate identities, mismatched definitions and entries
+without eligible characters. Ability registry assembly rejects duplicate keys
+before merging rather than overwriting them, including in release builds.
+The tool renders in memory, verifies captured source bytes before replacement,
+and uses the existing rollback-safe `GeneratedArtifactPlan`. `--check` compares
+exact output bytes without replacing files and exits nonzero for stale/missing
+output. Generated TypeScript has LF checkout bytes. Runtime Functions import
+only the checked-in module; no Dart process or repository reads are required.
+
+Ordering preserves the existing schema-2 activation hash: registry-ordered
+expansion-exclusive gear/skills first, baseline gear, all projectiles, baseline
+spell skills, then baseline combat skills. Category order is fixed by the export
+format; entries within a slot follow Core declaration order. There is no second
+item-ID list. Reordering Core declarations can therefore change the gift hash
+even without changing membership and requires the usual rollout review.
+
+Store definitions add backend bucket/price policy to the generated identities.
+Loadouts, store purchases, gifts and campaign rewards share exact generated
+`domain/slot/itemId` eligibility through `characterContentAllowed`; unknown
+identities, wrong slots and wrong characters fail closed. Gear gifts still grant
+account-wide ownership without a recipient. `eloiseWip` remains absent from new
+catalogues: retained gift parsing/retries keep the old identity/hash and claims
+credit Éloïse. Removed Willow skills stay unavailable even with retained ownership;
+no historical compatibility IDs are reintroduced by generation.
+
+Run `dart run tool/generate_backend_catalog.dart` after adding/changing existing
+Core content, then `--check`, Functions build/tests and consumer catalogue checks.
+`corepack pnpm functions:build` checks freshness before compiling; the Functions
+package's direct build remains Node-only for cloud packaging. Release/CI
+`content-freshness` runs the same check and hashes both its Core/tooling inputs
+and the generated module. New categories require explicit backend bucket/wire
+support; existing categories require no TypeScript ID, slot or eligibility edits.
+Presentation continues through `game_presentation` and the shared picker.
+
 `normalizeProgressionStore` derives store schema 2 from `storeOfferDefinitions`,
 canonical pricing and `characterContentAllowed`. `catalogOffers` includes owned
 entries and their playable `characterIds`; it is identical across profiles.

@@ -1,12 +1,9 @@
-import { hunterProjectiles } from "./character_catalog.js";
+import { coreCatalog } from "./core_catalog.generated.js";
 
-/** Player items only. Kept in parity with Core's explicit item allowlist. */
-export const playerEquippableProjectileIds = [
-  "iceBolt", "fireBolt", "acidBolt", "darkBolt", "earthBolt", "holyBolt",
-  "waterBolt", "thunderBolt",
-  ...hunterProjectiles,
-] as const;
+export const playerEquippableProjectileIds: readonly string[] = coreCatalog
+  .filter((entry) => entry.domain === "projectileSpell")
+  .map((entry) => entry.itemId);
 
 export function isPlayerEquippableProjectileId(id: string): boolean {
-  return (playerEquippableProjectileIds as readonly string[]).includes(id);
+  return playerEquippableProjectileIds.includes(id);
 }

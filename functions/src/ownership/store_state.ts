@@ -1,5 +1,6 @@
 import type { JsonObject, OwnershipRejectedReason } from "./contracts.js";
 import { characterContentAllowed, knownCharacterIds } from "./character_catalog.js";
+import { coreAbilitySlots } from "./core_catalog.generated.js";
 import {
   type StoreBucket, type StoreDomain, type StoreOfferDefinition,
   type StoreRefreshMethod, type StoreSlot, isStoreRefreshMethod,
@@ -36,9 +37,7 @@ export interface PurchaseStoreOfferResult {
 }
 export type RefreshStoreResult = PurchaseStoreOfferResult;
 
-const abilitySlots: readonly StoreSlot[] = [
-  "primary", "secondary", "projectile", "mobility", "jump", "spell",
-];
+const abilitySlots: readonly StoreSlot[] = coreAbilitySlots;
 interface OwnershipSnapshot {
   selectedCharacterId: string;
   inventoryWeapons: Set<string>;

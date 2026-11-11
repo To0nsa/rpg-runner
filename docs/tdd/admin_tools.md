@@ -30,7 +30,10 @@ It composes `tool_ui` controls and leaves permitted entries, draft mutations and
 privileged operations with the caller. Catalogue identities/recipient checks live
 in Core's `CatalogItemId`/`CatalogUnlock`; display names and icons remain in
 `game_presentation`. The complete locally derived catalogue is checked against
-the backend fixture. Server-side gifts and chapter rewards share
+the backend fixture. The backend catalogue is generated from Core, including
+equipment eligibility separately from account-wide gear reward scope; see
+[catalogue generation](town_catalogue.md#core-catalogue-projection).
+Server-side gifts and chapter rewards share
 `ownership/catalog_rewards.ts` validation and the store ownership grant function.
 
 ## Operator lifecycle

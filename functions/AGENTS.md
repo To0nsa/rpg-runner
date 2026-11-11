@@ -29,6 +29,10 @@ Current domains:
 ## Source Of Truth Rules
 
 - edit TypeScript in `functions/src/**`
+- `src/ownership/core_catalog.generated.ts` is generated from Core by
+  `dart run tool/generate_backend_catalog.dart`; never hand-edit its identities,
+  slots, eligibility or starter data. Use `--check` for read-only freshness.
+  Keep economy and account authorization in handwritten backend modules.
 - do not hand-edit generated output in `functions/lib/**`
 - do not hand-edit generated test output in `functions/lib_test/**`
 - keep `package.json`, `tsconfig.json`, and callable exports aligned when the backend surface changes
