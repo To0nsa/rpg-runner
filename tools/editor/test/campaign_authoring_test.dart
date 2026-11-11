@@ -3,10 +3,16 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_overview.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_page.dart';
+import 'package:runner_editor/src/app/pages/campaign/campaign_marker_palette.dart';
+import 'package:runner_editor/src/app/pages/campaign/campaign_marker_editing.dart';
+import 'package:runner_core/campaign/campaign_mission_definition.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
+import 'package:runner_editor/src/campaign/campaign_marker_edit.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_composition_preview.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_mode_copy_dialog.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
@@ -72,7 +78,16 @@ void main() {
       fixture.absolute.path,
       startsWith(Directory.systemTemp.absolute.path),
     );
-    await fixture.delete(recursive: true);
+    // Preview image reads can still be closing on Windows after unmount.
+    for (var attempt = 0; ; attempt++) {
+      try {
+        await fixture.delete(recursive: true);
+        break;
+      } on FileSystemException catch (error) {
+        if (error.osError?.errorCode != 32 || attempt >= 9) rethrow;
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    }
   });
   AuthoringCommand edit(CampaignDocument d, Map<String, Object?> json) =>
       AuthoringCommand(
@@ -84,6 +99,11 @@ void main() {
         },
       );
   Map<String, Object?> layout(CampaignDocument d) => d.selected.toJson()
+    ..remove('placements')
+    ..['collectibles'] = []
+    ..['requiredRegions'] = []
+    ..['requiredEnemies'] = []
+    ..['requiredRescues'] = []
     ..['route'] = [
       for (final id in ['first', 'second'])
         {'id': id, 'levelId': 'forest', 'chunkKey': 'forest_campaign_fixture'},
@@ -432,10 +452,16 @@ void main() {
       expect(saved.selected.route, hasLength(2));
       expect(controller.pendingChanges.hasChanges, isFalse);
       controller.undo();
-      expect((controller.document as CampaignDocument).selected.route, isEmpty);
+      expect(
+        (controller.document as CampaignDocument).selected.route,
+        original.selected.route,
+      );
       await controller.exportDirectWrite();
       expect(controller.exportError, isNull);
-      expect((controller.document as CampaignDocument).catalog.revision, 3);
+      expect(
+        (controller.document as CampaignDocument).catalog.revision,
+        original.catalog.revision + 2,
+      );
       expect(
         (prepared.scenario as CampaignPlaytestScenario).mission.route.length,
         2,
@@ -671,6 +697,261 @@ void main() {
       );
     },
   );
+  test('every palette brush persists locally with identity-safe moves, history and stale rejection', () async {
+    final session = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+      initialPluginId: plugin.id,
+      initialWorkspacePath: fixture.path,
+    );
+    addTearDown(session.dispose);
+    await session.loadWorkspace();
+    final original = session.document as CampaignDocument;
+    final otherMission = original.catalog.missions.last.toJson();
+    session.applyCommand(
+      edit(original, layout(original)..['combatAllowed'] = true),
+    );
+    final initial = session.document as CampaignDocument;
+    final chunks = {
+      for (final c in initial.compile(initial.selected).chunks)
+        c.pattern.chunkKey!: c,
+    };
+    final editing = CampaignMarkerEditing(session);
+    void bind() => editing.bind(session.document as CampaignDocument, chunks);
+    bind();
+    session.addListener(bind);
+    addTearDown(() {
+      session.removeListener(bind);
+      editing.dispose();
+    });
+    for (final (brush, x, y) in [
+      (CampaignMarkerBrush.gold, 120.0, 208.0),
+      (CampaignMarkerBrush.health, 160.0, 208.0),
+      (CampaignMarkerBrush.mana, 200.0, 208.0),
+      (CampaignMarkerBrush.stamina, 240.0, 208.0),
+      (CampaignMarkerBrush.shrine, 280.0, 224.0),
+      (CampaignMarkerBrush.enemy, 320.0, 224.0),
+      (CampaignMarkerBrush.trap, 500.0, 224.0),
+      (CampaignMarkerBrush.rescue, 360.0, 144.0),
+    ]) {
+      editing.choose(brush);
+      final candidate = editing.create(
+        CampaignPoint(occurrenceId: 'first', x: x, y: y),
+      );
+      expect(editing.commit(null, candidate), isNull, reason: brush.name);
+    }
+    expect(editing.mission.placements, hasLength(8));
+    expect(
+      () => editing.document.compile(editing.mission),
+      throwsFormatException,
+    );
+    editing.addRescueMember(npc: true);
+    editing.addRescueMember(npc: false);
+    expect(
+      editing.document
+          .compile(editing.mission)
+          .definition
+          .route
+          .occurrences
+          .first
+          .pattern
+          .encounters,
+      hasLength(1),
+    );
+    final coin = editing.entries.firstWhere(
+      (e) => e.placement is CampaignPickupSource,
+    );
+    final stale = editing.mission;
+    final moved = editing.move(
+      coin,
+      CampaignPoint(occurrenceId: 'second', x: 120, y: 208),
+    );
+    expect(editing.commit(coin, moved), isNull);
+    expect(editing.commit(moved, coin, expected: stale), contains('changed'));
+    editing.select(coin.key);
+    editing.duplicate();
+    expect(editing.mission.placements, hasLength(9));
+    editing.delete();
+    expect(editing.mission.placements, hasLength(8));
+    session.undo();
+    expect(editing.mission.placements, hasLength(9));
+    session.redo();
+    expect(editing.mission.placements, hasLength(8));
+    await session.exportDirectWrite();
+    expect(session.exportError, isNull);
+    final reopened = await plugin.loadFromRepo(workspace) as CampaignDocument;
+    expect(
+      reopened.selected.placements.map((p) => p.toJson()),
+      editing.mission.placements.map((p) => p.toJson()),
+    );
+    expect(reopened.catalog.missions.last.toJson(), otherMission);
+  }, timeout: const Timeout(Duration(minutes: 2)));
+
+  testWidgets(
+    'visual coins and attached fires support drag, draft Save, undo and reopen',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final original = controller.document as CampaignDocument;
+      controller.applyCommand(edit(original, layout(original)));
+      final chunkBytes = File(
+        '${fixture.path}/assets/authoring/level/chunks/forest/forest_campaign_fixture.json',
+      ).readAsStringSync();
+      final key = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              key: key,
+              controller: controller,
+              initialLocation: CampaignLocation(
+                original.selected.id,
+                tab: CampaignTab.markers,
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      final palette = tester.widget<CampaignMarkerPalette>(
+        find.byType(CampaignMarkerPalette),
+      );
+      final scene = find.byKey(const ValueKey('campaign_preview_first'));
+      Offset point(double x, double y) =>
+          tester.getTopLeft(scene) +
+          Offset(x, y) * (tester.getSize(scene).height / 270);
+      Future<void> brush(String id) async {
+        final finder = find.byKey(ValueKey('campaign_brush_$id'));
+        await tester.ensureVisible(finder);
+        await tester.tap(finder);
+        await _pumpWorkspace(tester);
+      }
+
+      CampaignMissionSource mission() =>
+          (controller.document as CampaignDocument).selected;
+      await brush('gold');
+      await tester.tapAt(point(160, 200));
+      await _pumpWorkspace(tester);
+      expect(mission().placements.single, isA<CampaignPickupSource>());
+      final coinId = mission().placements.single.id;
+      palette.editing.select('placement:$coinId');
+      await _pumpWorkspace(tester);
+      await tester.dragFrom(
+        point(160, 200),
+        Offset(32, 0) * (tester.getSize(scene).height / 270),
+      );
+      await _pumpWorkspace(tester);
+      expect(mission().placements.single.position.x, 192);
+      final shortcuts = key.currentState as EditorPageSessionShortcutHandler;
+      shortcuts.handleUndoSessionShortcut();
+      await _pumpWorkspace(tester);
+      expect(mission().placements.single.position.x, 160);
+      shortcuts.handleRedoSessionShortcut();
+      await _pumpWorkspace(tester);
+      expect(mission().placements.single.position.x, 192);
+      final beforeCancelledDrag = controller.document;
+      final gesture = await tester.startGesture(point(192, 200));
+      await gesture.moveBy(const Offset(30, 0));
+      await tester.pump();
+      expect(
+        (key.currentState as EditorPageLocalDraftState).hasLocalDraftChanges,
+        isTrue,
+      );
+      expect(
+        await (key.currentState as EditorPageSaveHandler).saveEditorPage(),
+        EditorPageSaveResult.blocked,
+      );
+      (key.currentState as EditorPagePlaytestHandler).handlePlaytestShortcut(
+        LogicalKeyboardKey.escape,
+      );
+      await gesture.up();
+      await _pumpWorkspace(tester);
+      expect(controller.document, same(beforeCancelledDrag));
+      await tester.enterText(
+        find.byKey(const ValueKey('campaign_marker_x')),
+        'not a number',
+      );
+      await _pumpWorkspace(tester);
+      expect(
+        (key.currentState as EditorPageLocalDraftState).hasLocalDraftChanges,
+        isTrue,
+      );
+      expect(
+        await (key.currentState as EditorPageSaveHandler).saveEditorPage(),
+        EditorPageSaveResult.blocked,
+      );
+      await _pumpWorkspace(tester);
+      expect(mission().placements.single.position.x, 192);
+      await tester.enterText(
+        find.byKey(const ValueKey('campaign_marker_x')),
+        '208',
+      );
+      await _pumpWorkspace(tester);
+      await brush('shrine'); // Changing tools resolves valid field input.
+      expect(mission().placements.single.position.x, 208);
+      await tester.tapAt(point(320, 224));
+      await _pumpWorkspace(tester);
+      final shrine = mission().placements
+          .whereType<CampaignShrineSource>()
+          .single;
+      expect(shrine.position.y, 224);
+      expect(shrine.prefabKey, isNull);
+      expect(
+        (controller.document as CampaignDocument)
+            .compile(mission())
+            .definition
+            .interactions,
+        hasLength(1),
+      );
+      await tester.tapAt(point(400, 100));
+      await _pumpWorkspace(tester);
+      expect(mission().placements, hasLength(2));
+      expect(palette.editing.error, contains('flat'));
+      palette.editing.cancel();
+      final save = await tester.runAsync(
+        () => (key.currentState as EditorPageSaveHandler).saveEditorPage(),
+      );
+      await _pumpWorkspace(tester);
+      expect(save, EditorPageSaveResult.saved);
+      final reopened = await tester.runAsync(
+        () => plugin.loadFromRepo(workspace),
+      );
+      expect(
+        (reopened as CampaignDocument).selected.placements.map(
+          (p) => p.toJson(),
+        ),
+        mission().placements.map((p) => p.toJson()),
+      );
+      expect(
+        File(
+          '${fixture.path}/assets/authoring/level/chunks/forest/forest_campaign_fixture.json',
+        ).readAsStringSync(),
+        chunkBytes,
+      );
+      final duplicated = CampaignMissionSource.decode(
+        duplicateCampaignOccurrence(mission(), 0),
+      );
+      expect(duplicated.placements, hasLength(4));
+      expect(duplicated.placements.map((p) => p.id).toSet(), hasLength(4));
+      expect(duplicated.placements.last.occurrenceId, 'occurrence_1');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      // Let real image I/O close after the Save-triggered preview remount.
+      for (var i = 0; i < 8; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump();
+      }
+    },
+  );
+
   testWidgets('campaign workspace exposes editable missions and route tools', (
     tester,
   ) async {
@@ -755,7 +1036,10 @@ void main() {
         find.byKey(ValueKey('campaign_chunk_${runner.chunkKey}')),
         findsNothing,
       );
-      expect(find.text('No campaign chunks match this search.'), findsOneWidget);
+      expect(
+        find.text('No campaign chunks match this search.'),
+        findsOneWidget,
+      );
       await tester.enterText(
         find.widgetWithText(TextField, 'Find chunk'),
         'forest_campaign_fixture',
@@ -793,7 +1077,17 @@ void main() {
       expect(find.text('Chapter 1'), findsOneWidget);
       await tap(find.widgetWithText(Tab, 'Workspace'));
       await tap(find.text('Markers'));
-      await tap(find.text('Place start / exit / objective'));
+      await tester.scrollUntilVisible(
+        find.text('Link a shared enemy / rescue objective'),
+        250,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const PageStorageKey('campaign_markers_scroll')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tap(find.text('Link a shared enemy / rescue objective'));
       await tap(find.text('Cancel'));
       await tap(find.text('Contents'));
       expect(find.text('forest_campaign_fixture').first, findsOneWidget);
@@ -949,7 +1243,7 @@ void main() {
         (Canvas canvas) => firstOverlay.paint(canvas, firstSize),
         paints
           ..scale(x: firstSize.height / 270)
-          ..circle(x: 60, y: 224, color: Colors.amber),
+          ..circle(x: 60, y: 224, color: Colors.lightBlueAccent),
       );
       expect(occurrence(15), findsNothing);
 

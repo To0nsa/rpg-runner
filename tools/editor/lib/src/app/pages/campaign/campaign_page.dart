@@ -6,6 +6,7 @@ import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:tool_ui/tool_ui.dart';
 
 import '../../../campaign/campaign_domain_plugin.dart';
+import '../../../campaign/campaign_marker_edit.dart';
 import '../../../chunks/chunk_v2_file_codec.dart';
 import '../../../chunks/chunk_v2_file_data.dart';
 import '../../../parallax/parallax_domain_models.dart';
@@ -25,6 +26,9 @@ import 'campaign_contents.dart';
 import 'campaign_route.dart';
 import 'campaign_inspector.dart';
 import 'campaign_overview.dart';
+import 'campaign_marker_editing.dart';
+import 'campaign_marker_inspector.dart';
+import 'campaign_marker_palette.dart';
 
 enum CampaignTab { contents, route, markers }
 
@@ -76,9 +80,12 @@ class CampaignPage extends StatefulWidget {
 class _CampaignPageState extends State<CampaignPage>
     implements
         EditorPageNavigationState,
+        EditorPageLocalDraftState,
+        EditorPageSessionShortcutHandler,
         EditorPageSaveHandler,
         EditorPagePlaytestHandler {
   final _play = AuthoredPlaytestSession();
+  late final _markerEditing = CampaignMarkerEditing(widget.controller);
   CampaignDocument? _doc;
   final _compiled = <String, PolygonTerrainRuntimeChunk>{};
   final _panels = ToolThreePanelController();
@@ -102,7 +109,47 @@ class _CampaignPageState extends State<CampaignPage>
   @override
   bool get locksEditorShell => _play.locksEditor;
   @override
+  bool get hasLocalDraftChanges => _markerEditing.hasDraft;
+  @override
+  bool get canHandleUndoSessionShortcut =>
+      !_play.locksEditor && (hasLocalDraftChanges || widget.controller.canUndo);
+  @override
+  bool get canHandleRedoSessionShortcut =>
+      !_play.locksEditor && (hasLocalDraftChanges || widget.controller.canRedo);
+  @override
+  bool handleUndoSessionShortcut() {
+    if (_play.locksEditor) return false;
+    if (hasLocalDraftChanges) {
+      _markerEditing.cancel();
+    } else {
+      widget.controller.undo();
+    }
+    return true;
+  }
+
+  @override
+  bool handleRedoSessionShortcut() {
+    if (_play.locksEditor) return false;
+    if (hasLocalDraftChanges) {
+      _markerEditing.cancel();
+    } else {
+      widget.controller.redo();
+    }
+    return true;
+  }
+
+  @override
   bool handlePlaytestShortcut(LogicalKeyboardKey key) {
+    if (!_play.locksEditor && _tab == CampaignTab.markers) {
+      if (key == LogicalKeyboardKey.escape) {
+        _markerEditing.cancel();
+        return true;
+      }
+      if (key == LogicalKeyboardKey.delete) {
+        _markerEditing.delete();
+        return true;
+      }
+    }
     if (key == LogicalKeyboardKey.f5 && !_play.locksEditor) {
       _startPlay();
       return true;
@@ -117,10 +164,12 @@ class _CampaignPageState extends State<CampaignPage>
   bool get canSaveEditorPage =>
       !_play.locksEditor &&
       !widget.controller.isExporting &&
-      widget.controller.pendingChanges.hasChanges;
+      (hasLocalDraftChanges || widget.controller.pendingChanges.hasChanges);
   @override
   Future<EditorPageSaveResult> saveEditorPage() async {
-    if (_play.locksEditor) return EditorPageSaveResult.blocked;
+    if (_play.locksEditor || !_markerEditing.finishDraft()) {
+      return EditorPageSaveResult.blocked;
+    }
     await widget.controller.exportDirectWrite();
     return EditorPageSaveResult.fromSession(widget.controller);
   }
@@ -129,6 +178,8 @@ class _CampaignPageState extends State<CampaignPage>
   void initState() {
     super.initState();
     _search.addListener(_viewChanged);
+    _markerEditing.addListener(_viewChanged);
+    _markerEditing.exact.addListener(_viewChanged);
     widget.controller.addListener(_changed);
     _play.addListener(_changed);
     _refresh();
@@ -159,10 +210,14 @@ class _CampaignPageState extends State<CampaignPage>
     if (!d.chunks.chunks.any((c) => c.chunkKey == _selectedChunkKey)) {
       _selectedChunkKey = null;
     }
+    final reuseTerrain =
+        identical(_doc?.chunks, d.chunks) &&
+        identical(_doc?.dependencies, d.dependencies);
     _doc = d;
     _play.reconcileSource(d);
-    _compiled.clear();
+    if (!reuseTerrain) _compiled.clear();
     for (final key in d.selected.route.map((o) => o.chunkKey).toSet()) {
+      if (_compiled.containsKey(key)) continue;
       final source = d.chunks.chunks
           .where((c) => c.chunkKey == key)
           .firstOrNull;
@@ -179,6 +234,7 @@ class _CampaignPageState extends State<CampaignPage>
       );
       if (result.chunk != null) _compiled[key] = result.chunk!;
     }
+    _markerEditing.bind(d, Map.of(_compiled));
   }
 
   void _changed() {
@@ -193,6 +249,9 @@ class _CampaignPageState extends State<CampaignPage>
     widget.controller.removeListener(_changed);
     _play.removeListener(_changed);
     _play.dispose();
+    _markerEditing.removeListener(_viewChanged);
+    _markerEditing.exact.removeListener(_viewChanged);
+    _markerEditing.dispose();
     _search.dispose();
     _panels.dispose();
     super.dispose();
@@ -213,6 +272,7 @@ class _CampaignPageState extends State<CampaignPage>
   }
 
   Future<void> _settings() async {
+    if (!_markerEditing.finishDraft()) return;
     final d = _doc!;
     final value = await showDialog<CampaignMissionSource>(
       context: context,
@@ -264,6 +324,7 @@ class _CampaignPageState extends State<CampaignPage>
   }
 
   Future<void> _marker() async {
+    if (!_markerEditing.finishDraft()) return;
     final d = _doc!;
     final value = await showDialog<({String kind, Object value})>(
       context: context,
@@ -314,6 +375,7 @@ class _CampaignPageState extends State<CampaignPage>
         m.exit?.origin.occurrenceId == id ||
         m.collectibles.any((p) => p.occurrenceId == id) ||
         m.requiredRegions.any((r) => r.origin.occurrenceId == id) ||
+        m.placements.any((p) => p.occurrenceId == id) ||
         m.requiredEnemies.any((e) => e.occurrenceId == id) ||
         m.requiredRescues.any((e) => e.occurrenceId == id)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -331,6 +393,7 @@ class _CampaignPageState extends State<CampaignPage>
   }
 
   Future<void> _startPlay() async {
+    if (!_markerEditing.finishDraft()) return;
     final d = _doc;
     if (d == null) return;
     await _play.prepare(
@@ -351,6 +414,8 @@ class _CampaignPageState extends State<CampaignPage>
   }
 
   void _selectTab(CampaignTab tab) {
+    if (!_markerEditing.finishDraft()) return;
+    _markerEditing.cancel();
     _tab = tab;
     _viewChanged();
   }
@@ -370,6 +435,7 @@ class _CampaignPageState extends State<CampaignPage>
   }
 
   Future<void> _openChunk(ChunkV2FileData chunk) async {
+    if (!_markerEditing.finishDraft()) return;
     if (_selectedChunkKey != chunk.chunkKey) _selectChunk(chunk);
     await widget.onOpenChunk?.call(
       ChunkCreatorLocation(levelId: chunk.levelId, chunkKey: chunk.chunkKey),
@@ -410,31 +476,36 @@ class _CampaignPageState extends State<CampaignPage>
                   controller: _panels,
                   firstLabel: 'Chapters',
                   secondLabel: 'Workspace',
-                  thirdLabel: 'Settings',
+                  thirdLabel: _tab == CampaignTab.markers
+                      ? 'Properties'
+                      : 'Settings',
                   firstFlex: 3,
                   secondFlex: 8,
                   thirdFlex: 4,
                   minimumWideWidth: 1180,
                   first: _library(d),
                   second: _workspace(d, chunk),
-                  third: CampaignInspector(
-                    mission: d.selected,
-                    chunk: chunk,
-                    occurrenceId: _selectedOccurrenceId,
-                    usedBy: chunk == null
-                        ? const []
-                        : d.whereUsed(chunk.chunkKey),
-                    onSettings: _settings,
-                    onEditChunk: chunk == null || widget.onOpenChunk == null
-                        ? null
-                        : () => _openChunk(chunk),
-                    diagnostics: [
-                      for (final issue in widget.controller.issues.where(
-                        (i) => i.ownerKey == d.selected.id,
-                      ))
-                        issue.message,
-                    ],
-                  ),
+                  third: _tab == CampaignTab.markers
+                      ? CampaignMarkerInspector(editing: _markerEditing)
+                      : CampaignInspector(
+                          mission: d.selected,
+                          chunk: chunk,
+                          occurrenceId: _selectedOccurrenceId,
+                          usedBy: chunk == null
+                              ? const []
+                              : d.whereUsed(chunk.chunkKey),
+                          onSettings: _settings,
+                          onEditChunk:
+                              chunk == null || widget.onOpenChunk == null
+                              ? null
+                              : () => _openChunk(chunk),
+                          diagnostics: [
+                            for (final issue in widget.controller.issues.where(
+                              (i) => i.ownerKey == d.selected.id,
+                            ))
+                              issue.message,
+                          ],
+                        ),
                 ),
               ),
             ),
@@ -477,18 +548,24 @@ class _CampaignPageState extends State<CampaignPage>
             selectedMissionId: d.selected.id,
             onSettings: () => _chapterSettings(d.catalog.chapters[i]),
             onRewards: () => _chapterRewards(d.catalog.chapters[i]),
-            onAddMission: () => widget.controller.applyCommand(
-              AuthoringCommand(
-                kind: CampaignDomainPlugin.addMission,
-                payload: {'id': d.catalog.chapters[i].id},
-              ),
-            ),
-            onSelectMission: (id) => widget.controller.applyCommand(
-              AuthoringCommand(
-                kind: CampaignDomainPlugin.selectMission,
-                payload: {'id': id},
-              ),
-            ),
+            onAddMission: () {
+              if (!_markerEditing.finishDraft()) return;
+              widget.controller.applyCommand(
+                AuthoringCommand(
+                  kind: CampaignDomainPlugin.addMission,
+                  payload: {'id': d.catalog.chapters[i].id},
+                ),
+              );
+            },
+            onSelectMission: (id) {
+              if (!_markerEditing.finishDraft()) return;
+              widget.controller.applyCommand(
+                AuthoringCommand(
+                  kind: CampaignDomainPlugin.selectMission,
+                  payload: {'id': id},
+                ),
+              );
+            },
             onReorderMission: (id, target) => widget.controller.applyCommand(
               AuthoringCommand(
                 kind: CampaignDomainPlugin.reorderMission,
@@ -518,7 +595,9 @@ class _CampaignPageState extends State<CampaignPage>
                 ),
               ),
               IconButton(
-                tooltip: 'Show mission settings',
+                tooltip: _tab == CampaignTab.markers
+                    ? 'Show marker properties'
+                    : 'Show mission settings',
                 onPressed: () => _panels.revealPanel(2),
                 icon: const Icon(Icons.tune),
               ),
@@ -556,6 +635,7 @@ class _CampaignPageState extends State<CampaignPage>
                 mission: m,
                 chunks: d.chunks,
                 workspaceRootPath: widget.controller.workspacePath,
+                editing: _tab == CampaignTab.markers ? _markerEditing : null,
               ),
       ),
       tabs: SegmentedButton<CampaignTab>(
@@ -606,7 +686,11 @@ class _CampaignPageState extends State<CampaignPage>
             selectedOccurrenceId: _selectedOccurrenceId,
             onSelected: _selectOccurrence,
             onMove: _move,
-            onDuplicate: (i) => _add(m.route[i].chunkKey, after: i),
+            onDuplicate: (i) {
+              final json = duplicateCampaignOccurrence(m, i);
+              _edit(json);
+              _selectOccurrence((json['route'] as List)[i + 1]['id'] as String);
+            },
             onRemove: _remove,
             onEdit: widget.onOpenChunk == null
                 ? null
@@ -621,57 +705,9 @@ class _CampaignPageState extends State<CampaignPage>
                   },
             onBrowse: () => _selectTab(CampaignTab.contents),
           ),
-          ListView(
-            key: const PageStorageKey('campaign_markers_scroll'),
-            padding: const EdgeInsets.all(12),
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  onPressed: m.route.isEmpty ? null : _marker,
-                  icon: const Icon(Icons.add_location_alt_outlined),
-                  label: const Text('Place start / exit / objective'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text('Mission markers'),
-              for (final key in [
-                'start',
-                'exit',
-                'collectibles',
-                'requiredRegions',
-                'requiredEnemies',
-                'requiredRescues',
-              ])
-                ..._markers(key, m.toJson()[key]),
-            ],
-          ),
+          CampaignMarkerPalette(editing: _markerEditing, onLinkTarget: _marker),
         ],
       ),
     );
-  }
-
-  List<Widget> _markers(String key, Object? value) {
-    final entries = value is List ? value : [?value];
-    return [
-      for (var i = 0; i < entries.length; i++)
-        ListTile(
-          dense: true,
-          title: Text('$key · ${entries[i]}'),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Remove marker',
-            onPressed: () {
-              final json = _doc!.selected.toJson();
-              if (json[key] is List) {
-                (json[key] as List).removeAt(i);
-              } else {
-                json[key] = null;
-              }
-              _edit(json);
-            },
-          ),
-        ),
-    ];
   }
 }

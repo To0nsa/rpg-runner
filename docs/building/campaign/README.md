@@ -3,10 +3,10 @@
 Status: campaign systems implemented locally November 11, 2026. See the
 [current contract](../../tdd/campaign_runtime.md), [game behavior](../../gdd/campaign.md)
 and [acceptance checklist](implementation.md). The user owns production layouts;
-all four remain excluded drafts. Deployment and account resets are not authorized.
+their inclusion is authored explicitly. Deployment and account resets are not authorized.
 The [visual marker follow-up](implementation.md#m2-follow-up-visual-marker-authoring)
-plans Chunk Creator-style placement tools and occurrence-local gameplay content;
-it is not implemented yet and supersedes the earlier chunk-variant-only approach
+implements Chunk Creator-style placement tools and occurrence-local gameplay content;
+it supersedes the earlier chunk-variant-only approach
 for these placements in the supporting authoring proposal.
 
 ## Outcome

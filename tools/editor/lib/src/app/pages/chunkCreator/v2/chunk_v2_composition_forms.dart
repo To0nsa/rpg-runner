@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart'
     show prefabSupportsCenterRotation;
 
+import '../../shared/terrain_polygon_exact_edit_controller.dart';
+
 import 'chunk_prefab_rotation_control.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
@@ -568,6 +570,7 @@ class ChunkV2MarkerForm extends StatefulWidget {
     this.fieldKeyPrefix = 'chunk_v2_marker',
     this.onCancel,
     this.enabled = true,
+    this.editController,
   });
 
   final ChunkV2FileData chunk;
@@ -582,6 +585,7 @@ class ChunkV2MarkerForm extends StatefulWidget {
   final String fieldKeyPrefix;
   final VoidCallback? onCancel;
   final bool enabled;
+  final TerrainPolygonExactEditController? editController;
 
   @override
   State<ChunkV2MarkerForm> createState() => _ChunkV2MarkerFormState();
@@ -595,6 +599,30 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
   late final TextEditingController _saltController;
   late String _placement;
   var _placementWasEdited = false;
+  bool _saved = false;
+  String? _submitError;
+  bool get _hasChanges =>
+      !_saved &&
+      (_xController.text != '${widget.marker?.x ?? 0}' ||
+          _yController.text != '${widget.marker?.y ?? 0}' ||
+          _chanceController.text != '${widget.marker?.chancePercent ?? 100}' ||
+          _saltController.text != '${widget.marker?.salt ?? 0}' ||
+          _placement !=
+              (widget.marker?.placement ??
+                  chunkMarkerDefaultPlacementFor(widget.enemyId)));
+  void _discard() {
+    _xController.text = '${widget.marker?.x ?? 0}';
+    _yController.text = '${widget.marker?.y ?? 0}';
+    _chanceController.text = '${widget.marker?.chancePercent ?? 100}';
+    _saltController.text = '${widget.marker?.salt ?? 0}';
+    setState(() {
+      _placement =
+          widget.marker?.placement ??
+          chunkMarkerDefaultPlacementFor(widget.enemyId);
+      _saved = false;
+      _submitError = null;
+    });
+  }
 
   @override
   void initState() {
@@ -608,6 +636,12 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
       text: '${marker?.chancePercent ?? 100}',
     );
     _saltController = TextEditingController(text: '${marker?.salt ?? 0}');
+    widget.editController?.attach(
+      this,
+      hasChanges: () => _hasChanges,
+      save: () => !_hasChanges || _submit(),
+      discard: _discard,
+    );
   }
 
   @override
@@ -622,6 +656,7 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
 
   @override
   void dispose() {
+    widget.editController?.detach(this);
     _xController.dispose();
     _yController.dispose();
     _chanceController.dispose();
@@ -632,6 +667,10 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
   @override
   Widget build(BuildContext context) => Form(
     key: _formKey,
+    onChanged: () {
+      _saved = false;
+      widget.editController?.markChanged();
+    },
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -724,6 +763,11 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
                 },
         ),
         const SizedBox(height: 10),
+        if (_submitError != null)
+          Text(
+            _submitError!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
         _FormActions(
           submitKey: widget.submitKey,
           submitLabel: widget.submitLabel,
@@ -735,22 +779,29 @@ class _ChunkV2MarkerFormState extends State<ChunkV2MarkerForm> {
     ),
   );
 
-  void _submit() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    widget.onSubmit(
-      PlacedMarkerDef(
-        markerId: widget.enemyId,
-        x: preserveChunkExactPixelCoordinate(
-          int.parse(_xController.text.trim()),
+  bool _submit() {
+    if (!(_formKey.currentState?.validate() ?? false)) return false;
+    try {
+      widget.onSubmit(
+        PlacedMarkerDef(
+          markerId: widget.enemyId,
+          x: preserveChunkExactPixelCoordinate(
+            int.parse(_xController.text.trim()),
+          ),
+          y: preserveChunkExactPixelCoordinate(
+            int.parse(_yController.text.trim()),
+          ),
+          chancePercent: int.parse(_chanceController.text.trim()),
+          salt: int.parse(_saltController.text.trim()),
+          placement: _placement,
         ),
-        y: preserveChunkExactPixelCoordinate(
-          int.parse(_yController.text.trim()),
-        ),
-        chancePercent: int.parse(_chanceController.text.trim()),
-        salt: int.parse(_saltController.text.trim()),
-        placement: _placement,
-      ),
-    );
+      );
+      _saved = true;
+      return true;
+    } on Object catch (error) {
+      setState(() => _submitError = '$error');
+      return false;
+    }
   }
 
   String _selectedEnemyLabel(String markerId) {

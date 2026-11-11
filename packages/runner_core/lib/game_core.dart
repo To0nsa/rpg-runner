@@ -24,6 +24,7 @@ import 'camera/autoscroll_camera.dart';
 import 'camera/finite_follow_camera.dart';
 import 'campaign/campaign_mission_definition.dart';
 import 'campaign/campaign_session.dart';
+import 'interactions/world_interaction_catalog.dart';
 import 'bosses/boss_arena_system.dart';
 import 'bosses/boss_victory_blessing_system.dart';
 import 'bosses/boss_arena_spawn_adapter.dart';
@@ -685,6 +686,13 @@ class GameCore {
         _spawnService.spawnCollectibleAt(
           campaign.definition.worldX(point),
           point.y,
+        );
+      }
+      for (final gem in campaign.definition.restorations) {
+        _spawnService.spawnRestorationItemAt(
+          campaign.definition.worldX(gem.position),
+          gem.position.y,
+          gem.resource,
         );
       }
       campaign.applyBounds(_world, _player);
@@ -2626,6 +2634,9 @@ class GameCore {
     _world.interactions.synchronize(
       _trackManager.activeChunks,
       _stagedTerrainCatalog,
+      bindings:
+          _campaign?.definition.worldInteractions ??
+          WorldInteractionCatalog.bindings,
     );
     for (final request in enemyRequests) {
       _spawnTrackEnemy(request);

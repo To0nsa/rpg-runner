@@ -2,7 +2,7 @@
 
 - [Campaign and Val Outpost](campaign/README.md): finite missions, bidirectional
   movement, chunk conversion, campaign menus and verified progression are
-  implemented locally. Next: [visual marker authoring](campaign/implementation.md#m2-follow-up-visual-marker-authoring)
+  implemented locally, including [visual marker authoring](campaign/implementation.md#m2-follow-up-visual-marker-authoring)
   with Chunk Creator-style tools and occurrence-local enemies, traps, rescues,
   coins, restoration gems and blessing shrines. Production layouts, device
   acceptance and authorized release remain open in the same checklist.

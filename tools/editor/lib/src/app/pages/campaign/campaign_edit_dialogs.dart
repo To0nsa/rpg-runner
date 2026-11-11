@@ -168,8 +168,7 @@ class CampaignMarkerDialog extends StatefulWidget {
 class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
   final form = GlobalKey<FormState>();
   late String occurrence = widget.mission.route.first.id;
-  String kind = 'start';
-  double x = 60, y = 224, width = 100, height = 270;
+  String kind = 'requiredEnemies';
   int? salt;
   String? encounter;
   @override
@@ -182,10 +181,8 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
             .toList() ??
         [];
     final rescues = chunk?.pattern.encounters ?? [];
-    final target = kind == 'requiredEnemies' || kind == 'requiredRescues';
-    final region = kind == 'exit' || kind == 'requiredRegions';
     return AlertDialog(
-      title: const Text('Mission marker'),
+      title: const Text('Link shared objective'),
       content: SizedBox(
         width: 460,
         child: SingleChildScrollView(
@@ -200,22 +197,6 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
                   decoration: const InputDecoration(labelText: 'Purpose'),
                   items: const [
                     DropdownMenuItem(
-                      value: 'start',
-                      child: Text('Player start (support point)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'exit',
-                      child: Text('Mission exit region'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'collectibles',
-                      child: Text('Gold pickup'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'requiredRegions',
-                      child: Text('Required visit region'),
-                    ),
-                    DropdownMenuItem(
                       value: 'requiredEnemies',
                       child: Text('Required enemy defeat'),
                     ),
@@ -228,7 +209,6 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
                     if (v != null) {
                       setState(() {
                         kind = v;
-                        y = region ? 0 : 224;
                         salt = null;
                         encounter = null;
                       });
@@ -298,14 +278,6 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
                         v == null ? 'Select a rescue encounter.' : null,
                     onChanged: (v) => encounter = v,
                   ),
-                if (!target) ...[
-                  _number('X', x, 0, 599.5, (v) => x = v),
-                  _number('Y', region ? 0 : y, 0, 270, (v) => y = v),
-                  if (region) ...[
-                    _number('Width', width, 0.5, 600, (v) => width = v),
-                    _number('Height', height, 0.5, 270, (v) => height = v),
-                  ],
-                ],
               ],
             ),
           ),
@@ -320,51 +292,14 @@ class _CampaignMarkerDialogState extends State<CampaignMarkerDialog> {
           onPressed: () {
             if (!form.currentState!.validate()) return;
             form.currentState!.save();
-            final point = {'occurrenceId': occurrence, 'x': x, 'y': y};
             final Object value = kind == 'requiredEnemies'
                 ? {'occurrenceId': occurrence, 'markerSalt': salt}
-                : kind == 'requiredRescues'
-                ? {'occurrenceId': occurrence, 'encounterId': encounter}
-                : region
-                ? {'origin': point, 'width': width, 'height': height}
-                : point;
-            try {
-              if (!target) {
-                if (region) {
-                  campaignRegionFromJson(value);
-                } else {
-                  campaignPointFromJson(value);
-                }
-              }
-            } on FormatException catch (e) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(e.message)));
-              return;
-            }
+                : {'occurrenceId': occurrence, 'encounterId': encounter};
             Navigator.pop(context, (kind: kind, value: value));
           },
-          child: const Text('Place marker'),
+          child: const Text('Link objective'),
         ),
       ],
     );
   }
-
-  Widget _number(
-    String name,
-    double initial,
-    double min,
-    double max,
-    void Function(double) save,
-  ) => TextFormField(
-    key: ValueKey('$kind$name'),
-    initialValue: '$initial',
-    decoration: InputDecoration(labelText: name),
-    validator: (v) {
-      final n = double.tryParse(v ?? '');
-      return n == null || !n.isFinite || n < min || n > max
-          ? 'Enter $min–$max.'
-          : null;
-    },
-    onSaved: (v) => save(double.parse(v!)),
-  );
 }

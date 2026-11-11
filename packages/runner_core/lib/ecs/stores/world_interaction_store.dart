@@ -2,7 +2,7 @@ import '../../collision/terrain/terrain_numeric.dart';
 import '../../interactions/world_interaction_catalog.dart';
 import '../../snapshots/world_interaction_snapshot.dart';
 import '../../track/staged_terrain_catalog.dart';
-import '../../track/staged_terrain_data.dart';
+import '../../interactions/world_interaction_placement.dart';
 import '../../track/track_streamer.dart';
 
 /// One admitted top surface attached to a streamed prefab occurrence.
@@ -22,7 +22,7 @@ final class WorldInteractionState {
   final WorldInteractionBinding binding;
   final String instanceId;
   final int chunkIndex;
-  final String placementKey;
+  final String? placementKey;
   final int leftTicks, rightTicks, topTicks;
   final double scale;
   int? activationTick;
@@ -31,9 +31,10 @@ final class WorldInteractionState {
 
 /// Active views are stream-owned; activation memory belongs to the whole run.
 /// Binding consumes admitted terrain provenance, never sprite bounds or a
-/// second collision compiler. No editor JSON schema additions are required.
+/// second collision compiler. Authored campaign bindings reuse the same resolver.
 final class WorldInteractionStore {
   List<ActiveTrackChunkSnapshot>? _lastSelection;
+  List<WorldInteractionBinding>? _lastBindings;
   final List<WorldInteractionState> states = [];
   final Map<String, int> _activatedAt = {};
 
@@ -44,60 +45,25 @@ final class WorldInteractionStore {
     StagedTerrainCatalog? catalog, {
     List<WorldInteractionBinding> bindings = WorldInteractionCatalog.bindings,
   }) {
-    if (identical(selected, _lastSelection)) return;
+    if (identical(selected, _lastSelection) &&
+        identical(bindings, _lastBindings)) {
+      return;
+    }
     final retained = {for (final state in states) state.instanceId: state};
     final next = <WorldInteractionState>[];
     final ids = <String>{};
     for (final chunk in selected) {
       for (final binding in bindings) {
-        if (chunk.chunkKey != binding.chunkKey) continue;
+        if (chunk.chunkKey != binding.chunkKey ||
+            (binding.occurrenceId != null &&
+                binding.occurrenceId != chunk.occurrenceId)) {
+          continue;
+        }
         if (catalog == null) {
           throw StateError('World interactions require admitted terrain.');
         }
         final terrain = catalog.requireChunk(binding.chunkKey);
-        final matches = terrain.placementLineage
-            .where(
-              (p) =>
-                  p.prefabKey == binding.prefabKey &&
-                  p.sourceId.shapeId == binding.shapeId &&
-                  (binding.placementKey == null ||
-                      p.sourceId.placementKey == binding.placementKey),
-            )
-            .toList();
-        if (matches.length != 1) {
-          throw StateError(
-            'Interaction ${binding.key} requires exactly one '
-            '${binding.prefabKey}/${binding.shapeId} in ${binding.chunkKey}; '
-            'found ${matches.length}. Update the manual binding.',
-          );
-        }
-        final placement = matches.single;
-        final polygon = terrain.polygons.singleWhere(
-          (p) => p.id == placement.sourceId,
-        );
-        if (polygon.collisionMode == StagedTerrainCollisionMode.none) {
-          throw StateError(
-            'Interaction ${binding.key} needs a collidable top.',
-          );
-        }
-        final top = polygon.vertices
-            .map((p) => p.yTicks)
-            .reduce((a, b) => a < b ? a : b);
-        final topEdges = <(int, int)>[];
-        for (var i = 0; i < polygon.vertices.length; i++) {
-          final a = polygon.vertices[i];
-          final b = polygon.vertices[(i + 1) % polygon.vertices.length];
-          if (a.yTicks == top && b.yTicks == top && a.xTicks != b.xTicks) {
-            topEdges.add(
-              a.xTicks < b.xTicks ? (a.xTicks, b.xTicks) : (b.xTicks, a.xTicks),
-            );
-          }
-        }
-        if (topEdges.length != 1) {
-          throw StateError(
-            'Interaction ${binding.key} needs one flat highest edge.',
-          );
-        }
+        final surface = resolveWorldInteractionSurface(binding, terrain);
         final origin = physicsCoordinateToTicks(
           chunk.startX,
           name: 'chunk.startX',
@@ -110,11 +76,11 @@ final class WorldInteractionStore {
           binding: binding,
           instanceId: id,
           chunkIndex: chunk.index,
-          placementKey: placement.sourceId.placementKey!,
-          leftTicks: origin + topEdges.single.$1,
-          rightTicks: origin + topEdges.single.$2,
-          topTicks: top,
-          scale: placement.scaleTenths / 10,
+          placementKey: surface.placementKey,
+          leftTicks: origin + surface.leftTicks,
+          rightTicks: origin + surface.rightTicks,
+          topTicks: surface.topTicks,
+          scale: surface.scale,
           activationTick: _activatedAt[id],
         );
         final old = retained[id];
@@ -123,6 +89,7 @@ final class WorldInteractionStore {
                 old.leftTicks != candidate.leftTicks ||
                 old.rightTicks != candidate.rightTicks ||
                 old.topTicks != candidate.topTicks ||
+                old.scale != candidate.scale ||
                 old.binding.interactionId != binding.interactionId ||
                 old.binding.appearanceId != binding.appearanceId)) {
           throw StateError('An active interaction cannot change within a run.');
@@ -134,6 +101,7 @@ final class WorldInteractionStore {
       ..clear()
       ..addAll(next);
     _lastSelection = selected;
+    _lastBindings = bindings;
   }
 
   /// Remembers a successful activation even when its chunk is later retired.

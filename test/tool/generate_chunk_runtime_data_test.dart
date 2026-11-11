@@ -54,9 +54,18 @@ void main() {
         'height': 270,
       },
     ];
-    mission['collectibles'] = [
+    mission['collectibles'] = [];
+    mission['requiredEnemies'] = [];
+    mission['requiredRescues'] = [];
+    mission['combatAllowed'] = true;
+    mission['placements'] = [
       for (final id in ['first', 'last'])
-        {'occurrenceId': id, 'x': 300, 'y': 205},
+        {'id': 'coin_$id', 'kind': 'gold', 'position': {'occurrenceId': id, 'x': 300, 'y': 205}},
+      {'id': 'gem', 'kind': 'gem', 'resource': 'mana', 'position': {'occurrenceId': 'last', 'x': 400, 'y': 205}},
+      {'id': 'fire', 'kind': 'shrine', 'position': {'occurrenceId': 'last', 'x': 450, 'y': 224},
+        'prefabKey': null, 'placementKey': null, 'shapeId': 'ground', 'appearance': 'blueFlame', 'activationWidth': 24, 'scale': 1},
+      {'id': 'optional_enemy', 'kind': 'enemy', 'position': {'occurrenceId': 'last', 'x': 350, 'y': 224},
+        'enemyId': 'grojib', 'placement': 'ground', 'chancePercent': 0, 'salt': 100, 'required': false},
     ];
     _writeFile(
       root.path,

@@ -4,8 +4,13 @@ import 'package:runner_core/campaign/campaign_mission_definition.dart';
 import 'package:runner_core/meta/catalog_unlock.dart';
 import 'package:runner_core/playtest/playtest_scenario_validation.dart';
 import 'package:runner_core/track/finite_chunk_pattern_source.dart';
+import 'package:runner_core/track/chunk_pattern.dart';
+import 'package:runner_core/traps/trap_placement.dart';
+import 'package:runner_core/interactions/world_interaction_placement.dart';
+import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 
 import 'chunk_runtime_materialization.dart';
+import 'campaign_placement_source.dart';
 
 const campaignSourcePath = 'assets/authoring/campaign/chapter_defs.json';
 
@@ -188,28 +193,35 @@ final class CampaignMissionSource {
     required this.requiredRegions,
     required this.requiredEnemies,
     required this.requiredRescues,
+    required this.placements,
   });
 
   factory CampaignMissionSource.decode(Object? value) {
-    final m = _object(value, {
-      'id',
-      'revision',
-      'includeInBuild',
-      'title',
-      'description',
-      'visualThemeId',
-      'levelId',
-      'firstClearXp',
-      'rewardAbilityId',
-      'combatAllowed',
-      'route',
-      'start',
-      'exit',
-      'collectibles',
-      'requiredRegions',
-      'requiredEnemies',
-      'requiredRescues',
-    }, 'mission');
+    final m = _object(
+      value,
+      {
+        'id',
+        'revision',
+        'includeInBuild',
+        'title',
+        'description',
+        'visualThemeId',
+        'levelId',
+        'firstClearXp',
+        'rewardAbilityId',
+        'combatAllowed',
+        'route',
+        'start',
+        'exit',
+        'collectibles',
+        'requiredRegions',
+        'requiredEnemies',
+        'requiredRescues',
+        'placements',
+      },
+      'mission',
+      optional: const {'placements'},
+    );
     final route = <CampaignOccurrenceSource>[];
     final ids = <String>{};
     for (final raw in _list(
@@ -245,6 +257,9 @@ final class CampaignMissionSource {
       firstClearXp: _integer(m['firstClearXp'], 0, 100000, 'firstClearXp'),
       rewardAbilityId: ability as String?,
       combatAllowed: _boolean(m['combatAllowed'], 'combatAllowed'),
+      placements: decodeCampaignPlacements(
+        m.containsKey('placements') ? m['placements'] : const [],
+      ),
       route: List.unmodifiable(route),
       start: m['start'] == null ? null : campaignPointFromJson(m['start']),
       exit: m['exit'] == null ? null : campaignRegionFromJson(m['exit']),
@@ -301,6 +316,7 @@ final class CampaignMissionSource {
   final List<CampaignRegion> requiredRegions;
   final List<CampaignEnemyTarget> requiredEnemies;
   final List<CampaignRescueTarget> requiredRescues;
+  final List<CampaignPlacementSource> placements;
 
   Map<String, Object?> toJson() => {
     'id': id,
@@ -313,6 +329,8 @@ final class CampaignMissionSource {
     'firstClearXp': firstClearXp,
     'rewardAbilityId': rewardAbilityId,
     'combatAllowed': combatAllowed,
+    if (placements.isNotEmpty)
+      'placements': placements.map((p) => p.toJson()).toList(),
     'route': route
         .map((o) => {'id': o.id, 'levelId': o.levelId, 'chunkKey': o.chunkKey})
         .toList(),
@@ -377,16 +395,29 @@ CompiledCampaignMission compileCampaignMission({
     chunks[o.chunkKey] = result.chunk!;
   }
   try {
+    for (final placement in source.placements) {
+      if (!source.route.any((o) => o.id == placement.occurrenceId)) {
+        throw FormatException(
+          '${placement.id}: unknown occurrence ${placement.occurrenceId}.',
+        );
+      }
+    }
     final definition = CampaignMissionDefinition(
       id: source.id,
       visualThemeId: source.visualThemeId,
+      interactions: [
+        for (final p in source.placements.whereType<CampaignShrineSource>())
+          p.bindingFor(
+            source.route.firstWhere((o) => o.id == p.occurrenceId).chunkKey,
+          ),
+      ],
       route: FiniteChunkPatternSource(
         source.route.map((o) {
           final chunk = chunks[o.chunkKey]!;
           return FiniteChunkOccurrence(
             id: o.id,
             sourceLevelId: o.levelId,
-            pattern: chunk.pattern,
+            pattern: composeCampaignOccurrencePattern(source, o.id, chunk),
             tier: playtestTierForDifficulty(chunk.stagedTerrain.difficulty),
           );
         }),
@@ -394,12 +425,43 @@ CompiledCampaignMission compileCampaignMission({
       terrainChunks: chunks.values.map((c) => c.stagedTerrain),
       start: source.start!,
       exit: source.exit!,
-      collectibles: source.collectibles,
+      collectibles: [
+        ...source.collectibles,
+        for (final p in source.placements.whereType<CampaignPickupSource>())
+          if (p.resource == null) p.position,
+      ],
+      restorations: [
+        for (final p in source.placements.whereType<CampaignPickupSource>())
+          if (p.resource != null)
+            CampaignRestoration(position: p.position, resource: p.resource!),
+      ],
       requiredRegions: source.requiredRegions,
-      requiredEnemies: source.requiredEnemies,
-      requiredRescues: source.requiredRescues,
+      requiredEnemies: [
+        ...source.requiredEnemies,
+        for (final p in source.placements.whereType<CampaignEnemySource>())
+          if (p.required)
+            (occurrenceId: p.occurrenceId, markerSalt: p.marker.salt),
+      ],
+      requiredRescues: [
+        ...source.requiredRescues,
+        for (final p in source.placements.whereType<CampaignRescueSource>())
+          if (p.required)
+            (occurrenceId: p.occurrenceId, encounterId: p.encounter.id),
+      ],
       combatAllowed: source.combatAllowed,
     );
+    for (final p in source.placements.whereType<CampaignShrineSource>()) {
+      final occurrence = source.route.firstWhere((o) => o.id == p.occurrenceId);
+      final surface = resolveWorldInteractionSurface(
+        p.bindingFor(occurrence.chunkKey),
+        chunks[occurrence.chunkKey]!.stagedTerrain,
+      );
+      if (physicsCoordinateToTicks(p.position.y) != surface.topTicks) {
+        throw FormatException(
+          '${p.id}: support moved; reattach the blessing fire.',
+        );
+      }
+    }
     return CompiledCampaignMission(
       source,
       List.unmodifiable(chunks.values),
@@ -410,6 +472,46 @@ CompiledCampaignMission compileCampaignMission({
   } on PlaytestScenarioException catch (e) {
     throw FormatException('${source.id}: $e');
   }
+}
+
+/// Adds mission-owned gameplay without changing or duplicating source geometry.
+/// Each occurrence receives its own pattern while sharing admitted terrain.
+ChunkPattern composeCampaignOccurrencePattern(
+  CampaignMissionSource mission,
+  String occurrenceId,
+  PolygonTerrainRuntimeChunk chunk,
+) {
+  final local = mission.placements
+      .where((p) => p.occurrenceId == occurrenceId)
+      .toList();
+  final base = chunk.pattern;
+  if (local.isEmpty) return base;
+  final enemies = local.whereType<CampaignEnemySource>().toList();
+  final traps = local.whereType<CampaignTrapSource>().toList();
+  final rescues = local.whereType<CampaignRescueSource>().toList();
+  if (base.bossArena != null &&
+      (enemies.isNotEmpty || traps.isNotEmpty || rescues.isNotEmpty)) {
+    throw FormatException(
+      '$occurrenceId: boss arenas cannot contain ambient enemies, traps or rescues.',
+    );
+  }
+  return ChunkPattern(
+    name: base.name,
+    chunkKey: base.chunkKey,
+    assemblyGroupId: base.assemblyGroupId,
+    visualSprites: base.visualSprites,
+    bossArena: base.bossArena,
+    spawnMarkers: [...base.spawnMarkers, ...enemies.map((p) => p.marker)],
+    traps: [
+      ...base.traps,
+      for (final p in traps)
+        p.trap.copyWith(
+          zIndex: p.trap.zIndex - chunk.compiled.chunk.groundBandZIndex,
+        ),
+    ]..sort(compareTrapPlacements),
+    encounters: [...base.encounters, ...rescues.map((p) => p.encounter)]
+      ..sort((a, b) => a.id.compareTo(b.id)),
+  );
 }
 
 CampaignPoint campaignPointFromJson(Object? raw) {

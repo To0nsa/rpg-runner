@@ -1,6 +1,9 @@
 import '../levels/level_id.dart';
 import '../encounters/encounter_limits.dart';
 import '../enemies/enemy_id.dart';
+import '../ecs/stores/restoration_item_store.dart';
+import '../interactions/world_interaction_catalog.dart';
+import '../interactions/world_interaction_placement.dart';
 import '../levels/level_definition.dart';
 import '../levels/level_identity.dart';
 import '../playtest/playtest_scenario_validation.dart';
@@ -57,6 +60,13 @@ final class CampaignRegion {
 typedef CampaignEnemyTarget = ({String occurrenceId, int markerSalt});
 typedef CampaignRescueTarget = ({String occurrenceId, String encounterId});
 
+/// Explicit gem placement; collection uses the ordinary restoration system.
+final class CampaignRestoration {
+  const CampaignRestoration({required this.position, required this.resource});
+  final CampaignPoint position;
+  final RestorationStat resource;
+}
+
 /// Captured, finite gameplay input shared by authored Play and trusted catalogs.
 /// Repository discovery, source revisions/digests and reward policies live outside
 /// Core. Neither this value nor its completion grants account ownership.
@@ -69,6 +79,8 @@ final class CampaignMissionDefinition {
     required this.exit,
     required this.visualThemeId,
     Iterable<CampaignPoint> collectibles = const [],
+    Iterable<CampaignRestoration> restorations = const [],
+    Iterable<WorldInteractionBinding> interactions = const [],
     Iterable<CampaignRegion> requiredRegions = const [],
     Iterable<CampaignEnemyTarget> requiredEnemies = const [],
     Iterable<CampaignRescueTarget> requiredRescues = const [],
@@ -77,6 +89,12 @@ final class CampaignMissionDefinition {
     this.killPlaneY = 624,
   }) : terrainCatalog = StagedTerrainChunkCatalog(chunks: terrainChunks),
        collectibles = List.unmodifiable(collectibles),
+       restorations = List.unmodifiable(restorations),
+       interactions = List.unmodifiable(interactions),
+       worldInteractions = List.unmodifiable([
+         ...WorldInteractionCatalog.bindings,
+         ...interactions,
+       ]),
        requiredRegions = List.unmodifiable(requiredRegions),
        requiredEnemies = Set.unmodifiable(requiredEnemies),
        requiredRescues = Set.unmodifiable(requiredRescues) {
@@ -89,7 +107,7 @@ final class CampaignMissionDefinition {
         !groundTopY.isFinite ||
         !killPlaneY.isFinite ||
         route.length > maxOccurrences ||
-        this.collectibles.length > 256 ||
+        this.collectibles.length + this.restorations.length > 256 ||
         this.requiredRegions.length > 32) {
       throw ArgumentError(
         'Invalid campaign identity, settings or content capacity.',
@@ -153,6 +171,7 @@ final class CampaignMissionDefinition {
       start,
       exit.origin,
       ...this.collectibles,
+      for (final gem in this.restorations) gem.position,
       for (final region in this.requiredRegions) region.origin,
     ]) {
       occurrenceIndex(point.occurrenceId);
@@ -179,6 +198,42 @@ final class CampaignMissionDefinition {
       }
     }
     validateCampaignStart(this);
+    final interactionKeys = <(String, String)>{};
+    if (this.interactions.length > 64) {
+      throw ArgumentError('At most 64 campaign interactions are supported.');
+    }
+    for (final binding in this.interactions) {
+      final occurrence = binding.occurrenceId;
+      if (occurrence == null ||
+          binding.key.isEmpty ||
+          !interactionKeys.add((occurrence, binding.key))) {
+        throw ArgumentError(
+          'Campaign interactions require unique occurrence-local identities.',
+        );
+      }
+      final chunkKey =
+          route.occurrences[occurrenceIndex(occurrence)].pattern.chunkKey!;
+      if (WorldInteractionCatalog.bindings.any(
+        (b) => b.chunkKey == chunkKey && b.key == binding.key,
+      )) {
+        throw ArgumentError(
+          'Campaign interaction identity conflicts with inherited content.',
+        );
+      }
+      if (binding.chunkKey != chunkKey) {
+        throw ArgumentError(
+          'Interaction source does not match its occurrence.',
+        );
+      }
+      try {
+        resolveWorldInteractionSurface(
+          binding,
+          terrainCatalog.requireChunk(chunkKey),
+        );
+      } on StateError catch (error) {
+        throw ArgumentError(error.message);
+      }
+    }
   }
 
   /// Admission cap for the initial resident-world implementation, not a promise
@@ -190,6 +245,9 @@ final class CampaignMissionDefinition {
   final CampaignPoint start;
   final CampaignRegion exit;
   final List<CampaignPoint> collectibles;
+  final List<CampaignRestoration> restorations;
+  final List<WorldInteractionBinding> interactions;
+  final List<WorldInteractionBinding> worldInteractions;
   final List<CampaignRegion> requiredRegions;
   final Set<CampaignEnemyTarget> requiredEnemies;
   final Set<CampaignRescueTarget> requiredRescues;

@@ -3,15 +3,16 @@
 Status: runtime, editor, campaign menus and authenticated progression implemented
 locally November 11, 2026. Acceptance is recorded in the
 [single checklist](../building/campaign/implementation.md). No deployment is implied.
-The four production missions are excluded drafts awaiting the user's layouts.
+Production mission layouts and build inclusion are authored by the user.
 
 ## Core ownership and lifetime
 
 `CampaignMissionDefinition` captures an exact `FiniteChunkPatternSource`, terrain,
-start, exit, authored gold pickups and required visit/enemy/rescue targets.
+start, exit, authored gold/restoration pickups, surface interactions and required
+visit/enemy/rescue targets.
 Occurrences have unique stable IDs; references remain attached when reordered.
 Positions are local to 600×270 chunks. The initial resident-world admission cap
-is 16 occurrences, 256 pickups and 32 visit regions, plus existing encounter
+is 16 occurrences, 256 combined pickups, 64 local interactions and 32 visit regions, plus existing encounter
 capacities. These are capacity guards, not measured mobile performance claims.
 
 `GameCore.campaignPlaytest` and `CampaignPlaytestScenario` are tooling boundaries
@@ -62,6 +63,34 @@ English/French title and assignment, regional level/theme, explicit inclusion,
 first-clear XP/ability policy, ordered occurrences and local markers. Incomplete
 route/start/exit drafts are saveable but cannot Play or enter Build.
 
+The optional schema-1 `placements` array adds stable snake-case IDs (64 characters)
+and typed `gold`, `gem`, `enemy`, `trap`, `rescue` and `shrine` records. Absence
+means empty; explicit null, unknown keys/types and duplicate placement IDs fail.
+Empty arrays are omitted on export, preserving the encoding of existing missions.
+The source cap is 512 records; runtime admission applies the stricter type caps.
+Points use existing occurrence bounds. Trap and rescue records reuse the shared
+decoders; incomplete rescue rosters can Save but cannot Play/Build. Required
+local enemies/rescues project to the existing occurrence-plus-salt/encounter
+objectives. Duplicate enemy salts and encounter IDs within an occurrence fail.
+
+Compilation composes inherited chunk actors with each occurrence's local actors.
+Trap order uses the existing comparator and terrain-relative depth conversion;
+encounters sort by ID, and enemy source order is retained. Terrain remains
+deduplicated by shared chunk key. The generator emits separate effective patterns
+when local actors exist, rather than collapsing repeated chunks to one pattern.
+Authored pickups use existing Core collection/restoration systems. No new reward
+or replay wire policy is introduced; placement source bytes enter the existing
+content digest and are captured by Play.
+
+Shrine records attach an effect to an existing flat, collidable top, identified by
+prefab placement/shape lineage or a direct terrain shape. They add no geometry.
+The shared Core surface resolver validates the exact center/activation width and
+scale. Compilation also checks the saved surface height; changed support requires
+reattachment. The binding is restricted to its stable occurrence ID. Existing
+manual bindings remain inherited, with conflicting identities rejected. Top
+contact, once-per-instance fire state and the nonstacking blessing retain the
+[world-interaction contract](world_interactions.md).
+
 The pipeline compiles explicit strings without filesystem access. The root atomic
 generator captures mission sources and transitive chunk/prefab/tile/material
 dependencies, then emits Core missions, client display metadata and server policy
@@ -88,14 +117,27 @@ sizing. The left panel owns chapters and missions. Contents reuses
 `AuthoredChunkCard` and `ChunkCompositionPreview` for searchable campaign-only
 chunks. Runner layouts must first be copied using Chunk Creator's Copy to Campaign
 action to appear in Contents. Route owns exact occurrence ordering, while Markers
-owns typed start/exit/objective/pickup controls. The persistent preview shows
+owns a visual placement palette and contextual properties. The persistent preview shows
 selected chunk art in Contents or the assembled route in Route/Markers. Route art
 reuses `ChunkCompositionPreview.joined`, including terrain, scenery, water and
 the mission's parallax theme. The 600x270 occurrences share a scale fitted to
 the preview height, with a horizontal scrollbar and lazy occurrence rendering.
-Start, pickup, exit and required-region overlays remain occurrence-local; repeated
-chunks keep distinct markers. Scroll positions are view state scoped by mission.
-The right inspector shows mission/reward status, selected chunk usage and validation,
+Marker overlays remain occurrence-local; repeated chunks keep distinct content.
+Select/Place/Move, an 8-pixel grid toggle, duplicate/delete, Escape cancellation,
+Ctrl+drag pan and Ctrl+scroll zoom use existing scene utilities. Region corners
+reuse the shared rectangle gesture. Each completed drag dispatches one revision-
+checked mission replacement. Moving a local target rebinds explicit objectives;
+deleting it explicitly removes its objective too. Duplicating a route occurrence
+copies local content with fresh placement/rescue IDs while preserving singleton
+start/exit and occurrence-scoped enemy salts. Geometry/source bytes stay shared.
+Scroll positions are view state scoped by mission.
+In Markers the right panel reuses Chunk's enemy, trap and rescue inspectors;
+pickup and fire properties edit position, resource, appearance and attachment
+width/scale. Save and Play resolve valid field drafts and reject active gestures
+or invalid fields. Undo cancels a local draft before undoing committed history.
+Inherited actors use Chunk's existing resolved placement previews; shared targets
+can still be linked through the objective dialog. Other tabs' right inspector
+shows mission/reward status, selected chunk usage and validation,
 with the existing revision-checked settings dialogs. Narrow panels remain mounted
 behind tabs.
 Geometry opens in Chunk Creator through guarded navigation. Back reloads

@@ -1,7 +1,7 @@
 # Campaign implementation checklist
 
-Status: campaign platform implemented locally November 11, 2026. The visual marker
-authoring follow-up below is planned, not implemented. Production layouts remain
+Status: campaign platform and visual marker authoring implemented locally
+November 11–12, 2026. Production layouts remain
 the user's work; device and release acceptance remain open.
 This is the sole checklist; [technical contracts](../../tdd/campaign_runtime.md)
 and [game behavior](../../gdd/campaign.md) describe the delivered systems.
@@ -72,11 +72,14 @@ tools for direct placement of enemies, traps, rescue encounters, gold coins,
 restoration gems and blessing shrines, alongside start, exit and objectives.
 New placements belong to a particular mission occurrence, so repeated uses of a
 chunk can have different gameplay content without editing the shared source.
-This section is the implementation plan; no feature changes are claimed yet.
+The implementation reuses Chunk inspectors, scene controls, actor previews and
+Core pickup/interaction behavior. The user explicitly chose attaching blessing
+fire to existing shrine/platform geometry, without placing a new base.
 
-Planning baseline: `cd29bb2d`; the worktree already contains the user's edit to
-`assets/authoring/campaign/chapter_defs.json`. Preserve it, including through any
-explicit schema migration. Reinspect the worktree before implementation.
+Planning commit: `4edfa4ce`. Implementation preserved the user's campaign source,
+Core/UI/Functions generated catalogs and authored campaign terrain. Parallel hub
+UI changes were also left untouched. No schema migration or production layout
+edits were needed.
 
 Affected owners: `tools/editor` owns commands, scene interaction and persistence;
 `runner_content_pipeline` owns source decoding/composition; `runner_core` owns
@@ -87,7 +90,7 @@ or policy projections change; reward mechanics are outside this follow-up.
 
 ### Inspected constraints and intended behavior
 
-- Today, Campaign lists serialized marker values and opens a placement dialog.
+- Before this follow-up, Campaign listed serialized values in a placement dialog.
   Its source stores gold points and objective references; enemies, traps and
   rescues come from chunk sources. Campaign disables procedural pickup spawning.
 - The compiler and generator deduplicate chunks by source key. Occurrence-local
@@ -103,94 +106,94 @@ or policy projections change; reward mechanics are outside this follow-up.
 - Show existing chunk-owned gameplay as inherited content with an explicit
   shared-source edit action. Preserve it; do not silently remove it, duplicate it
   into mission data, or make an occurrence edit change every use of the chunk.
-- Base terrain stays in Chunk Creator. A shrine preset may bundle its existing
-  prefab/collision and interaction into one occurrence-local placement; this is
-  a bounded gameplay placement, not a second freeform geometry editor.
+- Base terrain stays in Chunk Creator. Blessing fire attaches to an existing
+  collidable flat top through shared Core support validation; it adds no geometry.
 
 ### V1: occurrence placement contract and compilation
 
-- [ ] Define typed mission placement records with stable placement IDs,
+- [x] Define typed mission placement records with stable placement IDs,
   occurrence-local coordinates and catalog references. Reuse Core enemy, trap,
   rescue, pickup and interaction definitions; do not introduce parallel mechanics.
   Start/exit stay singletons. Specify bounds, capacities, absent/null behavior,
   canonical ordering, and identity rules for move, duplicate and route reorder.
-- [ ] Specify how inherited chunk content and local placements compose, with
+- [x] Specify how inherited chunk content and local placements compose, with
   disjoint runtime identities and no duplicate registration. Compile distinct
   occurrence content using the existing terrain/placement authority; preserve
   source provenance separately from any compiled occurrence key. Include shrine
-  prefab collision and binding in this contract and in captured dependencies.
-- [ ] Bind required enemy/rescue objectives to stable placements, retaining
+  support references and binding in this contract and captured dependencies.
+- [x] Bind required enemy/rescue objectives to stable placements, retaining
   existing source targets. Duplicate receives fresh IDs and remapped internal
   references; moving between occurrences preserves or rebinds references in one
   transaction. Referenced deletion must explicitly resolve dependencies.
-- [ ] Choose a compatible additive source change or an explicit versioned
+- [x] Choose a compatible additive source change or an explicit versioned
   migration before changing strict schema 1. Preserve existing missions and user
   edits; never migrate implicitly during load. Update decoder, Core values,
   compiler, generator and their consumers together before calling this milestone
   complete. All gameplay inputs enter the content digest.
-- [ ] Prove two occurrences of the same chunk can compile different content,
+- [x] Prove two occurrences of the same chunk can compile different content,
   including a shrine in only one occurrence, with unchanged source chunk bytes.
   Check malformed catalogs, duplicate identities, broken references, and
   saveable incomplete drafts versus blocked Play/Build readiness.
 
 ### V2: gameplay and generated/captured Play parity
 
-- [ ] Instantiate local enemies, traps and complete rescue groups through the
+- [x] Instantiate local enemies, traps and complete rescue groups through the
   existing Core systems exactly once. Preserve placement validation, combat-free
   mission rules, guaranteed required targets, objective failure and death ordering.
-- [ ] Spawn authored coins and health/mana/stamina gems at their explicit positions
+- [x] Spawn authored coins and health/mana/stamina gems at their explicit positions
   while procedural spawning stays disabled. Keep current collection, restoration
   and gold accounting; consumed items remain consumed on return travel.
-- [ ] Make shrine presets placeable with real prefab collision, fire appearance,
+- [x] Make fire attachments placeable on existing collision, with fire appearance,
   activation surface and blessing binding. Reuse top-contact validation, offscreen
   persistence, nonstacking grants and restart reset. Include required assets in
   preview/captured Play; reject invalid bindings rather than granting on proximity.
-- [ ] Carry occurrence content through authored Play and generated production
+- [x] Carry occurrence content through authored Play and generated production
   missions using the same compiler. Update snapshots/rendering only where needed;
   regenerate affected outputs and verify trusted worker replay/content-digest
   parity. Assess gameplay compatibility changes without deploying anything.
 
 ### V3: visual editor and persistence
 
-- [ ] Replace the raw marker list/dialog workflow with the palette, editable route
+- [x] Replace the raw marker list/dialog workflow with the palette, editable route
   canvas and contextual inspector. Offer enemies, traps, rescues, coins, three
   restoration gem types, shrine presets, start, exit and visit regions. Show
   sprites/icons, object extents, selected occurrence and actionable validation.
-- [ ] Reuse Chunk Creator catalogs, shared scene input/view transforms and
+- [x] Reuse Chunk Creator catalogs, shared scene input/view transforms and
   rectangle gestures; extract only genuinely reusable behavior. Keep campaign
   commands in its domain and bounded presentation beside its route. Remove
   replaced UI paths rather than maintaining two competing placement workflows.
-- [ ] Support click-to-place, repeated placement, selection, drag-to-move,
+- [x] Support click-to-place, repeated placement, selection, drag-to-move,
   duplicate/delete, Escape cancellation and supported region/trigger resizing.
   Resolve the occurrence under the pointer, handle boundary crossings explicitly,
   and commit one semantic history entry per completed gesture.
-- [ ] Expose type-specific properties: enemy type/placement and required status;
+- [x] Expose type-specific properties: enemy type/placement and required status;
   trap type/trigger; rescue participants/region and required status; gem resource;
   shrine preset; and start/exit/visit bounds. Incomplete rescue drafts remain
   editable and saveable but cannot Play/Build until valid.
-- [ ] Preserve revision checks, transactional Save, Undo after Save, Save/reopen,
+- [x] Preserve revision checks, transactional Save, Undo after Save, Save/reopen,
   dependency drift, guarded Chunk Creator handoff, narrow layouts and view state.
   Save/Play must resolve valid inspector drafts and cancel or reject unfinished
   gestures consistently. Play uses a frozen capture and restores editing afterward.
 
 ### V4: acceptance and documentation
 
-- [ ] From Markers, create and adjust every requested object type without editing
+- [x] From Markers, create and adjust every requested object type without editing
   JSON or opening Chunk Creator for ordinary placement. Verify a repeated chunk
   can contain different objects in each occurrence and another mission is unchanged.
-- [ ] Exercise create/move/duplicate/delete, cross-occurrence movement, route
-  reorder/duplicate/remove, required-target edits, stale inspector input, gesture
-  cancellation, Undo/Redo, Save/reopen and dependency refresh. Validate narrow
-  panels and the same pan/zoom/selection behavior as Chunk Creator.
+- [x] Automated coverage for create/move/duplicate/delete, cross-occurrence
+  movement, route reorder/duplicate/remove, required-target edits, stale revision
+  rejection, Undo/Redo, Save/reopen, source drift and narrow panels.
+- [ ] Native-editor usability pass for pan/zoom, selection and gestures on the
+  user's production route. Automated gesture/draft checks do not replace this pass.
 - [ ] Play a finite fixture with real inputs across an actual route boundary and
   back, retaining continuous actor state: collect coins/gems, resolve enemy/rescue
   objectives, activate a trap and shrine, then verify nothing respawns or grants
   twice. Test invalid shrine contacts, independent shrine instances, restart and
   both playable characters. Follow the traversal workflow for composed geometry.
-- [ ] Verify generated missions against captured Play and trusted worker replay
-  at 30/120 Hz, including occurrence-specific content and intentional compatibility
-  rejection. Retain runner/Chunk Creator regressions for reused paths.
-- [ ] Update implemented campaign and world-interaction TDD/GDD, editor README
+- [x] Verify generated missions against captured Play and trusted worker replay
+  at 30/120 Hz, including occurrence-specific content. Retain existing compatibility
+  checks and runner/Chunk Creator regressions for reused paths.
+- [x] Update implemented campaign and world-interaction TDD/GDD, editor README
   and affected ownership instructions after delivery. Record exact commands,
   source, results and unrun manual/device checks here; keep production layouts
   and release acceptance under M4.
@@ -210,9 +213,24 @@ Planning validation (November 11): documentation-only diff review and
 in the four edited planning documents. No application tests or feature acceptance
 checks were run for this planning change.
 
-Next implementation action: V1, starting with stable occurrence placement identity,
-source compatibility and a two-occurrence compilation fixture. V2 and V3 depend
-on that shared contract; V4 closes the complete authoring-to-runtime workflow.
+Local implementation evidence (November 11–12, 2026; current task worktree):
+
+| Directory / check | Result and scope |
+| --- | --- |
+| `packages/runner_content_pipeline`: `campaign_placement_source_test.dart` using cached Dart test runner | 11 passed: strict additive source, distinct repeated occurrences, enemy identity, incomplete rescue readiness, trap/rescue composition, gold/gems and attached fires |
+| Same runtime fixtures | Both characters, seed 42, 30/120 Hz, two repeated flat Training Field chunks; continuous travel 60→1100→80→1100 with a 20-second budget per leg. Pickups remain consumed, fires retain state, blessing does not stack, restart resets. Missing/moved/out-of-bounds support fails |
+| `packages/runner_core`: `interactions/world_interaction_test.dart interactions/world_interaction_game_core_test.dart` | 25 passed, including actual prefab top contact, airborne/side/stale/enemy/dead negative controls, both characters, captured-Play parity and old manual bindings |
+| `tools/editor`: `campaign_authoring_test.dart` | Existing chapter/reward/route/panel/Save/drift tests passed; the new coin/fire widget test passes place/drag, Escape cancellation, unfinished-gesture and invalid-field Save blocking, valid draft resolution, attach rejection, undo/redo, Save/reopen and untouched chunk bytes. The Windows image-I/O cleanup race was resolved by draining frames and real I/O after unmount |
+| Same file: `--plain-name 'every palette brush'` | Passed all eight placement brushes, incomplete-to-complete rescue editing, cross-occurrence movement, duplicate/delete, undo/redo, stale-revision rejection, Save/reopen and another mission remaining unchanged. Its two-minute timeout covers repository I/O and repeated validation; simulation horizons are unchanged |
+| `tools/editor`: `campaign_marker_edit_test.dart`, `chunk_marker_scene_gesture_test.dart`, `chunk_v2_marker_placement_projection_test.dart`, `chunk_trap_authoring_test.dart`, `chunk_encounter_authoring_test.dart` | 25 passed: objective remapping and occurrence duplication plus regressions for reused scene projections, gestures and inspectors |
+| Root: `flutter test --no-pub test/tool/generate_chunk_runtime_data_test.dart --plain-name 'campaign generates' --reporter expanded` | Passed generated trusted registry and actual replay worker at 30/120 Hz with local coins/gem/fire and a local conditional enemy pattern |
+| Root: generator `--dry-run` | Passed: 166 chunk files, 3 levels, 3 themes and 3 materials; authored and generated user files were not rewritten |
+| Root/editor: targeted `dart analyze` on changed Core, pipeline, generator, Campaign UI, shared enemy form and new tests | No issues found |
+| Root: `git diff --check` and relative Markdown link check | Passed; 101 local documentation links resolve |
+
+These are local automated checks, not a native-editor manual pass or a production
+chapter acceptance run. A combined combat/rescue/trap/fire playthrough through
+production geometry and device performance remain under manual/M4 acceptance.
 
 ## M3: menus and verified progression
 
@@ -461,6 +479,6 @@ Editor deletion correctly raised the guarded Save exception; its test now checks
 that outcome and source retention. No real chapter traversal, native editor
 manual pass, phone performance or live authenticated campaign flow is claimed.
 
-Next: implement the visual marker follow-up from V1, then continue user-authored
-production layouts and M4 acceptance. Keep content/device acceptance explicit;
+Next: native-editor usability and user-authored production layouts/M4 acceptance.
+Keep content/device acceptance explicit;
 archive this plan only once that remaining work is completed or replaced.

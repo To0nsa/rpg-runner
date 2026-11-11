@@ -1,7 +1,7 @@
 # Campaign: Val Outpost
 
-Implemented locally November 11, 2026; the four production layouts are excluded
-drafts for the user to author in the editor. See the
+Implemented locally November 11–12, 2026; production layouts and build inclusion
+are authored by the user in the editor. See the
 [runtime and progression contract](../tdd/campaign_runtime.md).
 
 Campaign has a third main-menu card alongside Level and Character Selection.
@@ -53,6 +53,14 @@ both directions without forced scrolling. Collected items and defeated enemies
 stay consumed on return. All required targets/visit regions/rescues and authored
 bosses must be completed before entering the exit. Death or required-objective
 failure wins over success on the same tick. Restart resets the whole attempt.
+
+Campaign Markers offers visual placement of enemies, traps, rescue groups, gold
+coins, health/mana/stamina gems and blessing fires, plus start/exit/visit regions.
+Each placement belongs to one occurrence of a chunk. Coins grant the existing
+one gold each; gems use existing restoration amounts. Blessing fire attaches to
+an existing flat shrine/platform top and grants the existing regeneration bonus
+on actual top contact. Fire stays lit and the bonus does not stack. Pickup
+consumption and fire activation persist during backtracking and reset on restart.
 
 Verified first completion of Reporting for Duty unlocks Éloïse's Double Jump.
 It does not silently change builds; the results screen can equip it explicitly.

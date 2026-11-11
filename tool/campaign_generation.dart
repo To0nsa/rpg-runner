@@ -109,47 +109,82 @@ List<GeneratedArtifact> buildCampaignArtifacts(
   };
   final ordered = chunks.values.toList()
     ..sort((a, b) => a.pattern.chunkKey!.compareTo(b.pattern.chunkKey!));
+  final occurrences = included
+      .expand((m) => m.definition.route.occurrences)
+      .toList();
+  final patterns = occurrences.map((o) => o.pattern).toList();
+  final hasLocalActors = included.any(
+    (m) => m.source.placements.any(
+      (p) =>
+          p is CampaignEnemySource ||
+          p is CampaignTrapSource ||
+          p is CampaignRescueSource,
+    ),
+  );
   final buffer = StringBuffer(header)
     ..writeln("import 'campaign_mission_definition.dart';");
+  if (included.any((m) => m.definition.restorations.isNotEmpty)) {
+    buffer.writeln("import '../ecs/stores/restoration_item_store.dart';");
+  }
+  if (included.any((m) => m.definition.interactions.isNotEmpty)) {
+    buffer.writeln("import '../interactions/world_interaction_catalog.dart';");
+  }
   if (ordered.isNotEmpty) {
     buffer
       ..writeln("import '../track/chunk_pattern.dart';")
       ..writeln("import '../track/chunk_pattern_source.dart';")
       ..writeln("import '../track/finite_chunk_pattern_source.dart';")
       ..writeln("import 'authored_campaign_terrain.dart';");
-    if (ordered.any(
-      (c) =>
-          c.pattern.spawnMarkers.isNotEmpty ||
-          c.pattern.encounters.isNotEmpty ||
-          c.pattern.bossArena != null,
-    ))
+    if (patterns.any(
+      (p) =>
+          p.spawnMarkers.isNotEmpty ||
+          p.encounters.isNotEmpty ||
+          p.bossArena != null,
+    )) {
       buffer.writeln("import '../enemies/enemy_id.dart';");
-    if (ordered.any((c) => c.pattern.bossArena != null))
+    }
+    if (patterns.any((p) => p.bossArena != null)) {
       buffer.writeln("import '../bosses/boss_arena_definition.dart';");
-    if (ordered.any((c) => c.pattern.encounters.isNotEmpty))
+    }
+    if (patterns.any((p) => p.encounters.isNotEmpty)) {
       buffer
         ..writeln("import '../combat/ai_target_policy.dart';")
         ..writeln("import '../encounters/encounter_definition.dart';")
         ..writeln("import '../npcs/npc_id.dart';");
-    if (ordered.any(
-      (c) => c.pattern.traps.isNotEmpty || c.pattern.encounters.isNotEmpty,
-    ))
+    }
+    if (patterns.any((p) => p.traps.isNotEmpty || p.encounters.isNotEmpty)) {
       buffer.writeln("import '../snapshots/enums.dart';");
-    if (ordered.any((c) => c.pattern.traps.isNotEmpty))
+    }
+    if (patterns.any((p) => p.traps.isNotEmpty)) {
       buffer
         ..writeln("import '../traps/trap_id.dart';")
         ..writeln("import '../traps/trap_geometry.dart';")
         ..writeln("import '../traps/trap_placement.dart';");
-    _writePatternList(buffer, '_chunks', [
-      for (final chunk in ordered)
-        _ChunkExportData(
-          path: chunk.sourcePath,
-          levelId: chunk.stagedTerrain.levelId,
-          difficulty: chunk.stagedTerrain.difficulty,
-          isRuntimeEligible: true,
-          pattern: chunk.pattern,
-        ),
-    ]);
+    }
+    if (!hasLocalActors) {
+      _writePatternList(buffer, '_chunks', [
+        for (final chunk in ordered)
+          _ChunkExportData(
+            path: chunk.sourcePath,
+            levelId: chunk.stagedTerrain.levelId,
+            difficulty: chunk.stagedTerrain.difficulty,
+            isRuntimeEligible: true,
+            pattern: chunk.pattern,
+          ),
+      ]);
+    }
+    if (hasLocalActors) {
+      _writePatternList(buffer, '_campaignPatterns', [
+        for (final o in occurrences)
+          _ChunkExportData(
+            path: campaignSourcePath,
+            levelId: o.sourceLevelId,
+            difficulty: o.tier.name,
+            isRuntimeEligible: true,
+            pattern: o.pattern,
+          ),
+      ]);
+    }
   }
   buffer
     ..writeln(
@@ -163,8 +198,10 @@ List<GeneratedArtifact> buildCampaignArtifacts(
       "CampaignPoint(occurrenceId: '${_escape(p.occurrenceId)}', x: ${p.x}, y: ${p.y})";
   String region(CampaignRegion r) =>
       'CampaignRegion(origin: ${point(r.origin)}, width: ${r.width}, height: ${r.height})';
+  var occurrenceIndex = 0;
   for (final mission in included) {
     final m = mission.source;
+    final definition = mission.definition;
     buffer
       ..writeln(
         "'${m.id}': CampaignMissionDefinition(id: '${m.id}', visualThemeId: '${m.visualThemeId}',",
@@ -175,21 +212,49 @@ List<GeneratedArtifact> buildCampaignArtifacts(
       ..writeln('route: FiniteChunkPatternSource([');
     for (final o in m.route) {
       final index = ordered.indexWhere((c) => c.pattern.chunkKey == o.chunkKey);
+      final pattern = hasLocalActors
+          ? '_campaignPatterns[${occurrenceIndex++}]'
+          : '_chunks[$index]';
       buffer.writeln(
-        "FiniteChunkOccurrence(id: '${o.id}', sourceLevelId: '${o.levelId}', pattern: _chunks[$index], tier: ChunkPatternTier.${ordered[index].stagedTerrain.difficulty}),",
+        "FiniteChunkOccurrence(id: '${o.id}', sourceLevelId: '${o.levelId}', pattern: $pattern, tier: ChunkPatternTier.${ordered[index].stagedTerrain.difficulty}),",
       );
     }
     buffer
       ..writeln(']), start: ${point(m.start!)}, exit: ${region(m.exit!)},')
-      ..writeln('collectibles: [${m.collectibles.map(point).join(',')}],')
+      ..writeln(
+        'collectibles: [${definition.collectibles.map(point).join(',')}],',
+      );
+    if (definition.restorations.isNotEmpty) {
+      buffer.writeln(
+        'restorations: [${definition.restorations.map((p) => 'CampaignRestoration(position: ${point(p.position)}, resource: RestorationStat.${p.resource.name})').join(',')}],',
+      );
+    }
+    if (definition.interactions.isNotEmpty) {
+      String nullableString(String? value) =>
+          value == null ? 'null' : "'${_escape(value)}'";
+      buffer.writeln('interactions: [');
+      for (final binding in definition.interactions) {
+        buffer.writeln(
+          'WorldInteractionBinding('
+          'key: ${nullableString(binding.key)}, chunkKey: ${nullableString(binding.chunkKey)}, '
+          'prefabKey: ${nullableString(binding.prefabKey)}, placementKey: ${nullableString(binding.placementKey)}, '
+          'shapeId: ${nullableString(binding.shapeId)}, occurrenceId: ${nullableString(binding.occurrenceId)}, '
+          'surfaceX: ${binding.surfaceX}, activationWidth: ${binding.activationWidth}, scaleOverride: ${binding.scaleOverride}, '
+          'interactionId: WorldInteractionId.${binding.interactionId.name}, '
+          'appearanceId: WorldInteractionAppearanceId.${binding.appearanceId.name}, zIndex: ${binding.zIndex}),',
+        );
+      }
+      buffer.writeln('],');
+    }
+    buffer
       ..writeln(
         'requiredRegions: [${m.requiredRegions.map(region).join(',')}],',
       )
       ..writeln(
-        "requiredEnemies: [${m.requiredEnemies.map((e) => "(occurrenceId: '${e.occurrenceId}', markerSalt: ${e.markerSalt})").join(',')}],",
+        "requiredEnemies: [${definition.requiredEnemies.map((e) => "(occurrenceId: '${e.occurrenceId}', markerSalt: ${e.markerSalt})").join(',')}],",
       )
       ..writeln(
-        "requiredRescues: [${m.requiredRescues.map((e) => "(occurrenceId: '${e.occurrenceId}', encounterId: '${e.encounterId}')").join(',')}],",
+        "requiredRescues: [${definition.requiredRescues.map((e) => "(occurrenceId: '${e.occurrenceId}', encounterId: '${e.encounterId}')").join(',')}],",
       )
       ..writeln('),');
   }

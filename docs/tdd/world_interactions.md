@@ -30,11 +30,21 @@ does not add solid geometry or infer collision from artwork. Authored flip and
 scale are already reflected in the compiled polygon. The effect remains upright
 and scales with its prefab; depth is explicitly configured in the binding.
 
-Existing Prefab-v3 and Chunk-v2 JSON are unchanged. There are no new editor
-controls. Chunk/Level Play consumes the same Core catalog and captured compiled
+Existing Prefab-v3 and Chunk-v2 JSON are unchanged. Chunk/Level Play consumes the same Core catalog and captured compiled
 terrain. Its existing Save path cannot strip the attachment configuration.
 Run the normal generator after changing geometry and run the binding tests
 after changing either geometry or manual bindings.
+
+Campaign Markers can attach ember/blue blessing fire to an existing prefab or
+direct terrain top. Mission-local records carry exact support lineage, occurrence,
+center, activation width and scale. `resolveWorldInteractionSurface` is shared
+by placement preview, compilation and runtime registration. It rejects missing,
+ambiguous, noncollidable or nonflat support and activation intervals outside the
+top; it never adds or moves terrain. Stored height is checked during campaign
+compilation to expose support drift. Campaign combines these bindings with the
+manual catalog, filters local bindings by stable occurrence ID and retains each
+fire's activation state for the whole resident mission. See
+[campaign source and lifecycle](campaign_runtime.md).
 
 ## Ordering and lifetime
 

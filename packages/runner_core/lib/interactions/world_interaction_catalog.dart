@@ -39,14 +39,28 @@ final class WorldInteractionBinding {
     required this.interactionId,
     required this.appearanceId,
     this.placementKey,
+    this.occurrenceId,
+    this.surfaceX,
+    this.activationWidth,
+    this.scaleOverride,
     this.zIndex = 1,
   });
 
   final String key;
   final String chunkKey;
-  final String prefabKey;
+
+  /// Null selects a direct authored terrain shape instead of a placed prefab.
+  final String? prefabKey;
   final String shapeId;
   final String? placementKey;
+
+  /// Restricts a campaign attachment to one stable route occurrence.
+  final String? occurrenceId;
+
+  /// Optional chunk-local effect center and contact width, in world units.
+  /// Omission retains the full prefab top used by the manual runner bindings.
+  final double? surfaceX, activationWidth;
+  final double? scaleOverride;
   final WorldInteractionId interactionId;
   final WorldInteractionAppearanceId appearanceId;
 

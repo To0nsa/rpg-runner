@@ -35,10 +35,13 @@ animation or feedback message. Restarting or starting another run clears it.
 
 ## Current authoring scope
 
-Only the explicitly registered Forest and Field placements have this behavior.
-Other vasques and garden pots remain ordinary prefabs. Attachments and reusable
-presets are currently configured manually in Core catalogs; there are no
-interaction editor controls.
+The explicitly registered Forest and Field placements retain this behavior.
+Campaign's **Markers → Blessing fire** also attaches it to an existing shrine or
+platform top in one mission occurrence. Choose ember or blue fire, then point at
+the flat top; the preview shows the fire and its contact width. This places only
+the effect. The shared platform stays unchanged, and other uses of it remain
+ordinary geometry unless separately attached. Moving the fire reattaches it to
+a valid top. Multiple fires light independently and share one regeneration bonus.
 Existing Chunk/Level Play displays the effect using the same gameplay rules.
 See the [technical contract](../tdd/world_interactions.md) for configuration,
 placement disambiguation, and asset ownership.

@@ -969,10 +969,28 @@ left, persistent preview and workspace tabs in the centre, and contextual
 **Settings** on the right. Smaller windows expose **Chapters / Workspace /
 Settings** as tabs without losing your selection or chunk search. **Contents**
 browses only Campaign chunks with visual previews; **Route** controls the exact
-sequence; **Markers** contains start, exit, pickups and objectives. The mission
+sequence; **Markers** provides tools for start, exit, objectives, enemies, traps,
+rescue encounters, coins, restoration gems and blessing fire. The mission
 route preview joins the chunk artwork at the panel's height. Scroll horizontally
 with the bottom scrollbar or a horizontal trackpad gesture to inspect the entire
 route; start, pickup, exit and region markers stay aligned with their occurrences.
+Choose a palette item and click in the route to place it. Select and drag to move;
+drag rectangle corners to resize. Toggle **Snap 8 px**, use **Ctrl+drag** to pan
+and **Ctrl+scroll** to zoom. **Escape** cancels; duplicate/delete and the right
+**Properties** panel operate on the selected marker. Enemy, trap and rescue
+properties reuse Chunk Creator's controls. Rescue groups need an NPC and enemy
+before Play/Build; incomplete groups can be saved. Required toggles make enemies
+or rescues completion objectives. Shared source actors remain visible and can be
+linked as objectives; edit their source through Route.
+
+**Gold coin** and **Health/Mana/Stamina gem** place the existing pickups directly.
+**Blessing fire** attaches only the effect to a nearby flat, collidable shrine or
+platform top. It adds no base or collision. Choose ember or blue fire and adjust
+its contact width/scale in Properties. Geometry changes that invalidate the
+attachment require reattaching it. Placements affect one mission occurrence;
+shared chunks and other missions stay unchanged. Route duplication copies local
+placements with fresh identities. Removing a referenced occurrence is blocked
+until its markers are moved or removed.
 The settings panel shows rewards, build status, selected chunk usage and validation.
 Open **Mission settings** there to edit the mission. Back from Chunk Creator restores
 the selected mission, workspace tab, search and valid chunk/occurrence selection.
@@ -1008,8 +1026,8 @@ are account-wide; choose the recipient for skills. Already-owned rewards grant
 no duplicate or compensation. Rewards are granted once per chapter, after every
 mission is verified complete. **Apply** accepts the draft into Undo/Redo;
 **Cancel** leaves it unchanged. Save then Build to regenerate the shared policy.
-Chapter rewards supplement mission first-clear rewards and **Place start / exit /
-objective → Gold pickup** (one gold per pickup). Val Outpost starts with zero
+Chapter rewards supplement mission first-clear rewards and **Markers → Gold coin**
+(one gold per pickup). Val Outpost starts with zero
 extra completion XP/gold/items, keeping its existing mission balance.
 
 Save and Undo use the normal workspace transaction. F5 captures the current mission
