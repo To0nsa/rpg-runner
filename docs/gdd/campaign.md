@@ -17,9 +17,12 @@ restores the same map view.
 
 Mission one has no completion prerequisite; later missions require verified clears
 of their predecessors. An unbuilt draft shows Coming soon. Built missions show a
-disabled Locked button with a lock icon until unlocked, then a Play button with a
-play icon, including on repeat attempts. Each entry starts collapsed with a
-leading disclosure arrow, level name and action button in one compact row.
+disabled Locked button with a lock icon until unlocked, then an uppercase PLAY
+button without an icon, including on repeat attempts. All mission action buttons
+have the same width. Locked entries replace their level name with Locked and hide
+their descriptions, tooltips and disclosure arrows until progress unlocks them.
+Unlocked entries start collapsed with a leading disclosure arrow, level name and
+action button in one compact row.
 Level names use the chapter heading's font family at a smaller size. Long names
 truncate to one line, with the full name available in a tooltip and to screen
 readers. Tap the arrow or name to show the assignment, completion status and

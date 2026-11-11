@@ -5,6 +5,7 @@ import '../app/ui_routes.dart';
 import '../components/app_button.dart';
 import '../l10n/app_localization.dart';
 import '../state/app/app_state.dart';
+import '../theme/ui_button_theme.dart';
 import '../theme/ui_tokens.dart';
 import 'campaign_catalog.dart';
 
@@ -128,8 +129,10 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
     final unlocked = state.isDeveloperMode || progress.isUnlocked(mission);
     final cleared = progress.isCleared(mission.id);
     final score = progress.bestScore(mission.id);
-    final expanded = _expandedMissions.contains(mission.id);
-    final title = mission.title(language);
+    final expanded = unlocked && _expandedMissions.contains(mission.id);
+    final title = unlocked
+        ? mission.title(language)
+        : context.l10n.campaignLocked;
     final ui = context.ui;
     return Card(
       key: ValueKey('campaign-mission-${mission.id}'),
@@ -152,31 +155,35 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
                     child: Semantics(
                       key: ValueKey('campaign-mission-details-${mission.id}'),
                       container: true,
-                      button: true,
-                      expanded: expanded,
+                      button: unlocked,
+                      expanded: unlocked ? expanded : null,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(ui.radii.sm),
-                        onTap: () => setState(() {
-                          if (expanded) {
-                            _expandedMissions.remove(mission.id);
-                          } else {
-                            _expandedMissions.add(mission.id);
-                          }
-                        }),
+                        onTap: !unlocked
+                            ? null
+                            : () => setState(() {
+                                if (expanded) {
+                                  _expandedMissions.remove(mission.id);
+                                } else {
+                                  _expandedMissions.add(mission.id);
+                                }
+                              }),
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
                             minHeight: ui.sizes.tapTarget,
                           ),
                           child: Row(
                             children: [
-                              Icon(
-                                expanded
-                                    ? Icons.expand_more
-                                    : Icons.chevron_right,
-                                size: 20,
-                                color: ui.colors.textPrimary,
-                              ),
-                              SizedBox(width: ui.space.xxs),
+                              if (unlocked) ...[
+                                Icon(
+                                  expanded
+                                      ? Icons.expand_more
+                                      : Icons.chevron_right,
+                                  size: 20,
+                                  color: ui.colors.textPrimary,
+                                ),
+                                SizedBox(width: ui.space.xxs),
+                              ],
                               Expanded(
                                 child: Tooltip(
                                   message: title,
@@ -198,21 +205,22 @@ class _CampaignChapterDialogState extends State<CampaignChapterDialog> {
                     ),
                   ),
                   SizedBox(width: ui.space.xs),
-                  AppButton(
-                    size: AppButtonSize.xxs,
-                    label: !mission.available
-                        ? context.l10n.campaignComingSoon
-                        : unlocked
-                        ? context.l10n.commonPlay
-                        : context.l10n.campaignLocked,
-                    icon: !mission.available
-                        ? null
-                        : unlocked
-                        ? Icons.play_arrow
-                        : Icons.lock_outline,
-                    onPressed: mission.available && unlocked && !_starting
-                        ? () => _start(mission)
-                        : null,
+                  SizedBox(
+                    width: context.buttons.sizes.width(AppButtonSize.sm),
+                    child: AppButton(
+                      size: AppButtonSize.xxs,
+                      label: !mission.available
+                          ? context.l10n.campaignComingSoon
+                          : unlocked
+                          ? context.l10n.playButton
+                          : context.l10n.campaignLocked,
+                      icon: mission.available && !unlocked
+                          ? Icons.lock_outline
+                          : null,
+                      onPressed: mission.available && unlocked && !_starting
+                          ? () => _start(mission)
+                          : null,
+                    ),
                   ),
                 ],
               ),

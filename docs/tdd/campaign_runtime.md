@@ -243,11 +243,17 @@ family. A leading disclosure arrow and single-line name share a row with the
 action button. Arrow/name taps toggle description and progress below that row;
 action taps remain independent. Expanded mission IDs are local dialog state,
 preserved across run-route pushes and reset when the dialog closes. Disclosure
-controls expose expanded semantics; truncated names retain full tooltips and
-screen-reader labels.
+controls expose expanded semantics; truncated unlocked names retain full tooltips
+and screen-reader labels. Locked entries render the localized Locked placeholder
+instead of the mission name, omit the disclosure arrow, and disable expansion.
+Their real names and descriptions are absent from tooltips and semantics as well
+as the visible row. Canonical unlock updates reveal the name and enable expansion.
 Draft availability takes precedence over progress: drafts show Coming soon;
-built missions show disabled Locked with a lock icon or enabled Play with a play
-icon according to canonical unlocks (or the existing developer bypass).
+built missions show disabled Locked with a lock icon or enabled uppercase PLAY
+without an icon according to canonical unlocks (or the existing developer bypass).
+The play label reuses `playButton`, as in the shared Play button. Every action
+uses the same fixed small-button width from `UiButtonTheme`, independent of its
+label or availability, with the existing compact text and touch-target height.
 Close, system Back and the outside barrier dismiss it without resetting the map
 transform. The dialog watches canonical `AppState` and retains the existing
 mission availability/unlock checks and shared run-bootstrap route. Run launch is

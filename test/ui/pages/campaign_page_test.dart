@@ -24,8 +24,11 @@ import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/character_selection_page.dart';
 import 'package:runner_core/players/player_character_definition.dart';
+import 'package:runner_core/meta/meta_service.dart';
 import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
 import 'package:rpg_runner/ui/state/ownership/campaign_progress.dart';
+import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
+import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
@@ -129,6 +132,7 @@ void main() {
     testWidgets(
       'chapter modal gates mission actions and starts through bootstrap in $language',
       (tester) async {
+        await _loadCampaignFonts(tester);
         tester.view.devicePixelRatio = 1;
         tester.view.physicalSize = const Size(568, 320);
         addTearDown(tester.view.resetDevicePixelRatio);
@@ -145,12 +149,14 @@ void main() {
               },
           ],
         });
+        final ownership = _CampaignOwnership();
         final state = AppState(
-          authApi: _UnusedAuth(),
-          loadoutOwnershipApi: _UnusedOwnership(),
+          authApi: _CampaignAuth(),
+          loadoutOwnershipApi: ownership,
         );
         addTearDown(state.dispose);
         RunStartBootstrapArgs? launched;
+        final boundary = GlobalKey();
         await tester.pumpWidget(
           ChangeNotifierProvider<AppState>.value(
             value: state,
@@ -160,6 +166,14 @@ void main() {
               supportedLocales: AppLocalizations.supportedLocales,
               theme: ThemeData(
                 extensions: [UiTokens.standard, UiButtonTheme.standard],
+              ),
+              builder: (context, child) => RepaintBoundary(
+                key: boundary,
+                child: MediaQuery(
+                  data: MediaQuery.of(context)
+                      .copyWith(textScaler: const TextScaler.linear(1.2)),
+                  child: child!,
+                ),
               ),
               home: Builder(
                 builder: (context) => Scaffold(
@@ -188,7 +202,7 @@ void main() {
         final l10n = AppLocalizations.of(
           tester.element(find.byType(CampaignChapterDialog)),
         )!;
-        final play = find.widgetWithText(AppButton, l10n.commonPlay);
+        final play = find.widgetWithText(AppButton, l10n.playButton);
         final locked = find.widgetWithText(AppButton, l10n.campaignLocked);
         final comingSoon = find.widgetWithText(
           AppButton,
@@ -199,7 +213,7 @@ void main() {
         expect(comingSoon, findsOneWidget);
         expect(
           find.descendant(of: play, matching: find.byIcon(Icons.play_arrow)),
-          findsOneWidget,
+          findsNothing,
         );
         expect(
           find.descendant(
@@ -211,14 +225,24 @@ void main() {
         expect(tester.widget<AppButton>(locked).onPressed, isNull);
         expect(tester.widget<AppButton>(comingSoon).onPressed, isNull);
         _expectMissionLayout(tester, chapter, language);
-        final lockedTitle = find.text(chapter.missions[1].title(language));
-        await tester.ensureVisible(lockedTitle);
-        await tester.tap(lockedTitle);
-        await tester.pumpAndSettle();
-        expect(
-          find.text(chapter.missions[1].description(language)),
-          findsOneWidget,
-        );
+        final actionWidth = tester.getSize(play).width;
+        await _capture(tester, boundary, 'locked_missions_$language');
+        for (final mission in chapter.missions.skip(1)) {
+          final details = find.byKey(
+            ValueKey('campaign-mission-details-${mission.id}'),
+          );
+          await tester.ensureVisible(details);
+          await tester.tap(details);
+          await tester.pumpAndSettle();
+          expect(find.text(mission.title(language)), findsNothing);
+          expect(find.byTooltip(mission.title(language)), findsNothing);
+          expect(find.bySemanticsLabel(mission.title(language)), findsNothing);
+          expect(find.text(mission.description(language)), findsNothing);
+          expect(
+            find.descendant(of: details, matching: find.byType(Icon)),
+            findsNothing,
+          );
+        }
         await tester.ensureVisible(locked);
         await tester.tap(locked);
         await tester.pumpAndSettle();
@@ -239,6 +263,28 @@ void main() {
           find.text(chapter.missions.first.description(language)),
           findsOneWidget,
         );
+        ownership.progress = CampaignProgress.fromJson({
+          'schemaVersion': 1,
+          'missions': {
+            chapter.missions.first.id: {
+              'cleared': true,
+              'attempts': 1,
+              'bests': {},
+            },
+          },
+        });
+        await state.bootstrap(force: true);
+        await tester.pumpAndSettle();
+        final next = chapter.missions[1];
+        expect(find.text(next.title(language)), findsOneWidget);
+        expect(locked, findsNothing);
+        expect(play, findsNWidgets(2));
+        _expectMissionLayout(tester, chapter, language);
+        expect(tester.getSize(play.last).width, actionWidth);
+        await tester.ensureVisible(find.text(next.title(language)));
+        await tester.tap(find.text(next.title(language)));
+        await tester.pumpAndSettle();
+        expect(find.text(next.description(language)), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       },
@@ -255,19 +301,7 @@ void main() {
               const MethodChannel('dev.fluttercommunity.plus/charging'),
               (_) async => null,
             );
-        await tester.runAsync(() async {
-          for (final (family, path) in [
-            (
-              'CrimsonText',
-              'assets/fonts/Crimson_Text/CrimsonText-Regular.ttf',
-            ),
-            ('Inter', 'assets/fonts/Inter/static/Inter_24pt-Regular.ttf'),
-            ('Cinzel', 'assets/fonts/Cinzel/static/Cinzel-Regular.ttf'),
-            ('MaterialIcons', 'fonts/MaterialIcons-Regular.otf'),
-          ]) {
-            await (FontLoader(family)..addFont(rootBundle.load(path))).load();
-          }
-        });
+        await _loadCampaignFonts(tester);
         tester.view.devicePixelRatio = 1;
         tester.view.physicalSize = size;
         addTearDown(tester.view.resetDevicePixelRatio);
@@ -530,6 +564,51 @@ class _UnusedAuth extends Fake implements AuthApi {}
 
 class _UnusedOwnership extends Fake implements LoadoutOwnershipApi {}
 
+class _CampaignAuth extends Fake implements AuthApi {
+  static const session = AuthSession(
+    userId: 'campaign-player',
+    sessionId: 'campaign-session',
+    isAnonymous: true,
+    expiresAtMs: 0,
+  );
+
+  @override
+  Future<AuthSession> loadSession() async => session;
+
+  @override
+  Future<AuthSession> ensureAuthenticatedSession() async => session;
+}
+
+class _CampaignOwnership extends Fake implements LoadoutOwnershipApi {
+  CampaignProgress progress = CampaignProgress.empty;
+  int revision = 0;
+
+  @override
+  Future<OwnershipCanonicalState> loadCanonicalState({
+    required String userId,
+    required String sessionId,
+  }) async => OwnershipCanonicalState(
+    profileId: defaultOwnershipProfileId,
+    revision: ++revision,
+    selection: SelectionState.defaults,
+    meta: const MetaService().createNew(),
+    progression: ProgressionState.initial.copyWith(campaign: progress),
+  );
+}
+
+Future<void> _loadCampaignFonts(WidgetTester tester) async {
+  await tester.runAsync(() async {
+    for (final (family, path) in [
+      ('CrimsonText', 'assets/fonts/Crimson_Text/CrimsonText-Regular.ttf'),
+      ('Inter', 'assets/fonts/Inter/static/Inter_24pt-Regular.ttf'),
+      ('Cinzel', 'assets/fonts/Cinzel/static/Cinzel-Regular.ttf'),
+      ('MaterialIcons', 'fonts/MaterialIcons-Regular.otf'),
+    ]) {
+      await (FontLoader(family)..addFont(rootBundle.load(path))).load();
+    }
+  });
+}
+
 void _expectChapterPanel(
   WidgetTester tester,
   Size viewport, {
@@ -568,8 +647,22 @@ void _expectMissionLayout(
       )
       .text
       .style;
+  final state = tester.element(heading).read<AppState>();
+  final l10n = AppLocalizations.of(tester.element(heading))!;
+  final actionWidths = <double>{};
   for (final mission in chapter.missions) {
-    final title = find.text(mission.title(language));
+    final unlocked =
+        state.isDeveloperMode || state.progression.campaign.isUnlocked(mission);
+    final card = find.byKey(ValueKey('campaign-mission-${mission.id}'));
+    final disclosure = find.byKey(
+      ValueKey('campaign-mission-details-${mission.id}'),
+    );
+    final title = find.descendant(
+      of: disclosure,
+      matching: find.text(
+        unlocked ? mission.title(language) : l10n.campaignLocked,
+      ),
+    );
     expect(
       renderedStyle(title)?.fontFamily,
       renderedStyle(heading)?.fontFamily,
@@ -583,18 +676,12 @@ void _expectMissionLayout(
       lessThan(renderedStyle(heading)!.fontSize!),
     );
     expect(tester.widget<Text>(title).maxLines, 1);
-    final card = find.ancestor(of: title, matching: find.byType(Card));
     final actionFinder = find.descendant(
       of: card,
       matching: find.byType(AppButton),
     );
     final action = tester.getRect(actionFinder);
-    final disclosure = find.byKey(
-      ValueKey('campaign-mission-details-${mission.id}'),
-    );
-    final arrow = tester.getRect(
-      find.descendant(of: disclosure, matching: find.byType(Icon)),
-    );
+    actionWidths.add(action.width);
     final titleRect = tester.getRect(title);
     final buttonLabel = tester.renderObject<RenderParagraph>(
       find.descendant(
@@ -606,13 +693,19 @@ void _expectMissionLayout(
       ),
     );
     expect(buttonLabel.didExceedMaxLines, isFalse);
-    expect(arrow.right, lessThan(titleRect.left));
+    final arrow = find.descendant(of: disclosure, matching: find.byType(Icon));
+    if (unlocked) {
+      expect(tester.getRect(arrow).right, lessThan(titleRect.left));
+    } else {
+      expect(arrow, findsNothing);
+    }
     expect(titleRect.right, lessThan(action.left));
     expect(titleRect.center.dy, closeTo(action.center.dy, .01));
     expect(action.right, lessThan(tester.getRect(card).right));
     expect(action.height, greaterThanOrEqualTo(48));
     expect(tester.getSize(disclosure).height, greaterThanOrEqualTo(48));
   }
+  expect(actionWidths, hasLength(1));
 }
 
 void _expectFullScreenMap(WidgetTester tester, Size viewport) {
