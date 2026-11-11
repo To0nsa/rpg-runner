@@ -3059,7 +3059,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get campaignRegionalMap => 'Carte régionale';
 
   @override
-  String get campaignChapterReward => 'Récompense du chapitre : Willow';
+  String get campaignChapterReward => 'Récompenses de fin de chapitre';
 
   @override
   String campaignFirstClearXp({required int xp}) {
@@ -3122,4 +3122,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get campaignWillowUnlocked => 'Chapitre terminé — Willow débloqué';
+
+  @override
+  String campaignChapterRewardAmounts({required int xp, required int gold}) {
+    return '$xp EXP · $gold pièces d’or';
+  }
+
+  @override
+  String get campaignChapterRewardsGranted => 'Récompenses du chapitre reçues.';
 }

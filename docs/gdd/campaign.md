@@ -46,3 +46,12 @@ every verified attempt keeps collected gold. Score uses finite progress, combat
 and pickups without survival-time points. Backtracking and waiting do not farm
 score. There are no campaign boards, ghosts, stars, checkpoints or mid-mission
 saves. Next becomes available after verification, using a fresh ticket.
+
+Each chapter can also award configurable completion XP, gold and up to eight
+existing equipment items or skills. These rewards are granted once after all
+missions are verified complete, in addition to mission XP and collected gold.
+Gear is account-wide; each skill names its recipient character. Rewards unlock
+ownership without changing the current build. Already-owned items grant no
+additional copy or compensation. Replays and later edits to the chapter do not
+repeat a previously received chapter reward. Val Outpost currently adds no extra
+XP, gold or items, preserving the level-3 target and Willow unlock.

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:runner_core/campaign/campaign_mission_definition.dart';
+import 'package:runner_core/meta/catalog_unlock.dart';
 import 'package:runner_core/playtest/playtest_scenario_validation.dart';
 import 'package:runner_core/track/finite_chunk_pattern_source.dart';
 
@@ -27,15 +28,23 @@ final class CampaignCatalogSource {
     final chapterIds = <String>{};
     final missionIds = <String>{};
     for (final value in _list(root['chapters'], 32, 'chapters')) {
-      final chapter = _object(value, {
-        'id',
-        'title',
-        'description',
-        'mapX',
-        'mapY',
-        'rewardCharacterId',
-        'missions',
-      }, 'chapter');
+      final chapter = _object(
+        value,
+        {
+          'id',
+          'title',
+          'description',
+          'mapX',
+          'mapY',
+          'rewardCharacterId',
+          'rewardXp',
+          'rewardGold',
+          'rewardItems',
+          'missions',
+        },
+        'chapter',
+        optional: const {'rewardXp', 'rewardGold', 'rewardItems'},
+      );
       final id = _id(chapter['id'], 'chapter.id');
       if (!chapterIds.add(id)) throw FormatException('Duplicate chapter $id.');
       final missions = <CampaignMissionSource>[];
@@ -61,6 +70,23 @@ final class CampaignCatalogSource {
           mapX: _number(chapter['mapX'], 0, 1, 'mapX'),
           mapY: _number(chapter['mapY'], 0, 1, 'mapY'),
           rewardCharacterId: character as String?,
+          rewardXp: _integer(
+            chapter.containsKey('rewardXp') ? chapter['rewardXp'] : 0,
+            0,
+            100000,
+            'rewardXp',
+          ),
+          rewardGold: _integer(
+            chapter.containsKey('rewardGold') ? chapter['rewardGold'] : 0,
+            0,
+            1000000,
+            'rewardGold',
+          ),
+          rewardItems: _rewardItems(
+            chapter.containsKey('rewardItems')
+                ? chapter['rewardItems']
+                : const [],
+          ),
           missions: List.unmodifiable(missions),
         ),
       );
@@ -92,22 +118,49 @@ final class CampaignChapterSource {
     required this.mapX,
     required this.mapY,
     required this.rewardCharacterId,
+    this.rewardXp = 0,
+    this.rewardGold = 0,
+    this.rewardItems = const [],
     required this.missions,
   });
   final String id;
   final Map<String, String> title, description;
   final double mapX, mapY;
   final String? rewardCharacterId;
+  final int rewardXp, rewardGold;
+  final List<CatalogUnlock> rewardItems;
   final List<CampaignMissionSource> missions;
+  Map<String, Object?> rewardsToJson() => {
+    'rewardCharacterId': rewardCharacterId,
+    'rewardXp': rewardXp,
+    'rewardGold': rewardGold,
+    'rewardItems': rewardItems.map((item) => item.toJson()).toList(),
+  };
   Map<String, Object?> toJson() => {
     'id': id,
     'title': title,
     'description': description,
     'mapX': mapX,
     'mapY': mapY,
-    'rewardCharacterId': rewardCharacterId,
+    ...rewardsToJson(),
     'missions': missions.map((m) => m.toJson()).toList(),
   };
+}
+
+List<CatalogUnlock> _rewardItems(Object? raw) {
+  final items = <CatalogUnlock>[];
+  final keys = <String>{};
+  for (final value in _list(raw, 8, 'rewardItems')) {
+    if (value is! Map<String, dynamic>) {
+      throw const FormatException('Invalid chapter item reward.');
+    }
+    final item = CatalogUnlock.fromJson(value);
+    if (!keys.add(item.key)) {
+      throw const FormatException('Duplicate chapter item reward.');
+    }
+    items.add(item);
+  }
+  return List.unmodifiable(items);
 }
 
 typedef CampaignOccurrenceSource = ({
@@ -396,10 +449,15 @@ Map<String, Object> campaignRegionToJson(CampaignRegion r) => {
   'height': r.height,
 };
 
-Map<String, dynamic> _object(Object? v, Set<String> keys, String path) {
+Map<String, dynamic> _object(
+  Object? v,
+  Set<String> keys,
+  String path, {
+  Set<String> optional = const {},
+}) {
   if (v is! Map<String, dynamic> ||
       v.keys.toSet().difference(keys).isNotEmpty ||
-      keys.difference(v.keys.toSet()).isNotEmpty) {
+      keys.difference(optional).difference(v.keys.toSet()).isNotEmpty) {
     throw FormatException('$path requires exactly: ${keys.join(', ')}.');
   }
   return v;

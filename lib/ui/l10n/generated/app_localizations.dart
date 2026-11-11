@@ -4163,7 +4163,7 @@ abstract class AppLocalizations {
   /// Campaign navigation, mission progress or chapter reward label.
   ///
   /// In en, this message translates to:
-  /// **'Chapter reward: Willow'**
+  /// **'Chapter completion rewards'**
   String get campaignChapterReward;
 
   /// Campaign navigation, mission progress or chapter reward label.
@@ -4267,6 +4267,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chapter complete — Willow unlocked'**
   String get campaignWillowUnlocked;
+
+  /// XP and gold awarded once on chapter completion.
+  ///
+  /// In en, this message translates to:
+  /// **'{xp} XP · {gold} gold'**
+  String campaignChapterRewardAmounts({required int xp, required int gold});
+
+  /// Shown only after canonical chapter reward settlement.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter rewards received.'**
+  String get campaignChapterRewardsGranted;
 }
 
 class _AppLocalizationsDelegate

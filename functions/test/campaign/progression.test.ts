@@ -89,3 +89,70 @@ test("unsupported progress and incomplete evidence fail closed", () => {
   assert.equal(campaignCharacterUnlocked(state.progression, "bountyHunter"), false);
   assert.throws(() => authorizeCampaignMission(state.progression, "signs_in_the_grove", "forest", catalog));
 });
+
+function completeChapter(state: ReturnType<typeof starterCanonicalState>, rewards = { xp: 25, gold: 150 },
+  override: Partial<CampaignCatalog["chapters"][number]> = {}) {
+  const chapter = { ...catalog.chapters[0]!, rewardXp: rewards.xp, rewardGold: rewards.gold,
+    rewardItems: [
+      { kind: "gear" as const, slot: "mainWeapon", itemId: "cinderedge" },
+      { kind: "ability" as const, slot: "jump", itemId: "eloise.double_jump", characterId: "eloise" },
+      { kind: "projectileSpell" as const, slot: "projectile", itemId: "hunterBrushgun", characterId: "bountyHunter" },
+    ], ...override };
+  const current = { ...catalog, chapters: [chapter] };
+  const last = chapter.missions.at(-1)!;
+  const campaign = { missionId: last.id, contentDigest: current.contentDigest, rewardPolicyVersion: current.rewardPolicyVersion };
+  return applyCampaignProgress({ canonical: state, catalog: current, nowMs: 1234,
+    session: { mode: "campaign", levelId: last.levelId, runTicket: { campaign } },
+    validatedRun: { accepted: true, campaign, endedReason: "missionCompleted", score: 100, tick: 50,
+      runSessionId: "last", playerRunStats: { schemaVersion: 1 } } });
+}
+function readyForFinalMission() {
+  const state = starterCanonicalState("main", "chapter-player");
+  state.progression.campaign = { schemaVersion: 1, missions: Object.fromEntries(
+    catalog.chapters[0]!.missions.slice(0, -1).map((m) => [m.id, { cleared: true, attempts: 1, bests: {} }])) };
+  return state;
+}
+
+test("chapter rewards grant once through normal ownership, preserving loadouts and receipts", () => {
+  const state = readyForFinalMission();
+  const selection = structuredClone(state.selection);
+  assert.equal(completeChapter(state).xp, 76 + 25);
+  assert.equal(state.progression.gold, 150);
+  assert.deepEqual(state.selection, selection);
+  const inventory = state.meta.inventory as { weapons: string[] };
+  assert.equal(inventory.weapons.filter((id) => id === "cinderedge").length, 1);
+  const ownership = state.meta.abilityOwnershipByCharacter as Record<string, { projectileSpells: string[]; abilitiesBySlot: { jump: string[] } }>;
+  assert.ok(ownership.bountyHunter!.projectileSpells.includes("hunterBrushgun"));
+  assert.ok(!ownership.eloise!.projectileSpells.includes("hunterBrushgun"));
+  assert.ok(ownership.eloise!.abilitiesBySlot.jump.includes("eloise.double_jump"));
+  const receipt = structuredClone((state.progression.campaign as Record<string, unknown>).chapters);
+  assert.equal(completeChapter(state, { xp: 500, gold: 999 }).xp, 0);
+  assert.equal(state.progression.gold, 150);
+  assert.deepEqual((state.progression.campaign as Record<string, unknown>).chapters, receipt);
+  // Reordering or appending content cannot grant a stable chapter twice.
+  assert.equal(completeChapter(state, undefined, { missions: [...catalog.chapters[0]!.missions].reverse() }).xp, 0);
+  assert.equal(completeChapter(state, undefined, { missions: [...catalog.chapters[0]!.missions,
+    { ...catalog.chapters[0]!.missions[0]!, id: "later_mission", firstClearXp: 7 }] }).xp, 7);
+  assert.equal(state.progression.gold, 150);
+});
+
+test("incomplete chapter grants no completion rewards; invalid rewards and overflow fail before mutations", () => {
+  const incomplete = starterCanonicalState("main", "chapter-player");
+  assert.equal(completeChapter(incomplete).xp, 76);
+  assert.equal(incomplete.progression.gold, 0);
+  for (const override of [
+    { rewardXp: -1 }, { rewardGold: 1000001 },
+    { rewardItems: [{ kind: "gear" as const, slot: "mainWeapon", itemId: "invented" }] },
+    { rewardItems: [{ kind: "ability" as const, slot: "jump", itemId: "eloise.double_jump", characterId: "bountyHunter" }] },
+  ]) {
+    const state = readyForFinalMission();
+    const before = structuredClone(state);
+    assert.throws(() => completeChapter(state, undefined, override));
+    assert.deepEqual(state, before);
+  }
+  const state = readyForFinalMission();
+  state.progression.gold = Number.MAX_SAFE_INTEGER;
+  const before = structuredClone(state);
+  assert.throws(() => completeChapter(state));
+  assert.deepEqual(state, before);
+});

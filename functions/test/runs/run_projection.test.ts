@@ -595,6 +595,53 @@ test("campaign first-clear settlement is atomic across retries and simultaneous 
   assert.equal(progress.missions[mission.id]!.attempts, 2);
 });
 
+test("chapter completion XP, gold and items settle once under concurrent runs", async (t) => {
+  // Configure authored rewards in this process only; exercise the production
+  // settlement transaction without changing the checked-in chapter balance.
+  const chapter = campaignCatalog.chapters[0]!;
+  const original = structuredClone(chapter);
+  Object.assign(chapter, { rewardXp: 25, rewardGold: 150, rewardItems: [
+    { kind: "gear", slot: "mainWeapon", itemId: "cinderedge" },
+    { kind: "projectileSpell", slot: "projectile", itemId: "hunterBrushgun", characterId: "bountyHunter" },
+  ] });
+  t.after(() => Object.assign(chapter, original));
+  await loadOrCreateCanonicalState({ db, uid });
+  const profile = (await db.collection("ownership_profiles").where("uid", "==", uid).get()).docs[0]!;
+  await profile.ref.update({
+    "progression.campaign": { schemaVersion: 1, missions: Object.fromEntries(
+      chapter.missions.slice(0, -1).map((m) => [m.id, { cleared: true, attempts: 1, bests: {} }])) },
+  });
+  const mission = chapter.missions.at(-1)!;
+  const campaign = { missionId: mission.id, contentDigest: campaignCatalog.contentDigest,
+    rewardPolicyVersion: campaignCatalog.rewardPolicyVersion };
+  const ids: string[] = [];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const id = await seedCodexRun("practice", "forest", 500000, {});
+    await db.collection("run_sessions").doc(id).update({ mode: "campaign", "runTicket.campaign": campaign });
+    await db.collection("validated_runs").doc(id).update({ mode: "campaign", campaign,
+      endedReason: "missionCompleted", tick: 100, distanceMeters: 100, durationSeconds: 3,
+      playerRunStats: { schemaVersion: 1, damageDealt100: 0, damageTaken100: 0 } });
+    await db.collection("reward_grants").doc(id).update({ mode: "campaign" });
+    ids.push(id);
+  }
+  const results = await Promise.all(ids.flatMap((runSessionId) => [
+    settleAcceptedRunSession({ db, runSessionId, nowMs }),
+    settleAcceptedRunSession({ db, runSessionId, nowMs }),
+  ]));
+  assert.deepEqual(results.sort(), ["already_settled", "already_settled", "settled", "settled"]);
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal((canonical.progression.playerProgress as { totalXp: number }).totalXp, 101);
+  assert.equal(canonical.progression.gold, 152);
+  const inventory = canonical.meta.inventory as { weapons: string[] };
+  assert.equal(inventory.weapons.filter((id) => id === "cinderedge").length, 1);
+  const ownership = canonical.meta.abilityOwnershipByCharacter as Record<string, { projectileSpells: string[] }>;
+  assert.ok(ownership.bountyHunter!.projectileSpells.includes("hunterBrushgun"));
+  assert.ok(!ownership.eloise!.projectileSpells.includes("hunterBrushgun"));
+  const progress = canonical.progression.campaign as { chapters: Record<string, { xp: number; gold: number }> };
+  assert.equal(progress.chapters[chapter.id]!.xp, 25);
+  assert.equal(progress.chapters[chapter.id]!.gold, 150);
+});
+
 async function seedCodexRun(
   mode: "practice" | "competitive" | "weekly", levelId: string,
   score: number, enemyKills: Record<string, number>,

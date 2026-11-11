@@ -959,12 +959,17 @@ an inactive runner draft. Shared prefabs and materials remain shared references.
 
 Set **First-clear XP** and **First-clear ability** in **Mission settings**.
 The ability selector currently offers **None** or **Éloïse — Double Jump**.
-Use **Chapter rewards** beneath the chapter description to choose **Willow** or
-**None** as the character unlocked by completing every mission. None removes that
-chapter's unlock; it does not make Willow available by default. **Apply** accepts
-the dialog edit into Undo/Redo; **Cancel** leaves the reward unchanged. Save then
-Build to regenerate the shared reward policy. Gold remains authored separately
-through **Place start / exit / objective → Gold pickup** (one gold per pickup).
+Use **Chapter rewards** beneath the chapter description to configure completion
+XP (0–100,000), gold (0–1,000,000), up to eight catalogue items/skills, and
+**Willow** or **None** as the completion character. The searchable picker uses
+Admin's shared `game_presentation` catalogue, names and artwork. Equipment unlocks
+are account-wide; choose the recipient for skills. Already-owned rewards grant
+no duplicate or compensation. Rewards are granted once per chapter, after every
+mission is verified complete. **Apply** accepts the draft into Undo/Redo;
+**Cancel** leaves it unchanged. Save then Build to regenerate the shared policy.
+Chapter rewards supplement mission first-clear rewards and **Place start / exit /
+objective → Gold pickup** (one gold per pickup). Val Outpost starts with zero
+extra completion XP/gold/items, keeping its existing mission balance.
 
 Save and Undo use the normal workspace transaction. F5 captures the current mission
 for local Play; Build publishes only missions explicitly included in their settings.

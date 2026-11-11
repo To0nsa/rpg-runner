@@ -171,6 +171,16 @@ void main() {
     'every backend catalog entry resolves through shared Core presentation and repository assets',
     (tester) async {
       final rows = CatalogService().fixture['entries'] as List;
+      expect(
+        GameCatalogItem.values.map((item) => item.key).toSet(),
+        rows
+            .map(
+              (raw) => GameCatalogItem.fromJson(
+                Map<String, dynamic>.from(raw as Map),
+              ).key,
+            )
+            .toSet(),
+      );
       final bundle = RepositoryAssets(Directory.current.parent.parent.path);
       for (final raw in rows) {
         final item = GameCatalogItem.fromJson(

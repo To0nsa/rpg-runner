@@ -75,11 +75,11 @@ class _CampaignResultsPanelState extends State<CampaignResultsPanel> {
     final equipped =
         state.selection.loadoutFor(PlayerCharacterId.eloise).abilityJumpId ==
         ability;
-    final chapterComplete = CampaignCatalog.chapters.any(
-      (chapter) =>
-          chapter.missions.any((entry) => entry.id == missionId) &&
-          progress.chapterCleared(chapter),
-    );
+    final chapter = CampaignCatalog.chapters
+        .where(
+          (chapter) => chapter.missions.any((entry) => entry.id == missionId),
+        )
+        .firstOrNull;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +100,13 @@ class _CampaignResultsPanelState extends State<CampaignResultsPanel> {
                 : context.l10n.runMissionFailed,
           ),
           if (best != null) Text(context.l10n.campaignBestScore(score: best)),
-          if (!state.isDeveloperMode && chapterComplete)
+          if (!state.isDeveloperMode &&
+              chapter != null &&
+              progress.chapterRewardClaimed(chapter.id))
+            Text(context.l10n.campaignChapterRewardsGranted),
+          if (!state.isDeveloperMode &&
+              chapter?.rewardCharacter == PlayerCharacterId.bountyHunter &&
+              progress.chapterCleared(chapter!))
             Text(context.l10n.campaignWillowUnlocked),
           if (!state.isDeveloperMode && owned) ...[
             const SizedBox(height: 12),

@@ -116,7 +116,10 @@
           "requiredRescues": [],
           "levelId": "forest"
         }
-      ]
+      ],
+      "rewardXp": 0,
+      "rewardGold": 0,
+      "rewardItems": []
     }
   ]
 }

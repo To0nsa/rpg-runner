@@ -233,19 +233,23 @@ final class CampaignDomainPlugin
           .where((c) => c['id'] == id)
           .firstOrNull;
       if (chapter == null) throw ArgumentError('Unknown chapter $id.');
-      if (!command.payload.containsKey('expectedRewardCharacterId') ||
-          command.payload['expectedRewardCharacterId'] !=
-              chapter['rewardCharacterId']) {
+      final currentRewards = doc.catalog.chapters
+          .firstWhere((c) => c.id == id)
+          .rewardsToJson();
+      if (jsonEncode(command.payload['expectedRewards']) !=
+          jsonEncode(currentRewards)) {
         throw StateError('Chapter reward changed; reload this form.');
       }
-      if (!command.payload.containsKey('rewardCharacterId')) {
-        throw ArgumentError('A chapter reward or explicit null is required.');
+      final rewards = command.payload['rewards'];
+      if (rewards is! Map ||
+          rewards.length != currentRewards.length ||
+          !currentRewards.keys.every(rewards.containsKey)) {
+        throw ArgumentError('Complete chapter rewards are required.');
       }
-      if (chapter['rewardCharacterId'] ==
-          command.payload['rewardCharacterId']) {
+      if (jsonEncode(rewards) == jsonEncode(currentRewards)) {
         return doc;
       }
-      chapter['rewardCharacterId'] = command.payload['rewardCharacterId'];
+      chapter.addAll(Map<String, Object?>.from(rewards));
       return doc.withCatalog(CampaignCatalogSource.decode(jsonEncode(json)));
     }
     final chapter = chapters.cast<Map>().firstWhere(

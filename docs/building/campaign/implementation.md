@@ -78,6 +78,28 @@ attempt. Double Jump is Éloïse's existing skill; Willow unlocks on four clears
   gold, player counters and discoveries. Keep campaign out of runner preferences.
 - [x] Update implemented TDD/GDD, public embedding API, setup and owner guidance.
 
+### Chapter completion rewards follow-up
+
+Authorized November 11: editable chapter XP, gold and existing catalog unlocks.
+Starting worktree is clean. Rewards grant once per stable chapter ID after all
+missions clear, in the existing verified settlement transaction; repeated or
+concurrent completions cannot pay twice. Existing Val rewards remain unchanged
+until authored: additional chapter XP/gold default to zero and items to empty.
+Items reuse Core identities, `game_presentation` names/icons and Admin catalog
+presentation; skills retain explicit recipients and duplicate ownership is a no-op.
+No live deployment or account mutation is part of this work.
+
+- [x] Share catalog identity validation and the Admin/editor item picker without
+  introducing a second item list or artwork mapping.
+- [x] Extend chapter source, editor reward dialog, stale checks, Save/Undo and
+  generated client/backend projections with bounded XP/gold and up to eight items.
+- [x] Settle chapter completion receipts, gold, XP and ownership atomically with
+  retry/concurrency coverage; preserve collected run gold and mission rewards.
+- [x] Display authored chapter rewards in English/French using shared item art
+  and labels, and preserve receipts through client state round trips.
+- [x] Regenerate artifacts; validate all affected owners and update contracts,
+  authoring guide and local evidence.
+
 ## M4: user-authored content and release acceptance
 
 - [x] Supply four localized editable mission drafts and reward defaults.
@@ -91,6 +113,38 @@ attempt. Double Jump is Éloïse's existing skill; Willow unlocks on four clears
   Source compatibility is 2026.11.11; no live compatibility/deployment is claimed.
 
 ## Local evidence (November 11)
+
+Chapter reward follow-up (local checks; no deployment or native manual pass):
+
+- Pipeline: `dart test test/campaign_source_test.dart --reporter expanded`,
+  5 passed, including strict bounds, catalogue identities/recipients and round-trip.
+- Editor: `flutter test --no-pub test/campaign_authoring_test.dart --reporter expanded`,
+  11 passed after correcting immutable command-map conversion. Covers numeric
+  validation, item selection, cancellation, stale edits, Save/reopen and Undo/Redo.
+- Admin: `flutter test --no-pub test/admin_page_test.dart --reporter expanded`,
+  2 passed; complete catalogue identity parity and artwork, shared picker, mocked
+  compose/preview/send. `node tools/admin/service/catalog.mjs --check-fixture` passed.
+- Functions: `corepack pnpm --dir functions build` and `build:test` passed;
+  `node --test functions/lib_test/test/campaign/progression.test.js`, 7 passed.
+  The first local Firestore projection/gift run passed 55/56; the existing
+  receipt fixture exposed an unnecessary empty `chapters` field in new accounts.
+  The initializer retains its old shape; receipts add the optional map on use.
+  A subsequent filtered invocation failed at shell parsing, before tests ran.
+  The final local Firestore `run_projection.test.js` rerun passed all 50 tests,
+  including the receipt fixture, duplicate delivery and simultaneous chapter
+  completion with XP, gold, items and explicit skill recipients. The six Admin
+  gift emulator tests passed in the initial combined run.
+- Root: campaign menu/icon/inbox targets, 16 passed; added receipt and localized
+  reward-display tests subsequently brought Campaign-only coverage to 9 passed.
+- Root: generated campaign integration target in `generate_chunk_runtime_data_test.dart`
+  passed nonzero XP/gold/item projection parity and the existing real-worker
+  replay at 30/120 Hz. Generator `--dry-run` passed.
+- Focused game/shared/editor analysis, formatting, full task diff and 24
+  relative documentation link checks passed.
+- Root: `dart run tool/localization.dart check` passed. The generated bilingual
+  campaign catalogue joins the existing generated-source exclusions; exact
+  English tool-control exemptions follow the Admin/editor localization boundary.
+
 
 All checks below use this worktree, not deployed services. Transient logs are in
 ignored `.tmp/campaign_*`. Pure Dart package tests used the cached test runner

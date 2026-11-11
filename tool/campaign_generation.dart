@@ -80,6 +80,11 @@ List<GeneratedArtifact> buildCampaignArtifacts(
           'mapX': chapter.mapX,
           'mapY': chapter.mapY,
           'rewardCharacterId': chapter.rewardCharacterId,
+          'rewardXp': chapter.rewardXp,
+          'rewardGold': chapter.rewardGold,
+          'rewardItems': chapter.rewardItems
+              .map((item) => item.toJson())
+              .toList(),
           'missions': [
             for (final mission in chapter.missions)
               {

@@ -1,3 +1,4 @@
+import 'package:game_presentation/catalog_gift.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 
@@ -36,6 +37,13 @@ final class CampaignChapter {
           : PlayerCharacterId.values.byName(
               source['rewardCharacterId'] as String,
             ),
+      rewardXp = source['rewardXp'] as int,
+      rewardGold = source['rewardGold'] as int,
+      rewardItems = List.unmodifiable(
+        (source['rewardItems'] as List).map(
+          (v) => CatalogGift.fromJson(Map<String, dynamic>.from(v as Map)),
+        ),
+      ),
       missions = List.unmodifiable(
         (source['missions'] as List).cast<Map<String, Object?>>().map(
           CampaignMission.new,
@@ -45,6 +53,8 @@ final class CampaignChapter {
   final Map<String, String> titles, descriptions;
   final double mapX, mapY;
   final PlayerCharacterId? rewardCharacter;
+  final int rewardXp, rewardGold;
+  final List<CatalogGift> rewardItems;
   final List<CampaignMission> missions;
   String title(String language) => titles[language] ?? titles['en']!;
   String description(String language) =>

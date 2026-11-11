@@ -72,6 +72,80 @@ void main() {
       throwsFormatException,
     );
   });
+  test('chapter rewards validate catalog identities, recipients, bounds and round-trip', () {
+    final raw = jsonDecode(text) as Map<String, dynamic>;
+    final chapter = (raw['chapters'] as List).first as Map<String, dynamic>;
+    const gear = {'kind': 'gear', 'slot': 'mainWeapon', 'itemId': 'plainsteel'};
+    const skill = {
+      'kind': 'ability',
+      'slot': 'jump',
+      'itemId': 'eloise.double_jump',
+      'characterId': 'eloise',
+    };
+    chapter.addAll({
+      'rewardXp': 120,
+      'rewardGold': 300,
+      'rewardItems': [gear, skill],
+    });
+    final parsed = CampaignCatalogSource.decode(jsonEncode(raw));
+    expect(parsed.chapters.first.rewardItems.map((r) => r.toJson()), [
+      gear,
+      skill,
+    ]);
+    expect(jsonDecode(parsed.encode()), raw);
+    for (final invalid in <Map<String, Object?>>[
+      {'rewardXp': -1},
+      {'rewardXp': 100001},
+      {'rewardXp': 1.5},
+      {'rewardGold': 1000001},
+      {'rewardGold': null},
+      {'rewardItems': null},
+      {
+        'rewardItems': [gear, gear],
+      },
+      {'rewardItems': List.filled(9, gear)},
+      {
+        'rewardItems': [
+          {...gear, 'itemId': 'invented'},
+        ],
+      },
+      {
+        'rewardItems': [
+          {...gear, 'characterId': 'eloise'},
+        ],
+      },
+      {
+        'rewardItems': [
+          {...skill}..remove('characterId'),
+        ],
+      },
+      {
+        'rewardItems': [
+          {...skill, 'characterId': 'bountyHunter'},
+        ],
+      },
+      {
+        'rewardItems': [
+          {...skill, 'quantity': 2},
+        ],
+      },
+    ]) {
+      final copy = jsonDecode(jsonEncode(raw)) as Map<String, dynamic>;
+      (copy['chapters'] as List).first.addAll(invalid);
+      expect(
+        () => CampaignCatalogSource.decode(jsonEncode(copy)),
+        throwsFormatException,
+        reason: '$invalid',
+      );
+    }
+    chapter.remove('rewardXp');
+    chapter.remove('rewardGold');
+    chapter.remove('rewardItems');
+    final legacy = CampaignCatalogSource.decode(jsonEncode(raw)).chapters.first;
+    expect(legacy.rewardXp, 0);
+    expect(legacy.rewardGold, 0);
+    expect(legacy.rewardItems, isEmpty);
+  });
   test(
     'campaign-only repeated sources compile, cross the real seam and finish',
     () {

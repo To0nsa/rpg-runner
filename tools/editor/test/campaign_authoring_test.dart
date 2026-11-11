@@ -91,16 +91,26 @@ void main() {
       'height': 270,
     };
 
-  AuthoringCommand chapterReward(CampaignDocument d, String? reward) =>
-      AuthoringCommand(
-        kind: CampaignDomainPlugin.setChapterReward,
-        payload: {
-          'id': d.catalog.chapters.first.id,
-          'expectedRewardCharacterId':
-              d.catalog.chapters.first.rewardCharacterId,
-          'rewardCharacterId': reward,
-        },
-      );
+  AuthoringCommand chapterReward(
+    CampaignDocument d,
+    String? reward, {
+    int xp = 0,
+    int gold = 0,
+    List<Map<String, Object>> items = const [],
+  }) => AuthoringCommand(
+    kind: CampaignDomainPlugin.setChapterReward,
+    payload: {
+      'id': d.catalog.chapters.first.id,
+      'expectedRewards': d.catalog.chapters.first.rewardsToJson(),
+      'rewards': {
+        ...d.catalog.chapters.first.rewardsToJson(),
+        'rewardCharacterId': reward,
+        'rewardXp': xp,
+        'rewardGold': gold,
+        'rewardItems': items,
+      },
+    },
+  );
 
   AuthoringCommand createChapter(String title) => AuthoringCommand(
     kind: CampaignDomainPlugin.createChapter,
@@ -321,7 +331,15 @@ void main() {
       ),
     );
     controller.applyCommand(
-      chapterReward(controller.document as CampaignDocument, null),
+      chapterReward(
+        controller.document as CampaignDocument,
+        null,
+        xp: 75,
+        gold: 250,
+        items: [
+          {'kind': 'gear', 'slot': 'mainWeapon', 'itemId': 'cinderedge'},
+        ],
+      ),
     );
     await controller.exportDirectWrite();
     expect(controller.exportError, isNull);
@@ -330,6 +348,12 @@ void main() {
     expect(reopened.selected.firstClearXp, 55);
     expect(reopened.selected.rewardAbilityId, isNull);
     expect(reopened.catalog.chapters.first.rewardCharacterId, isNull);
+    expect(reopened.catalog.chapters.first.rewardXp, 75);
+    expect(reopened.catalog.chapters.first.rewardGold, 250);
+    expect(
+      reopened.catalog.chapters.first.rewardItems.single.item.itemId,
+      'cinderedge',
+    );
     expect(
       reopened.catalog.chapters.first.title,
       original.catalog.chapters.first.title,
@@ -341,6 +365,8 @@ void main() {
     controller.undo();
     var restored = controller.document as CampaignDocument;
     expect(restored.catalog.chapters.first.rewardCharacterId, 'bountyHunter');
+    expect(restored.catalog.chapters.first.rewardXp, 0);
+    expect(restored.catalog.chapters.first.rewardItems, isEmpty);
     expect(restored.selected.rewardAbilityId, isNull);
     controller.undo();
     restored = controller.document as CampaignDocument;
@@ -953,7 +979,10 @@ void main() {
       await choose('Completion character', 'None');
       await open('Apply');
       expect(document().catalog.chapters.first.rewardCharacterId, isNull);
-      expect(find.text('Chapter reward: None · 224 XP'), findsOneWidget);
+      expect(
+        find.text('Chapter rewards: 0 XP · 0 gold · 0 items · No character'),
+        findsOneWidget,
+      );
       await open('Chapter rewards');
       await choose('Completion character', 'Willow');
       await open('Apply');
@@ -961,7 +990,40 @@ void main() {
         document().catalog.chapters.first.rewardCharacterId,
         'bountyHunter',
       );
-      expect(find.text('Chapter reward: Willow · 224 XP'), findsOneWidget);
+      expect(
+        find.text('Chapter rewards: 0 XP · 0 gold · 0 items · Willow'),
+        findsOneWidget,
+      );
+      await open('Chapter rewards');
+      Future<void> amount(String label, String value) async {
+        final field = find.widgetWithText(TextFormField, label);
+        await tester.ensureVisible(field);
+        await tester.enterText(field, value);
+      }
+
+      await amount('Completion XP', '-1');
+      await open('Apply');
+      expect(
+        find.text('Enter a whole number from 0 to 100000.'),
+        findsOneWidget,
+      );
+      await amount('Completion XP', '75');
+      await amount('Completion gold', '250');
+      final search = find.byKey(const Key('catalog-search'));
+      await tester.ensureVisible(search);
+      await tester.enterText(search, 'cinderedge');
+      await _pumpWorkspace(tester);
+      final card = find.byKey(const ValueKey('gear/mainWeapon/cinderedge/'));
+      await tester.ensureVisible(card);
+      await tester.tap(card);
+      await _pumpWorkspace(tester);
+      await open('Apply');
+      final rewards = document().catalog.chapters.first;
+      expect(rewards.rewardXp, 75);
+      expect(rewards.rewardGold, 250);
+      expect(rewards.rewardItems.single.item.itemId, 'cinderedge');
+      controller.undo();
+      expect(document().catalog.chapters.first.rewardItems, isEmpty);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },

@@ -3040,7 +3040,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get campaignRegionalMap => 'Regional map';
 
   @override
-  String get campaignChapterReward => 'Chapter reward: Willow';
+  String get campaignChapterReward => 'Chapter completion rewards';
 
   @override
   String campaignFirstClearXp({required int xp}) {
@@ -3102,4 +3102,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get campaignWillowUnlocked => 'Chapter complete — Willow unlocked';
+
+  @override
+  String campaignChapterRewardAmounts({required int xp, required int gold}) {
+    return '$xp XP · $gold gold';
+  }
+
+  @override
+  String get campaignChapterRewardsGranted => 'Chapter rewards received.';
 }

@@ -72,7 +72,7 @@ class _CampaignChapterSectionState extends State<CampaignChapterSection> {
       children: [
         Text(chapter.description['en']!),
         Text(
-          'Chapter reward: ${chapter.rewardCharacterId == null ? 'None' : 'Willow'} · ${chapter.missions.fold<int>(0, (sum, m) => sum + m.firstClearXp)} XP',
+          'Chapter rewards: ${chapter.rewardXp} XP · ${chapter.rewardGold} gold · ${chapter.rewardItems.length} items · ${chapter.rewardCharacterId == null ? 'No character' : 'Willow'}',
         ),
         Wrap(
           spacing: 8,

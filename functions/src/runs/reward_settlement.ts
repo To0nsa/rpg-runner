@@ -1,3 +1,4 @@
+import { normalizeProgressionStore } from "../ownership/store_state.js";
 import { applyCampaignProgress } from "../campaign/progression.js";
 import { applyRunAchievements } from "../ownership/achievements.js";
 import { writeRunCompletionReceipt } from "./completion_receipt.js";
@@ -168,6 +169,11 @@ export async function settleAcceptedRunSession(args: {
           validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
           session,
         });
+        if (campaign.changed) {
+          const canonical = resolvedCanonical.canonical;
+          normalizeProgressionStore({ progression: canonical.progression, meta: canonical.meta,
+            selection: canonical.selection, userId: uid, nowMs });
+        }
         const nextProgress = resolvedCanonical.canonical.progression.playerProgress;
         const nextXp = nextProgress && typeof nextProgress === "object" && !Array.isArray(nextProgress)
           ? nextProgress.totalXp : 0;

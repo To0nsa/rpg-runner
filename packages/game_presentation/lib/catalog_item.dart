@@ -1,78 +1,33 @@
 import 'package:flutter/widgets.dart';
-import 'package:runner_core/abilities/ability_catalog.dart';
-import 'package:runner_core/accessories/accessory_id.dart';
+import 'package:runner_core/meta/catalog_unlock.dart';
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
-import 'package:runner_core/spellBook/spell_book_id.dart';
-import 'package:runner_core/weapons/weapon_id.dart';
-import 'package:runner_core/players/player_character_definition.dart';
-import 'package:runner_core/players/character_ability_namespace.dart';
-import 'package:runner_core/players/character_equipment_policy.dart';
 
 import 'ability_text.dart';
 import 'game_icon.dart';
 import 'gear_text.dart';
 import 'game_localization.dart';
 
-/// Presentation of an existing catalog entry. This never grants ownership.
-/// Server catalog validation remains authoritative for environment availability.
+/// Shared names and icons for validated Core catalog identities. This never
+/// grants ownership; the backend remains authoritative for unlocks.
 class GameCatalogItem {
-  const GameCatalogItem._(this.kind, this.slot, this.itemId);
-  final String kind, slot, itemId;
-  String get key => '$kind/$slot/$itemId';
+  const GameCatalogItem.fromIdentity(this.identity);
+  factory GameCatalogItem.fromJson(Map<String, dynamic> json) =>
+      GameCatalogItem.fromIdentity(CatalogItemId.fromJson(json));
 
-  /// Presentation filtering only; the backend validates gifts independently.
-  bool supportsCharacter(String character) {
-    if (kind == 'gear') return true; // Account-wide ownership.
-    final id = PlayerCharacterId.values
-        .where((id) => id.name == character)
-        .firstOrNull;
-    if (id == null) return false;
-    if (kind == 'projectileSpell') {
-      return CharacterEquipmentPolicy.allowsProjectile(id, projectileId!);
-    }
-    return itemId.startsWith('${characterAbilityNamespace(id)}.') ||
-        (itemId.startsWith('common.') && !itemId.startsWith('common.enemy_'));
-  }
-
-  factory GameCatalogItem.fromJson(Map<String, dynamic> json) {
-    final kind = json['kind'];
-    final slot = json['slot'];
-    final id = json['itemId'];
-    if (kind is! String || slot is! String || id is! String) {
-      throw const FormatException('Invalid catalog entry.');
-    }
-    final item = GameCatalogItem._(kind, slot, id);
-    final supported = switch (kind) {
-      'gear' => item.gearSlot != null && item.gearId != null,
-      'ability' =>
-        (AbilityCatalog.abilities[id]?.allowedSlots.any(
-              (value) => value.name == slot,
-            ) ??
-            false),
-      'projectileSpell' => slot == 'projectile' && item.projectileId != null,
-      _ => false,
-    };
-    if (!supported) {
-      throw FormatException('Unsupported catalog entry: ${item.key}');
-    }
-    return item;
-  }
-
-  GearSlot? get gearSlot =>
-      GearSlot.values.where((s) => s.name == slot).firstOrNull;
-  Object? get gearId => switch (slot) {
-    'mainWeapon' || 'offhandWeapon' =>
-      WeaponId.values.where((id) => id.name == itemId).firstOrNull,
-    'spellBook' =>
-      SpellBookId.values.where((id) => id.name == itemId).firstOrNull,
-    'accessory' =>
-      AccessoryId.values.where((id) => id.name == itemId).firstOrNull,
-    _ => null,
-  };
-  ProjectileId? get projectileId => playerEquippableProjectileIds
-      .where((id) => id.name == itemId)
-      .firstOrNull;
+  final CatalogItemId identity;
+  static final values = List<GameCatalogItem>.unmodifiable(
+    CatalogItemId.values.map(GameCatalogItem.fromIdentity),
+  );
+  String get kind => identity.kind;
+  String get slot => identity.slot;
+  String get itemId => identity.itemId;
+  String get key => identity.key;
+  GearSlot? get gearSlot => identity.gearSlot;
+  Object? get gearId => identity.gearId;
+  ProjectileId? get projectileId => identity.projectileId;
+  bool supportsCharacter(String character) =>
+      identity.supportsCharacter(character);
   String displayName(GameLocalizations strings) => switch (kind) {
     'gear' => gearDisplayNameForSlot(gearSlot!, gearId!, strings: strings),
     'ability' => abilityDisplayName(itemId, strings: strings),
@@ -85,9 +40,5 @@ class GameCatalogItem {
     'ability' => GameIcon.ability(abilityId: itemId, size: size),
     _ => GameIcon.projectile(projectileId: projectileId!, size: size),
   };
-  Map<String, Object> toJson() => {
-    'kind': kind,
-    'slot': slot,
-    'itemId': itemId,
-  };
+  Map<String, Object> toJson() => identity.toJson();
 }

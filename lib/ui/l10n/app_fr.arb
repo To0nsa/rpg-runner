@@ -666,7 +666,7 @@
   "runMissionFailed": "Mission échouée",
   "campaignHeading": "Campagne",
   "campaignRegionalMap": "Carte régionale",
-  "campaignChapterReward": "Récompense du chapitre : Willow",
+  "campaignChapterReward": "Récompenses de fin de chapitre",
   "campaignFirstClearXp": "Première réussite : {xp} EXP",
   "campaignDoubleJumpReward": "Débloque le double saut",
   "campaignCollectedGold": "Conserve l’or collecté à chaque tentative validée",
@@ -683,5 +683,21 @@
   "campaignEquipDoubleJump": "Équipe le double saut pour Éloïse",
   "campaignDoubleJumpEquipped": "Double saut équipé",
   "campaignEquipFailed": "Impossible d’équiper le double saut. Réessaie.",
-  "campaignWillowUnlocked": "Chapitre terminé — Willow débloqué"
+  "campaignWillowUnlocked": "Chapitre terminé — Willow débloqué",
+  "campaignChapterRewardAmounts": "{xp} EXP · {gold} pièces d’or",
+  "@campaignChapterRewardAmounts": {
+    "description": "XP and gold awarded once on chapter completion.",
+    "placeholders": {
+      "xp": {
+        "type": "int"
+      },
+      "gold": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignChapterRewardsGranted": "Récompenses du chapitre reçues.",
+  "@campaignChapterRewardsGranted": {
+    "description": "Shown only after canonical chapter reward settlement."
+  }
 }

@@ -4,13 +4,7 @@ export interface InboxGoldReward {
   amount: number;
 }
 
-export interface InboxCatalogReward {
-  kind: "gear" | "ability" | "projectileSpell";
-  itemId: string;
-  slot: string;
-  /** Skills target this character permanently, independent of the selected loadout. */
-  characterId?: string;
-}
+export type InboxCatalogReward = import("../ownership/catalog_rewards.js").CatalogReward;
 
 export type InboxReward = InboxGoldReward | InboxCatalogReward;
 

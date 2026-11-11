@@ -112,12 +112,21 @@ undoable after Save. Revision reconciliation reuses current persisted revisions
 when restored content matches the baseline, so Undo/Redo can become clean again.
 
 Mission settings edits first-clear XP and the optional Double Jump reward. Chapter
-rewards edits the optional Willow unlock independently of mission settings. Both
-selectors offer None; clearing a chapter reward removes that chapter's unlock,
-without making Willow available by default. Apply dispatches semantic edits, while
-Cancel changes nothing. The chapter command checks the expected previous reward
-and changes only that field. Shared source decoding rejects unsupported reward
-IDs; edits retain transactional Save, source-drift guards and Undo/Redo after Save.
+rewards edits completion XP (0–100,000), gold (0–1,000,000), up to eight existing
+catalogue unlocks, and optional Willow. Absent numeric/item fields in schema 1
+mean zero/empty; explicit null, duplicates, unsupported IDs/slots and invalid
+skill recipients fail decoding. Gear is account-wide; skills target a character.
+Apply dispatches one semantic edit with the entire expected reward snapshot;
+stale forms reject. Cancel leaves the document untouched. Save, source-drift
+guards and Undo/Redo remain plugin-owned.
+
+The editor and Admin use `CatalogGiftPicker` from `game_presentation`, composed
+from `tool_ui` catalogue controls. Core's `CatalogItemId`/`CatalogUnlock` derive
+identities and recipient rules from the existing gear, ability, projectile and
+character policies. `GameCatalogItem`/`CatalogGift` add shared names and icons.
+The editor supplies an asset bundle redirect to its existing `rpg_runner`
+dependency; no atlas copies or filesystem access enter either shared package.
+A parity test compares the complete derived catalogue with Admin's backend fixture.
 
 Copy to Campaign / Copy to Runner extends the existing stale-checked chunk lifecycle
 transaction. It allocates a fresh key/revision and preserves terrain, prefabs,
@@ -161,8 +170,8 @@ is `2026.11.11` across client, issuer and worker. Old incompatible tickets retai
 existing retirement/recovery behavior. This source change does not update live
 deployment identities or prepared board navigation route metadata.
 
-Canonical `progression.campaign` is schema 1 with a `missions` map. Missing state
-means no clears. A mission records cleared, attempts, firstClearedAtMs and bests.
+Canonical `progression.campaign` is schema 1 with `missions` and optional
+`chapters` maps. Missing state means no clears. A mission records cleared, attempts, firstClearedAtMs and bests.
 Bests compare completed score, then lower tick, under `contentDigest_v1`; historic
 versions remain. Stable mission IDs prevent duplicate first-clear grants after a
 content revision. The same Firestore settlement transaction updates wallet,
@@ -176,6 +185,26 @@ to ownership without changing a saved build; results offer an explicit equip act
 All four clears unlock `bountyHunter` (Willow). This gate applies to all accounts,
 including existing pre-release accounts, without a grandfather migration. Locked
 Willow selection normalizes to Éloïse while equipment/builds remain intact.
+
+On a verified successful run that leaves every chapter mission cleared, settlement
+also grants the configured chapter XP/gold/items if its stable chapter ID has no
+receipt. `chapters[id]` records `grantedAtMs`, `xp`, `gold`, `items` and
+`characterId` in the same canonical transaction. This receipt survives content
+revisions, mission reorder and later additions, so completion grants do not repeat.
+Mission XP and chapter XP pass through the existing player progression/level-up
+flow; chapter gold is added before collected-run-gold reconciliation. Overflow
+and invalid catalogue rewards reject settlement. `ownership/catalog_rewards.ts`
+validates against the same store allowlist as Admin gifts, and
+`grantCatalogOwnership` applies unlocks without equipping or duplicate compensation.
+The inbox gift rollout gate is unchanged and does not govern campaign rewards.
+
+New fields are included in the generated shared content digest. Reward policy
+version remains 1: the ticket/evidence/catalogue digest match already fences
+old content from this settlement policy. Client progress serialization preserves
+chapter receipts; menus show authored rewards using shared catalogue presentation
+and localized XP/gold labels, while results acknowledge only settled rewards.
+Current Val Outpost completion XP/gold/items default to zero/zero/empty, preserving
+the existing 224 mission XP and Willow balance until explicitly edited.
 
 Campaign contributes verified player counters and discoveries; it is excluded
 from runner achievements and competitive bests. Client previews may show earned

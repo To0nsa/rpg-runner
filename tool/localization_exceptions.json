@@ -681,21 +681,42 @@
     ]
   },
   {
-    "file": "packages/game_presentation/lib/catalog_gift.dart",
-    "reason": "Allowed gift wire field names.",
-    "literals": [
-      "'kind'",
-      "'slot'",
-      "'itemId'",
-      "'characterId'"
-    ]
-  },
-  {
     "file": "packages/game_presentation/lib/gear_text.dart",
     "reason": "ICU probability selector values.",
     "literals": [
       "'guaranteed'",
       "'chance'"
+    ]
+  },
+  {
+    "file": "packages/game_presentation/lib/catalog_gift_picker.dart",
+    "reason": "English authoring/operator controls shared exclusively by Admin and the editor; item names use game localization.",
+    "literals": [
+      "'All'",
+      "'Search items and skills'",
+      "'Name or ID'",
+      "'Clear search'",
+      "'${items.length} available · ${widget.selected.length}/8 selected'",
+      "'No matching gifts.'",
+      "'Items'",
+      "'Skills'",
+      "'Skills for $character'",
+      "'Gift ${gift.label(context.gameL10n)}'",
+      "'Account · ${item.slot}'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/ownership/campaign_progress.dart",
+    "reason": "Persistent best-score key binds content digest and reward policy, never displayed.",
+    "literals": [
+      "'${CampaignCatalog.contentDigest}_v${CampaignCatalog.rewardPolicyVersion}'"
+    ]
+  },
+  {
+    "file": "lib/ui/state/ownership/player_progress.dart",
+    "reason": "Serialized run-mode identity used by campaign progression.",
+    "literals": [
+      "'campaign'"
     ]
   }
 ]

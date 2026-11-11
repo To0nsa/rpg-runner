@@ -6,6 +6,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_presentation/catalog_gift.dart';
+import 'package:game_presentation/catalog_gift_picker.dart';
 import 'package:game_presentation/message_localization.dart';
 import 'package:tool_ui/tool_ui.dart';
 
@@ -24,20 +25,16 @@ class _AdminPageState extends State<AdminPage> {
   final _body = TextEditingController(), _gold = TextEditingController();
   final _frenchTitle = TextEditingController(),
       _frenchBody = TextEditingController();
-  final _search = TextEditingController();
   final _panels = ToolThreePanelController();
-  String _category = 'All', _character = '';
   AdminController get c => widget.controller;
 
   @override
   void initState() {
     super.initState();
     c.addListener(_changed);
-    _search.addListener(_searchChanged);
     _changed();
   }
 
-  void _searchChanged() => setState(() {});
   void _changed() {
     for (final pair in [
       (_uid, c.draft.uid),
@@ -54,9 +51,6 @@ class _AdminPageState extends State<AdminPage> {
         );
       }
     }
-    if (!c.characters.contains(_character)) {
-      _character = c.characters.firstOrNull ?? '';
-    }
     if (mounted) setState(() {});
   }
 
@@ -68,7 +62,6 @@ class _AdminPageState extends State<AdminPage> {
       _title,
       _body,
       _gold,
-      _search,
       _frenchTitle,
       _frenchBody,
     ]) {
@@ -422,20 +415,6 @@ class _AdminPageState extends State<AdminPage> {
   );
 
   Widget _catalog() {
-    final query = _search.text.trim().toLowerCase();
-    final items = c.catalog
-        .where(
-          (item) =>
-              item.supportsCharacter(_character) &&
-              (_category == 'All' ||
-                  (_category == 'Items'
-                      ? item.kind == 'gear'
-                      : item.kind != 'gear')) &&
-              '${item.displayName(context.gameL10n)} ${item.itemId} ${item.slot}'
-                  .toLowerCase()
-                  .contains(query),
-        )
-        .toList();
     return ToolPanelCard(
       title: 'Items & skills',
       bodyMode: ToolPanelBodyMode.scrollable,
@@ -457,68 +436,13 @@ class _AdminPageState extends State<AdminPage> {
             ),
           ],
           if (c.catalog.isNotEmpty) ...[
-            ToolVisualCatalogLayout(
-              searchController: _search,
-              searchKey: const Key('catalog-search'),
-              searchLabel: 'Search items and skills',
-              searchHint: 'Name or ID',
-              clearSearchKey: const Key('clear-search'),
-              clearSearchTooltip: 'Clear search',
-              countKey: const Key('catalog-count'),
-              countLabel:
-                  '${items.length} available · ${c.draft.attachments.length}/8 selected',
-              gridKey: const Key('gift-catalog'),
-              emptyKey: const Key('empty-catalog'),
-              emptyMessage: 'No matching gifts.',
-              gridHeight: 390,
-              itemCount: items.length,
-              onSearchSubmitted: () {},
-              filters: [
-                for (final name in ['All', 'Items', 'Skills'])
-                  ChoiceChip(
-                    label: Text(name),
-                    selected: _category == name,
-                    onSelected: (_) => setState(() => _category = name),
-                  ),
-                if (c.characters.isNotEmpty)
-                  DropdownButton<String>(
-                    value: _character,
-                    underline: const SizedBox.shrink(),
-                    items: [
-                      for (final character in c.characters)
-                        DropdownMenuItem(
-                          value: character,
-                          child: Text('Skills for $character'),
-                        ),
-                    ],
-                    onChanged: c.canEdit
-                        ? (value) => setState(() => _character = value!)
-                        : null,
-                  ),
-              ],
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final gift = CatalogGift(
-                  item: item,
-                  characterId: item.kind == 'gear' ? null : _character,
-                );
-                return ToolVisualCatalogCard(
-                  key: ValueKey(gift.key),
-                  semanticsLabel: 'Gift ${gift.label(context.gameL10n)}',
-                  tooltipMessage:
-                      '${item.displayName(context.gameL10n)}\n${item.itemId} · ${item.slot}',
-                  selected: c.draft.attachments.any(
-                    (value) => value.key == gift.key,
-                  ),
-                  enabled: c.canEdit,
-                  preview: Center(child: item.icon(size: 48)),
-                  title: item.displayName(context.gameL10n),
-                  subtitle: item.kind == 'gear'
-                      ? 'Account · ${item.slot}'
-                      : '$_character · ${item.slot}',
-                  onTap: () => c.toggleGift(item, _character),
-                );
-              },
+            CatalogGiftPicker(
+              catalog: c.catalog,
+              characters: c.characters,
+              selected: c.draft.attachments,
+              enabled: c.canEdit,
+              onToggle: (gift) =>
+                  c.toggleGift(gift.item, gift.characterId ?? ''),
             ),
             const SizedBox(height: 16),
           ],

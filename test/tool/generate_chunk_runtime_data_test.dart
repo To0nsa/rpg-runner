@@ -16,6 +16,20 @@ void main() {
     final catalog = jsonDecode(
       File('assets/authoring/campaign/chapter_defs.json').readAsStringSync(),
     ) as Map<String, dynamic>;
+    final chapter = (catalog['chapters'] as List).first as Map<String, dynamic>;
+    chapter.addAll({
+      'rewardXp': 75,
+      'rewardGold': 250,
+      'rewardItems': [
+        {'kind': 'gear', 'slot': 'mainWeapon', 'itemId': 'cinderedge'},
+        {
+          'kind': 'ability',
+          'slot': 'jump',
+          'itemId': 'eloise.double_jump',
+          'characterId': 'eloise',
+        },
+      ],
+    });
     final missions = (catalog['chapters'] as List).first['missions'] as List;
     for (final raw in missions) {
       raw['levelId'] = 'field';
@@ -55,6 +69,19 @@ void main() {
       0,
       reason: '${generated.stdout} ${generated.stderr}',
     );
+    for (final output in [
+      'lib/ui/campaign/generated_campaign_catalog.dart',
+      'functions/src/campaign/generated_catalog.ts',
+    ]) {
+      final content = File('${root.path}/$output').readAsStringSync();
+      final projection = jsonDecode(
+        content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1),
+      ) as Map;
+      final projected = (projection['chapters'] as List).first as Map;
+      for (final field in ['rewardXp', 'rewardGold', 'rewardItems']) {
+        expect(projected[field], chapter[field], reason: '$output/$field');
+      }
+    }
     final probe = await _runCompiledRegistryProbe(root.path, '');
     expect(probe.exitCode, 0, reason: '${probe.stdout} ${probe.stderr}');
     final replay = await _runGeneratedTrapWorker(

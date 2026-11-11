@@ -14,6 +14,7 @@ import '../state/app/app_state.dart';
 import '../theme/ui_tokens.dart';
 import '../text/build_name_text.dart';
 import 'campaign_catalog.dart';
+import 'campaign_chapter_rewards.dart';
 import 'campaign_map.dart';
 
 /// Campaign navigation keeps runner selection unchanged and opens the shared run host.
@@ -129,10 +130,7 @@ class _CampaignPageState extends State<CampaignPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      context.l10n.campaignChapterReward,
-                      style: ui.text.cardSubtitle,
-                    ),
+                    CampaignChapterRewards(chapter: chapter),
                     const SizedBox(height: 12),
                     for (
                       var index = 0;

@@ -11,6 +11,8 @@ import 'package:rpg_runner/ui/app/ui_routes.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/campaign/campaign_page.dart';
 import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
+import 'package:rpg_runner/ui/campaign/campaign_chapter_rewards.dart';
+import 'package:rpg_runner/ui/campaign/generated_campaign_catalog.dart';
 import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:rpg_runner/ui/pages/hub/play_hub_page.dart';
 import 'package:rpg_runner/ui/pages/hub/components/hub_select_card_frame.dart';
@@ -87,6 +89,90 @@ void main() {
       expect(progress.chapterCleared(CampaignCatalog.chapters.first), isFalse);
     },
   );
+  test(
+    'chapter settlement receipts survive serialization and are immutable',
+    () {
+      final raw = <String, Object?>{
+        'schemaVersion': 1,
+        'missions': <String, Object?>{},
+        'chapters': {
+          'val_outpost': {
+            'grantedAtMs': 123,
+            'xp': 75,
+            'gold': 250,
+            'characterId': 'bountyHunter',
+            'items': [
+              {'kind': 'gear', 'slot': 'mainWeapon', 'itemId': 'cinderedge'},
+            ],
+          },
+        },
+      };
+      final progress = CampaignProgress.fromJson(raw);
+      expect(progress.chapterRewardClaimed('val_outpost'), isTrue);
+      expect(progress.chapterRewardClaimed('other'), isFalse);
+      expect(progress.toJson(), raw);
+      ((raw['chapters'] as Map)['val_outpost'] as Map)['xp'] = 999;
+      expect(
+        ((progress.toJson()['chapters'] as Map)['val_outpost'] as Map)['xp'],
+        75,
+      );
+      expect(
+        () => CampaignProgress.fromJson({...raw, 'chapters': null}),
+        throwsFormatException,
+      );
+    },
+  );
+  for (final locale in ['en', 'fr']) {
+    testWidgets('chapter reward names and amounts fit compact $locale UI', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(568, 320);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final source =
+          (campaignCatalogData['chapters'] as List).first
+              as Map<String, Object?>;
+      final chapter = CampaignChapter({
+        ...source,
+        'rewardXp': 75,
+        'rewardGold': 250,
+        'rewardItems': [
+          {'kind': 'gear', 'slot': 'mainWeapon', 'itemId': 'cinderedge'},
+          {
+            'kind': 'ability',
+            'slot': 'jump',
+            'itemId': 'eloise.double_jump',
+            'characterId': 'eloise',
+          },
+        ],
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: Locale(locale),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(
+            extensions: [UiTokens.standard, UiButtonTheme.standard],
+          ),
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: CampaignChapterRewards(chapter: chapter),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(locale == 'fr' ? '75 EXP' : '75 XP'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('250'), findsOneWidget);
+      expect(find.text('Willow'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
   for (final size in [const Size(568, 320), const Size(1280, 720)]) {
     for (final language in ['en', 'fr']) {
       testWidgets('campaign navigation and three-card row at $size $language', (

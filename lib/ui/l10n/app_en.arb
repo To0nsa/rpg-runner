@@ -3679,7 +3679,7 @@
   },
   "campaignHeading": "Campaign",
   "campaignRegionalMap": "Regional map",
-  "campaignChapterReward": "Chapter reward: Willow",
+  "campaignChapterReward": "Chapter completion rewards",
   "campaignFirstClearXp": "First clear: {xp} XP",
   "@campaignFirstClearXp": {
     "placeholders": {
@@ -3774,5 +3774,21 @@
   },
   "@campaignWillowUnlocked": {
     "description": "Verified campaign reward and explicit equip action."
+  },
+  "campaignChapterRewardAmounts": "{xp} XP · {gold} gold",
+  "@campaignChapterRewardAmounts": {
+    "description": "XP and gold awarded once on chapter completion.",
+    "placeholders": {
+      "xp": {
+        "type": "int"
+      },
+      "gold": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignChapterRewardsGranted": "Chapter rewards received.",
+  "@campaignChapterRewardsGranted": {
+    "description": "Shown only after canonical chapter reward settlement."
   }
 }

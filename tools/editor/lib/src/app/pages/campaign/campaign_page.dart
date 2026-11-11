@@ -20,6 +20,7 @@ import '../shared/editor_page_navigation_state.dart';
 import 'campaign_chapter_dialog.dart';
 import 'campaign_chapter_section.dart';
 import 'campaign_edit_dialogs.dart';
+import 'campaign_chapter_rewards_dialog.dart';
 import 'campaign_contents.dart';
 import 'campaign_route.dart';
 import 'campaign_inspector.dart';
@@ -222,7 +223,7 @@ class _CampaignPageState extends State<CampaignPage>
 
   Future<void> _chapterRewards(CampaignChapterSource chapter) async {
     final d = _doc!;
-    final value = await showDialog<({String? characterId})>(
+    final value = await showDialog<Map<String, Object?>>(
       context: context,
       builder: (_) => CampaignChapterRewardsDialog(chapter: chapter),
     );
@@ -232,8 +233,8 @@ class _CampaignPageState extends State<CampaignPage>
         kind: CampaignDomainPlugin.setChapterReward,
         payload: {
           'id': chapter.id,
-          'expectedRewardCharacterId': chapter.rewardCharacterId,
-          'rewardCharacterId': value.characterId,
+          'expectedRewards': chapter.rewardsToJson(),
+          'rewards': value,
         },
       ),
     );

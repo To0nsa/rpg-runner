@@ -4,9 +4,9 @@ import '../../campaign/campaign_catalog.dart';
 
 /// Only backend-settled clears can unlock missions or characters.
 final class CampaignProgress {
-  const CampaignProgress._(this._missions);
-  static const empty = CampaignProgress._({});
-  final Map<String, Object?> _missions;
+  const CampaignProgress._(this._missions, this._chapters);
+  static const empty = CampaignProgress._({}, {});
+  final Map<String, Object?> _missions, _chapters;
 
   factory CampaignProgress.fromJson(Object? raw) {
     if (raw == null) return empty;
@@ -23,10 +23,32 @@ final class CampaignProgress {
         throw const FormatException('Invalid campaign mission progress.');
       }
     }
+    final chapters = raw.containsKey('chapters')
+        ? raw['chapters']
+        : <String, Object?>{};
+    if (chapters is! Map ||
+        chapters.values.any(
+          (value) =>
+              value is! Map ||
+              value['grantedAtMs'] is! int ||
+              (value['grantedAtMs'] as int) < 0 ||
+              value['xp'] is! int ||
+              (value['xp'] as int) < 0 ||
+              value['gold'] is! int ||
+              (value['gold'] as int) < 0 ||
+              value['items'] is! List,
+        )) {
+      throw const FormatException('Invalid chapter reward receipts.');
+    }
     return CampaignProgress._(
       immutableJsonObject(missions, fieldName: 'missions'),
+      immutableJsonObject(
+        Map<String, Object?>.from(chapters),
+        fieldName: 'chapters',
+      ),
     );
   }
+  bool chapterRewardClaimed(String id) => _chapters.containsKey(id);
   bool isCleared(String id) => (_missions[id] as Map?)?['cleared'] == true;
   int attempts(String id) =>
       ((_missions[id] as Map?)?['attempts'] as int?) ?? 0;
@@ -52,5 +74,7 @@ final class CampaignProgress {
   Map<String, Object?> toJson() => {
     'schemaVersion': 1,
     'missions': mutableJsonObjectCopy(_missions, fieldName: 'missions'),
+    if (_chapters.isNotEmpty)
+      'chapters': mutableJsonObjectCopy(_chapters, fieldName: 'chapters'),
   };
 }

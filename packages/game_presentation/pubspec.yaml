@@ -7,6 +7,8 @@ environment:
   flutter: '>=3.47.1'
 resolution: workspace
 dependencies:
+  tool_ui:
+    path: ../tool_ui
   flutter:
     sdk: flutter
   flutter_localizations:

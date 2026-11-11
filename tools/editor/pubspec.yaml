@@ -29,6 +29,8 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  game_presentation:
+    path: ../../packages/game_presentation
   tool_ui:
     path: ../../packages/tool_ui
   flutter:
