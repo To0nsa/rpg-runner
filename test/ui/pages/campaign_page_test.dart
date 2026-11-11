@@ -12,9 +12,11 @@ import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/campaign/campaign_page.dart';
 import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 import 'package:rpg_runner/ui/campaign/campaign_chapter_rewards.dart';
+import 'package:rpg_runner/ui/campaign/campaign_chapter_dialog.dart';
 import 'package:rpg_runner/ui/campaign/campaign_map.dart';
 import 'package:rpg_runner/ui/campaign/generated_campaign_catalog.dart';
 import 'package:rpg_runner/ui/components/map_label_button.dart';
+import 'package:rpg_runner/ui/components/app_button.dart';
 import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:rpg_runner/ui/pages/hub/play_hub_page.dart';
 import 'package:rpg_runner/ui/pages/hub/components/hub_select_card_frame.dart';
@@ -175,6 +177,72 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
+  testWidgets(
+    'chapter modal starts its mission through the shared bootstrap route',
+    (tester) async {
+      final source = (campaignCatalogData['chapters'] as List).first as Map;
+      final mission = (source['missions'] as List).first as Map;
+      final chapter = CampaignChapter({
+        ...Map<String, Object?>.from(source),
+        'missions': [
+          {...Map<String, Object?>.from(mission), 'available': true},
+        ],
+      });
+      final state = AppState(
+        authApi: _UnusedAuth(),
+        loadoutOwnershipApi: _UnusedOwnership(),
+      );
+      addTearDown(state.dispose);
+      RunStartBootstrapArgs? launched;
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AppState>.value(
+          value: state,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: ThemeData(
+              extensions: [UiTokens.standard, UiButtonTheme.standard],
+            ),
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: TextButton(
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    useSafeArea: false,
+                    builder: (_) => CampaignChapterDialog(chapter: chapter),
+                  ),
+                  child: const Text('Open chapter'),
+                ),
+              ),
+            ),
+            onGenerateRoute: (settings) {
+              expect(settings.name, UiRoutes.runBootstrap);
+              launched = settings.arguments as RunStartBootstrapArgs;
+              return MaterialPageRoute<void>(
+                settings: settings,
+                builder: (_) => Scaffold(appBar: AppBar()),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open chapter'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(AppButton));
+      await tester.tap(find.byType(AppButton));
+      await tester.pumpAndSettle();
+      expect(launched?.campaignMissionId, chapter.missions.first.id);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(CampaignChapterDialog), findsOneWidget);
+      expect(
+        tester.widget<AppButton>(find.byType(AppButton)).onPressed,
+        isNotNull,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   for (final size in [const Size(568, 320), const Size(1280, 720)]) {
     for (final language in ['en', 'fr']) {
       testWidgets('campaign navigation and three-card row at $size $language', (
@@ -233,7 +301,10 @@ void main() {
                 ),
               ),
               home: const PlayHubPage(),
-              routes: {UiRoutes.campaign: (_) => const CampaignPage()},
+              routes: {
+                UiRoutes.campaign: (_) => const CampaignPage(),
+                UiRoutes.selectCharacter: (_) => const CharacterSelectionPage(),
+              },
             ),
           ),
         );
@@ -279,9 +350,19 @@ void main() {
         await tester.pumpAndSettle();
         expect(transform.value, initial);
 
+        await tester.drag(viewerFinder, const Offset(0, -20));
+        await tester.pumpAndSettle();
+        final mapBeforeChapter = transform.value.clone();
         final chapter = CampaignCatalog.chapters.first;
         await tester.tap(find.text(chapter.title(language)).last);
         await tester.pumpAndSettle();
+        _expectChapterPanel(tester, size);
+        expect(
+          tester
+              .widget<InteractiveViewer>(viewerFinder)
+              .transformationController,
+          same(transform),
+        );
         expect(
           find.textContaining(chapter.missions.first.title(language)),
           findsOneWidget,
@@ -292,7 +373,18 @@ void main() {
           boundary,
           'missions_${size.width.toInt()}_$language',
         );
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+        expect(find.byType(CharacterSelectionPage), findsOneWidget);
         await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        _expectChapterPanel(tester, size);
+        await tester.ensureVisible(
+          find.textContaining(chapter.missions.last.title(language)),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.close).hitTestable(), findsOneWidget);
+        await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
         expect(
           find.textContaining(chapter.missions.first.title(language)),
@@ -300,6 +392,24 @@ void main() {
         );
         expect(find.text(chapter.title(language)), findsOneWidget);
         _expectFullScreenMap(tester, size);
+        expect(transform.value, mapBeforeChapter);
+        await tester.tap(find.text(chapter.title(language)));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.close));
+        await tester.pumpAndSettle();
+        expect(find.byType(CampaignChapterDialog), findsNothing);
+        await tester.tap(find.text(chapter.title(language)));
+        await tester.pumpAndSettle();
+        await tester.dragFrom(
+          Offset(size.width * .85, size.height * .75),
+          const Offset(0, -20),
+        );
+        await tester.pumpAndSettle();
+        expect(transform.value, mapBeforeChapter);
+        await tester.tapAt(Offset(size.width * .85, size.height * .75));
+        await tester.pumpAndSettle();
+        expect(find.byType(CampaignChapterDialog), findsNothing);
+        expect(transform.value, mapBeforeChapter);
 
         const portrait = Size(390, 844);
         tester.view.physicalSize = portrait;
@@ -317,6 +427,32 @@ void main() {
           findsOneWidget,
         );
         await _capture(tester, boundary, 'map_portrait_$language');
+        await tester.tap(find.text(chapter.title(language)));
+        await tester.pumpAndSettle();
+        _expectChapterPanel(tester, portrait);
+        expect(
+          tester
+              .getTopLeft(
+                find.descendant(
+                  of: find.byType(CampaignChapterDialog),
+                  matching: find.text(chapter.title(language)),
+                ),
+              )
+              .dy,
+          greaterThanOrEqualTo(24),
+        );
+        expect(
+          tester.getTopLeft(find.byIcon(Icons.close)).dy,
+          greaterThanOrEqualTo(24),
+        );
+        await _capture(tester, boundary, 'missions_portrait_$language');
+        await tester.ensureVisible(
+          find.textContaining(chapter.missions.last.title(language)),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.close).hitTestable(), findsOneWidget);
+        await tester.tap(find.byIcon(Icons.close));
+        await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       });
@@ -327,6 +463,17 @@ void main() {
 class _UnusedAuth extends Fake implements AuthApi {}
 
 class _UnusedOwnership extends Fake implements LoadoutOwnershipApi {}
+
+void _expectChapterPanel(WidgetTester tester, Size viewport) {
+  expect(find.byType(CampaignRegionalMap), findsOneWidget);
+  final panel = tester.getRect(
+    find.byKey(const ValueKey('campaign-chapter-panel')),
+  );
+  expect(panel.left, 0);
+  expect(panel.top, 0);
+  expect(panel.width, closeTo(viewport.width * 2 / 3, .01));
+  expect(panel.height, viewport.height);
+}
 
 void _expectFullScreenMap(WidgetTester tester, Size viewport) {
   expect(

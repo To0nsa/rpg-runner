@@ -221,13 +221,19 @@ records no replay, and grants no account progress.
 
 ## Campaign map presentation
 
-`CampaignPage` overlays its transparent toolbar only while the regional map is
-open. `CampaignRegionalMap` uses the same `MapViewport` as Town and Library
+`CampaignPage` keeps the regional map mounted beneath its transparent toolbar.
+`CampaignRegionalMap` uses the same `MapViewport` as Town and Library
 Locations for aspect-preserving full-screen artwork, pan/zoom, reset and
 controller lifetime. Resize and reset restore the centered crop. Shared
 `MapCallout` and `MapLabelButton` controls bind chapter coordinates to labels kept
-inside the initial toolbar/system-safe area. Chapter selection and Back retain
-the existing mission-list flow; the list uses the normal inset menu layout.
+inside the initial toolbar/system-safe area. Chapter selection opens a dialog
+route containing `CampaignChapterDialog`, flush left at two-thirds of the viewport
+width and full height. Its title and dismiss control stay fixed; chapter details,
+build selection, rewards and mission cards scroll within system-safe content.
+Close, system Back and the outside barrier dismiss it without resetting the map
+transform. The dialog watches canonical `AppState` and retains the existing
+mission availability/unlock checks and shared run-bootstrap route. Character
+selection and run launch are pushed above the panel.
 
 ## Verification scope
 
