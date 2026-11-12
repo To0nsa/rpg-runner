@@ -472,6 +472,11 @@ class _CampaignOverviewState extends State<CampaignOverview> {
                   scale = height / 270;
               return SingleChildScrollView(
                 controller: _vertical,
+                padding: EdgeInsets.symmetric(
+                  vertical: _zoom < 1
+                      ? (constraints.maxHeight - height) / 2
+                      : 0,
+                ),
                 child: SizedBox(
                   height: height,
                   width: constraints.maxWidth,

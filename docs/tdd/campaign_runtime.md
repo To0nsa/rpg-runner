@@ -129,6 +129,8 @@ Contents or the assembled route in Route/Markers. Route art reuses
 `ChunkCompositionPreview.joined`, including terrain, scenery, water and the
 mission's parallax theme. The 600x270 occurrences share a scale fitted to the
 canvas height, with a horizontal scrollbar and lazy occurrence rendering.
+Below 100% zoom, the route stays vertically centered in the space above the
+horizontal scrollbar. Enlarged routes retain vertical scrolling.
 Marker overlays remain occurrence-local; repeated chunks keep distinct content.
 The shared Chunk/Campaign Select/Place/Move controls, 8-pixel snapping,
 duplicate/delete, Escape cancellation, Ctrl+drag pan and Ctrl+scroll zoom use

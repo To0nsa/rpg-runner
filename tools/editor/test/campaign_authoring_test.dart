@@ -880,6 +880,41 @@ void main() {
       expect(horizontal.offset, 240);
       expect(tester.getRect(scene), sceneRect);
       await mouse.removePointer();
+
+      final zoomField = find.descendant(
+        of: find.byType(EditorZoomControls),
+        matching: find.byType(TextField),
+      );
+      for (final percent in [75, 50]) {
+        await tester.enterText(zoomField, '$percent');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await _pumpWorkspace(tester);
+        final viewport = tester.getRect(canvas);
+        final reducedScene = tester.getRect(scene);
+        // The horizontal scrollbar reserves the bottom 12 pixels.
+        final availableHeight = viewport.height - 12;
+        expect(
+          reducedScene.height,
+          closeTo(availableHeight * percent / 100, .001),
+        );
+        expect(
+          reducedScene.center.dy,
+          closeTo(viewport.top + availableHeight / 2, .001),
+        );
+      }
+      editing.select('placement:${fire.id}');
+      await _pumpWorkspace(tester);
+      final reducedScale = tester.getSize(scene).height / 270;
+      await tester.dragFrom(
+        tester.getTopLeft(scene) + const Offset(320, 224) * reducedScale,
+        Offset(32 * reducedScale, 0),
+      );
+      await _pumpWorkspace(tester);
+      final movedFire =
+          (controller.document as CampaignDocument).selected.placements.single
+              as CampaignShrineSource;
+      expect(movedFire.position.x, 352);
+      expect(movedFire.position.y, 224);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
