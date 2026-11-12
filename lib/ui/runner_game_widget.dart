@@ -78,7 +78,8 @@ import 'viewport/viewport_metrics.dart';
 /// resumes lifecycle-paused play on return; desktop requires explicit resume.
 /// Automatic controls use keyboard/mouse on desktop platforms and their browsers,
 /// and touch elsewhere. Desktop Enter starts/resumes; Escape/P toggles pause.
-/// Windows mouse aiming has no aim-ray preview; touch previews remain available.
+/// Desktop mouse aiming, including browsers, has no aim-ray preview; touch
+/// previews remain available.
 /// Host UI clicks do not fire abilities. Browser context menus are suppressed
 /// while desktop controls are mounted, then restored to their prior setting.
 /// Reward completion belongs to AppState and continues after this widget closes;
@@ -295,10 +296,6 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       dispatcher: _actions,
       resolveAimGeometry: _desktopAimGeometry,
       onFocusLost: _pauseDesktop,
-      onAimChanged: defaultTargetPlatform == TargetPlatform.windows
-          ? null
-          : _projectileAimPreview.updateAim,
-      onAimCleared: _projectileAimPreview.end,
       onCancelPresentation: () {
         _projectileAimPreview.end();
         _meleeAimPreview.end();

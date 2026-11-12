@@ -49,6 +49,7 @@ import 'state/ownership/selection_state.dart';
 /// [controlScheme] defaults to automatic desktop keyboard/mouse or mobile touch.
 /// Explicit overrides support hybrid hosts. Desktop focus loss pauses until
 /// Enter, Escape/P or Play resumes; browser right-click menus are scoped to the run.
+/// Desktop mouse aiming, including browsers, has no aim ray; touch keeps its preview.
 /// [movementControlMode] selects touch arrows, floating joystick, or fixed joystick;
 /// all emit the same full-strength movement commands. The host owns persistence.
 /// Running HUD includes left/top off-screen actor markers with distance back

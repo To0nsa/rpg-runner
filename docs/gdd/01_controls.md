@@ -44,7 +44,8 @@ abilities use the equipped ability's press/hold/release behavior. Escape pauses
 and cancels pending actions without firing them. Alternate bindings for one
 action share a hold; opposing movement keys produce neutral movement.
 
-Windows mouse aiming does not show an aim ray. Touch aiming keeps its preview.
+Desktop mouse aiming, including desktop browsers and editor playtests, does not
+show an aim ray. Touch aiming keeps its preview.
 
 The bottom ability bar shows bindings, availability, cooldowns, resource
 shortfalls, mobility follow-ups and charge progress. Its clicks and the HUD's

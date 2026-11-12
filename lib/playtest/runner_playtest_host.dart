@@ -436,17 +436,6 @@ class _RunnerPlaytestHostState extends State<RunnerPlaytestHost>
         projectilePreview.end();
         meleePreview.end();
       },
-      onAimChanged: (x, y) {
-        if (_runtime?.generation == generation) {
-          projectilePreview.updateAim(x, y);
-        }
-      },
-      onAimCleared: () {
-        if (_runtime?.generation == generation &&
-            projectilePreview.value.active) {
-          projectilePreview.clearAim();
-        }
-      },
     )..setEnabled(false);
 
     late final _RunnerPlaytestRuntime runtime;

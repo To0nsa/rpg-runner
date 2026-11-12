@@ -310,8 +310,10 @@ held movement keys; an ability needs a fresh physical press afterward.
 Aim presentation is optional and supplied through `onAimChanged`,
 `onAimCleared`, and `onCancelPresentation`; the device-neutral dispatcher does
 not depend on `AimPreviewModel` or Flutter.
-`RunnerGameWidget` omits `onAimChanged` on Windows so mouse aim still reaches the
-dispatcher without activating the aim ray. Touch preview wiring is unchanged.
+`RunnerGameWidget`, `RunnerPlaytestHost`, and the Training Field omit mouse
+aim-preview callbacks on every desktop platform, including desktop browsers.
+Mouse aim still reaches the dispatcher without activating the aim ray. Touch
+preview wiring is unchanged.
 
 ## Fixed desktop gameplay bindings
 

@@ -15,6 +15,7 @@
 // visible viewport; indicators remain presentation-only and pass touches through.
 // RunnerControlScheme.automatic selects desktop keyboard/mouse or mobile touch;
 // hosts can force .touch or .desktop. Desktop focus loss requires explicit resume.
+// Mouse aiming has no aim-ray preview on desktop or its browsers; touch keeps it.
 // Hosts can choose MovementControlMode.arrows, .joystick (floating), or
 // .fixedJoystick via the widget/route. All emit identical digital movement;
 // the host owns preference persistence.
