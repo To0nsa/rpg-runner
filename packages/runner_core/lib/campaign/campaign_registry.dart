@@ -1009,7 +1009,7 @@ const List<ChunkPattern> _chunks = <ChunkPattern>[
   ),
 ];
 const campaignRegionalLevelIds = <String, String>{'reporting_for_duty': 'forest'};
-const campaignContentDigest = 'e8c71eb1e73184b86b442d970ce5016359eeaf5e1624c78345c136f96ab43b28';
+const campaignContentDigest = '5bdd08b07d1c044a2c5ca11ddc3eb22ec6d64a6c57eb469e7813c62fc40115b9';
 final campaignMissions = Map<String, CampaignMissionDefinition>.unmodifiable({
 'reporting_for_duty': CampaignMissionDefinition(id: 'reporting_for_duty', visualThemeId: 'forest',
 terrainChunks: stagedAuthoredTerrain.chunks, combatAllowed: false,

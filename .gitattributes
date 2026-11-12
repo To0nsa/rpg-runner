@@ -12,3 +12,8 @@ packages/runner_core/lib/accessories/accessory_id.dart text eol=lf
 packages/runner_core/lib/spellBook/spell_book_id.dart text eol=lf
 packages/runner_core/lib/projectiles/projectile_id.dart text eol=lf
 packages/game_presentation/lib/items.generated.dart text eol=lf
+# Campaign projections are checked byte-for-byte against the captured LF source.
+functions/src/campaign/generated_catalog.ts text eol=lf
+lib/ui/campaign/generated_campaign_catalog.dart text eol=lf
+packages/runner_core/lib/campaign/campaign_registry.dart text eol=lf
+packages/runner_core/lib/campaign/authored_campaign_terrain.dart text eol=lf

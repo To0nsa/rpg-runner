@@ -547,6 +547,24 @@ full-suite verification remains required in canonical Prepare.
 Matching web/Core/protocol/worker/backend evidence remains reusable after input
 verification; this test edit changes only the client-checks component.
 
+Candidate `4a9df290`: every client analyzer and all 1,531 client tests passed
+(one existing skip), including both ghost lifecycles and both polygon repairs.
+Content analysis/119 tests and terrain analysis/25 tests also passed. Canonical
+Prepare then correctly rejected three campaign projections at generated freshness.
+The main worktree retained 174 CRLF lines in `terrain_material_defs.json`, despite
+the existing authored-JSON LF rule; its byte hash had entered the campaign digest.
+The Git/LF source and the rendered catalogs therefore disagreed.
+
+An isolated repair branch from `4a9df290` regenerates from canonical authored
+bytes. Only the three campaign digest constants change to
+`5bdd08b07d1c044a2c5ca11ddc3eb22ec6d64a6c57eb469e7813c62fc40115b9`;
+geometry, mission policy, terrain and navigation revision are unchanged. Campaign
+generated outputs are now explicitly pinned to LF. A replacement candidate must
+pass freshness first and rebuild/revalidate every component whose input hash
+changed. Existing navigation graphs remain reusable by exact key. The later
+editor commit `b7c6fe10` is preserved in the main worktree and excluded from this
+repair branch/release. No cloud mutations have occurred.
+
 ## Local evidence (November 11)
 
 Chapter reward follow-up (local checks; no deployment or native manual pass):
