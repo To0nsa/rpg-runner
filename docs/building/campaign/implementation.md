@@ -420,6 +420,18 @@ Core campaign/runtime and navigation matrix/control targets passed all 90 tests
 horizons). These checks do not establish complete authored-route traversal or
 signed-in device acceptance.
 
+Release preparation checkpoint: candidate `de8d1464` stopped before cloud mutation
+on the current production audit (GHSA-474x-hrwr-fgx4, low severity). Both workspace
+and standalone Functions overrides now pin `fast-xml-parser` 5.12.0; only that
+dependency family changed in the regenerated lockfile. The advisory's stated
+minimum patched 5.11.3 was not published in the registry. Root pnpm production
+audit and isolated production npm resolution/audit outside the workspace report
+zero vulnerabilities. Functions build and all five production-inventory tests
+passed. Freeze a replacement candidate; the failed preparation is not releasable.
+Client navigation seeding verified all 3,750 graph hashes against the previously
+inspected dev APK 7 manifest. The current producer must still validate exact keys.
+No device is connected; dev APK 8 is the next locally allocated artifact code.
+
 ## Local evidence (November 11)
 
 Chapter reward follow-up (local checks; no deployment or native manual pass):
