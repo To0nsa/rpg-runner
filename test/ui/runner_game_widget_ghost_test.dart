@@ -6,11 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/run_mode.dart';
 import 'package:runner_core/levels/level_id.dart';
+import 'package:rpg_runner/game/replay/run_recorder_io.dart';
 import 'package:rpg_runner/game/runner_flame_game.dart';
+import 'package:rpg_runner/ui/run/runner_run_session.dart';
 import 'package:rpg_runner/ui/runner_game_widget.dart';
 import 'package:rpg_runner/ui/state/boards/ghost_api.dart';
 import 'package:rpg_runner/ui/state/boards/ghost_replay_cache.dart';
-import 'package:rpg_runner/game/replay/replay_spool_directory_io.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 import '../game/replay/support/ghost_replay_fixture.dart';
@@ -20,6 +21,11 @@ void main() {
     testWidgets(
       'ghost route readiness and cleanup (leave while loading: $leaveWhileLoading)',
       (tester) async {
+        // Account-cleanup tests can clear the app's shared spool concurrently.
+        final spoolDirectory = Directory.systemTemp.createTempSync(
+          'ghost_route_test_',
+        );
+        RunnerRunSession? session;
         final boardKey = BoardKey(
           mode: RunMode.competitive,
           levelId: 'field',
@@ -57,14 +63,24 @@ void main() {
         );
         addTearDown(() async {
           await tester.pumpWidget(const SizedBox.shrink());
+          var stopped = false;
+          final stopping = (session?.stop() ?? Future<void>.value())
+              .whenComplete(() => stopped = true);
+          // Closing spans real file IO and the test's fake microtask queue.
+          for (var attempt = 0; attempt < 600 && !stopped; attempt++) {
+            await tester.pump();
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 10)),
+            );
+          }
+          expect(
+            stopped,
+            isTrue,
+            reason: 'Recorder must close before cleanup.',
+          );
+          await stopping;
           await tester.runAsync(() async {
-            await Future<void>.delayed(const Duration(milliseconds: 100));
-            for (final suffix in ['frames.ndjson', 'replay.json']) {
-              final file = File(
-                '${defaultReplaySpoolDirectory().path}/$runId.$suffix',
-              );
-              if (await file.exists()) await file.delete();
-            }
+            await spoolDirectory.delete(recursive: true);
           });
         });
         await tester.pumpWidget(
@@ -75,6 +91,13 @@ void main() {
             ),
             home: Scaffold(
               body: RunnerGameWidget(
+                sessionFactory: (descriptor) => session = RunnerRunSession(
+                  descriptor: descriptor,
+                  createRecorder: (header) => FileRunRecorder.create(
+                    header: header,
+                    spoolDirectory: spoolDirectory,
+                  ),
+                ),
                 runSessionId: runId,
                 runId: 1,
                 seed: replay.seed,

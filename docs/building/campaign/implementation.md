@@ -490,6 +490,24 @@ required. The client integration test also hit its existing four-minute timeout
 while web artifacts were being copied; remaining SDK checks will run serially,
 without changing that timeout or claiming the interrupted suite passed.
 
+Candidate `e44171b2`: content analysis and all 119 tests passed; terrain analysis
+and all 25 tests passed; generated freshness passed with the same navigation
+revision. On `5e9ddb08`, the isolated item-generation case passed in 1m28s with
+its four-minute timeout unchanged, and every client analyzer passed. The full
+client run exposed a separate ghost widget fixture race: a concurrent account
+cleanup removed the default app spool directory while its recorder opened a
+file. The fixture now injects a real file recorder in a private temporary
+directory and awaits session stop before deletion. No runtime code or readiness
+assertions changed. The `5e9ddb08` run completed with 1,530 passes, one existing
+skip and only that ghost failure; both polygon-generator repairs passed. The
+focused `flutter test --no-pub test/ui/runner_game_widget_ghost_test.dart
+--reporter expanded` passed both cases in 31 seconds. Teardown pumps the fake
+microtask queue while real file IO completes; awaiting it solely inside runAsync
+stalled an initial focused attempt, which was stopped and corrected. Replacement
+full-suite verification remains required in canonical Prepare.
+Matching web/Core/protocol/worker/backend evidence remains reusable after input
+verification; this test edit changes only the client-checks component.
+
 ## Local evidence (November 11)
 
 Chapter reward follow-up (local checks; no deployment or native manual pass):
