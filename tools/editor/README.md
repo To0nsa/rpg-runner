@@ -993,6 +993,12 @@ uses Chunk Creator's existing Éloïse/Grojib/Hashash/Unoco/Derf selector and ov
 Its surfaces, graph edges, blockers and perches describe each chunk locally;
 route-crossing verification remains a separate check.
 
+Campaign and Chunk Creator share viewport navigation. Zoomed-out scenes stay
+vertically centered; Ctrl+drag and Ctrl+scroll work in the empty canvas margins
+as well as over terrain. Campaign retains its route scrollbar; Shift+wheel moves
+along the route. An active edit drag blocks wheel navigation until release or
+cancel, and switching Ctrl mid-drag keeps the original operation.
+
 Enemy, trap and rescue properties reuse Chunk Creator's controls.
 Rescue groups need an NPC and enemy
 before Play/Build; incomplete groups can be saved. Required toggles make enemies

@@ -22,7 +22,7 @@ import '../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../chunkCreator/v2/chunk_actor_idle_frame.dart';
 import '../chunkCreator/v2/chunk_composition_preview.dart';
 import '../shared/editor_scene_view_utils.dart';
-import '../shared/scene_input_utils.dart';
+import '../shared/editor_scene_viewport.dart';
 import '../shared/scene_rectangle_gesture.dart';
 import 'campaign_marker_editing.dart';
 import 'campaign_marker_painter.dart';
@@ -53,13 +53,20 @@ class CampaignOverview extends StatefulWidget {
 }
 
 class _CampaignOverviewState extends State<CampaignOverview> {
-  final _horizontal = ScrollController(), _vertical = ScrollController();
+  final _viewport = EditorSceneViewportController(
+    minZoom: .5,
+    maxZoom: 4,
+    scrollable: true,
+    fit: EditorSceneFit.height,
+    alignment: Alignment.centerLeft,
+  );
+  ScrollController get _horizontal => _viewport.horizontal!;
+  ScrollController get _vertical => _viewport.vertical!;
   final _images = EditorUiImageCache();
-  double _zoom = 1;
+  double get _zoom => _viewport.zoom;
   bool _showGrid = false, _showActorTerrain = false;
   ChunkV2TerrainActor _actor = ChunkV2TerrainActor.eloise;
   int? _pointer;
-  bool _panning = false;
   CampaignMarkerEntry? _before;
   CampaignMissionSource? _expected;
   Offset _grab = Offset.zero;
@@ -111,16 +118,27 @@ class _CampaignOverviewState extends State<CampaignOverview> {
 
   @override
   void dispose() {
-    _horizontal.dispose();
-    _vertical.dispose();
+    _viewport.dispose();
     _images.dispose();
     super.dispose();
   }
 
-  CampaignPoint _point(int index, Offset local, double scale) {
-    final worldX = index * 600 + local.dx / scale;
+  EditorSceneViewportLayout _layoutFor(Size size) => _viewport.layout(
+    viewport: size,
+    scene: Size(widget.mission.route.length * 600.0, 270),
+  );
+
+  CampaignPoint _point(
+    Offset local,
+    Size viewportSize, {
+    bool requireInside = false,
+  }) {
+    final world = _layoutFor(viewportSize).toWorld(local);
+    final worldX = world.dx;
     final occurrence = (worldX / 600).floor();
-    if (occurrence < 0 || occurrence >= widget.mission.route.length) {
+    if (occurrence < 0 ||
+        occurrence >= widget.mission.route.length ||
+        (requireInside && (world.dy < 0 || world.dy > 270))) {
       throw StateError('Place inside the mission route.');
     }
     final step = widget.editing?.snap == true ? 8 : 1;
@@ -131,7 +149,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
         step: step,
       ).clamp(0, 599).toDouble(),
       y: quantizeChunkSceneCoordinate(
-        local.dy / scale,
+        world.dy,
         step: step,
       ).clamp(0, 270).toDouble(),
     );
@@ -142,7 +160,6 @@ class _CampaignOverviewState extends State<CampaignOverview> {
     _rectangle = null;
     _before = null;
     _expected = null;
-    _panning = false;
     widget.editing?.candidate = null;
     widget.editing?.gestureActive = false;
   }
@@ -163,22 +180,19 @@ class _CampaignOverviewState extends State<CampaignOverview> {
     return null;
   }
 
-  void _down(PointerDownEvent event, int index, double scale) {
-    if (_pointer != null ||
-        !SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
-      return;
-    }
+  void _down(PointerDownEvent event, Size viewportSize) {
+    if (_pointer != null) return;
     final edit = widget.editing;
-    _panning = SceneInputUtils.shouldPanWithPrimaryDrag(event.buttons);
-    if (_panning) {
-      _pointer = event.pointer;
-      return;
-    }
     if (edit == null || widget.visualPreview || !edit.finishDraft()) return;
     _pointer = event.pointer;
     _expected = edit.mission;
     try {
-      final point = _point(index, event.localPosition, scale);
+      final point = _point(
+        event.localPosition,
+        viewportSize,
+        requireInside: true,
+      );
+      final scale = _layoutFor(viewportSize).scale;
       _before = edit.tool == CampaignMarkerTool.place
           ? null
           : _hit(point, scale);
@@ -220,7 +234,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
         _grab = Offset.zero;
       }
       edit.gestureActive = true;
-      _preview(event.localPosition, index, scale);
+      _preview(event.localPosition, viewportSize);
     } on Object catch (e) {
       edit.error = '$e';
       _cancel();
@@ -228,10 +242,10 @@ class _CampaignOverviewState extends State<CampaignOverview> {
     }
   }
 
-  void _preview(Offset local, int index, double scale) {
+  void _preview(Offset local, Size viewportSize, {bool requireInside = false}) {
     final edit = widget.editing!;
     try {
-      final point = _point(index, local, scale);
+      final point = _point(local, viewportSize, requireInside: requireInside);
       final before = _before;
       CampaignMarkerEntry candidate;
       if (before == null) {
@@ -243,7 +257,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
         _rectangle!.update(
           pointer: _pointer!,
           worldPoint: Offset(point.x, point.y),
-          zoom: scale,
+          zoom: _layoutFor(viewportSize).scale,
         );
         final bounds = _rectangle!.bounds;
         final origin = CampaignPoint(
@@ -312,24 +326,18 @@ class _CampaignOverviewState extends State<CampaignOverview> {
     edit.changed();
   }
 
-  void _move(PointerMoveEvent event, int index, double scale) {
+  void _move(PointerMoveEvent event, Size viewportSize) {
     if (_pointer != event.pointer) return;
-    if (_panning) {
-      SceneInputUtils.panScrollControllers(
-        horizontal: _horizontal,
-        vertical: _vertical,
-        pointerDelta: event.delta,
-      );
-    } else if (widget.editing?.gestureActive == true) {
-      _preview(event.localPosition, index, scale);
+    if (widget.editing?.gestureActive == true) {
+      _preview(event.localPosition, viewportSize);
     }
   }
 
-  void _up(PointerUpEvent event, int index, double scale) {
+  void _up(PointerUpEvent event, Size viewportSize) {
     if (_pointer != event.pointer) return;
     final edit = widget.editing;
-    if (edit != null && !_panning && edit.gestureActive) {
-      _preview(event.localPosition, index, scale);
+    if (edit != null && edit.gestureActive) {
+      _preview(event.localPosition, viewportSize);
       final candidate = edit.candidate;
       final before = _before, expected = _expected;
       _cancel();
@@ -341,7 +349,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
     edit?.changed();
   }
 
-  void _hover(PointerHoverEvent event, int index, double scale) {
+  void _hover(PointerHoverEvent event, Size viewportSize) {
     final edit = widget.editing;
     if (edit == null ||
         widget.visualPreview ||
@@ -350,32 +358,19 @@ class _CampaignOverviewState extends State<CampaignOverview> {
       return;
     }
     _before = null;
-    _preview(event.localPosition, index, scale);
-  }
-
-  void _signal(PointerSignalEvent event) {
-    if (widget.editing?.gestureActive == true) return;
-    final steps = SceneInputUtils.signedZoomStepsFromCtrlScroll(event);
-    if (steps == 0) return;
-    GestureBinding.instance.pointerSignalResolver.register(event, (_) {
-      _setZoom(_zoom + steps * .25);
-    });
+    _preview(event.localPosition, viewportSize, requireInside: true);
   }
 
   void _setZoom(double value) => setState(() {
-    _zoom = EditorSceneViewUtils.snapZoom(
-      value: value,
-      min: .5,
-      max: 4,
-      step: .25,
-    );
+    _viewport.setZoom(value);
     widget.editing?.candidate = null;
   });
 
   void _resetView() {
-    _setZoom(1);
-    if (_horizontal.hasClients) _horizontal.jumpTo(0);
-    if (_vertical.hasClients) _vertical.jumpTo(0);
+    setState(() {
+      _viewport.reset();
+      widget.editing?.candidate = null;
+    });
   }
 
   @override
@@ -394,7 +389,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
               setState(() => _showActorTerrain = value),
           actor: _actor,
           onActorChanged: (value) => setState(() => _actor = value),
-          zoom: _zoom,
+          viewport: _viewport,
           onZoomChanged: _setZoom,
           onResetView: _resetView,
         ),
@@ -468,106 +463,121 @@ class _CampaignOverviewState extends State<CampaignOverview> {
               if (constraints.maxHeight <= 0 || constraints.maxWidth <= 0) {
                 return const SizedBox.shrink();
               }
-              final height = constraints.maxHeight * _zoom,
-                  scale = height / 270;
-              return SingleChildScrollView(
-                controller: _vertical,
-                padding: EdgeInsets.symmetric(
-                  vertical: _zoom < 1
-                      ? (constraints.maxHeight - height) / 2
-                      : 0,
-                ),
-                child: SizedBox(
-                  height: height,
-                  width: constraints.maxWidth,
-                  child: ListView.builder(
-                    key: PageStorageKey('campaign_route_preview_${mission.id}'),
-                    controller: _horizontal,
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.zero,
-                    itemExtent: 600 * scale,
-                    itemCount: mission.route.length,
-                    itemBuilder: (context, index) {
-                      final occurrence = mission.route[index],
-                          chunk = chunks[occurrence.chunkKey];
-                      final entries = [
-                        for (final e in campaignMarkerEntries(mission))
-                          if (e.position.occurrenceId == occurrence.id &&
-                              e.key != edit?.candidate?.key)
-                            e,
-                        if (edit?.candidate?.position.occurrenceId ==
-                            occurrence.id)
-                          edit!.candidate!,
-                      ];
-                      return Listener(
-                        onPointerDown: (e) => _down(e, index, scale),
-                        onPointerMove: (e) => _move(e, index, scale),
-                        onPointerUp: (e) => _up(e, index, scale),
-                        onPointerHover: (e) => _hover(e, index, scale),
-                        onPointerCancel: (_) {
-                          _cancel();
-                          edit?.changed();
-                        },
-                        onPointerSignal: _signal,
-                        behavior: HitTestBehavior.opaque,
-                        child: CustomPaint(
-                          key: ValueKey('campaign_preview_${occurrence.id}'),
-                          foregroundPainter: widget.visualPreview
-                              ? null
-                              : CampaignMarkerPainter(
-                                  entries: campaignMarkerEntries(mission),
-                                  occurrenceId: occurrence.id,
-                                  scale: scale,
-                                  root: widget.workspaceRootPath,
-                                  images: _images,
-                                  selectedKey: edit?.selectedKey,
-                                  candidate: edit?.candidate,
-                                  showGrid: _showGrid,
-                                ),
-                          child: chunk == null
-                              ? Center(
-                                  child: Text(
-                                    'Missing chunk: ${occurrence.chunkKey}',
-                                  ),
-                                )
-                              : Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    ChunkCompositionPreview.joined(
-                                      workspaceRootPath:
-                                          widget.workspaceRootPath,
-                                      chunk: chunk,
-                                      prefabData: widget.chunks.prefabData,
-                                      tileData: widget.chunks.tileData,
-                                      visualBoundsByPrefabKey:
-                                          widget.chunks.visualBoundsByPrefabKey,
-                                      parallaxTheme: theme,
-                                    ),
-                                    Offstage(
-                                      offstage: widget.visualPreview,
-                                      child: CampaignActorPreview(
-                                        chunk: chunk,
-                                        prefabs: widget.chunks.prefabData,
-                                        entries: entries,
-                                        root: widget.workspaceRootPath,
-                                        scale: scale,
-                                        images: _images,
-                                        selectedKey: edit?.selectedKey,
-                                        frame: edit?.trapFrame ?? 0,
-                                        terrainActor:
-                                            _showActorTerrain &&
-                                                !widget.visualPreview
-                                            ? _actor
-                                            : null,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+              final size = constraints.biggest;
+              final view = _layoutFor(size);
+              final scale = view.scale;
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  SingleChildScrollView(
+                    controller: _vertical,
+                    padding: EdgeInsets.only(
+                      top: view.padding.top,
+                      bottom: view.padding.bottom,
+                    ),
+                    child: SizedBox(
+                      height: view.contentSize.height,
+                      width: constraints.maxWidth,
+                      child: ListView.builder(
+                        key: PageStorageKey(
+                          'campaign_route_preview_${mission.id}',
                         ),
-                      );
-                    },
+                        controller: _horizontal,
+                        scrollDirection: Axis.horizontal,
+                        padding: EdgeInsets.zero,
+                        itemExtent: 600 * scale,
+                        itemCount: mission.route.length,
+                        itemBuilder: (context, index) {
+                          final occurrence = mission.route[index],
+                              chunk = chunks[occurrence.chunkKey];
+                          final entries = [
+                            for (final e in campaignMarkerEntries(mission))
+                              if (e.position.occurrenceId == occurrence.id &&
+                                  e.key != edit?.candidate?.key)
+                                e,
+                            if (edit?.candidate?.position.occurrenceId ==
+                                occurrence.id)
+                              edit!.candidate!,
+                          ];
+                          return CustomPaint(
+                            key: ValueKey('campaign_preview_${occurrence.id}'),
+                            foregroundPainter: widget.visualPreview
+                                ? null
+                                : CampaignMarkerPainter(
+                                    entries: campaignMarkerEntries(mission),
+                                    occurrenceId: occurrence.id,
+                                    scale: scale,
+                                    root: widget.workspaceRootPath,
+                                    images: _images,
+                                    selectedKey: edit?.selectedKey,
+                                    candidate: edit?.candidate,
+                                    showGrid: _showGrid,
+                                  ),
+                            child: chunk == null
+                                ? Center(
+                                    child: Text(
+                                      'Missing chunk: ${occurrence.chunkKey}',
+                                    ),
+                                  )
+                                : Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      ChunkCompositionPreview.joined(
+                                        workspaceRootPath:
+                                            widget.workspaceRootPath,
+                                        chunk: chunk,
+                                        prefabData: widget.chunks.prefabData,
+                                        tileData: widget.chunks.tileData,
+                                        visualBoundsByPrefabKey: widget
+                                            .chunks
+                                            .visualBoundsByPrefabKey,
+                                        parallaxTheme: theme,
+                                      ),
+                                      Offstage(
+                                        offstage: widget.visualPreview,
+                                        child: CampaignActorPreview(
+                                          chunk: chunk,
+                                          prefabs: widget.chunks.prefabData,
+                                          entries: entries,
+                                          root: widget.workspaceRootPath,
+                                          scale: scale,
+                                          images: _images,
+                                          selectedKey: edit?.selectedKey,
+                                          frame: edit?.trapFrame ?? 0,
+                                          terrainActor:
+                                              _showActorTerrain &&
+                                                  !widget.visualPreview
+                                              ? _actor
+                                              : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                ),
+                  // A viewport-wide input surface survives lazy occurrence recycling
+                  // and admits navigation over the empty space around a small scene.
+                  EditorScenePointerRegion(
+                    behavior: HitTestBehavior.translucent,
+                    canNavigate: () => widget.editing?.gestureActive != true,
+                    onPanDelta: _viewport.panBy,
+                    onScrollDelta: _viewport.scrollBy,
+                    onZoomSteps: (steps) =>
+                        _setZoom(_zoom + steps * _viewport.zoomStep),
+                    onPointerDown: (e) => _down(e, size),
+                    onPointerMove: (e) => _move(e, size),
+                    onPointerUp: (e) => _up(e, size),
+                    onPointerHover: (e) => _hover(e, size),
+                    onPointerCancel: (_) {
+                      _cancel();
+                      widget.editing?.changed();
+                    },
+                    child: const SizedBox.expand(),
+                  ),
+                ],
               );
             },
           ),

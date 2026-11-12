@@ -903,6 +903,45 @@ void main() {
           closeTo(viewport.top + availableHeight / 2, .001),
         );
       }
+      final beforeNavigation = controller.document;
+      final emptyCanvas = tester.getTopLeft(canvas) + const Offset(40, 10);
+      final offsetBeforePan = horizontal.offset;
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: emptyCanvas,
+          scrollDelta: const Offset(0, -120),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(
+        tester
+            .widget<EditorZoomControls>(find.byType(EditorZoomControls))
+            .value,
+        .75,
+      );
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: emptyCanvas,
+          scrollDelta: const Offset(0, 120),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(
+        tester
+            .widget<EditorZoomControls>(find.byType(EditorZoomControls))
+            .value,
+        .5,
+      );
+      await tester.dragFrom(
+        emptyCanvas,
+        const Offset(20, 0),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await _pumpWorkspace(tester);
+      expect(horizontal.offset, lessThan(offsetBeforePan));
+      expect(controller.document, same(beforeNavigation));
       editing.select('placement:${fire.id}');
       await _pumpWorkspace(tester);
       final reducedScale = tester.getSize(scene).height / 270;
@@ -1752,6 +1791,28 @@ void main() {
         paintsExactlyCountTimes(#drawCircle, 0),
       );
 
+      final routeCanvas = find.byKey(const ValueKey('campaign_route_canvas'));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.dragFrom(
+        tester.getCenter(routeCanvas),
+        const Offset(50000, 0),
+        kind: PointerDeviceKind.mouse,
+      );
+      await _pumpWorkspace(tester);
+      expect(scrollController.offset, 0);
+      expect(occurrence(0).hitTestable(), findsOneWidget);
+      await tester.dragFrom(
+        tester.getCenter(routeCanvas),
+        const Offset(-50000, 0),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await _pumpWorkspace(tester);
+      expect(
+        scrollController.offset,
+        scrollController.position.maxScrollExtent,
+      );
+      expect(occurrence(15).hitTestable(), findsOneWidget);
       final offset = scrollController.offset;
       await tester.tap(find.text('Markers'));
       await _pumpWorkspace(tester);

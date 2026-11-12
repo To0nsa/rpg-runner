@@ -156,6 +156,18 @@ gestures or invalid fields. Leaving it restores tool, selection and overlay
 preferences. Tool/tab changes retain the mounted overview's zoom and scroll
 controllers; view-only controls never enter document history.
 
+The viewport mechanics are shared with Chunk Creator through
+`EditorSceneViewportController` and `EditorScenePointerRegion`: zoom limits and
+stepping, reset/restore, centering, coordinate conversion, and pointer/wheel
+ownership have one implementation. Chunk configures a centered free canvas;
+Campaign configures a height-fitted route with bounded scroll controllers and
+retains its lazy occurrence renderer. Campaign input spans the full viewport
+and resolves the current scroll transform before mapping to occurrence-local
+coordinates, so navigation works in empty margins and survives occurrence
+recycling. An edit drag blocks navigation until release/cancel; Ctrl changes
+mid-drag cannot turn an edit into a pan. Shift+wheel scrolls the bounded route
+horizontally. Source commands and semantic edit gestures remain domain-owned.
+
 Actor terrain reuses `ChunkV2ActorTerrainProjection` and
 `ChunkActorTerrainOverlayPainter`, including Éloïse, Grojib, Hashash, Unoco and
 Derf policies. The existing per-visible-chunk geometry cache is reused across

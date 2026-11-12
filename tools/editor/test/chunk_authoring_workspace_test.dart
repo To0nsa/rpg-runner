@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +33,7 @@ import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state
 import 'package:runner_editor/src/app/pages/shared/editor_page_navigation_state.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_viewport_frame.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_scene_viewport.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_actor_terrain_projection.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
@@ -51,6 +53,64 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets(
+    'shared viewport centers Chunk zoom and keeps pan out of history',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChunkAuthoringWorkspace(controller: harness.session),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final scene = find.byKey(const ValueKey('chunk_scene_surface'));
+      expect(tester.widget(scene), isA<EditorScenePointerRegion>());
+      ChunkSceneSurface surface() =>
+          tester.widget(find.byType(ChunkSceneSurface));
+      final before = harness.session.document;
+      final blank = tester.getTopLeft(scene) + const Offset(8, 8);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      for (final zoom in [.75, .5]) {
+        await tester.sendEventToBinding(
+          PointerScrollEvent(
+            position: blank,
+            scrollDelta: const Offset(0, 120),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final current = surface();
+        expect(current.transform.zoom, zoom);
+        final center = Offset(
+          current.controller.chunk.width / 2,
+          current.controller.chunk.height / 2,
+        );
+        expect(
+          current.transform.origin + center * zoom,
+          tester.getSize(scene).center(Offset.zero),
+        );
+      }
+      final origin = surface().transform.origin;
+      await tester.dragFrom(
+        blank,
+        const Offset(-40, 20),
+        kind: ui.PointerDeviceKind.mouse,
+      );
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(surface().transform.origin, origin + const Offset(-40, 20));
+      expect(harness.session.document, same(before));
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('changing chunks retains every authoring tab', (tester) async {
     tester.view.physicalSize = const Size(1800, 1000);
     tester.view.devicePixelRatio = 1;

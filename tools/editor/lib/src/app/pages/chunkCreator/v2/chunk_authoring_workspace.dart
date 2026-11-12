@@ -74,6 +74,7 @@ import '../../shared/editor_pending_changes_dialog.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
+import '../../shared/editor_scene_viewport.dart';
 import '../../shared/editor_placement_tools.dart';
 import '../../shared/editor_actor_terrain_controls.dart';
 import '../../prefabCreator/prefab_creator_navigation.dart';
@@ -186,8 +187,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool _connectionsExpanded = false;
   final _connectionsPanelKey = GlobalKey();
   ChunkCreatorLocation? _connectionReturnLocation;
-  double _zoom = _initialZoom;
-  Offset _pan = Offset.zero;
+  final _viewport = EditorSceneViewportController(
+    initialZoom: _initialZoom,
+    minZoom: _minZoom,
+    maxZoom: _maxZoom,
+    zoomStep: _zoomStep,
+  );
+  double get _zoom => _viewport.zoom;
+  Offset get _pan => _viewport.pan;
   bool _showGrid = false;
   bool _showShapeEdges = false;
   bool _visualPreview = false;
@@ -590,8 +597,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         chunk.chunkKey != location.chunkKey) {
       return;
     }
-    _zoom = location.zoom;
-    _pan = location.pan;
+    _viewport.restore(zoom: location.zoom, pan: location.pan);
     _showGrid = location.showGrid;
     _showElevationGuides = location.showElevationGuides;
     _connectionsExpanded = location.connectionsExpanded;
@@ -654,6 +660,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   @override
   void dispose() {
+    _viewport.dispose();
     _trapDamage.dispose();
     _trapWindup.dispose();
     _trapZIndex.dispose();
@@ -2626,14 +2633,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       tileData: scene.tileData,
                       visualBoundsByPrefabKey: scene.visualBoundsByPrefabKey,
                     ).placements.single;
+              final view = _viewport.layout(
+                viewport: size,
+                scene: Size(chunk.width.toDouble(), chunk.height.toDouble()),
+              );
               final transform = TerrainPolygonViewportTransform(
-                origin:
-                    Offset(
-                      (size.width - chunk.width * _zoom) * 0.5,
-                      (size.height - chunk.height * _zoom) * 0.5,
-                    ) +
-                    _pan,
-                zoom: _zoom,
+                origin: view.origin,
+                zoom: view.scale,
               );
               final trapPreview = [
                 for (final (index, trap) in chunk.traps.indexed)
@@ -2974,7 +2980,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       ? _saveWaterDrawing
                       : null,
                   onDeleteSelection: _deleteSceneSelection,
-                  onPanDelta: (delta) => setState(() => _pan += delta),
+                  onPanDelta: (delta) => setState(() => _viewport.panBy(delta)),
                   onZoomSteps: (steps) {
                     _setZoom(_zoom + steps * _zoomStep);
                   },
@@ -5547,21 +5553,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   void _setZoom(double value) {
-    final next = EditorSceneViewUtils.snapZoom(
-      value: value,
-      min: _minZoom,
-      max: _maxZoom,
-      step: _zoomStep,
-    );
-    if (EditorSceneViewUtils.zoomValuesEqual(next, _zoom)) return;
-    setState(() => _zoom = next);
+    if (_viewport.setZoom(value)) setState(() {});
   }
 
   void _resetViewport() => setState(_resetViewportValues);
 
   void _resetViewportValues() {
-    _zoom = _initialZoom;
-    _pan = Offset.zero;
+    _viewport.reset();
   }
 }
 

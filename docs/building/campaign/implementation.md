@@ -214,6 +214,50 @@ was used for mounted-state, hidden-focus and animation behavior. No native edito
 restart, source-content save, generated runtime change or gameplay traversal
 claim is included in these checks.
 
+### V3c: shared viewport behavior
+
+Requested November 12, 2026 after the centering fix: replace the separate
+Campaign and Chunk viewport mechanics with a common owner. The earlier V3b
+reuse covered controls and render components, not the viewport implementation.
+
+- [x] Share zoom state, reset/restore, centering, coordinate conversion and
+  free/bounded pan policies. Preserve Chunk navigation snapshots and Campaign's
+  fitted-height, lazily rendered route and scrollbar.
+- [x] Share pointer ownership, Ctrl+drag and Ctrl+wheel routing; keep terrain
+  and mission edit commands with their existing owners. Cover empty canvas
+  space and prevent navigation from changing coordinates during an edit drag.
+- [x] Verify shared behavior and both consumers, including zoomed-out placement,
+  cancellation, Visual preview, route scrolling and existing draft/history gates.
+- [x] Record validation and update the implemented viewport contract.
+
+Starting source: `05720278`. Existing localized Campaign forms, chapter tests,
+Contents/page changes, README/TDD edits and map-asset renames belong to unrelated
+work and must be preserved. No source geometry or gameplay contracts change.
+
+Implemented in `EditorSceneViewportController` and `EditorScenePointerRegion`;
+both consumers remove their old centering, zoom/reset and pan/wheel paths.
+Campaign retains its scrollbar and lazy renderer, with one viewport-wide input
+surface and fresh scroll-coordinate conversion for each edit event. Chunk keeps
+its centered free canvas and existing navigation snapshots.
+
+Local validation on November 12, 2026, from `tools/editor`, against this viewport
+change over `c6421041` and the concurrent unrelated worktree changes:
+
+| Command/check | Result |
+| --- | --- |
+| `flutter test test/editor_scene_viewport_test.dart test/chunk_polygon_authoring_controller_test.dart test/campaign_authoring_test.dart --reporter expanded` | 62 passed |
+| `flutter test test/chunk_authoring_workspace_test.dart test/campaign_authoring_test.dart --name 'shared viewport\|blessing fire feedback\|route preview fills\|Connections opens\|direct marker\|direct prefab move\|chunk scene shows its tile grid\|wide chunk workspace\|chunk creation scene and sidebar remain usable' --reporter expanded` | Both added Campaign cases passed (empty-margin navigation/placement and pan across 16 occurrences); Chunk target failed to compile due to a missing import in its new test |
+| `flutter test test/chunk_authoring_workspace_test.dart --name 'shared viewport\|Connections opens\|direct marker\|direct prefab move\|chunk scene shows its tile grid\|wide chunk workspace\|chunk creation scene and sidebar remain usable' --reporter expanded` | 8 passed after correcting the test import |
+| `dart analyze lib/src/app/pages/shared/editor_scene_viewport.dart lib/src/app/pages/campaign/campaign_overview.dart lib/src/app/pages/campaign/campaign_scene_controls.dart lib/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart lib/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart test/editor_scene_viewport_test.dart test/campaign_authoring_test.dart test/chunk_authoring_workspace_test.dart` | No issues after the import correction |
+| Task diff whitespace check | Passed |
+
+These are local automated checks, not a native-editor restart or gameplay
+traversal acceptance. Context7 was unavailable; Flutter's official
+[pointer-signal resolver](https://api.flutter.dev/flutter/gestures/PointerSignalResolver-class.html)
+and [hit-test behavior](https://api.flutter.dev/flutter/rendering/HitTestBehavior.html)
+documentation supplied the event arbitration contract. Existing V4 native and
+gameplay gates remain open.
+
 ### V4: acceptance and documentation
 
 - [x] From Markers, create and adjust every requested object type without editing

@@ -4,6 +4,7 @@ import '../../../chunks/chunk_v2_actor_terrain_projection.dart';
 import '../shared/editor_actor_terrain_controls.dart';
 import '../shared/editor_placement_tools.dart';
 import '../shared/editor_zoom_controls.dart';
+import '../shared/editor_scene_viewport.dart';
 import 'campaign_marker_editing.dart';
 
 /// Scene chrome shares Chunk's tools; Campaign retains draft and command gates.
@@ -19,7 +20,7 @@ class CampaignSceneControls extends StatelessWidget {
     required this.onActorTerrainChanged,
     required this.actor,
     required this.onActorChanged,
-    required this.zoom,
+    required this.viewport,
     required this.onZoomChanged,
     required this.onResetView,
   });
@@ -31,7 +32,7 @@ class CampaignSceneControls extends StatelessWidget {
       onActorTerrainChanged;
   final ChunkV2TerrainActor actor;
   final ValueChanged<ChunkV2TerrainActor> onActorChanged;
-  final double zoom;
+  final EditorSceneViewportController viewport;
   final ValueChanged<double> onZoomChanged;
   final VoidCallback onResetView;
 
@@ -70,10 +71,10 @@ class CampaignSceneControls extends StatelessWidget {
             IgnorePointer(
               ignoring: e.gestureActive,
               child: EditorZoomControls(
-                value: zoom,
-                min: .5,
-                max: 4,
-                step: .25,
+                value: viewport.zoom,
+                min: viewport.minZoom,
+                max: viewport.maxZoom,
+                step: viewport.zoomStep,
                 sliderWidth: 140,
                 onChanged: onZoomChanged,
               ),

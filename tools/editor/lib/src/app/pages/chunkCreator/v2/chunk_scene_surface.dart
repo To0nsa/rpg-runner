@@ -1,16 +1,15 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
-import '../../shared/scene_input_utils.dart';
+import '../../shared/editor_scene_viewport.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_scene_coordinator.dart';
 
 /// Focusable Chunk-route surface for shared polygon interaction and painting.
 ///
-/// Viewport pan/zoom remains route-local. Only accepted semantic commits from
+/// Shared viewport input routes navigation separately. Only semantic commits from
 /// [controller] can reach the session document and its undo history.
 class ChunkSceneSurface extends StatefulWidget {
   const ChunkSceneSurface({
@@ -75,7 +74,6 @@ class ChunkSceneSurface extends StatefulWidget {
 class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
   late final FocusNode _focusNode;
   int? _gesturePointer;
-  int? _panPointer;
   int? _domainGesturePointer;
 
   @override
@@ -98,14 +96,17 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
       child: Focus(
         focusNode: _focusNode,
         onKeyEvent: _handleKeyEvent,
-        child: Listener(
+        child: EditorScenePointerRegion(
           key: const ValueKey<String>('chunk_scene_surface'),
-          behavior: HitTestBehavior.opaque,
+          onInteractionStart: _focusNode.requestFocus,
+          onPanDelta: widget.onPanDelta,
+          onZoomSteps: widget.onZoomSteps,
+          canNavigate: () =>
+              _gesturePointer == null && _domainGesturePointer == null,
           onPointerDown: _handlePointerDown,
           onPointerMove: _handlePointerMove,
           onPointerUp: _handlePointerUp,
           onPointerCancel: _handlePointerCancel,
-          onPointerSignal: _handlePointerSignal,
           child: ListenableBuilder(
             listenable: widget.controller,
             builder: (context, _) => Stack(
@@ -157,14 +158,6 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
   }
 
   void _handlePointerDown(PointerDownEvent event) {
-    if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) return;
-    _focusNode.requestFocus();
-    if (SceneInputUtils.shouldPanWithPrimaryDrag(event.buttons)) {
-      _panPointer = event.pointer;
-      _gesturePointer = null;
-      _domainGesturePointer = null;
-      return;
-    }
     if (!widget.interactionEnabled) return;
     final point = widget.transform.canvasToSource(event.localPosition);
     final worldPoint = Offset(point.xHalfPixels * 0.5, point.yHalfPixels * 0.5);
@@ -263,11 +256,6 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
   }
 
   void _handlePointerMove(PointerMoveEvent event) {
-    if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) return;
-    if (_panPointer == event.pointer) {
-      widget.onPanDelta?.call(event.delta);
-      return;
-    }
     if (_domainGesturePointer == event.pointer) {
       widget.onUpdateDomainGesture?.call(
         event.pointer,
@@ -287,10 +275,6 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
       .canvasRadiusToSourceHalfPixels(widget.collisionSnapRadiusCanvasPx);
 
   void _handlePointerUp(PointerUpEvent event) {
-    if (_panPointer == event.pointer) {
-      _panPointer = null;
-      return;
-    }
     if (_domainGesturePointer == event.pointer) {
       _domainGesturePointer = null;
       widget.onEndDomainGesture?.call(
@@ -313,7 +297,6 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
-    if (_panPointer == event.pointer) _panPointer = null;
     if (_domainGesturePointer == event.pointer) {
       _domainGesturePointer = null;
       widget.onCancelDomainGesture?.call(event.pointer);
@@ -321,11 +304,6 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
     if (_gesturePointer != event.pointer) return;
     _gesturePointer = null;
     widget.controller.cancelActiveOperation();
-  }
-
-  void _handlePointerSignal(PointerSignalEvent event) {
-    final steps = SceneInputUtils.signedZoomStepsFromCtrlScroll(event);
-    if (steps != 0) widget.onZoomSteps?.call(steps);
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {

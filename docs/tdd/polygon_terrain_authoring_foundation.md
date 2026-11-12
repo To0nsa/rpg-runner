@@ -798,7 +798,14 @@ compiled-edge inspection branch. Terrain input delegates to
 `ChunkPolygonAuthoringController`; prefab bounds and marker anchors resolve
 through deterministic per-document projections. Escape, Enter, Delete, and
 Backspace route to the active domain, while Ctrl-drag pans and Ctrl-scroll
-zooms without mutating source. The owner bounds painter is display-only;
+zooms without mutating source. Chunk and Campaign both use
+`EditorSceneViewportController` for zoom/reset/restore, scene origin and inverse
+coordinates, and `EditorScenePointerRegion` for pointer ownership and wheel
+arbitration. Chunk supplies actual-pixel scaling with centered, free pan;
+Campaign supplies fitted-height scaling with bounded scroll positions. Zoom
+cannot move the coordinate system during an edit drag. View navigation remains
+available in Visual preview, including empty space around the scene.
+The owner bounds painter is display-only;
 closed-bound validation remains in the chunk owner policy.
 
 When a normal strict `ChunkV2Scene` is loaded, `ChunkCreatorPage` selects
