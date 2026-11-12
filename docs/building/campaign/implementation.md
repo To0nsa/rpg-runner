@@ -483,12 +483,12 @@ new categories still require explicit support. Shared names/icons/picker are unc
 - [x] Obtain release authorization: on November 12 the owner requested current
   code deployed to dev backend and a matching Android build. This supersedes the
   implementation-only authorization above; staging/prod and data resets are excluded.
-- [ ] Freeze the validated source and complete canonical preparation, reusing
+- [x] Freeze the validated source and complete canonical preparation, reusing
   component and navigation evidence only when its inputs and artifact bytes match.
-- [ ] Build and benchmark the worker image; build and inspect a matching dev APK.
-- [ ] Inspect dev, pause issuance, review drain, deploy the coordinated candidate
+- [x] Build and benchmark the worker image; build and inspect a matching dev APK.
+- [x] Inspect dev, pause issuance, review drain, deploy the coordinated candidate
   and verify readiness before resuming issuance. Record actual artifact identities.
-  Source compatibility is 2026.11.11; no live compatibility/deployment is claimed yet.
+  Dev now serves 2026.11.11; device and signed-in Play Games acceptance remain unrun.
 
 November 12 content checkpoint: Reporting for Duty revision 26 includes sixteen
 campaign-only Forest occurrences, supported start at (60, 224) and a final-chunk
@@ -608,6 +608,76 @@ pass freshness first and rebuild/revalidate every component whose input hash
 changed. Existing navigation graphs remain reusable by exact key. The later
 editor commit `b7c6fe10` is preserved in the main worktree and excluded from this
 repair branch/release. No cloud mutations have occurred.
+
+### November 12 canonical release evidence
+
+Frozen candidate `88c040600dcbc557c9b78dc3c16fb6b110262a3f` passed canonical
+`Prepare -Environment dev` at 11:20 UTC. Its source digest is
+`2cb25bab646df93e4b9d85afab3f155a214a9fce633d384e73589b067064e6bd`.
+The LF repair is integrated on the main branch as `ea1f0856`; later editor and
+campaign-authoring work is preserved separately and excluded from this candidate.
+
+All required components passed: 1,531 client tests (one existing skip), 2,645 Core
+tests, 136 protocol tests, 119 content tests, 25 terrain tests, 366 worker tests
+(one fixture-only skip), 385 Functions emulator tests and five inventory tests.
+Analyzers, generated freshness, the worker AOT probe, optimized web build and
+Chrome artifact smoke passed; the fresh production dependency audit reported no
+known vulnerabilities. Canonical evidence retains the original provenance for
+matching cached protocol, terrain and freshness components. Client navigation
+reused all 3,740 exact-key graphs; the navigation algorithm revision is unchanged.
+
+The read-only 11:26 UTC dev inventory contained 70 sessions: 16 cancelled, 19
+expired, one issued past its expiry and 34 validated. All 34 grants were settled;
+canonical gold remained 3,604, with no settlement backlog or consistency errors.
+This inspection predates cutover and does not establish a completed deployment.
+Worker Cloud Build `5887afd2-8465-4a96-9551-dc831a0a4224` succeeded, including the
+strict 36,000-tick final-container benchmark for Field and Forest. Its immutable
+image is `europe-west1-docker.pkg.dev/rpg-runner-d7add/replay/replay-validator@sha256:16ddacc34c3ad4ec244dd4130fdd2f39145c74233eb592faf0fcc96bd2108519`.
+Navigation reused 79,310 graphs from the verified previous immutable image and
+built 14,650 graphs for the six changed ranked seeds; runner geometry is unchanged.
+
+Canonical `BuildAndroid -Environment dev -AndroidVersionCode 8` completed at
+12:06 UTC from the same frozen source. Inspection verified package
+`com.example.rpg_runner.dev`, version `1.0.0-dev`/8, dev Firebase/Play resources,
+signing, all 3,740 navigation graphs, three ABIs, twelve native libraries and
+16-KiB native alignment. All three Dart symbol files are retained; dev symbol
+upload is intentionally disabled. APK SHA-256 is
+`36bf68878ac0d648e939054c44e9ca1381ae28d45a633ea0c675aec2c3a78b19`;
+the delivery copy `.tmp/dev-release-20261112/app-dev-release-v8.apk` matches it.
+No device was connected at 12:02 UTC; device and signed-in Play Games acceptance
+remain unrun.
+
+The refreshed 12:03 UTC inventory showed zero active tickets: 16 cancelled,
+20 expired and 34 validated, with all 34 grants still settled and gold unchanged.
+The remaining issued ticket expired naturally; no owner-requested cancellation
+has been performed. PauseIssuance found the old issuer image removed by managed
+cleanup and used the canonical prepared-source rebuild with its explicit pause
+gate. The first Firebase discovery attempt exceeded its local ten-second timeout
+before deployment. Retrying with the documented process-only
+`FUNCTIONS_DISCOVERY_TIMEOUT=120` succeeded; the original environment was restored.
+The healthy paused issuer was verified at 12:18 UTC.
+
+Canonical `Deploy -Environment dev -CutoverReady` completed at 12:33 UTC: all 34
+non-issuer Functions updated, Firestore rules/indexes deployed, worker revision
+`replay-validator-00068-q28` became ready with 100% traffic, board maintenance ran,
+and Hosting published. The live web JavaScript matched prepared SHA-256
+`11a3958a98c0c9a58c4db732fc95dae2a2c4d0f62dc5855280b08ce7ae540637`.
+
+The 12:36 UTC resume inventory had all three expected 2026.11.11 boards active,
+the three 2026.11.10 boards disabled, zero active tickets and no settlement
+backlog. All 34 accepted runs/settled grants and canonical gold 3,604 were
+preserved. `ResumeIssuance -Environment dev -CutoverReady` completed at 12:40 UTC
+after exact live worker/Hosting checks. It resumed both queues, deployed the
+matching issuer, removed the temporary pause gate, saved the verified dev
+baseline and cleared the source-bound cutover record. The release locks were
+released normally. No tickets needed owner-requested cancellation.
+
+Independent 12:41 UTC live readback confirmed issuer revision
+`runsessioncreate-00101-qzq` Ready with 100% traffic and no pause override;
+`replay-validation` and `replay-projection` were both RUNNING. Evidence is retained
+in the frozen checkout's source-digest directory, including the post-resume
+receipt, release/Android manifests and worker/benchmark logs. Later working-tree
+campaign/settings/editor changes are outside this deployed candidate.
 
 ## Local evidence (November 11)
 
