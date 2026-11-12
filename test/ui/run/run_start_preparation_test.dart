@@ -117,6 +117,7 @@ class _App extends ChangeNotifier implements AppState {
     RunMode? expectedMode,
     LevelId? expectedLevelId,
     String? ghostEntryId,
+    String? campaignMissionId,
   }) async {
     prepareCalls++;
     this.expectedMode = expectedMode;

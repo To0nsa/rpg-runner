@@ -112,29 +112,35 @@ void main() {
     },
   );
 
-  test('loadOnlineLeaderboardBoard rejects practice mode', () async {
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: _StaticOwnershipApi(),
-      runBoardsApi: _RecordingRunBoardsApi(),
-      leaderboardApi: _RecordingLeaderboardApi(),
-    );
-    await appState.bootstrap(force: true);
+  for (final mode in [RunMode.practice, RunMode.campaign]) {
+    test('loadOnlineLeaderboardBoard rejects ${mode.name} mode', () async {
+      final runBoardsApi = _RecordingRunBoardsApi();
+      final leaderboardApi = _RecordingLeaderboardApi();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _StaticOwnershipApi(),
+        runBoardsApi: runBoardsApi,
+        leaderboardApi: leaderboardApi,
+      );
+      await appState.bootstrap(force: true);
 
-    await expectLater(
-      () => appState.loadOnlineLeaderboardBoard(
-        mode: RunMode.practice,
-        levelId: LevelId.field,
-      ),
-      throwsA(
-        isA<RunStartRemoteException>().having(
-          (value) => value.code,
-          'code',
-          'failed-precondition',
+      await expectLater(
+        () => appState.loadOnlineLeaderboardBoard(
+          mode: mode,
+          levelId: LevelId.field,
         ),
-      ),
-    );
-  });
+        throwsA(
+          isA<RunStartRemoteException>().having(
+            (value) => value.code,
+            'code',
+            'failed-precondition',
+          ),
+        ),
+      );
+      expect(runBoardsApi.loadCalls, 0);
+      expect(leaderboardApi.loadActiveBoardDataCalls, 0);
+    });
+  }
 }
 
 class _RecordingRunBoardsApi implements RunBoardsApi {
@@ -157,11 +163,17 @@ class _RecordingRunBoardsApi implements RunBoardsApi {
       RunMode.competitive => 'board_2026_03_field',
       RunMode.weekly => 'board_2026_w11_field',
       RunMode.practice => 'board_practice_unsupported',
+      RunMode.campaign => throw StateError(
+        'Campaign has no leaderboard board.',
+      ),
     };
     final windowId = switch (mode) {
       RunMode.competitive => '2026-03',
       RunMode.weekly => '2026-W11',
       RunMode.practice => 'practice',
+      RunMode.campaign => throw StateError(
+        'Campaign has no leaderboard window.',
+      ),
     };
     return BoardManifest(
       boardId: boardId,
@@ -205,6 +217,9 @@ class _RecordingLeaderboardApi implements LeaderboardApi {
       RunMode.competitive => 'board_2026_03_field',
       RunMode.weekly => 'board_2026_w11_field',
       RunMode.practice => 'board_practice_unsupported',
+      RunMode.campaign => throw StateError(
+        'Campaign has no leaderboard board.',
+      ),
     };
     return OnlineLeaderboardBoardData(
       board: await loadBoard(

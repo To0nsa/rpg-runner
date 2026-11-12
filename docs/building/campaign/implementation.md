@@ -441,6 +441,18 @@ unchanged; exact-key graphs are reused and only missing ranked graphs are built.
 The owner additionally authorized cancelling dev tickets found during the cutover.
 Record any actual cancellations separately from terminal/settled history.
 
+Candidate `390b8b30`: canonical backend checks passed all 385 emulator tests and
+five inventory tests, plus the production build and fresh audit. Client production
+analysis passed, but test analysis found four stale campaign mock contracts: one
+missing `campaignMissionId` argument and three non-exhaustive mode switches. The
+mock corrections and explicit unranked-board rejection checks passed targeted
+analysis and all ten tests in `run_start_preparation_test.dart` and
+`app_state_leaderboard_test.dart`. Preparation stopped and must resume from the
+replacement frozen source; matching backend evidence remains reusable.
+Read-only dev Inspect at 06:40 UTC found three issued 2026.11.10 tickets, 34
+accepted runs and 34 settled grants, no settlement backlog and no invalid gold
+or unauthorized selections. No cloud mutation or cancellation has happened yet.
+
 ## Local evidence (November 11)
 
 Chapter reward follow-up (local checks; no deployment or native manual pass):
