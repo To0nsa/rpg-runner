@@ -466,6 +466,21 @@ Replay-validator analysis, 366 tests (one fixture-only skip) and the compiled AO
 protocol probe passed on `494b2bb9`. The catalog source repair changes its component
 input hash, so replacement preparation must revalidate that component.
 
+Candidate `72b0cea3`: all client analyzers passed; the full suite completed with
+1,529 passed, one existing skip and two custom polygon-generator fixture failures.
+Both omitted the item source required by the captured Build snapshot. Initializing
+them through the existing source-fixture helper adds that source before their
+custom prefab definitions. Both focused cases passed (16 seconds); production
+snapshot validation is unchanged. Replay checks again passed 366 tests, the
+fixture-only skip and AOT probe. Fresh read-only Inspect at 07:31 UTC retained the
+same three issued tickets and 34 accepted/settled runs without consistency errors.
+
+The remaining build/Core/protocol/content/terrain/freshness components are being
+validated with `validate_release.ps1` in clean `72b0cea3`, using the shared cache.
+The replacement changes only two root test lines and this checklist: those
+components' input sets are unchanged and canonical Prepare must verify that match
+before reuse. Client checks require fresh evidence for the repaired fixture source.
+
 ## Local evidence (November 11)
 
 Chapter reward follow-up (local checks; no deployment or native manual pass):

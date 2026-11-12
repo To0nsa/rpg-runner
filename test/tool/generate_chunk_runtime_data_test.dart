@@ -1315,6 +1315,7 @@ void main() {
         'chunk_generator_multi_collider_',
       );
       try {
+        _writePrefabAndTileDefs(fixtureRoot.path);
         _writeFile(
           fixtureRoot.path,
           'assets/authoring/level/prefab_defs.json',
@@ -1450,6 +1451,7 @@ void main() {
         'chunk_generator_platform_flip_scale_',
       );
       try {
+        _writePrefabAndTileDefs(fixtureRoot.path);
         _writeFile(
           fixtureRoot.path,
           'assets/authoring/level/prefab_defs.json',
