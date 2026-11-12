@@ -432,6 +432,15 @@ Client navigation seeding verified all 3,750 graph hashes against the previously
 inspected dev APK 7 manifest. The current producer must still validate exact keys.
 No device is connected; dev APK 8 is the next locally allocated artifact code.
 
+Candidate `662f533b` was superseded before expensive checks/cloud mutation when
+inspection found ranked preparation still bound to 2026.11.10. The existing offline
+route generator refreshed its six explicit November/December and ISO-week 46/47
+seeds for 2026.11.11. Both Practice/production-seed contract tests and test build
+passed. Runner levels, Practice seeds and navigation algorithm revision are
+unchanged; exact-key graphs are reused and only missing ranked graphs are built.
+The owner additionally authorized cancelling dev tickets found during the cutover.
+Record any actual cancellations separately from terminal/settled history.
+
 ## Local evidence (November 11)
 
 Chapter reward follow-up (local checks; no deployment or native manual pass):
