@@ -1,8 +1,8 @@
 # Campaign implementation checklist
 
 Status: campaign platform and visual marker authoring implemented locally
-November 11–12, 2026. Production layouts remain
-the user's work; device and release acceptance remain open.
+November 11–12, 2026. The user's Reporting for Duty route is included in Build;
+missions 2–4 remain drafts. Device and release acceptance remain open.
 This is the sole checklist; [technical contracts](../../tdd/campaign_runtime.md)
 and [game behavior](../../gdd/campaign.md) describe the delivered systems.
 
@@ -397,8 +397,28 @@ new categories still require explicit support. Shared names/icons/picker are unc
   post-unlock Willow, required encounters and continuous return traversal.
 - [ ] Complete device performance/input/accessibility and signed-in end-to-end
   acceptance on a deliberately prepared compatible app/backend/worker release.
-- [ ] Obtain release authorization and follow coordinated deployment separately.
-  Source compatibility is 2026.11.11; no live compatibility/deployment is claimed.
+- [x] Obtain release authorization: on November 12 the owner requested current
+  code deployed to dev backend and a matching Android build. This supersedes the
+  implementation-only authorization above; staging/prod and data resets are excluded.
+- [ ] Freeze the validated source and complete canonical preparation, reusing
+  component and navigation evidence only when its inputs and artifact bytes match.
+- [ ] Build and benchmark the worker image; build and inspect a matching dev APK.
+- [ ] Inspect dev, pause issuance, review drain, deploy the coordinated candidate
+  and verify readiness before resuming issuance. Record actual artifact identities.
+  Source compatibility is 2026.11.11; no live compatibility/deployment is claimed yet.
+
+November 12 content checkpoint: Reporting for Duty revision 26 includes sixteen
+campaign-only Forest occurrences, supported start at (60, 224) and a final-chunk
+exit at x=500. It remains combat-free with no additional required objectives.
+Generated Core terrain/registry and UI/backend projections match canonical source
+(`generate_chunk_runtime_data.dart --dry-run`). Focused Dart analysis, nine campaign
+menu tests, Functions production/test builds and seven campaign progression tests
+passed locally. The draft-issuance test now supplies an explicit unavailable
+catalogue rather than assuming production missions are excluded. The existing
+Core campaign/runtime and navigation matrix/control targets passed all 90 tests
+(Forest/Field, seeds 7/42/2026, actual catalog capabilities and declared finite
+horizons). These checks do not establish complete authored-route traversal or
+signed-in device acceptance.
 
 ## Local evidence (November 11)
 

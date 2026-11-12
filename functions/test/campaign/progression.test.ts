@@ -59,7 +59,10 @@ test("pre-release Willow selection normalizes without erasing gear or builds", (
 
 test("drafts cannot issue and campaign requests require a mission ID", () => {
   const state = starterCanonicalState("main", "campaign-player");
-  assert.throws(() => authorizeCampaignMission(state.progression, "reporting_for_duty", "forest"));
+  const drafts: CampaignCatalog = { ...campaignCatalog, chapters: campaignCatalog.chapters.map((chapter) => ({
+    ...chapter, missions: chapter.missions.map((mission) => ({ ...mission, available: false })),
+  })) };
+  assert.throws(() => authorizeCampaignMission(state.progression, "reporting_for_duty", "forest", drafts));
   const request = { userId: "u", sessionId: "s", clientRequestId: "request", mode: "campaign", levelId: "forest", gameCompatVersion: "2026.11.11" };
   assert.throws(() => parseRunSessionCreateRequest(request));
   assert.equal(parseRunSessionCreateRequest({ ...request, missionId: "reporting_for_duty" }).missionId, "reporting_for_duty");

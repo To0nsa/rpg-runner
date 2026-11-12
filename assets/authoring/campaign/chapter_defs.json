@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": 1,
+  "revision": 4,
   "chapters": [
     {
       "id": "val_outpost",
@@ -15,11 +15,14 @@
       "mapX": 0.8,
       "mapY": 0.595,
       "rewardCharacterId": "bountyHunter",
+      "rewardXp": 0,
+      "rewardGold": 0,
+      "rewardItems": [],
       "missions": [
         {
           "id": "reporting_for_duty",
-          "revision": 1,
-          "includeInBuild": false,
+          "revision": 26,
+          "includeInBuild": true,
           "title": {
             "en": "Reporting for Duty",
             "fr": "Au rapport"
@@ -29,17 +32,110 @@
             "fr": "Traverse la Forêt des Moyen-Ducs et rejoins l’Avant-poste du Val. Prends le temps de trouver tes appuis et d’atteindre le camp."
           },
           "visualThemeId": "forest",
+          "levelId": "forest",
           "firstClearXp": 40,
           "rewardAbilityId": "eloise.double_jump",
           "combatAllowed": false,
-          "route": [],
-          "start": null,
-          "exit": null,
+          "route": [
+            {
+              "id": "occurrence_1",
+              "levelId": "forest",
+              "chunkKey": "forest_default_early_cmp_001"
+            },
+            {
+              "id": "occurrence_2",
+              "levelId": "forest",
+              "chunkKey": "forest_default_early_cmp_003"
+            },
+            {
+              "id": "occurrence_3",
+              "levelId": "forest",
+              "chunkKey": "forest_default_early_cmp_004"
+            },
+            {
+              "id": "occurrence_4",
+              "levelId": "forest",
+              "chunkKey": "forest_default_early_cmp_005"
+            },
+            {
+              "id": "occurrence_5",
+              "levelId": "forest",
+              "chunkKey": "forest_default_early_cmp_006"
+            },
+            {
+              "id": "occurrence_6",
+              "levelId": "forest",
+              "chunkKey": "forest_default_early_cmp_007"
+            },
+            {
+              "id": "occurrence_7",
+              "levelId": "forest",
+              "chunkKey": "forest_default_early_cmp_008"
+            },
+            {
+              "id": "occurrence_8",
+              "levelId": "forest",
+              "chunkKey": "forest_default_early_cmp_009"
+            },
+            {
+              "id": "occurrence_9",
+              "levelId": "forest",
+              "chunkKey": "forest_default_early_cmp_010"
+            },
+            {
+              "id": "occurrence_10",
+              "levelId": "forest",
+              "chunkKey": "forest_rocky_grove_easy_cmp_001"
+            },
+            {
+              "id": "occurrence_11",
+              "levelId": "forest",
+              "chunkKey": "forest_rocky_grove_easy_cmp_002"
+            },
+            {
+              "id": "occurrence_12",
+              "levelId": "forest",
+              "chunkKey": "forest_rocky_grove_easy_cmp_003"
+            },
+            {
+              "id": "occurrence_13",
+              "levelId": "forest",
+              "chunkKey": "forest_rocky_grove_easy_cmp_004"
+            },
+            {
+              "id": "occurrence_14",
+              "levelId": "forest",
+              "chunkKey": "forest_rocky_grove_easy_cmp_005"
+            },
+            {
+              "id": "occurrence_15",
+              "levelId": "forest",
+              "chunkKey": "forest_rocky_grove_easy_cmp_006"
+            },
+            {
+              "id": "occurrence_16",
+              "levelId": "forest",
+              "chunkKey": "forest_trainingcamp_easy_cmp_001"
+            }
+          ],
+          "start": {
+            "occurrenceId": "occurrence_1",
+            "x": 60.0,
+            "y": 224.0
+          },
+          "exit": {
+            "origin": {
+              "occurrenceId": "occurrence_16",
+              "x": 500.0,
+              "y": 0.0
+            },
+            "width": 100.0,
+            "height": 270.0
+          },
           "collectibles": [],
           "requiredRegions": [],
           "requiredEnemies": [],
-          "requiredRescues": [],
-          "levelId": "forest"
+          "requiredRescues": []
         },
         {
           "id": "signs_in_the_grove",
@@ -54,6 +150,7 @@
             "fr": "Enquête sur les signalements dans le bosquet. Élimine la patrouille de cultistes et rejoins le point de rendez-vous."
           },
           "visualThemeId": "forest",
+          "levelId": "forest",
           "firstClearXp": 48,
           "rewardAbilityId": null,
           "combatAllowed": true,
@@ -63,8 +160,7 @@
           "collectibles": [],
           "requiredRegions": [],
           "requiredEnemies": [],
-          "requiredRescues": [],
-          "levelId": "forest"
+          "requiredRescues": []
         },
         {
           "id": "the_supply_trail",
@@ -79,6 +175,7 @@
             "fr": "Des cultistes menacent la piste du ravitaillement. Dégage le passage et mets le garde isolé en sécurité."
           },
           "visualThemeId": "forest",
+          "levelId": "forest",
           "firstClearXp": 60,
           "rewardAbilityId": null,
           "combatAllowed": true,
@@ -88,8 +185,7 @@
           "collectibles": [],
           "requiredRegions": [],
           "requiredEnemies": [],
-          "requiredRescues": [],
-          "levelId": "forest"
+          "requiredRescues": []
         },
         {
           "id": "holding_the_outpost",
@@ -104,6 +200,7 @@
             "fr": "Élimine les dernières positions des cultistes près de l’Avant-poste du Val, puis reviens faire ton rapport. La garnison a besoin de répit."
           },
           "visualThemeId": "forest",
+          "levelId": "forest",
           "firstClearXp": 76,
           "rewardAbilityId": null,
           "combatAllowed": true,
@@ -113,13 +210,9 @@
           "collectibles": [],
           "requiredRegions": [],
           "requiredEnemies": [],
-          "requiredRescues": [],
-          "levelId": "forest"
+          "requiredRescues": []
         }
-      ],
-      "rewardXp": 0,
-      "rewardGold": 0,
-      "rewardItems": []
+      ]
     }
   ]
 }
