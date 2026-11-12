@@ -27,7 +27,7 @@ import 'campaign_route.dart';
 import 'campaign_inspector.dart';
 import 'campaign_overview.dart';
 import 'campaign_marker_editing.dart';
-import 'campaign_marker_inspector.dart';
+import 'campaign_workspace.dart';
 import 'campaign_marker_palette.dart';
 
 enum CampaignTab { contents, route, markers }
@@ -85,6 +85,7 @@ class _CampaignPageState extends State<CampaignPage>
         EditorPageSaveHandler,
         EditorPagePlaytestHandler {
   final _play = AuthoredPlaytestSession();
+  bool _visualPreview = false;
   late final _markerEditing = CampaignMarkerEditing(widget.controller);
   CampaignDocument? _doc;
   final _compiled = <String, PolygonTerrainRuntimeChunk>{};
@@ -145,7 +146,7 @@ class _CampaignPageState extends State<CampaignPage>
         _markerEditing.cancel();
         return true;
       }
-      if (key == LogicalKeyboardKey.delete) {
+      if (key == LogicalKeyboardKey.delete && !_visualPreview) {
         _markerEditing.delete();
         return true;
       }
@@ -415,7 +416,8 @@ class _CampaignPageState extends State<CampaignPage>
 
   void _selectTab(CampaignTab tab) {
     if (!_markerEditing.finishDraft()) return;
-    _markerEditing.cancel();
+    _markerEditing.candidate = null;
+    _markerEditing.error = null;
     _tab = tab;
     _viewChanged();
   }
@@ -477,7 +479,7 @@ class _CampaignPageState extends State<CampaignPage>
                   firstLabel: 'Chapters',
                   secondLabel: 'Workspace',
                   thirdLabel: _tab == CampaignTab.markers
-                      ? 'Properties'
+                      ? 'Authoring'
                       : 'Settings',
                   firstFlex: 3,
                   secondFlex: 8,
@@ -485,9 +487,13 @@ class _CampaignPageState extends State<CampaignPage>
                   minimumWideWidth: 1180,
                   first: _library(d),
                   second: _workspace(d, chunk),
-                  third: _tab == CampaignTab.markers
-                      ? CampaignMarkerInspector(editing: _markerEditing)
-                      : CampaignInspector(
+                  third: IndexedStack(
+                    index: _tab == CampaignTab.markers ? 1 : 0,
+                    sizing: StackFit.expand,
+                    children: [
+                      ExcludeFocus(
+                        excluding: _tab == CampaignTab.markers,
+                        child: CampaignInspector(
                           mission: d.selected,
                           chunk: chunk,
                           occurrenceId: _selectedOccurrenceId,
@@ -506,6 +512,27 @@ class _CampaignPageState extends State<CampaignPage>
                               issue.message,
                           ],
                         ),
+                      ),
+                      TickerMode(
+                        enabled: _tab == CampaignTab.markers,
+                        child: ExcludeFocus(
+                          excluding:
+                              _tab != CampaignTab.markers || _visualPreview,
+                          child: IgnorePointer(
+                            ignoring: _visualPreview,
+                            child: Opacity(
+                              opacity: _visualPreview ? .45 : 1,
+                              child: CampaignMarkerPalette(
+                                editing: _markerEditing,
+                                onLinkTarget: _marker,
+                                onPlace: () => _panels.revealPanel(1),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -579,8 +606,8 @@ class _CampaignPageState extends State<CampaignPage>
 
   Widget _workspace(CampaignDocument d, ChunkV2FileData? chunk) {
     final m = d.selected;
-    return ToolPreviewWorkspace(
-      scrollKey: const PageStorageKey('campaign_workspace_scroll'),
+    return CampaignWorkspace(
+      editingScene: _tab == CampaignTab.markers,
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -596,7 +623,7 @@ class _CampaignPageState extends State<CampaignPage>
               ),
               IconButton(
                 tooltip: _tab == CampaignTab.markers
-                    ? 'Show marker properties'
+                    ? 'Show marker authoring'
                     : 'Show mission settings',
                 onPressed: () => _panels.revealPanel(2),
                 icon: const Icon(Icons.tune),
@@ -624,19 +651,38 @@ class _CampaignPageState extends State<CampaignPage>
             ? 'Chunk preview · ${chunk.chunkKey}'
             : 'Mission route preview',
         bodyMode: ToolPanelBodyMode.expanded,
-        child: _tab == CampaignTab.contents && chunk != null
-            ? _chunkPreview(chunk)
-            : m.route.isEmpty
-            ? const Center(
-                child: Text('Add chunks from Contents to build this mission.'),
-              )
-            : CampaignOverview(
-                key: ValueKey(m.id),
-                mission: m,
-                chunks: d.chunks,
-                workspaceRootPath: widget.controller.workspacePath,
-                editing: _tab == CampaignTab.markers ? _markerEditing : null,
+        child: IndexedStack(
+          index: _tab == CampaignTab.contents && chunk != null ? 0 : 1,
+          sizing: StackFit.expand,
+          children: [
+            TickerMode(
+              enabled: _tab == CampaignTab.contents,
+              child: chunk == null
+                  ? const SizedBox.shrink()
+                  : _chunkPreview(chunk),
+            ),
+            TickerMode(
+              enabled: _tab != CampaignTab.contents || chunk == null,
+              child: ExcludeFocus(
+                excluding: _tab == CampaignTab.contents && chunk != null,
+                child: CampaignOverview(
+                  key: ValueKey(m.id),
+                  mission: m,
+                  chunks: d.chunks,
+                  workspaceRootPath: widget.controller.workspacePath,
+                  editing: _tab == CampaignTab.markers ? _markerEditing : null,
+                  showControls: _tab == CampaignTab.markers,
+                  visualPreview: _visualPreview,
+                  onVisualPreviewChanged: (value) {
+                    if (!_markerEditing.finishDraft()) return;
+                    _markerEditing.candidate = null;
+                    setState(() => _visualPreview = value);
+                  },
+                ),
               ),
+            ),
+          ],
+        ),
       ),
       tabs: SegmentedButton<CampaignTab>(
         key: const ValueKey('campaign_workspace_tabs'),
@@ -705,7 +751,7 @@ class _CampaignPageState extends State<CampaignPage>
                   },
             onBrowse: () => _selectTab(CampaignTab.contents),
           ),
-          CampaignMarkerPalette(editing: _markerEditing, onLinkTarget: _marker),
+          const SizedBox.shrink(),
         ],
       ),
     );

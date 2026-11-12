@@ -93,13 +93,16 @@ final class CampaignMarkerEditing extends ChangeNotifier {
     notifyListeners();
   }
 
-  void choose(CampaignMarkerBrush value) {
-    if (!finishDraft()) return;
+  /// Arms repeated placement after resolving fields; false keeps the current
+  /// tool and panel visible so the author can correct a blocked draft.
+  bool choose(CampaignMarkerBrush value) {
+    if (!finishDraft()) return false;
     brush = value;
     tool = CampaignMarkerTool.place;
     error = null;
     candidate = null;
     notifyListeners();
+    return true;
   }
 
   void select(String? key, {String? participant}) {

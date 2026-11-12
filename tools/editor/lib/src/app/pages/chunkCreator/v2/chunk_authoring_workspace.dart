@@ -74,6 +74,8 @@ import '../../shared/editor_pending_changes_dialog.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
+import '../../shared/editor_placement_tools.dart';
+import '../../shared/editor_actor_terrain_controls.dart';
 import '../../prefabCreator/prefab_creator_navigation.dart';
 import '../../shared/terrain_material_preview.dart';
 import '../../shared/terrain_polygon_rectangle_editor.dart';
@@ -2258,18 +2260,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       setState(() => _showShapeEdges = selected);
                     },
             ),
-            FilterChip(
-              key: const ValueKey<String>('chunk_actor_terrain_toggle'),
-              label: const Text('Actor terrain'),
-              selected: _showActorTerrain,
-              onSelected: _visualPreview
-                  ? null
-                  : (selected) {
-                      setState(() {
-                        _showActorTerrain = selected;
-                        if (selected) _refreshActorTerrainProjection();
-                      });
-                    },
+            EditorActorTerrainControls(
+              keyPrefix: 'chunk_actor_terrain',
+              visible: _showActorTerrain,
+              actor: _selectedTerrainActor,
+              enabled: !_visualPreview,
+              onVisibilityChanged: (selected) => setState(() {
+                _showActorTerrain = selected;
+                if (selected) _refreshActorTerrainProjection();
+              }),
+              onActorChanged: (actor) =>
+                  setState(() => _selectedTerrainActor = actor),
             ),
             if (!widget.fixedLayout)
               FilterChip(
@@ -2287,24 +2288,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                         });
                       },
               ),
-            DropdownButton<ChunkV2TerrainActor>(
-              key: const ValueKey<String>('chunk_actor_terrain_selector'),
-              value: _selectedTerrainActor,
-              items: ChunkV2TerrainActor.values
-                  .map(
-                    (actor) => DropdownMenuItem<ChunkV2TerrainActor>(
-                      value: actor,
-                      child: Text(_terrainActorLabel(actor)),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: _visualPreview || !_showActorTerrain
-                  ? null
-                  : (actor) {
-                      if (actor == null) return;
-                      setState(() => _selectedTerrainActor = actor);
-                    },
-            ),
             EditorZoomControls(
               value: _zoom,
               min: _minZoom,
@@ -2475,22 +2458,18 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                         ),
                     ] else if (_sceneCoordinator.sourceDomain ==
                         ChunkSceneDomain.prefabs) ...<Widget>[
-                      for (final tool in ChunkPrefabSceneTool.values)
-                        ChoiceChip(
-                          key: ValueKey<String>(
-                            'chunk_prefab_tool_${tool.name}',
-                          ),
-                          label: Text(_prefabToolLabel(tool)),
-                          selected: _prefabGesture.tool == tool,
-                          onSelected:
-                              _hasActiveOperation ||
-                                  (tool == ChunkPrefabSceneTool.place &&
-                                      _selectedCatalogPrefab(scene) == null)
-                              ? null
-                              : (_) => setState(
-                                  () => _prefabGesture.setTool(tool),
-                                ),
-                        ),
+                      EditorPlacementTools<ChunkPrefabSceneTool>(
+                        keyPrefix: 'chunk_prefab_tool',
+                        select: ChunkPrefabSceneTool.select,
+                        place: ChunkPrefabSceneTool.place,
+                        move: ChunkPrefabSceneTool.move,
+                        selected: _prefabGesture.tool,
+                        canPlace: _selectedCatalogPrefab(scene) != null,
+                        onChanged: _hasActiveOperation
+                            ? null
+                            : (tool) =>
+                                  setState(() => _prefabGesture.setTool(tool)),
+                      ),
                       Tooltip(
                         message:
                             _prefabGesture.surfaceSnapMessage ??
@@ -2518,19 +2497,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       ),
                     ] else if (_sceneCoordinator.sourceDomain ==
                         ChunkSceneDomain.markers) ...<Widget>[
-                      for (final tool in ChunkMarkerSceneTool.values)
-                        ChoiceChip(
-                          key: ValueKey<String>(
-                            'chunk_marker_tool_${tool.name}',
-                          ),
-                          label: Text(_markerToolLabel(tool)),
-                          selected: _markerGesture.tool == tool,
-                          onSelected: _hasActiveOperation
-                              ? null
-                              : (_) => setState(
-                                  () => _markerGesture.setTool(tool),
-                                ),
-                        ),
+                      EditorPlacementTools<ChunkMarkerSceneTool>(
+                        keyPrefix: 'chunk_marker_tool',
+                        select: ChunkMarkerSceneTool.select,
+                        place: ChunkMarkerSceneTool.place,
+                        move: ChunkMarkerSceneTool.move,
+                        selected: _markerGesture.tool,
+                        onChanged: _hasActiveOperation
+                            ? null
+                            : (tool) =>
+                                  setState(() => _markerGesture.setTool(tool)),
+                      ),
                       Chip(
                         key: const ValueKey<String>(
                           'chunk_marker_catalog_selection',
@@ -3129,7 +3106,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             'Éloïse-walkable surfaces · cyan edges are traversable',
       ChunkV2TerrainActor.grojib || ChunkV2TerrainActor.hashash =>
         '${projection.groundedView(_selectedTerrainActor)!.eligibleSurfaces.length} '
-            '${_terrainActorLabel(_selectedTerrainActor)}-walkable surfaces',
+            '${terrainActorLabel(_selectedTerrainActor)}-walkable surfaces',
       ChunkV2TerrainActor.unoco =>
         '${projection.unocoSolidBlockerIds.length} solid blockers · '
             '${projection.unocoLocalHoverCandidateIds.length} local-hover '
@@ -5626,24 +5603,4 @@ String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.moveVertex => 'Move vertex',
   TerrainPolygonTool.insertVertex => 'Insert vertex',
   TerrainPolygonTool.translateShape => 'Move shape',
-};
-
-String _prefabToolLabel(ChunkPrefabSceneTool tool) => switch (tool) {
-  ChunkPrefabSceneTool.select => 'Select',
-  ChunkPrefabSceneTool.place => 'Place',
-  ChunkPrefabSceneTool.move => 'Move',
-};
-
-String _markerToolLabel(ChunkMarkerSceneTool tool) => switch (tool) {
-  ChunkMarkerSceneTool.select => 'Select',
-  ChunkMarkerSceneTool.place => 'Place',
-  ChunkMarkerSceneTool.move => 'Move',
-};
-
-String _terrainActorLabel(ChunkV2TerrainActor actor) => switch (actor) {
-  ChunkV2TerrainActor.eloise => 'Éloïse',
-  ChunkV2TerrainActor.grojib => 'Grojib',
-  ChunkV2TerrainActor.hashash => 'Hashash',
-  ChunkV2TerrainActor.unoco => 'Unoco',
-  ChunkV2TerrainActor.derf => 'Derf',
 };

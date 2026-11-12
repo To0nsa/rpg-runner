@@ -175,6 +175,45 @@ or policy projections change; reward mechanics are outside this follow-up.
   Save/Play must resolve valid inspector drafts and cancel or reject unfinished
   gestures consistently. Play uses a frozen capture and restores editing afterward.
 
+### V3b: Chunk Creator workspace reuse
+
+Requested November 12, 2026: give Markers the main canvas, move its library and
+properties into one sidebar, share the scene tools, and include Visual preview
+and Actor terrain. Campaign commands and occurrence ownership remain the source
+boundary. Existing ghost-test and plan changes were present at task start and
+were committed independently during this work; they are not part of this slice.
+
+- [x] Expand the Markers canvas; keep Contents/Route shelves and the overview
+  mounted across tabs. Reuse section cards, placement controls, actor selector,
+  zoom input, Core terrain projection and its painter.
+- [x] Gate editing in Visual preview while retaining pan/zoom. Preserve tool,
+  selection, grid and actor preferences; keep Show grid independent from snapping.
+  Invalid properties and active gestures block entry into preview.
+- [x] Verify the Campaign interaction/persistence tests and focused Chunk Creator
+  regressions, including wide/narrow layouts and retained drafts.
+- [x] Inspect actual campaign artwork in rendered wide/narrow workspaces and
+  record the final check results below. Native production-route interaction and
+  gameplay acceptance remain the separate V4 gates.
+
+Local validation on November 12, 2026, against this source change over
+`4a9df290`, from `tools/editor`:
+
+| Command/check | Result |
+| --- | --- |
+| `dart analyze lib/src/app/pages/campaign lib/src/app/pages/shared/editor_actor_terrain_controls.dart lib/src/app/pages/shared/editor_placement_tools.dart lib/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart test/campaign_authoring_test.dart` | No issues |
+| `dart analyze lib/src/app/pages/campaign/campaign_workspace.dart lib/src/app/pages/campaign/campaign_marker_editing.dart test/campaign_authoring_test.dart test/chunk_authoring_workspace_test.dart` | No issues after the final layout and fixture changes |
+| `flutter test test/campaign_authoring_test.dart test/campaign_marker_edit_test.dart --reporter expanded` | 19 passed |
+| `flutter test test/campaign_authoring_test.dart --name 'marker scene shares tools\|route preview fills\|campaign preserves view context' --reporter expanded` | 3 passed after fixing the narrow canvas clipping; verifies the canvas bottom is within the 800x700 window |
+| `flutter test test/chunk_authoring_workspace_test.dart --name 'visual enemy library\|direct marker\|direct prefab move\|chunk scene shows its tile grid\|wide chunk workspace\|chunk creation scene and sidebar remain usable' --reporter expanded` | 6 passed initially; one stale sprite fixture failed because it loaded `derf.png` rather than the current catalog source. The fixture now derives paths from the catalog and the failing test passed on its focused rerun |
+| `flutter test .dart_tool/campaign_ux_probe_test.dart --reporter expanded` | 1 passed; local render probe loaded real campaign sources/art plus Windows fonts, wrote ignored PNGs and asserted no document mutation. Inspected 1920x1080 authoring/actor-terrain/visual modes and 800x700 workspace/sidebar. Probe cleanup was corrected before the final pass |
+| Root `git diff --check` | Passed |
+
+The SDK executables required access to their installed cache/telemetry directory.
+Context7 was unavailable; Flutter's official Offstage/IndexedStack documentation
+was used for mounted-state, hidden-focus and animation behavior. No native editor
+restart, source-content save, generated runtime change or gameplay traversal
+claim is included in these checks.
+
 ### V4: acceptance and documentation
 
 - [x] From Markers, create and adjust every requested object type without editing

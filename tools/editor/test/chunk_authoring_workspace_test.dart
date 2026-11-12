@@ -16,6 +16,8 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_connections_pa
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_water_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_idle_frame.dart';
+import 'package:runner_editor/src/chunks/chunk_marker_authoring_catalog.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_enemy_catalog_browser.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_marker_placement_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_prefab_catalog_browser.dart';
@@ -3366,35 +3368,14 @@ void main() {
     final repositoryRoot = p.normalize(
       p.absolute(p.join(Directory.current.path, '..', '..')),
     );
-    final imagePaths = <String>[
-      p.join(
-        repositoryRoot,
-        'assets',
-        'images',
-        'entities',
-        'enemies',
-        'grojib',
-        'grojib.png',
-      ),
-      p.join(
-        repositoryRoot,
-        'assets',
-        'images',
-        'entities',
-        'enemies',
-        'hashash',
-        'hashash.png',
-      ),
-      p.join(
-        repositoryRoot,
-        'assets',
-        'images',
-        'entities',
-        'enemies',
-        'derf',
-        'derf.png',
-      ),
-    ];
+    final imagePaths = <String>{
+      for (final outcome in painter.projection.outcomes)
+        if (outcome.enemyId != null)
+          ChunkActorIdleFrame.fromEnemy(
+            enemy: chunkMarkerEnemyCatalogEntryFor(outcome.enemyId!.name)!,
+            workspaceRootPath: repositoryRoot,
+          )!.absoluteSourcePath,
+    }.toList();
     final imageCache = EditorUiImageCache();
     final decodedImages = await tester.runAsync(
       () => Future.wait(imagePaths.map(imageCache.ensureLoaded)),

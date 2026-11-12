@@ -111,27 +111,52 @@ Undo after Save retains current baselines; dependency drift blocks overwrites.
 Mission reordering changes prerequisites explicitly. Route reordering preserves
 occurrence identity; the workspace blocks removing an occurrence with markers.
 
-The workspace follows Level Creator's 3:8:4 library/workspace/settings layout,
-using the same responsive panel shell and `ToolPreviewWorkspace` preview/tab
-sizing. The left panel owns chapters and missions. Contents reuses
-`AuthoredChunkCard` and `ChunkCompositionPreview` for searchable campaign-only
-chunks. Runner layouts must first be copied using Chunk Creator's Copy to Campaign
-action to appear in Contents. Route owns exact occurrence ordering, while Markers
-owns a visual placement palette and contextual properties. The persistent preview shows
-selected chunk art in Contents or the assembled route in Route/Markers. Route art
-reuses `ChunkCompositionPreview.joined`, including terrain, scenery, water and
-the mission's parallax theme. The 600x270 occurrences share a scale fitted to
-the preview height, with a horizontal scrollbar and lazy occurrence rendering.
+The workspace uses the shared responsive 3:8:4 library/workspace/sidebar shell.
+The left panel owns chapters and missions. Contents reuses `AuthoredChunkCard`
+and `ChunkCompositionPreview` for searchable campaign-only chunks. Runner layouts
+must first be copied using Chunk Creator's Copy to Campaign action to appear in
+Contents. Route owns exact occurrence ordering. Markers gives the central scene
+the available workspace height and puts its visual library, selected marker
+properties, placed-marker list and shared objectives in one scrollable authoring
+sidebar, using the same section cards as Chunk Creator. Tabs and scene tools stay
+above the canvas. Narrow windows expose Chapters / Workspace / Authoring tabs;
+choosing a placement brush returns to Workspace.
+
+Contents and Route retain their preview and lower browsing shelf. The shelf,
+sidebar and route overview remain mounted across tab/responsive changes, with
+hidden focus and animation disabled. The preview shows selected chunk art in
+Contents or the assembled route in Route/Markers. Route art reuses
+`ChunkCompositionPreview.joined`, including terrain, scenery, water and the
+mission's parallax theme. The 600x270 occurrences share a scale fitted to the
+canvas height, with a horizontal scrollbar and lazy occurrence rendering.
 Marker overlays remain occurrence-local; repeated chunks keep distinct content.
-Select/Place/Move, an 8-pixel grid toggle, duplicate/delete, Escape cancellation,
-Ctrl+drag pan and Ctrl+scroll zoom use existing scene utilities. Region corners
+The shared Chunk/Campaign Select/Place/Move controls, 8-pixel snapping,
+duplicate/delete, Escape cancellation, Ctrl+drag pan and Ctrl+scroll zoom use
+existing scene utilities. Region corners
 reuse the shared rectangle gesture. Each completed drag dispatches one revision-
 checked mission replacement. Moving a local target rebinds explicit objectives;
 deleting it explicitly removes its objective too. Duplicating a route occurrence
 copies local content with fresh placement/rescue IDs while preserving singleton
 start/exit and occurrence-scoped enemy salts. Geometry/source bytes stay shared.
 Scroll positions are view state scoped by mission.
-In Markers the right panel reuses Chunk's enemy, trap and rescue inspectors;
+
+Scene controls reuse Chunk Creator's zoom widget and actor-terrain selector.
+Show grid is independent of Snap 8 px. Visual preview shows only parallax,
+terrain, scenery and water, hiding mission markers, actor previews and diagnostic
+overlays; placement, properties and Delete are disabled, while pan/zoom remain
+available. Entering preview resolves valid field drafts and rejects active
+gestures or invalid fields. Leaving it restores tool, selection and overlay
+preferences. Tool/tab changes retain the mounted overview's zoom and scroll
+controllers; view-only controls never enter document history.
+
+Actor terrain reuses `ChunkV2ActorTerrainProjection` and
+`ChunkActorTerrainOverlayPainter`, including Éloïse, Grojib, Hashash, Unoco and
+Derf policies. The existing per-visible-chunk geometry cache is reused across
+pointer previews and actor switches. It displays local chunk evidence only;
+it does not construct an assembled route graph or certify boundary traversal.
+Unavailable accepted geometry is reported instead of inventing evidence.
+
+In Markers the authoring sidebar reuses Chunk's enemy, trap and rescue inspectors;
 pickup and fire properties edit position, resource, appearance and attachment
 width/scale. Save and Play resolve valid field drafts and reject active gestures
 or invalid fields. Undo cancels a local draft before undoing committed history.

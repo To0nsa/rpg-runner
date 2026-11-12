@@ -7,6 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_overview.dart';
+import 'package:runner_editor/src/app/pages/campaign/campaign_marker_painter.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_actor_terrain_projection.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_zoom_controls.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_page.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_marker_palette.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_marker_editing.dart';
@@ -1077,6 +1081,8 @@ void main() {
       expect(find.text('Chapter 1'), findsOneWidget);
       await tap(find.widgetWithText(Tab, 'Workspace'));
       await tap(find.text('Markers'));
+      await tap(find.widgetWithText(Tab, 'Authoring'));
+      await tap(find.text('Shared chunk objectives'));
       await tester.scrollUntilVisible(
         find.text('Link a shared enemy / rescue objective'),
         250,
@@ -1089,6 +1095,7 @@ void main() {
       );
       await tap(find.text('Link a shared enemy / rescue objective'));
       await tap(find.text('Cancel'));
+      await tap(find.widgetWithText(Tab, 'Workspace'));
       await tap(find.text('Contents'));
       expect(find.text('forest_campaign_fixture').first, findsOneWidget);
       expect(location().chunkSearch, 'forest_campaign_fixture');
@@ -1171,6 +1178,166 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'marker scene shares tools, preserves view state and gates visual preview',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final original = controller.document as CampaignDocument;
+      controller.applyCommand(edit(original, layout(original)));
+      final key = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              key: key,
+              controller: controller,
+              initialLocation: CampaignLocation(
+                original.selected.id,
+                tab: CampaignTab.markers,
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      Future<void> tap(Finder target) async {
+        await tester.ensureVisible(target);
+        await tester.tap(target);
+        await _pumpWorkspace(tester);
+      }
+
+      final overview = find.byType(CampaignOverview);
+      final overviewState = tester.state(overview);
+      final canvas = find.byKey(const ValueKey('campaign_route_canvas'));
+      final palette = tester.widget<CampaignMarkerPalette>(
+        find.byType(CampaignMarkerPalette),
+      );
+      final canvasRect = tester.getRect(canvas);
+      expect(canvasRect.height, greaterThan(450));
+      expect(
+        tester.getRect(find.byType(CampaignMarkerPalette)).left,
+        greaterThan(canvasRect.right),
+      );
+      expect(
+        tester
+            .getRect(find.byKey(const ValueKey('campaign_marker_tool_place')))
+            .bottom,
+        lessThan(canvasRect.top),
+      );
+      final beforeView = controller.document;
+      final scrollbar = find.descendant(
+        of: overview,
+        matching: find.byType(Scrollbar),
+      );
+      final horizontal = tester.widget<Scrollbar>(scrollbar).controller!;
+      final first = find.byKey(const ValueKey('campaign_preview_first'));
+      CampaignMarkerPainter markers() =>
+          tester.widget<CustomPaint>(first).foregroundPainter!
+              as CampaignMarkerPainter;
+      final grid = find.byKey(const ValueKey('campaign_show_grid_toggle'));
+      expect(markers().showGrid, isFalse);
+      await tap(grid);
+      expect(markers().showGrid, isTrue);
+      expect(palette.editing.snap, isTrue);
+      await tap(find.text('Snap 8 px'));
+      expect(palette.editing.snap, isFalse);
+      expect(markers().showGrid, isTrue);
+
+      await tap(find.byKey(const ValueKey('campaign_actor_terrain_toggle')));
+      final overlay = find.byKey(
+        const ValueKey('campaign_actor_terrain_overlay'),
+      );
+      ChunkActorTerrainOverlayPainter terrain() =>
+          tester.widget<CustomPaint>(overlay.first).painter!
+              as ChunkActorTerrainOverlayPainter;
+      expect(terrain().actor, ChunkV2TerrainActor.eloise);
+      expect(
+        terrain().projection
+            .groundedView(ChunkV2TerrainActor.eloise)!
+            .eligibleSurfaces,
+        isNotEmpty,
+      );
+      final projection = terrain().projection;
+      await tap(find.byKey(const ValueKey('campaign_actor_terrain_selector')));
+      await tap(find.text('Grojib').last);
+      expect(terrain().actor, ChunkV2TerrainActor.grojib);
+      expect(terrain().projection, same(projection));
+
+      final zoom = find.byType(EditorZoomControls);
+      final zoomField = find.descendant(
+        of: zoom,
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(zoomField, '150');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await _pumpWorkspace(tester);
+      horizontal.jumpTo(100);
+      await _pumpWorkspace(tester);
+      await tap(find.byKey(const ValueKey('campaign_marker_tool_move')));
+      expect(horizontal.offset, 100);
+      expect(tester.widget<EditorZoomControls>(zoom).value, 1.5);
+      await tap(find.byKey(const ValueKey('campaign_visual_preview_toggle')));
+      expect(tester.widget<CustomPaint>(first).foregroundPainter, isNull);
+      expect(overlay, findsNothing);
+      await tester.tapAt(tester.getCenter(canvas));
+      (key.currentState as EditorPagePlaytestHandler).handlePlaytestShortcut(
+        LogicalKeyboardKey.delete,
+      );
+      await _pumpWorkspace(tester);
+      expect(controller.document, same(beforeView));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.dragFrom(
+        tester.getCenter(canvas),
+        const Offset(-70, 0),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await _pumpWorkspace(tester);
+      expect(horizontal.offset, greaterThan(100));
+      await tap(find.byKey(const ValueKey('campaign_visual_preview_toggle')));
+      expect(markers().showGrid, isTrue);
+      expect(terrain().actor, ChunkV2TerrainActor.grojib);
+      expect(palette.editing.tool, CampaignMarkerTool.move);
+      await tap(find.text('Route'));
+      await tap(find.text('Contents'));
+      await tap(find.text('Markers'));
+      expect(tester.state(overview), same(overviewState));
+      expect(tester.widget<EditorZoomControls>(zoom).value, 1.5);
+      expect(palette.editing.tool, CampaignMarkerTool.move);
+      expect(terrain().actor, ChunkV2TerrainActor.grojib);
+      expect(controller.document, same(beforeView));
+
+      palette.editing.select('start');
+      await _pumpWorkspace(tester);
+      final x = find.byKey(const ValueKey('campaign_marker_x'));
+      await tester.ensureVisible(x);
+      await tester.enterText(x, 'invalid');
+      await tap(find.byKey(const ValueKey('campaign_visual_preview_toggle')));
+      expect(tester.widget<CampaignOverview>(overview).visualPreview, isFalse);
+      await tap(find.byKey(const ValueKey('campaign_marker_tool_place')));
+      expect(palette.editing.tool, CampaignMarkerTool.select);
+      await tester.binding.setSurfaceSize(const Size(800, 700));
+      await _pumpWorkspace(tester);
+      await tap(find.widgetWithText(Tab, 'Authoring'));
+      expect(tester.widget<TextFormField>(x).controller!.text, 'invalid');
+      await tester.enterText(x, '72');
+      await tap(find.widgetWithText(Tab, 'Workspace'));
+      await tap(find.byKey(const ValueKey('campaign_visual_preview_toggle')));
+      expect(tester.widget<CampaignOverview>(overview).visualPreview, isTrue);
+      expect((controller.document as CampaignDocument).selected.start!.x, 72);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
@@ -1283,7 +1450,13 @@ void main() {
       await _pumpWorkspace(tester);
       expect(occurrence(15).hitTestable(), findsOneWidget);
       final resized = tester.getSize(occurrence(15));
-      expect(resized.height, lessThan(firstSize.height));
+      expect(resized.height, greaterThan(0));
+      expect(
+        tester
+            .getBottomRight(find.byKey(const ValueKey('campaign_route_canvas')))
+            .dy,
+        lessThanOrEqualTo(700),
+      );
       expect(resized.width / resized.height, closeTo(600 / 270, .001));
       expect(controller.document, same(beforeView));
       expect(tester.takeException(), isNull);

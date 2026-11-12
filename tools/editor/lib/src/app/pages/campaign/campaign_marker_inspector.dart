@@ -24,9 +24,8 @@ class CampaignMarkerInspector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final e = editing, entry = editing.selected;
-    return ToolPanelCard(
+    return ToolSectionCard(
       title: 'Marker properties',
-      bodyMode: ToolPanelBodyMode.expanded,
       child: entry == null
           ? const Padding(
               padding: EdgeInsets.all(12),
@@ -34,8 +33,8 @@ class CampaignMarkerInspector extends StatelessWidget {
                 'Choose a marker in the level or list to edit its properties.',
               ),
             )
-          : ListView(
-              padding: const EdgeInsets.all(8),
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   campaignMarkerLabel(entry),

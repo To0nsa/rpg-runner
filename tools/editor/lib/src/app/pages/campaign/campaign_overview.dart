@@ -16,6 +16,7 @@ import '../../../chunks/chunk_encounter_edit.dart';
 import '../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../../chunks/chunk_scene_coordinate_policy.dart';
 import '../../../chunks/chunk_v2_models.dart';
+import '../../../chunks/chunk_v2_actor_terrain_projection.dart';
 import '../../../parallax/parallax_domain_models.dart';
 import '../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../chunkCreator/v2/chunk_actor_idle_frame.dart';
@@ -26,6 +27,7 @@ import '../shared/scene_rectangle_gesture.dart';
 import 'campaign_marker_editing.dart';
 import 'campaign_marker_painter.dart';
 import 'campaign_actor_preview.dart';
+import 'campaign_scene_controls.dart';
 
 /// One assembled preview shared by Route and Markers. Editing adds input and
 /// overlays to the same chunk art, viewport and occurrence coordinate mapping.
@@ -36,11 +38,16 @@ class CampaignOverview extends StatefulWidget {
     required this.chunks,
     required this.workspaceRootPath,
     this.editing,
+    this.showControls = false,
+    this.visualPreview = false,
+    this.onVisualPreviewChanged,
   });
   final CampaignMissionSource mission;
   final ChunkV2Document chunks;
   final String workspaceRootPath;
   final CampaignMarkerEditing? editing;
+  final bool showControls, visualPreview;
+  final ValueChanged<bool>? onVisualPreviewChanged;
   @override
   State<CampaignOverview> createState() => _CampaignOverviewState();
 }
@@ -49,6 +56,8 @@ class _CampaignOverviewState extends State<CampaignOverview> {
   final _horizontal = ScrollController(), _vertical = ScrollController();
   final _images = EditorUiImageCache();
   double _zoom = 1;
+  bool _showGrid = false, _showActorTerrain = false;
+  ChunkV2TerrainActor _actor = ChunkV2TerrainActor.eloise;
   int? _pointer;
   bool _panning = false;
   CampaignMarkerEntry? _before;
@@ -155,16 +164,18 @@ class _CampaignOverviewState extends State<CampaignOverview> {
   }
 
   void _down(PointerDownEvent event, int index, double scale) {
-    final edit = widget.editing;
-    if (edit == null ||
-        _pointer != null ||
+    if (_pointer != null ||
         !SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
       return;
     }
-    if (!edit.finishDraft()) return;
-    _pointer = event.pointer;
+    final edit = widget.editing;
     _panning = SceneInputUtils.shouldPanWithPrimaryDrag(event.buttons);
-    if (_panning) return;
+    if (_panning) {
+      _pointer = event.pointer;
+      return;
+    }
+    if (edit == null || widget.visualPreview || !edit.finishDraft()) return;
+    _pointer = event.pointer;
     _expected = edit.mission;
     try {
       final point = _point(index, event.localPosition, scale);
@@ -333,6 +344,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
   void _hover(PointerHoverEvent event, int index, double scale) {
     final edit = widget.editing;
     if (edit == null ||
+        widget.visualPreview ||
         _pointer != null ||
         edit.tool != CampaignMarkerTool.place) {
       return;
@@ -342,22 +354,62 @@ class _CampaignOverviewState extends State<CampaignOverview> {
   }
 
   void _signal(PointerSignalEvent event) {
+    if (widget.editing?.gestureActive == true) return;
     final steps = SceneInputUtils.signedZoomStepsFromCtrlScroll(event);
     if (steps == 0) return;
     GestureBinding.instance.pointerSignalResolver.register(event, (_) {
-      setState(
-        () => _zoom = EditorSceneViewUtils.snapZoom(
-          value: _zoom + steps * .25,
-          min: .5,
-          max: 4,
-          step: .25,
-        ),
-      );
+      _setZoom(_zoom + steps * .25);
     });
   }
 
+  void _setZoom(double value) => setState(() {
+    _zoom = EditorSceneViewUtils.snapZoom(
+      value: value,
+      min: .5,
+      max: 4,
+      step: .25,
+    );
+    widget.editing?.candidate = null;
+  });
+
+  void _resetView() {
+    _setZoom(1);
+    if (_horizontal.hasClients) _horizontal.jumpTo(0);
+    if (_vertical.hasClients) _vertical.jumpTo(0);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (widget.showControls && widget.editing != null)
+        CampaignSceneControls(
+          editing: widget.editing!,
+          visualPreview: widget.visualPreview,
+          onVisualPreviewChanged: widget.onVisualPreviewChanged!,
+          showGrid: _showGrid,
+          onGridChanged: (value) => setState(() => _showGrid = value),
+          showActorTerrain: _showActorTerrain,
+          onActorTerrainChanged: (value) =>
+              setState(() => _showActorTerrain = value),
+          actor: _actor,
+          onActorChanged: (value) => setState(() => _actor = value),
+          zoom: _zoom,
+          onZoomChanged: _setZoom,
+          onResetView: _resetView,
+        ),
+      Expanded(
+        key: const ValueKey('campaign_route_canvas'),
+        child: widget.mission.route.isEmpty
+            ? const Center(
+                child: Text('Add chunks from Contents to build this mission.'),
+              )
+            : _canvas(context),
+      ),
+    ],
+  );
+
+  Widget _canvas(BuildContext context) {
     final mission = widget.mission, edit = widget.editing;
     final chunks = {for (final c in widget.chunks.chunks) c.chunkKey: c};
     final theme = findParallaxThemeById(
@@ -422,16 +474,18 @@ class _CampaignOverviewState extends State<CampaignOverview> {
                         behavior: HitTestBehavior.opaque,
                         child: CustomPaint(
                           key: ValueKey('campaign_preview_${occurrence.id}'),
-                          foregroundPainter: CampaignMarkerPainter(
-                            entries: campaignMarkerEntries(mission),
-                            occurrenceId: occurrence.id,
-                            scale: scale,
-                            root: widget.workspaceRootPath,
-                            images: _images,
-                            selectedKey: edit?.selectedKey,
-                            candidate: edit?.candidate,
-                            showGrid: edit?.snap == true,
-                          ),
+                          foregroundPainter: widget.visualPreview
+                              ? null
+                              : CampaignMarkerPainter(
+                                  entries: campaignMarkerEntries(mission),
+                                  occurrenceId: occurrence.id,
+                                  scale: scale,
+                                  root: widget.workspaceRootPath,
+                                  images: _images,
+                                  selectedKey: edit?.selectedKey,
+                                  candidate: edit?.candidate,
+                                  showGrid: _showGrid,
+                                ),
                           child: chunk == null
                               ? Center(
                                   child: Text(
@@ -451,15 +505,23 @@ class _CampaignOverviewState extends State<CampaignOverview> {
                                           widget.chunks.visualBoundsByPrefabKey,
                                       parallaxTheme: theme,
                                     ),
-                                    CampaignActorPreview(
-                                      chunk: chunk,
-                                      prefabs: widget.chunks.prefabData,
-                                      entries: entries,
-                                      root: widget.workspaceRootPath,
-                                      scale: scale,
-                                      images: _images,
-                                      selectedKey: edit?.selectedKey,
-                                      frame: edit?.trapFrame ?? 0,
+                                    Offstage(
+                                      offstage: widget.visualPreview,
+                                      child: CampaignActorPreview(
+                                        chunk: chunk,
+                                        prefabs: widget.chunks.prefabData,
+                                        entries: entries,
+                                        root: widget.workspaceRootPath,
+                                        scale: scale,
+                                        images: _images,
+                                        selectedKey: edit?.selectedKey,
+                                        frame: edit?.trapFrame ?? 0,
+                                        terrainActor:
+                                            _showActorTerrain &&
+                                                !widget.visualPreview
+                                            ? _actor
+                                            : null,
+                                      ),
                                     ),
                                   ],
                                 ),

@@ -9,6 +9,7 @@ import '../../../chunks/chunk_v2_file_data.dart';
 import '../../../chunks/chunk_v2_marker_placement_projection.dart';
 import '../../../prefabs/models/models.dart';
 import '../chunkCreator/v2/chunk_encounter_projection.dart';
+import '../chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
 import '../chunkCreator/v2/chunk_encounter_visual_source.dart';
 import '../chunkCreator/v2/chunk_marker_placement_overlay_painter.dart';
 import '../chunkCreator/v2/chunk_trap_visual_source.dart';
@@ -29,6 +30,7 @@ class CampaignActorPreview extends StatefulWidget {
     required this.images,
     this.selectedKey,
     this.frame = 0,
+    this.terrainActor,
   });
   final ChunkV2FileData chunk;
   final PrefabV3FileData prefabs;
@@ -38,6 +40,7 @@ class CampaignActorPreview extends StatefulWidget {
   final EditorUiImageCache images;
   final String? selectedKey;
   final int frame;
+  final ChunkV2TerrainActor? terrainActor;
   @override
   State<CampaignActorPreview> createState() => _CampaignActorPreviewState();
 }
@@ -108,6 +111,23 @@ class _CampaignActorPreviewState extends State<CampaignActorPreview> {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          if (widget.terrainActor case final actor?)
+            if (_terrain case final terrain?)
+              CustomPaint(
+                key: const ValueKey('campaign_actor_terrain_overlay'),
+                painter: ChunkActorTerrainOverlayPainter(
+                  projection: terrain,
+                  actor: actor,
+                  transform: transform,
+                ),
+              )
+            else
+              const Align(
+                alignment: Alignment.topLeft,
+                child: Text(
+                  'Actor terrain unavailable: repair chunk geometry.',
+                ),
+              ),
           ChunkTrapVisualSource(
             workspaceRootPath: widget.root,
             images: widget.images,

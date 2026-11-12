@@ -964,21 +964,33 @@ Each mission has **Move mission earlier / later** arrows. The first/last boundar
 disables the corresponding arrow; reordering changes sequential prerequisites
 and supports Undo/Redo.
 
-Campaign uses the same layout as Level Creator: chapter/mission library on the
-left, persistent preview and workspace tabs in the centre, and contextual
-**Settings** on the right. Smaller windows expose **Chapters / Workspace /
-Settings** as tabs without losing your selection or chunk search. **Contents**
-browses only Campaign chunks with visual previews; **Route** controls the exact
-sequence; **Markers** provides tools for start, exit, objectives, enemies, traps,
-rescue encounters, coins, restoration gems and blessing fire. The mission
-route preview joins the chunk artwork at the panel's height. Scroll horizontally
-with the bottom scrollbar or a horizontal trackpad gesture to inspect the entire
-route; start, pickup, exit and region markers stay aligned with their occurrences.
-Choose a palette item and click in the route to place it. Select and drag to move;
-drag rectangle corners to resize. Toggle **Snap 8 px**, use **Ctrl+drag** to pan
-and **Ctrl+scroll** to zoom. **Escape** cancels; duplicate/delete and the right
-**Properties** panel operate on the selected marker. Enemy, trap and rescue
-properties reuse Chunk Creator's controls. Rescue groups need an NPC and enemy
+Campaign keeps the chapter/mission library on the left and workspace tabs above
+the scene. **Contents** browses Campaign chunks with visual previews; **Route**
+controls their exact sequence. **Markers** expands the central canvas and puts
+**Marker library**, **Marker properties**, **Placed markers** and **Shared chunk
+objectives** together in the right authoring sidebar, matching Chunk Creator's
+scene-and-sidebar workflow. Smaller windows expose **Chapters / Workspace /
+Authoring** tabs; selecting a brush returns to the canvas. The library,
+placed-marker list and shared-objective sections can fold independently.
+Tab changes retain the route viewport and sidebar state.
+
+The route preview joins chunk artwork at the canvas height. Use the bottom
+scrollbar, **Ctrl+drag** or a horizontal trackpad gesture to inspect the route.
+Choose a library item and click to place it; select and drag to move, or drag
+rectangle corners to resize. The shared **Select / Place / Move** controls sit
+above the canvas with **Snap 8 px**, duplicate/delete, **Zoom** and **Reset view**.
+**Escape** cancels. **Show grid** changes the overlay independently of snapping.
+
+**Visual preview** shows route artwork without markers, actors or diagnostic
+overlays. It disables editing and retains pan/zoom; turning it off restores the
+selected tool and overlays. Valid property drafts resolve before preview opens;
+invalid fields or an active gesture keep it in editing mode. **Actor terrain**
+uses Chunk Creator's existing Éloïse/Grojib/Hashash/Unoco/Derf selector and overlay.
+Its surfaces, graph edges, blockers and perches describe each chunk locally;
+route-crossing verification remains a separate check.
+
+Enemy, trap and rescue properties reuse Chunk Creator's controls.
+Rescue groups need an NPC and enemy
 before Play/Build; incomplete groups can be saved. Required toggles make enemies
 or rescues completion objectives. Shared source actors remain visible and can be
 linked as objectives; edit their source through Route.
@@ -986,7 +998,7 @@ linked as objectives; edit their source through Route.
 **Gold coin** and **Health/Mana/Stamina gem** place the existing pickups directly.
 **Blessing fire** attaches only the effect to a nearby flat, collidable shrine or
 platform top. It adds no base or collision. Choose ember or blue fire and adjust
-its contact width/scale in Properties. Geometry changes that invalidate the
+its contact width/scale in Marker properties. Geometry changes that invalidate the
 attachment require reattaching it. Placements affect one mission occurrence;
 shared chunks and other missions stay unchanged. Route duplication copies local
 placements with fresh identities. Removing a referenced occurrence is blocked
