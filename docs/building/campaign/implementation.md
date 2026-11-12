@@ -453,6 +453,19 @@ Read-only dev Inspect at 06:40 UTC found three issued 2026.11.10 tickets, 34
 accepted runs and 34 settled grants, no settlement backlog and no invalid gold
 or unauthorized selections. No cloud mutation or cancellation has happened yet.
 
+Candidate `494b2bb9`: all client analyzers passed. The full client run found seven
+failures: five proc integration assertions exposed weapon/spell-book `tryGet`
+bypassing virtual `get`; the terrain boundary list omitted the documented campaign
+terrain owners and shared interaction resolver; a stale-revision purchase fixture
+selected Willow without canonical campaign clears. The lookup repair preserves
+the previous injection contract and all original proc assertions. Focused checks:
+11 proc/projectile tests, ten terrain tests and three ownership-command tests
+passed. Catalog analysis, generated freshness and the unchanged navigation revision
+check passed. Full-run completion and replacement-candidate preparation remain open.
+Replay-validator analysis, 366 tests (one fixture-only skip) and the compiled AOT
+protocol probe passed on `494b2bb9`. The catalog source repair changes its component
+input hash, so replacement preparation must revalidate that component.
+
 ## Local evidence (November 11)
 
 Chapter reward follow-up (local checks; no deployment or native manual pass):

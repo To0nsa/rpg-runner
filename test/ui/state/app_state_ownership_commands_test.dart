@@ -4,10 +4,12 @@ import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
+import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/ownership/ownership_sync_policy.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
+import 'package:rpg_runner/ui/state/ownership/campaign_progress.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
@@ -102,7 +104,17 @@ class _RecordingOwnershipApi extends LoadoutOwnershipApi {
             : PlayerCharacterId.eloise,
       ),
       meta: _metaService.createNew(),
-      progression: ProgressionState.initial,
+      progression: rejectFirstPurchase
+          ? ProgressionState.initial.copyWith(
+              campaign: CampaignProgress.fromJson({
+                'schemaVersion': 1,
+                'missions': {
+                  for (final mission in CampaignCatalog.chapters.first.missions)
+                    mission.id: {'cleared': true, 'attempts': 1, 'bests': {}},
+                },
+              }),
+            )
+          : ProgressionState.initial,
     );
   }
 

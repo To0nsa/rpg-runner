@@ -6,5 +6,13 @@ import 'spell_book_data.generated.dart';
 class SpellBookCatalog {
   const SpellBookCatalog();
   SpellBookDef get(SpellBookId id) => authoredSpellBookIdDefinitions[id]!;
-  SpellBookDef? tryGet(SpellBookId id) => authoredSpellBookIdDefinitions[id];
+
+  /// Keeps optional lookup consistent with injected catalog definitions.
+  SpellBookDef? tryGet(SpellBookId id) {
+    try {
+      return get(id);
+    } catch (_) {
+      return null;
+    }
+  }
 }

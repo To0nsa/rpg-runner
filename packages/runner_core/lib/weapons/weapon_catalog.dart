@@ -6,5 +6,13 @@ import 'weapon_data.generated.dart';
 class WeaponCatalog {
   const WeaponCatalog();
   WeaponDef get(WeaponId id) => authoredWeaponIdDefinitions[id]!;
-  WeaponDef? tryGet(WeaponId id) => authoredWeaponIdDefinitions[id];
+
+  /// Keeps optional lookup consistent with injected catalog definitions.
+  WeaponDef? tryGet(WeaponId id) {
+    try {
+      return get(id);
+    } catch (_) {
+      return null;
+    }
+  }
 }

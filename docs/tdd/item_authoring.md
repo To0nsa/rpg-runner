@@ -39,6 +39,10 @@ scales, character variants and muzzle mappings while retaining their own physics
 Existing localized descriptive prose remains in shared presentation ARBs; new
 items fall back to their translated name, with gameplay details derived from Core.
 
+Weapon and spell-book optional lookups delegate to their virtual `get` lookup,
+returning null on a missing definition, so injected catalog definitions retain
+the same behavior through both lookup APIs.
+
 ## Identity and saved-loadout compatibility
 
 Enum indexes are persisted in gameplay/replay data. Generation preserves every

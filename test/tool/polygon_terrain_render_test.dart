@@ -419,9 +419,12 @@ void main() {
       }
     }
 
+    imports.sort();
     expect(imports, <String>[
-      'packages/runner_core/lib/ecs/stores/world_interaction_store.dart',
+      'packages/runner_core/lib/campaign/authored_campaign_terrain.dart',
+      'packages/runner_core/lib/campaign/campaign_mission_definition.dart',
       'packages/runner_core/lib/game_core.dart',
+      'packages/runner_core/lib/interactions/world_interaction_placement.dart',
       'packages/runner_core/lib/playtest/chunk_playtest_scenario.dart',
       'packages/runner_core/lib/playtest/level_playtest_scenario.dart',
       'packages/runner_core/lib/playtest/playtest_scenario_validation.dart',
