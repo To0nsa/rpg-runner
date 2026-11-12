@@ -400,11 +400,44 @@ class _CampaignOverviewState extends State<CampaignOverview> {
         ),
       Expanded(
         key: const ValueKey('campaign_route_canvas'),
-        child: widget.mission.route.isEmpty
-            ? const Center(
-                child: Text('Add chunks from Contents to build this mission.'),
-              )
-            : _canvas(context),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            widget.mission.route.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Add chunks from Contents to build this mission.',
+                    ),
+                  )
+                : _canvas(context),
+            // Feedback must not resize the canvas: its height defines both
+            // route scale and pointer coordinates during placement.
+            if (widget.showControls && !widget.visualPreview)
+              if (widget.editing?.error case final error?)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  right: 8,
+                  child: IgnorePointer(
+                    child: Material(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Text(
+                          error,
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+          ],
+        ),
       ),
     ],
   );

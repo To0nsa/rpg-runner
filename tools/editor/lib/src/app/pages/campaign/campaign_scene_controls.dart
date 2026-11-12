@@ -137,11 +137,6 @@ class CampaignSceneControls extends StatelessWidget {
         ),
         if (!visualPreview && showActorTerrain)
           Text('Chunk terrain · ${terrainActorLegend(actor)}'),
-        if (e.error != null)
-          Text(
-            e.error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
         const SizedBox(height: 8),
       ],
     );

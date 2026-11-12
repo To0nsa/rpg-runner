@@ -791,6 +791,101 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 2)));
 
   testWidgets(
+    'blessing fire feedback preserves the route viewport while hovering and dragging',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final original = controller.document as CampaignDocument;
+      controller.applyCommand(edit(original, layout(original)));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              controller: controller,
+              initialLocation: CampaignLocation(
+                original.selected.id,
+                tab: CampaignTab.markers,
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      await tester.tap(find.byKey(const ValueKey('campaign_brush_shrine')));
+      await _pumpWorkspace(tester);
+      final editing = tester
+          .widget<CampaignMarkerPalette>(find.byType(CampaignMarkerPalette))
+          .editing;
+      final scene = find.byKey(const ValueKey('campaign_preview_first'));
+      final canvas = find.byKey(const ValueKey('campaign_route_canvas'));
+      final horizontal = tester
+          .widget<ListView>(
+            find.descendant(
+              of: find.byType(CampaignOverview),
+              matching: find.byType(ListView),
+            ),
+          )
+          .controller!;
+      horizontal.jumpTo(240);
+      await _pumpWorkspace(tester);
+      final canvasRect = tester.getRect(canvas);
+      final sceneRect = tester.getRect(scene);
+      final scale = sceneRect.height / 270;
+      final ground = sceneRect.topLeft + const Offset(320, 224) * scale;
+      final air = sceneRect.topLeft + const Offset(320, 100) * scale;
+      expect(canvasRect.contains(ground), isTrue);
+      expect(canvasRect.contains(air), isTrue);
+      final before = controller.document;
+      void expectStableViewport() {
+        expect(tester.getRect(canvas), canvasRect);
+        expect(tester.getRect(scene), sceneRect);
+        expect(horizontal.offset, 240);
+        expect(controller.document, same(before));
+      }
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: air);
+      for (var i = 0; i < 3; i++) {
+        await mouse.moveTo(ground);
+        await _pumpWorkspace(tester);
+        expect(editing.candidate?.placement, isA<CampaignShrineSource>());
+        expect(editing.error, isNull);
+        expectStableViewport();
+        await mouse.moveTo(air);
+        await _pumpWorkspace(tester);
+        expect(editing.candidate, isNull);
+        expect(editing.error, contains('flat'));
+        expectStableViewport();
+      }
+      await mouse.down(air);
+      await _pumpWorkspace(tester);
+      await mouse.moveTo(ground);
+      await _pumpWorkspace(tester);
+      expect(editing.candidate?.placement, isA<CampaignShrineSource>());
+      expectStableViewport();
+      await mouse.up();
+      await _pumpWorkspace(tester);
+      final fire =
+          (controller.document as CampaignDocument).selected.placements.single
+              as CampaignShrineSource;
+      expect(fire.position.x, 320);
+      expect(fire.position.y, 224);
+      expect(horizontal.offset, 240);
+      expect(tester.getRect(scene), sceneRect);
+      await mouse.removePointer();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
     'visual coins and attached fires support drag, draft Save, undo and reopen',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1600, 1000));

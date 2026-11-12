@@ -138,7 +138,9 @@ checked mission replacement. Moving a local target rebinds explicit objectives;
 deleting it explicitly removes its objective too. Duplicating a route occurrence
 copies local content with fresh placement/rescue IDs while preserving singleton
 start/exit and occurrence-scoped enemy salts. Geometry/source bytes stay shared.
-Scroll positions are view state scoped by mission.
+Scroll positions are view state scoped by mission. Placement warnings overlay
+the canvas without intercepting pointer input; showing or clearing feedback must
+not resize the viewport or change the route scale under the pointer.
 
 Scene controls reuse Chunk Creator's zoom widget and actor-terrain selector.
 Show grid is independent of Snap 8 px. Visual preview shows only parallax,
