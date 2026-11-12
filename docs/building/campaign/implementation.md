@@ -481,6 +481,15 @@ The replacement changes only two root test lines and this checklist: those
 components' input sets are unchanged and canonical Prepare must verify that match
 before reuse. Client checks require fresh evidence for the repaired fixture source.
 
+The content component found one additional stale assumption: its editable-draft
+round-trip test read the included production mission as a draft. The test now
+constructs an explicit excluded, incomplete draft before checking round-trip,
+rewards and readiness rejection. All five campaign-source tests pass locally;
+runtime and authored content are unchanged. The full content component remains
+required. The client integration test also hit its existing four-minute timeout
+while web artifacts were being copied; remaining SDK checks will run serially,
+without changing that timeout or claiming the interrupted suite passed.
+
 ## Local evidence (November 11)
 
 Chapter reward follow-up (local checks; no deployment or native manual pass):
