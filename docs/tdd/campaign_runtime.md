@@ -113,7 +113,10 @@ occurrence identity; the workspace blocks removing an occurrence with markers.
 
 The workspace uses the shared responsive 3:8:4 library/workspace/sidebar shell.
 The left panel owns chapters and missions. Contents reuses `AuthoredChunkCard`
-and `ChunkCompositionPreview` for searchable campaign-only chunks. Runner layouts
+and `ChunkCompositionPreview` for searchable campaign-only chunks. Group and
+difficulty filters intersect with text search; options come from the campaign
+catalog, independently of the current search. Append chunk creates a stable route
+occurrence without changing tabs or clearing the browsing context. Runner layouts
 must first be copied using Chunk Creator's Copy to Campaign action to appear in
 Contents. Route owns exact occurrence ordering. Markers gives the central scene
 the available workspace height and puts its visual library, selected marker
@@ -170,9 +173,10 @@ shows mission/reward status, selected chunk usage and validation,
 with the existing revision-checked settings dialogs. Narrow panels remain mounted
 behind tabs.
 Geometry opens in Chunk Creator through guarded navigation. Back reloads
-dependencies and restores mission, workspace tab, search and valid chunk/occurrence
-selections. These view values never enter content history. Play hides and excludes
-the editing workspace from focus until the shared session returns to editing.
+dependencies and restores mission, workspace tab, search, group/difficulty filters
+and valid chunk/occurrence selections. Missing filter options reset to All when
+sources reload. These view values never enter content history. Play hides and
+excludes the editing workspace from focus until the shared session returns to editing.
 
 Chapter bars expand independently and contain their mission list, settings and
 reward controls. Expansion is presentation state, never content history. Restored

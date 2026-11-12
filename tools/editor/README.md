@@ -965,7 +965,11 @@ disables the corresponding arrow; reordering changes sequential prerequisites
 and supports Undo/Redo.
 
 Campaign keeps the chapter/mission library on the left and workspace tabs above
-the scene. **Contents** browses Campaign chunks with visual previews; **Route**
+the scene. **Contents** browses Campaign chunks with visual previews, Group and
+Difficulty filters, and text search. All active criteria intersect; **Clear filters**
+resets them. **Append chunk** adds to the route while keeping Contents open and
+retaining the current filters. Each append creates a separate placement of the
+reusable chunk, called an occurrence in Route. **Route**
 controls their exact sequence. **Markers** expands the central canvas and puts
 **Marker library**, **Marker properties**, **Placed markers** and **Shared chunk
 objectives** together in the right authoring sidebar, matching Chunk Creator's
@@ -1005,7 +1009,7 @@ placements with fresh identities. Removing a referenced occurrence is blocked
 until its markers are moved or removed.
 The settings panel shows rewards, build status, selected chunk usage and validation.
 Open **Mission settings** there to edit the mission. Back from Chunk Creator restores
-the selected mission, workspace tab, search and valid chunk/occurrence selection.
+the selected mission, workspace tab, search, filters and valid chunk/occurrence selection.
 
 New chapters start with one empty mission. That mission has no rewards and is
 excluded from Build.

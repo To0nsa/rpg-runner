@@ -12,6 +12,7 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_
 import 'package:runner_editor/src/chunks/chunk_v2_actor_terrain_projection.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_zoom_controls.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_page.dart';
+import 'package:runner_editor/src/app/pages/campaign/campaign_contents.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_marker_palette.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_marker_editing.dart';
 import 'package:runner_core/campaign/campaign_mission_definition.dart';
@@ -1086,6 +1087,177 @@ void main() {
     },
   );
 
+  testWidgets(
+    'campaign catalog intersects group, difficulty and search filters',
+    (tester) async {
+      final document = await tester.runAsync(
+        () => plugin.loadFromRepo(workspace),
+      ) as CampaignDocument;
+      final base = document.chunks.chunks.firstWhere(
+        (c) => c.chunkKey == 'forest_campaign_fixture',
+      );
+      final chunks = [
+        base.copyWith(
+          chunkKey: 'woods_easy',
+          assemblyGroupId: 'woods',
+          difficulty: 'easy',
+          tags: ['opening'],
+        ),
+        base.copyWith(
+          chunkKey: 'woods_hard',
+          assemblyGroupId: 'woods',
+          difficulty: 'hard',
+        ),
+        base.copyWith(
+          chunkKey: 'arena_easy',
+          assemblyGroupId: 'arena',
+          difficulty: 'easy',
+        ),
+        base.copyWith(
+          chunkKey: 'runner_only',
+          usage: 'runner',
+          assemblyGroupId: 'runner_only',
+          difficulty: 'normal',
+        ),
+      ];
+      final search = TextEditingController();
+      addTearDown(search.dispose);
+      var group = '', difficulty = '';
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: search,
+              builder: (context, value, child) => StatefulBuilder(
+                builder: (context, update) {
+                  return CampaignContents(
+                    chunks: chunks,
+                    searchController: search,
+                    groupFilter: group,
+                    difficultyFilter: difficulty,
+                    onGroupFilterChanged: (value) =>
+                        update(() => group = value),
+                    onDifficultyFilterChanged: (value) =>
+                        update(() => difficulty = value),
+                    onClearFilters: () => update(() {
+                      group = '';
+                      difficulty = '';
+                      search.clear();
+                    }),
+                    selectedChunkKey: null,
+                    onSelected: (_) {},
+                    onAppend: (_) {},
+                    onEdit: null,
+                    previewBuilder: (_) => const SizedBox(),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      Future<void> choose(String label, String option) async {
+        await tester.tap(
+          find.widgetWithText(DropdownButtonFormField<String>, label),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(option).last);
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.text('3 of 3 chunks'), findsOneWidget);
+      await choose('Group', 'woods');
+      expect(find.text('2 of 3 chunks'), findsOneWidget);
+      await choose('Difficulty', 'easy');
+      expect(
+        find.byKey(const ValueKey('campaign_chunk_woods_easy')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('campaign_chunk_arena_easy')),
+        findsNothing,
+      );
+      search.text = 'OPENING';
+      await tester.pump();
+      expect(find.text('1 of 3 chunks'), findsOneWidget);
+      search.text = 'arena';
+      await tester.pump();
+      expect(
+        find.text('No campaign chunks match this search or filters.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Clear filters'));
+      await tester.pump();
+      expect(search.text, isEmpty);
+      expect(find.text('3 of 3 chunks'), findsOneWidget);
+      expect(find.text('All groups'), findsOneWidget);
+      expect(find.text('All difficulties'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'appending chunks retains Contents and filters through the route limit',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final original = controller.document as CampaignDocument;
+      controller.applyCommand(edit(original, layout(original)));
+      final chunk = original.chunks.chunks.firstWhere(
+        (c) => c.chunkKey == 'forest_campaign_fixture',
+      );
+      final key = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              key: key,
+              controller: controller,
+              initialLocation: CampaignLocation(
+                original.selected.id,
+                chunkSearch: chunk.chunkKey,
+                groupFilter: chunk.assemblyGroupId,
+                difficultyFilter: chunk.difficulty,
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      final append = find.widgetWithText(TextButton, 'Append chunk');
+      for (var count = 3; count <= 16; count++) {
+        await tester.ensureVisible(append);
+        await tester.tap(append);
+        await _pumpWorkspace(tester);
+        final mission = (controller.document as CampaignDocument).selected;
+        expect(mission.route, hasLength(count));
+        expect(mission.route.map((o) => o.id).toSet(), hasLength(count));
+        expect(mission.route.last.chunkKey, chunk.chunkKey);
+        final location =
+            (key.currentState as EditorPageNavigationState).navigationLocation!
+                as CampaignLocation;
+        expect(location.tab, CampaignTab.contents);
+        expect(location.chunkSearch, chunk.chunkKey);
+        expect(location.groupFilter, chunk.assemblyGroupId);
+        expect(location.difficultyFilter, chunk.difficulty);
+        expect(location.selectedOccurrenceId, mission.route.last.id);
+      }
+      expect(tester.widget<TextButton>(append).onPressed, isNull);
+      controller.undo();
+      await _pumpWorkspace(tester);
+      expect(tester.widget<TextButton>(append).onPressed, isNotNull);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   testWidgets('campaign workspace exposes editable missions and route tools', (
     tester,
   ) async {
@@ -1131,6 +1303,9 @@ void main() {
       final original = controller.document as CampaignDocument;
       controller.applyCommand(edit(original, layout(original)));
       final pageKey = GlobalKey();
+      final campaignChunk = original.chunks.chunks.firstWhere(
+        (c) => c.chunkKey == 'forest_campaign_fixture',
+      );
       String? openedChunk;
       await tester.pumpWidget(
         MaterialApp(
@@ -1138,6 +1313,11 @@ void main() {
             body: CampaignPage(
               key: pageKey,
               controller: controller,
+              initialLocation: CampaignLocation(
+                original.selected.id,
+                groupFilter: campaignChunk.assemblyGroupId,
+                difficultyFilter: campaignChunk.difficulty,
+              ),
               onOpenChunk: (target) async {
                 openedChunk = target.chunkKey;
                 return false;
@@ -1171,7 +1351,7 @@ void main() {
         findsNothing,
       );
       expect(
-        find.text('No campaign chunks match this search.'),
+        find.text('No campaign chunks match this search or filters.'),
         findsOneWidget,
       );
       await tester.enterText(
@@ -1257,6 +1437,8 @@ void main() {
       expect(location().selectedOccurrenceId, 'first');
       expect(location().chunkSearch, 'forest_campaign_fixture');
       // Route actions still act on stable occurrences, including reference guards.
+      expect(location().groupFilter, campaignChunk.assemblyGroupId);
+      expect(location().difficultyFilter, campaignChunk.difficulty);
       final first = find.byKey(const ValueKey('campaign_occurrence_first'));
       await tap(
         find.descendant(

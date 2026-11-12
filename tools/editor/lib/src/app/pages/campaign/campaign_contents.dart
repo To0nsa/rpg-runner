@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:tool_ui/tool_ui.dart';
 
+import '../../../chunks/chunk_domain_models.dart';
 import '../../../chunks/chunk_v2_file_data.dart';
 import '../shared/authored_chunk_card.dart';
 
@@ -9,6 +11,11 @@ class CampaignContents extends StatelessWidget {
     super.key,
     required this.chunks,
     required this.searchController,
+    required this.groupFilter,
+    required this.difficultyFilter,
+    required this.onGroupFilterChanged,
+    required this.onDifficultyFilterChanged,
+    required this.onClearFilters,
     required this.selectedChunkKey,
     required this.onSelected,
     required this.onAppend,
@@ -18,6 +25,9 @@ class CampaignContents extends StatelessWidget {
 
   final List<ChunkV2FileData> chunks;
   final TextEditingController searchController;
+  final String groupFilter, difficultyFilter;
+  final ValueChanged<String> onGroupFilterChanged, onDifficultyFilterChanged;
+  final VoidCallback onClearFilters;
   final String? selectedChunkKey;
   final ValueChanged<ChunkV2FileData> onSelected;
   final ValueChanged<ChunkV2FileData>? onAppend, onEdit;
@@ -26,10 +36,20 @@ class CampaignContents extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final query = searchController.text.trim().toLowerCase();
-    final visible = chunks
+    final campaignChunks = chunks.where((c) => c.usage == 'campaign').toList();
+    final groups = campaignChunks.map((c) => c.assemblyGroupId).toSet().toList()
+      ..sort();
+    final difficulties = [
+      chunkDifficultyEarly,
+      chunkDifficultyEasy,
+      chunkDifficultyNormal,
+      chunkDifficultyHard,
+    ].where((tier) => campaignChunks.any((c) => c.difficulty == tier)).toList();
+    final visible = campaignChunks
         .where(
           (c) =>
-              c.usage == 'campaign' &&
+              (groupFilter.isEmpty || c.assemblyGroupId == groupFilter) &&
+              (difficultyFilter.isEmpty || c.difficulty == difficultyFilter) &&
               '${c.levelId} ${c.assemblyGroupId} ${c.difficulty} ${c.chunkKey} ${c.usage} ${c.tags.join(' ')}'
                   .toLowerCase()
                   .contains(query),
@@ -39,13 +59,37 @@ class CampaignContents extends StatelessWidget {
       key: const PageStorageKey('campaign_contents_scroll'),
       padding: const EdgeInsets.all(12),
       children: [
-        TextField(
-          controller: searchController,
-          decoration: const InputDecoration(
-            labelText: 'Find chunk',
-            hintText: 'Region, group, tier, tag or key',
-            prefixIcon: Icon(Icons.search),
-          ),
+        ToolVisualCatalogControls(
+          searchController: searchController,
+          searchKey: const ValueKey('campaign_chunk_search'),
+          searchLabel: 'Find chunk',
+          searchHint: 'Region, group, tier, tag or key',
+          clearSearchKey: const ValueKey('campaign_chunk_clear_search'),
+          clearSearchTooltip: 'Clear chunk search',
+          filters: [
+            _filter('Group', groupFilter, groups, onGroupFilterChanged),
+            _filter(
+              'Difficulty',
+              difficultyFilter,
+              difficulties,
+              onDifficultyFilterChanged,
+            ),
+            TextButton.icon(
+              onPressed:
+                  searchController.text.isNotEmpty ||
+                      groupFilter.isNotEmpty ||
+                      difficultyFilter.isNotEmpty
+                  ? onClearFilters
+                  : null,
+              icon: const Icon(Icons.filter_alt_off_outlined),
+              label: const Text('Clear filters'),
+            ),
+          ],
+          countKey: const ValueKey('campaign_chunk_filter_count'),
+          countLabel: '${visible.length} of ${campaignChunks.length} chunks',
+          onSearchSubmitted: () {
+            if (visible.isNotEmpty) onSelected(visible.first);
+          },
         ),
         const SizedBox(height: 8),
         const Text(
@@ -53,7 +97,7 @@ class CampaignContents extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (visible.isEmpty)
-          const Text('No campaign chunks match this search.'),
+          const Text('No campaign chunks match this search or filters.'),
         for (final chunk in visible)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -69,7 +113,7 @@ class CampaignContents extends StatelessWidget {
                 TextButton.icon(
                   onPressed: onAppend == null ? null : () => onAppend!(chunk),
                   icon: const Icon(Icons.add),
-                  label: const Text('Append occurrence'),
+                  label: const Text('Append chunk'),
                 ),
                 TextButton(
                   onPressed: onEdit == null ? null : () => onEdit!(chunk),
@@ -81,4 +125,31 @@ class CampaignContents extends StatelessWidget {
       ],
     );
   }
+
+  Widget _filter(
+    String label,
+    String value,
+    List<String> options,
+    ValueChanged<String> onChanged,
+  ) => SizedBox(
+    width: 180,
+    child: DropdownButtonFormField<String>(
+      key: ValueKey('campaign_${label.toLowerCase()}_filter_$value'),
+      initialValue: value,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      items: [
+        DropdownMenuItem(
+          value: '',
+          child: Text(label == 'Group' ? 'All groups' : 'All difficulties'),
+        ),
+        for (final option in options)
+          DropdownMenuItem(value: option, child: Text(option)),
+      ],
+      onChanged: (value) => onChanged(value ?? ''),
+    ),
+  );
 }

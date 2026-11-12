@@ -37,12 +37,15 @@ final class CampaignLocation extends EditorPageLocation {
     this.missionId, {
     this.tab = CampaignTab.contents,
     this.chunkSearch = '',
+    this.groupFilter = '',
+    this.difficultyFilter = '',
     this.selectedChunkKey,
     this.selectedOccurrenceId,
   });
   final String missionId;
   final CampaignTab tab;
   final String chunkSearch;
+  final String groupFilter, difficultyFilter;
   final String? selectedChunkKey, selectedOccurrenceId;
   @override
   AuthoringDocument restoreDocumentSelection(
@@ -94,6 +97,9 @@ class _CampaignPageState extends State<CampaignPage>
     text: widget.initialLocation?.chunkSearch ?? '',
   );
   late CampaignTab _tab = widget.initialLocation?.tab ?? CampaignTab.contents;
+  late String _groupFilter = widget.initialLocation?.groupFilter ?? '';
+  late String _difficultyFilter =
+      widget.initialLocation?.difficultyFilter ?? '';
   late String? _selectedChunkKey = widget.initialLocation?.selectedChunkKey;
   late String? _selectedOccurrenceId =
       widget.initialLocation?.selectedOccurrenceId;
@@ -104,6 +110,8 @@ class _CampaignPageState extends State<CampaignPage>
           _doc!.selectedMissionId,
           tab: _tab,
           chunkSearch: _search.text,
+          groupFilter: _groupFilter,
+          difficultyFilter: _difficultyFilter,
           selectedChunkKey: _selectedChunkKey,
           selectedOccurrenceId: _selectedOccurrenceId,
         );
@@ -210,6 +218,13 @@ class _CampaignPageState extends State<CampaignPage>
     }
     if (!d.chunks.chunks.any((c) => c.chunkKey == _selectedChunkKey)) {
       _selectedChunkKey = null;
+    }
+    final campaignChunks = d.chunks.chunks.where((c) => c.usage == 'campaign');
+    if (!campaignChunks.any((c) => c.assemblyGroupId == _groupFilter)) {
+      _groupFilter = '';
+    }
+    if (!campaignChunks.any((c) => c.difficulty == _difficultyFilter)) {
+      _difficultyFilter = '';
     }
     final reuseTerrain =
         identical(_doc?.chunks, d.chunks) &&
@@ -357,7 +372,6 @@ class _CampaignPageState extends State<CampaignPage>
     });
     _edit(json);
     if (_doc!.selected.route.any((o) => o.id == 'occurrence_$index')) {
-      _tab = CampaignTab.route;
       _selectOccurrence('occurrence_$index');
     }
   }
@@ -717,6 +731,22 @@ class _CampaignPageState extends State<CampaignPage>
               child: CampaignContents(
                 chunks: d.chunks.chunks,
                 searchController: _search,
+                groupFilter: _groupFilter,
+                difficultyFilter: _difficultyFilter,
+                onGroupFilterChanged: (value) {
+                  _groupFilter = value;
+                  _viewChanged();
+                },
+                onDifficultyFilterChanged: (value) {
+                  _difficultyFilter = value;
+                  _viewChanged();
+                },
+                onClearFilters: () {
+                  _groupFilter = '';
+                  _difficultyFilter = '';
+                  _search.clear();
+                  _viewChanged();
+                },
                 selectedChunkKey: _selectedChunkKey,
                 onSelected: _selectChunk,
                 onAppend: m.route.length >= 16
