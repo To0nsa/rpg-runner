@@ -60,12 +60,28 @@
     ]
   },
   {
-    "file": "lib/ui/pages/achievements/achievement_tile.dart",
-    "reason": "ICU reward-state selectors.",
+    "file": "lib/ui/pages/achievements/achievement_claim_action.dart",
+    "reason": "ICU claim-scope selectors, never rendered directly.",
+    "literals": [
+      "'all'",
+      "'single'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/achievements/achievement_tier_ledger.dart",
+    "reason": "ICU reward-state selectors, never rendered directly.",
     "literals": [
       "'claimed'",
       "'achieved'",
-      "'pending'"
+      "'next'",
+      "'locked'"
+    ]
+  },
+  {
+    "file": "lib/ui/pages/achievements/achievement_tile.dart",
+    "reason": "Account-scoped PageStorage identity for the eligibility disclosure, never player text.",
+    "literals": [
+      "'achievement-rules-${entry.id}'"
     ]
   },
   {

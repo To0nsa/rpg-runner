@@ -1,14 +1,14 @@
-import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
-import '../../components/progress_meter.dart';
+import '../../l10n/app_localization.dart';
 import '../../state/ownership/achievement_progress.dart';
 import '../../theme/ui_tokens.dart';
-import 'achievement_presentation.dart';
 import 'achievement_claim_action.dart';
+import 'achievement_presentation.dart';
+import 'achievement_tier_ledger.dart';
 
-/// Only the next target is visible until expanded; claim availability is separate
-/// from expansion and from reaching the final tier.
+/// The next goal stays independent of earned rewards. Expansion reveals the
+/// ledger without changing claim availability or account-scoped history state.
 class AchievementTile extends StatelessWidget {
   const AchievementTile({
     super.key,
@@ -25,7 +25,18 @@ class AchievementTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
+    final l10n = context.l10n;
     final next = entry.nextTier;
+    final progress = next == null
+        ? l10n.uiCompleted
+        : l10n.progressQuantities(
+            current: presentation.quantity(entry.value, l10n),
+            target: presentation.quantity(next.threshold, l10n),
+          );
+    final requirement = presentation.requirement(
+      next?.threshold ?? entry.tiers.last.threshold,
+      l10n,
+    );
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(ui.radii.sm),
       side: BorderSide(color: ui.colors.outline),
@@ -42,136 +53,122 @@ class AchievementTile extends StatelessWidget {
           collapsedShape: const Border(),
           iconColor: ui.colors.accentStrong,
           collapsedIconColor: ui.colors.textMuted,
-          tilePadding: EdgeInsets.all(ui.space.sm),
-          childrenPadding: EdgeInsets.fromLTRB(
-            ui.space.md,
-            0,
-            ui.space.md,
-            ui.space.md,
+          tilePadding: EdgeInsets.symmetric(
+            horizontal: ui.space.sm,
+            vertical: ui.space.xs,
           ),
-          leading: Icon(presentation.icon, color: ui.colors.accentStrong),
-          title: Text(
-            presentation.title(context.l10n),
-            style: ui.text.headline,
-          ),
-          subtitle: Padding(
-            padding: EdgeInsets.only(top: ui.space.xs),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (next != null) ...[
-                  Text(
-                    presentation.requirement(next.threshold, context.l10n),
-                    style: ui.text.body,
-                  ),
-                  SizedBox(height: ui.space.xs),
-                  ProgressMeter(
-                    fraction: entry.value / next.threshold,
-                    label: context.l10n.progressQuantities(
-                      current: presentation.quantity(entry.value, context.l10n),
-                      target: presentation.quantity(
-                        next.threshold,
-                        context.l10n,
+          childrenPadding: EdgeInsets.symmetric(horizontal: ui.space.sm),
+          title: LayoutBuilder(
+            builder: (context, constraints) {
+              final summary = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        presentation.icon,
+                        color: ui.colors.accentStrong,
+                        size: ui.sizes.iconSize.sm,
                       ),
-                    ),
+                      SizedBox(width: ui.space.xs),
+                      Expanded(
+                        child: Text(
+                          presentation.title(l10n),
+                          style: ui.text.headline,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: ui.space.xxs),
                   Text(
-                    context.l10n.achievementNextReward(gold: next.goldAmount),
-                    style: ui.text.body,
-                  ),
-                ] else
-                  Text(
-                    context.l10n.uiCompleted,
-                    style: ui.text.body.copyWith(color: ui.colors.success),
-                  ),
-                if (entry.claimableGold > 0) ...[
-                  SizedBox(height: ui.space.xs),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: AchievementClaimAction(
-                      key: ValueKey('claim-${entry.id}'),
-                      gold: entry.claimableGold,
-                      onPressed: claiming ? null : onClaim,
+                    next == null
+                        ? progress
+                        : l10n.achievementProgressSummary(
+                            progress: progress,
+                            gold: next.goldAmount,
+                          ),
+                    style: ui.text.body.copyWith(
+                      color: next == null
+                          ? ui.colors.success
+                          : ui.colors.textPrimary,
                     ),
                   ),
                 ],
-              ],
+              );
+              if (entry.claimableGold == 0) return summary;
+              final claim = AchievementClaimAction(
+                key: ValueKey('claim-${entry.id}'),
+                gold: entry.claimableGold,
+                onPressed: claiming ? null : onClaim,
+              );
+              // At larger text sizes, reserve enough reading width for the
+              // summary before keeping the action on the same line.
+              if (constraints.maxWidth >=
+                  MediaQuery.textScalerOf(context).scale(320)) {
+                return Row(
+                  children: [
+                    Expanded(child: summary),
+                    SizedBox(width: ui.space.sm),
+                    claim,
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  summary,
+                  SizedBox(height: ui.space.xxs),
+                  Align(alignment: Alignment.centerRight, child: claim),
+                ],
+              );
+            },
+          ),
+          subtitle: Padding(
+            padding: EdgeInsets.only(top: ui.space.xs),
+            child: LinearProgressIndicator(
+              value: next == null
+                  ? 1
+                  : (entry.value / next.threshold).clamp(0, 1),
+              minHeight: ui.space.xxs,
+              color: ui.colors.accentStrong,
+              backgroundColor: ui.colors.background,
+              borderRadius: BorderRadius.circular(ui.radii.sm),
+              semanticsLabel: requirement,
             ),
           ),
           children: [
-            Text(
-              presentation.eligibility(context.l10n),
-              style: ui.text.body.copyWith(color: ui.colors.textMuted),
+            AchievementTierLedger(
+              key: ValueKey('achievement-ledger-${entry.id}'),
+              entry: entry,
+              presentation: presentation,
             ),
-            for (var index = 0; index < entry.tiers.length; index += 1)
-              _TierDetails(
-                tier: entry.tiers[index],
-                index: index,
-                presentation: presentation,
+            ExpansionTile(
+              key: PageStorageKey('achievement-rules-${entry.id}'),
+              shape: const Border(),
+              collapsedShape: const Border(),
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.only(bottom: ui.space.xs),
+              minTileHeight: ui.sizes.tapTarget,
+              dense: true,
+              title: Text(
+                l10n.achievementWhatCounts,
+                style: ui.text.body.copyWith(color: ui.colors.textMuted),
               ),
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(requirement, style: ui.text.body),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    presentation.eligibility(l10n),
+                    style: ui.text.body.copyWith(color: ui.colors.textMuted),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _TierDetails extends StatelessWidget {
-  const _TierDetails({
-    required this.tier,
-    required this.index,
-    required this.presentation,
-  });
-  final AchievementTier tier;
-  final int index;
-  final AchievementPresentation presentation;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = context.ui;
-    final names = [
-      context.l10n.uiBronze,
-      context.l10n.uiSilver,
-      context.l10n.uiGold,
-    ];
-    return Padding(
-      padding: EdgeInsets.only(top: ui.space.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Divider(color: ui.colors.outline),
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            spacing: ui.space.md,
-            runSpacing: ui.space.xxs,
-            children: [
-              Text(names[index], style: ui.text.headline),
-              Text(
-                context.l10n.achievementTierReward(
-                  gold: tier.goldAmount,
-                  state: tier.claimedAtMs != null
-                      ? 'claimed'
-                      : tier.achieved
-                      ? 'achieved'
-                      : 'pending',
-                ),
-                style: ui.text.body,
-              ),
-            ],
-          ),
-          Text(
-            presentation.requirement(tier.threshold, context.l10n),
-            style: ui.text.body,
-          ),
-          if (tier.achievedAtMs != null)
-            Text(
-              context.l10n.achievementAchievedDate(
-                date: achievementDate(tier.achievedAtMs!, context.l10n),
-              ),
-              style: ui.text.body.copyWith(color: ui.colors.textMuted),
-            ),
-        ],
       ),
     );
   }

@@ -55,20 +55,29 @@ runs are not reprocessed or backfilled.
 The gold balance appears at the far right of the app bar as a number and coin
 icon, without a label.
 
-Collapsed rows show the name, next unreached requirement, current progress and
-that next tier's gold reward. They hide the other thresholds and tier names.
+Collapsed rows show the name and one compact summary of current/next-target
+quantities and that next tier's gold reward, above a thin progress bar. They hide
+the other thresholds and tier names.
 An earned but unclaimed tier does not block progress toward later tiers: at
 30 defeats, Slayer shows `30 / 250` with the next 75-gold reward, while
 `Claim 25 gold` collects the earned Bronze reward.
 
-Clicking a row expands all three tiers with their requirements, gold amounts,
-states and each earned tier's completion date. Dates use server confirmation
-time, displayed as `30 Oct 2026 (UTC)`, identically across devices. Claiming
+Clicking a row expands a compact ledger of all three tier names, target
+quantities, gold amounts, states and earned completion dates. Wide layouts align
+four columns; narrow layouts and enlarged text pair the target with its reward
+and history on two sides. Earned dates sit below the reward state. The next
+unreached tier is In progress; later unreached tiers are Locked. A separate
+**What counts?** disclosure holds the full next goal and eligibility rules.
+Dates use server confirmation time, displayed as `30 Oct 2026 (UTC)`, identically
+across devices. Claiming
 never replaces an achievement's date. Unreached tiers have no date. Multiple
 rows can stay expanded; order is the table order, with no filters or sorting.
 
-One row-level Claim collects all available tiers of that achievement. Claim all
-appears when rewards are available on more than one achievement. Gold becomes
+One row-level Claim collects all available tiers of that achievement. Its amount
+and a static frame of the gameplay gold coin appear inside the button, beside
+the summary when space permits or below it when needed. Claiming does not toggle
+expansion. Claim all uses the same amount/coin treatment and appears when rewards
+are available on more than one achievement. Gold becomes
 spendable only after the backend confirms the claim. While a request is pending,
 claim actions are disabled; failure preserves rewards and allows retry.
 

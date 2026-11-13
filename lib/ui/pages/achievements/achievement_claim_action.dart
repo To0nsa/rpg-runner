@@ -2,9 +2,8 @@ import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../components/app_button.dart';
-import '../../theme/ui_tokens.dart';
 
-/// Wrap the amount beside an action that can grow with translations and text scale.
+/// Amount and gameplay coin stay inside the action, independently of expansion.
 class AchievementClaimAction extends StatelessWidget {
   const AchievementClaimAction({
     super.key,
@@ -17,17 +16,16 @@ class AchievementClaimAction extends StatelessWidget {
   final bool all;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: context.ui.space.sm,
-    runSpacing: context.ui.space.xxs,
-    crossAxisAlignment: WrapCrossAlignment.center,
-    children: [
-      AppButton(
-        label: all ? context.l10n.uiClaimAll : context.l10n.uiClaim,
-        size: all ? AppButtonSize.sm : AppButtonSize.xxs,
-        onPressed: onPressed,
-      ),
-      Text(context.l10n.goldAmount(gold: gold), style: context.ui.text.body),
-    ],
+  Widget build(BuildContext context) => AppButton.gold(
+    label: context.l10n.achievementClaimAmount(
+      gold: gold,
+      scope: all ? 'all' : 'single',
+    ),
+    semanticLabel: context.l10n.achievementClaimGoldLabel(
+      gold: gold,
+      scope: all ? 'all' : 'single',
+    ),
+    size: all ? AppButtonSize.sm : AppButtonSize.xxs,
+    onPressed: onPressed,
   );
 }

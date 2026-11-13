@@ -2574,7 +2574,40 @@
       }
     }
   },
-  "achievementTierReward": "{gold} gold · {state, select, claimed{Claimed} achieved{Available} other{Not reached}}",
+  "achievementProgressSummary": "{progress} · Next {gold} gold",
+  "@achievementProgressSummary": {
+    "description": "Compact achievement summary: progress includes current/target quantities and units; gold is the next unreached tier's reward, separate from any claimable reward.",
+    "placeholders": {
+      "progress": { "type": "String" },
+      "gold": { "type": "int", "format": "decimalPattern" }
+    }
+  },
+  "achievementClaimAmount": "{scope, select, all{Claim all {gold}} other{Claim {gold}}}",
+  "@achievementClaimAmount": {
+    "description": "Complete claim button label, followed by gameplay coin artwork instead of the currency word. scope all collects all achievements; other collects one achievement.",
+    "placeholders": {
+      "scope": { "type": "String" },
+      "gold": { "type": "int", "format": "decimalPattern" }
+    }
+  },
+  "achievementClaimGoldLabel": "{scope, select, all{Claim all {gold} gold} other{Claim {gold} gold}}",
+  "@achievementClaimGoldLabel": {
+    "description": "Accessible claim button label including the currency represented visually by coin artwork. scope all claims every achievement; other claims one.",
+    "placeholders": {
+      "scope": { "type": "String" },
+      "gold": { "type": "int", "format": "decimalPattern" }
+    }
+  },
+  "achievementWhatCounts": "What counts?",
+  "@achievementWhatCounts": {
+    "description": "Disclosure of the achievement's full goal and eligible run rules, below its compact tier ledger."
+  },
+  "achievementTierStatus": "{state, select, claimed{Claimed} achieved{Available} next{In progress} other{Locked}}",
+  "@achievementTierStatus": {
+    "description": "Achievement reward state: claimed is collected; achieved is earned and claimable; next is the next unreached tier; other is a later unreached tier.",
+    "placeholders": { "state": { "type": "String" } }
+  },
+  "achievementTierReward": "{gold} gold · {state, select, claimed{Claimed} achieved{Available} next{In progress} other{Locked}}",
   "@achievementTierReward": {
     "description": "Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.",
     "placeholders": {

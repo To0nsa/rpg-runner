@@ -135,9 +135,18 @@ same path. The page has no manual refresh control or separate polling loop.
 `/meta/town/hall-of-honour` uses existing menu layout, buttons, gold display and
 theme tokens. `AchievementPresentation` holds labels, icons, units, per-achievement
 eligibility descriptions and UTC date formatting. Rows have account-scoped
-expansion state. `ProgressMeter` and `formatCount` were extracted from Library;
-its existing `UiProgressAnimator`, unlock timing and `LibraryProgressTracker`
-remain in the Library owner.
+expansion state. A thin labelled progress indicator accompanies the compact
+summary; `AchievementTierLedger` aligns tier facts in four columns or two paired
+columns according to available width and text scale. Full requirements and run
+eligibility remain available through a separate nested disclosure. Completion
+dates retain an explicit achieved-date accessibility label.
+`AppButton.gold` keeps the localized amount and a static gameplay coin frame
+inside each claim action, including Claim all; its accessible label names gold.
+`GoldCoin` reads collectible frame metadata from `PickupRenderCatalog` and uses
+the existing `UiIconTile`/Flutter asset cache, without loading a run registry or
+starting an animation. Claim/refresh authority is unchanged.
+Library retains its shared `ProgressMeter`, `UiProgressAnimator`, unlock timing
+and `LibraryProgressTracker`.
 The shared `AttentionMarker` indicates available gold on the Town callout.
 The building anchor is normalized `(0.395, 0.708)` on `assets/Théodonis.jpg`;
 the artwork is unchanged. Long shared map labels wrap in narrow viewports.

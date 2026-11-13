@@ -2123,6 +2123,61 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String achievementProgressSummary({
+    required String progress,
+    required int gold,
+  }) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return '$progress · Prochain gain : $goldString or';
+  }
+
+  @override
+  String achievementClaimAmount({required String scope, required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'all': 'Tout récupérer : $goldString',
+      'other': 'Récupérer $goldString',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String achievementClaimGoldLabel({required String scope, required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'all': 'Tout récupérer : $goldString or',
+      'other': 'Récupérer $goldString or',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get achievementWhatCounts => 'Qu’est-ce qui compte ?';
+
+  @override
+  String achievementTierStatus({required String state}) {
+    String _temp0 = intl.Intl.selectLogic(state, {
+      'claimed': 'Récupéré',
+      'achieved': 'Disponible',
+      'next': 'En cours',
+      'other': 'Verrouillé',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String achievementTierReward({required int gold, required String state}) {
     final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
       localeName,
@@ -2132,7 +2187,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(state, {
       'claimed': 'Récupéré',
       'achieved': 'Disponible',
-      'other': 'Non atteint',
+      'next': 'En cours',
+      'other': 'Verrouillé',
     });
     return '$goldString or · $_temp0';
   }

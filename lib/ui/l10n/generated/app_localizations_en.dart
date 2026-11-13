@@ -2106,6 +2106,61 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String achievementProgressSummary({
+    required String progress,
+    required int gold,
+  }) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return '$progress · Next $goldString gold';
+  }
+
+  @override
+  String achievementClaimAmount({required String scope, required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'all': 'Claim all $goldString',
+      'other': 'Claim $goldString',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String achievementClaimGoldLabel({required String scope, required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'all': 'Claim all $goldString gold',
+      'other': 'Claim $goldString gold',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get achievementWhatCounts => 'What counts?';
+
+  @override
+  String achievementTierStatus({required String state}) {
+    String _temp0 = intl.Intl.selectLogic(state, {
+      'claimed': 'Claimed',
+      'achieved': 'Available',
+      'next': 'In progress',
+      'other': 'Locked',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String achievementTierReward({required int gold, required String state}) {
     final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
       localeName,
@@ -2115,7 +2170,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(state, {
       'claimed': 'Claimed',
       'achieved': 'Available',
-      'other': 'Not reached',
+      'next': 'In progress',
+      'other': 'Locked',
     });
     return '$goldString gold · $_temp0';
   }

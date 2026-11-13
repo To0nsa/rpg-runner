@@ -12,6 +12,8 @@ import 'package:provider/provider.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:rpg_runner/ui/app/ui_router.dart';
 import 'package:rpg_runner/ui/components/attention_marker.dart';
+import 'package:rpg_runner/ui/components/gold_coin.dart';
+import 'package:game_presentation/ui_icon_tile.dart';
 import 'package:rpg_runner/ui/pages/achievements/achievement_claim_action.dart';
 import 'package:rpg_runner/ui/pages/town/town_map.dart';
 import 'package:rpg_runner/ui/pages/achievements/achievements_page.dart';
@@ -91,8 +93,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip('Refresh achievements'), findsNothing);
     expect(find.byType(AchievementClaimAction), findsNothing);
-    expect(find.text('0 runs / 1 run'), findsOneWidget);
+    expect(find.text('0 runs / 1 run · Next 25 gold'), findsOneWidget);
     await tester.tap(find.text('First Steps'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('100 metres or 30 seconds'), findsNothing);
+    await tester.tap(find.text('What counts?'));
     await tester.pumpAndSettle();
     expect(find.textContaining('100 metres or 30 seconds'), findsOneWidget);
     expect(
@@ -125,15 +130,48 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('1 run / 10 runs'), findsOneWidget);
-    expect(find.text('Claim all'), findsOneWidget);
+    expect(find.text('1 run / 10 runs · Next 75 gold'), findsOneWidget);
+    expect(find.text('Claim all 175'), findsOneWidget);
     expect(find.byKey(const ValueKey('claim-firstSteps')), findsOneWidget);
     expect(find.text('Bronze'), findsOneWidget);
-    expect(find.text('Achieved Oct 30, 2026 (UTC)'), findsOneWidget);
+    expect(find.text('Oct 30, 2026 (UTC)'), findsOneWidget);
     expect(app.progression.gold, 0);
     expect(app.latestVerifiedReward?.runSessionId, 'achievement_run');
     expect(ownershipReads, readsBeforeCompletion);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('French ledger and coin claims reflow at 320 logical pixels', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    if (_capture) await _fonts();
+    final app = await _boot();
+    addTearDown(app.dispose);
+    await tester.pumpWidget(
+      _host(app, locale: const Locale('fr'), textScale: 1.4),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Premiers pas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bronze'), findsOneWidget);
+    expect(find.textContaining('30 oct. 2026'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    for (final element
+        in find
+            .descendant(
+              of: find.byType(AchievementClaimAction),
+              matching: find.byType(RichText),
+            )
+            .evaluate()) {
+      expect(
+        (element.renderObject as RenderParagraph).didExceedMaxLines,
+        isFalse,
+      );
+    }
+    await _screenshot(tester, 'french-expanded-320');
   });
 
   testWidgets('expanded history is scoped to the current account', (
@@ -168,7 +206,7 @@ void main() {
       expect(
         find.descendant(
           of: row,
-          matching: find.text('Reach 2,500 metres in one run.'),
+          matching: find.textContaining('2,500 m · Next 150 gold'),
         ),
         findsOneWidget,
       );
@@ -181,8 +219,23 @@ void main() {
       expect(find.text('Bronze'), findsOneWidget);
       expect(find.text('Silver'), findsOneWidget);
       expect(find.text('Gold'), findsOneWidget);
-      expect(find.text('Reach 500 metres in one run.'), findsOneWidget);
-      expect(find.text('Achieved Oct 30, 2026 (UTC)'), findsNWidgets(2));
+      expect(find.text('500 m'), findsOneWidget);
+      expect(find.text('Oct 30, 2026 (UTC)'), findsNWidgets(2));
+      expect(
+        tester.getSize(row).height,
+        lessThan(300),
+        reason: 'The expanded ledger must stay compact at normal text size.',
+      );
+      expect(find.text('What counts?'), findsOneWidget);
+      await _screenshot(tester, 'ledger-wide');
+      expect(
+        find.textContaining('including short runs and runs you quit'),
+        findsNothing,
+      );
+      await tester.ensureVisible(find.text('What counts?'));
+      await tester.tap(find.text('What counts?'));
+      await tester.pumpAndSettle();
+      expect(find.text('Reach 2,500 metres in one run.'), findsOneWidget);
       expect(
         find.textContaining('including short runs and runs you quit'),
         findsOneWidget,
@@ -201,7 +254,7 @@ void main() {
     api.onClaim = (_) => response.future;
     await tester.pumpWidget(_host(app));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Claim all'));
+    await tester.tap(find.text('Claim all 175'));
     await tester.pump();
     expect(
       tester
@@ -223,9 +276,10 @@ void main() {
     expect(find.byType(AchievementClaimAction), findsNothing);
     await tester.tap(find.text('Marathoner'));
     await tester.pumpAndSettle();
-    expect(find.text('25 gold · Claimed'), findsOneWidget);
-    expect(find.text('75 gold · Claimed'), findsOneWidget);
-    expect(find.text('Achieved Oct 30, 2026 (UTC)'), findsNWidgets(2));
+    expect(find.text('25 gold'), findsOneWidget);
+    expect(find.text('75 gold'), findsOneWidget);
+    expect(find.text('Claimed'), findsNWidgets(2));
+    expect(find.text('Oct 30, 2026 (UTC)'), findsNWidgets(2));
   });
   testWidgets('final tier stays claimable until its reward is collected', (
     tester,
@@ -265,7 +319,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byKey(const ValueKey('claim-marathoner')),
-        matching: find.text('Claim'),
+        matching: find.text('Claim 250'),
       ),
     );
     await tester.pumpAndSettle();
@@ -273,6 +327,52 @@ void main() {
     expect(find.text('Completed'), findsOneWidget);
     expect(find.byKey(const ValueKey('claim-marathoner')), findsNothing);
     expect(find.text('Bronze'), findsNothing); // Claim did not expand the row.
+  });
+  testWidgets('claim amount uses gameplay coin art and currency semantics', (
+    tester,
+  ) async {
+    final app = await _boot();
+    addTearDown(app.dispose);
+    final semantics = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(_host(app));
+      await tester.pumpAndSettle();
+      final claim = find.byKey(const ValueKey('claim-firstSteps'));
+      expect(
+        find.descendant(of: claim, matching: find.text('Claim 25')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: claim, matching: find.byType(GoldCoin)),
+        findsOneWidget,
+      );
+      final coin = tester.widget<UiIconTile>(
+        find.descendant(of: claim, matching: find.byType(UiIconTile)),
+      );
+      expect(
+        coin.assetPath,
+        'assets/images/entities/collectibles/gold_spin.png',
+      );
+      expect(coin.tilePx, 25);
+      expect(coin.coords.row, 0);
+      expect(coin.coords.col, 0);
+      final accessibleClaim = find.descendant(
+        of: claim,
+        matching: find.bySemanticsLabel('Claim 25 gold'),
+      );
+      expect(accessibleClaim, findsOneWidget);
+      expect(
+        tester
+            .getSemantics(accessibleClaim)
+            .getSemanticsData()
+            .hasAction(ui.SemanticsAction.tap),
+        isTrue,
+      );
+      expect(find.text('Bronze'), findsNothing);
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
+    }
   });
   for (final size in [const Size(640, 360), const Size(360, 640)]) {
     testWidgets('town link, attention and expanded layout work at $size', (
@@ -403,6 +503,11 @@ Future<void> _screenshot(WidgetTester tester, String name) async {
     if (!context.mounted) return;
     await precacheImage(
       const AssetImage('assets/images/backgrounds/playHub_bgDark.png'),
+      context,
+    );
+    if (!context.mounted) return;
+    await precacheImage(
+      const AssetImage('assets/images/entities/collectibles/gold_spin.png'),
       context,
     );
   });

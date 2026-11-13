@@ -3130,10 +3130,43 @@ abstract class AppLocalizations {
   /// **'Next reward: {gold} gold'**
   String achievementNextReward({required int gold});
 
+  /// Compact achievement summary: progress includes current/target quantities and units; gold is the next unreached tier's reward, separate from any claimable reward.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress} · Next {gold} gold'**
+  String achievementProgressSummary({
+    required String progress,
+    required int gold,
+  });
+
+  /// Complete claim button label, followed by gameplay coin artwork instead of the currency word. scope all collects all achievements; other collects one achievement.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope, select, all{Claim all {gold}} other{Claim {gold}}}'**
+  String achievementClaimAmount({required String scope, required int gold});
+
+  /// Accessible claim button label including the currency represented visually by coin artwork. scope all claims every achievement; other claims one.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope, select, all{Claim all {gold} gold} other{Claim {gold} gold}}'**
+  String achievementClaimGoldLabel({required String scope, required int gold});
+
+  /// Disclosure of the achievement's full goal and eligible run rules, below its compact tier ledger.
+  ///
+  /// In en, this message translates to:
+  /// **'What counts?'**
+  String get achievementWhatCounts;
+
+  /// Achievement reward state: claimed is collected; achieved is earned and claimable; next is the next unreached tier; other is a later unreached tier.
+  ///
+  /// In en, this message translates to:
+  /// **'{state, select, claimed{Claimed} achieved{Available} next{In progress} other{Locked}}'**
+  String achievementTierStatus({required String state});
+
   /// Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.
   ///
   /// In en, this message translates to:
-  /// **'{gold} gold · {state, select, claimed{Claimed} achieved{Available} other{Not reached}}'**
+  /// **'{gold} gold · {state, select, claimed{Claimed} achieved{Available} next{In progress} other{Locked}}'**
   String achievementTierReward({required int gold, required String state});
 
   /// Achievement display only. Eligibility, thresholds and reward amounts remain server-owned. Dates use UTC.

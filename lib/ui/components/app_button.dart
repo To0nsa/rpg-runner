@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'gold_coin.dart';
+
 export '../theme/ui_button_theme.dart' show AppButtonSize, AppButtonVariant;
 
 import '../theme/ui_button_theme.dart';
@@ -15,12 +17,27 @@ class AppButton extends StatefulWidget {
     this.icon,
     this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.md,
-  });
+  }) : _goldCoin = false,
+       semanticLabel = null;
+
+  /// Currency action with gameplay coin artwork after the complete localized
+  /// label. [semanticLabel] includes the currency word for assistive technology.
+  const AppButton.gold({
+    super.key,
+    required this.label,
+    required this.semanticLabel,
+    required this.onPressed,
+    this.variant = AppButtonVariant.primary,
+    this.size = AppButtonSize.md,
+  }) : icon = null,
+       _goldCoin = true;
 
   final String label;
 
   /// Optional leading icon, styled with the same foreground as the label.
   final IconData? icon;
+  final bool _goldCoin;
+  final String? semanticLabel;
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
   final AppButtonSize size;
@@ -183,7 +200,12 @@ class _AppButtonState extends State<AppButton> {
       textScaler: MediaQuery.textScalerOf(context),
       strutStyle: textStrutStyle,
     )..layout();
-    final iconWidth = widget.icon == null
+    final coinSize =
+        MediaQuery.textScalerOf(context).scale(textStyle.fontSize ?? 16) +
+        ui.space.xs;
+    final iconWidth = widget._goldCoin
+        ? coinSize + ui.space.xs
+        : widget.icon == null
         ? 0.0
         : (textStyle.fontSize ?? 16) + ui.space.xs;
     final frameInset = (bevelInset + ui.sizes.borderWidth + 1) * 2;
@@ -196,7 +218,9 @@ class _AppButtonState extends State<AppButton> {
     );
     final height = math.max(
       spec.height,
-      measure.height.ceilToDouble() + spec.padding.vertical + frameInset,
+      math.max(measure.height.ceilToDouble(), widget._goldCoin ? coinSize : 0) +
+          spec.padding.vertical +
+          frameInset,
     );
     measure.dispose();
     // 3) Nudge on press for physical button feedback.
@@ -206,7 +230,7 @@ class _AppButtonState extends State<AppButton> {
         ? spec.shadow
         : spec.shadow.withValues(alpha: buttons.disabledBackgroundAlpha);
 
-    return SizedBox(
+    final button = SizedBox(
       width: width,
       height: height,
       child: AnimatedContainer(
@@ -265,20 +289,31 @@ class _AppButtonState extends State<AppButton> {
                     child: SizedBox.expand(
                       child: Align(
                         alignment: Alignment.center,
-                        child: widget.icon == null
+                        child: widget.icon == null && !widget._goldCoin
                             ? label
                             : FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      widget.icon,
-                                      size: textStyle.fontSize,
-                                      color: textColor,
-                                    ),
-                                    SizedBox(width: ui.space.xs),
+                                    if (widget.icon != null) ...[
+                                      Icon(
+                                        widget.icon,
+                                        size: textStyle.fontSize,
+                                        color: textColor,
+                                      ),
+                                      SizedBox(width: ui.space.xs),
+                                    ],
                                     label,
+                                    if (widget._goldCoin) ...[
+                                      SizedBox(width: ui.space.xs),
+                                      Opacity(
+                                        opacity: enabled
+                                            ? 1
+                                            : buttons.disabledForegroundAlpha,
+                                        child: GoldCoin(size: coinSize),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -292,5 +327,16 @@ class _AppButtonState extends State<AppButton> {
         ),
       ),
     );
+    return widget._goldCoin
+        ? Semantics(
+            container: true,
+            button: true,
+            enabled: enabled,
+            label: widget.semanticLabel,
+            onTap: widget.onPressed,
+            excludeSemantics: true,
+            child: button,
+          )
+        : button;
   }
 }
