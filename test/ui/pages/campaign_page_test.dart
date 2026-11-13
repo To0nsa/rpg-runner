@@ -36,6 +36,7 @@ void main() {
   testWidgets(
     'locked Willow explains the chapter requirement on a compact screen',
     (tester) async {
+      await _loadCampaignFonts(tester);
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(568, 320);
       addTearDown(tester.view.resetDevicePixelRatio);

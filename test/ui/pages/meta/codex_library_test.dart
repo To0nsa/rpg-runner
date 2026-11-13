@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:rpg_runner/ui/components/map_label_button.dart';
 import 'package:runner_core/levels/level_id.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 import 'package:rpg_runner/ui/app/ui_router.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/components/enemy_portrait.dart';
@@ -746,6 +747,10 @@ class _CodexAppState extends ChangeNotifier implements AppState {
 
   @override
   int get displayedGold => progression.gold;
+
+  @override
+  bool isCharacterUnlocked(PlayerCharacterId id) =>
+      id == PlayerCharacterId.eloise;
 
   void setProgress(CodexProgress codex) {
     progression = progression.copyWith(codex: codex);

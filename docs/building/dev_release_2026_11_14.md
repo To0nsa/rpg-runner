@@ -34,6 +34,14 @@ its tick, slot and ability rather than discarding the new event. That failed
 preparation remains preserved; the corrected candidate will run the gates again.
 The previous verified dev APK is code 8, so this release allocates dev code 9.
 
+The second frozen preparation passed all 387 Functions emulator tests, the
+production build, five inventory tests, validator analysis/367 tests (two skips)
+and the compiled protocol probe. The full client suite found three UI fixture
+failures: the compact character test had not loaded the application fonts, and
+the two town-navigation cases lacked `isCharacterUnlocked` on their fake state.
+All 42 affected screen tests pass after those fixture corrections; the product
+layout is unchanged. Matching backend/validator component evidence is reusable.
+
 Device installation and signed-in gameplay/replay/reward/leaderboard/ghost
 acceptance require a device; packaging and live service verification do not
 establish those results. Record any unrun checks explicitly.
