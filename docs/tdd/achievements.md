@@ -139,7 +139,9 @@ expansion state. A thin labelled progress indicator accompanies the compact
 summary; `AchievementTierLedger` aligns tier facts in four columns or two paired
 columns according to available width and text scale. Full requirements and run
 eligibility remain available through a separate nested disclosure. Completion
-dates retain an explicit achieved-date accessibility label.
+dates retain an explicit achieved-date accessibility label. Date formatting uses
+UTC for a consistent calendar day; neither visible nor accessible dates append
+a timezone suffix.
 `AppButton.gold` keeps the localized amount and a static gameplay coin frame
 inside each claim action, including Claim all; its accessible label names gold.
 `GoldCoin` reads collectible frame metadata from `PickupRenderCatalog` and uses

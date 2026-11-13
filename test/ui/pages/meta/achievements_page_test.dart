@@ -49,6 +49,7 @@ void main() {
     await tester.tap(find.text('Premiers pas'));
     await tester.pumpAndSettle();
     expect(find.textContaining('30 oct. 2026'), findsOneWidget);
+    expect(find.textContaining('(UTC)'), findsNothing);
     expect(tester.takeException(), isNull);
     await _screenshot(tester, 'french-expanded-640');
     for (final element
@@ -134,7 +135,7 @@ void main() {
     expect(find.text('Claim all 175'), findsOneWidget);
     expect(find.byKey(const ValueKey('claim-firstSteps')), findsOneWidget);
     expect(find.text('Bronze'), findsOneWidget);
-    expect(find.text('Oct 30, 2026 (UTC)'), findsOneWidget);
+    expect(find.text('Oct 30, 2026'), findsOneWidget);
     expect(app.progression.gold, 0);
     expect(app.latestVerifiedReward?.runSessionId, 'achievement_run');
     expect(ownershipReads, readsBeforeCompletion);
@@ -220,7 +221,8 @@ void main() {
       expect(find.text('Silver'), findsOneWidget);
       expect(find.text('Gold'), findsOneWidget);
       expect(find.text('500 m'), findsOneWidget);
-      expect(find.text('Oct 30, 2026 (UTC)'), findsNWidgets(2));
+      expect(find.text('Oct 30, 2026'), findsNWidgets(2));
+      expect(find.textContaining('(UTC)'), findsNothing);
       expect(
         tester.getSize(row).height,
         lessThan(300),
@@ -279,7 +281,7 @@ void main() {
     expect(find.text('25 gold'), findsOneWidget);
     expect(find.text('75 gold'), findsOneWidget);
     expect(find.text('Claimed'), findsNWidgets(2));
-    expect(find.text('Oct 30, 2026 (UTC)'), findsNWidgets(2));
+    expect(find.text('Oct 30, 2026'), findsNWidgets(2));
   });
   testWidgets('final tier stays claimable until its reward is collected', (
     tester,

@@ -30,14 +30,14 @@ void main() {
           claimed.entries[1].tiers.first.achievedAtMs!,
           appStringsFor(null),
         ),
-        'Oct 30, 2026 (UTC)',
+        'Oct 30, 2026',
       );
       expect(
         achievementDate(
           claimed.entries[1].tiers.first.claimedAtMs!,
           appStringsFor(null),
         ),
-        'Oct 31, 2026 (UTC)',
+        'Oct 31, 2026',
       );
       expect(claimed.toJson(), achievementFixture('claimed'));
     },

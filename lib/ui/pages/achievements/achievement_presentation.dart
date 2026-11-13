@@ -55,9 +55,9 @@ String _duration(int seconds, AppLocalizations l10n) {
   ].join(' ');
 }
 
-/// UTC dates never use the claim time. The host loads locale date symbols through
-/// Flutter's Material delegate; standalone callers initialize Intl date data.
+/// Uses the UTC calendar date without a visible timezone suffix. The host loads
+/// locale date symbols; standalone callers initialize Intl date data.
 String achievementDate(int milliseconds, AppLocalizations l10n) {
   final date = DateTime.fromMillisecondsSinceEpoch(milliseconds, isUtc: true);
-  return l10n.dateUtc(date: DateFormat.yMMMd(l10n.localeName).format(date));
+  return DateFormat.yMMMd(l10n.localeName).format(date);
 }

@@ -68,9 +68,10 @@ four columns; narrow layouts and enlarged text pair the target with its reward
 and history on two sides. Earned dates sit below the reward state. The next
 unreached tier is In progress; later unreached tiers are Locked. A separate
 **What counts?** disclosure holds the full next goal and eligibility rules.
-Dates use server confirmation time, displayed as `30 Oct 2026 (UTC)`, identically
-across devices. Claiming
-never replaces an achievement's date. Unreached tiers have no date. Multiple
+Dates use the server confirmation's UTC calendar day, formatted for the player's
+language without a timezone suffix (for example, `30 Oct 2026`). The calendar day
+stays consistent across devices. Claiming never replaces an achievement's date.
+Unreached tiers have no date. Multiple
 rows can stay expanded; order is the table order, with no filters or sorting.
 
 One row-level Claim collects all available tiers of that achievement. Its amount
