@@ -156,6 +156,7 @@ Object eventFields(GameEvent e) => [
     ],
     PlayerImpactFeedbackEvent() => [e.tick, e.amount100, e.sourceKind],
     PlayerLandedHitFeedbackEvent() => [e.tick],
+    PlayerAttackExecutedEvent() => [e.tick, e.slot, e.abilityId],
     AbilityHoldEndedEvent() => [
       e.tick,
       e.entity,

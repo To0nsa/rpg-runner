@@ -8,7 +8,8 @@ outside this release.
 - [x] Inspect the game worktree, existing evidence and release instructions.
 - [x] Select coordinated scope; advance the matching gameplay tuple to
       `2026.11.14 / rules-v2 / score-v4 / ghost-v1` and refresh ranked seeds.
-- [ ] Review and commit the complete Campaign, shared-runtime and UI worktree.
+- [x] Review and commit the complete Campaign, shared-runtime and UI worktree
+      (`33aebb79`; follow-up replay fixture correction below).
 - [ ] Freeze a clean LF release checkout; complete canonical Prepare gates,
       reusing only matching component evidence.
 - [ ] Build and verify the immutable worker image, seeded from the verified
@@ -25,6 +26,13 @@ the deployed `2026.11.11` tuple. The tuple and route seeds are being updated
 together before freezing source. Existing task verification is under
 `docs/verification/` and the Campaign/shared-runtime plans. The canonical release
 evidence will remain under the frozen checkout's ignored `.tmp/releases/`.
+
+The first frozen preparation passed client-source and validator analysis and the
+current production dependency audit, then test analysis found the ghost replay
+fixture's missing `PlayerAttackExecutedEvent` case. The comparison now includes
+its tick, slot and ability rather than discarding the new event. That failed
+preparation remains preserved; the corrected candidate will run the gates again.
+The previous verified dev APK is code 8, so this release allocates dev code 9.
 
 Device installation and signed-in gameplay/replay/reward/leaderboard/ghost
 acceptance require a device; packaging and live service verification do not
