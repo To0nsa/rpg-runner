@@ -59,7 +59,7 @@ function boards(env = {}, next = false) {
   });
 }
 
-function inventory(fixture, overrides = {}, ownership = []) {
+function inventory(fixture, overrides = {}, ownership = [], sessions = []) {
   const env = Object.fromEntries(Object.entries(process.env).filter(([name]) =>
     !/^RUN_(BOARD_|COMPETITIVE_LEVEL_IDS|WEEKLY_LEVEL_ID)/.test(name)));
   const output = execFileSync(process.execPath, [
@@ -68,7 +68,7 @@ function inventory(fixture, overrides = {}, ownership = []) {
     "--project", project, "--now-ms", String(nowMs),
   ], { encoding: "utf8", timeout: 30000,
     env: { ...env, ...overrides, GCLOUD_ACCESS_TOKEN: "test-only-no-live-access",
-      INVENTORY_TEST_FIXTURE: JSON.stringify({ leaderboard_boards: fixture, ownership_profiles: ownership }) } });
+      INVENTORY_TEST_FIXTURE: JSON.stringify({ leaderboard_boards: fixture, ownership_profiles: ownership, run_sessions: sessions }) } });
   const result = JSON.parse(output);
   assert.equal(result.readOnly, true);
   assert.equal(result.projectId, project);
@@ -81,6 +81,19 @@ test("current boards satisfy release readiness without future boards", () => {
   assert.equal(result.missingExpectedCurrentCount, 0);
   assert.equal(result.activeNowCount, 3);
   assert.equal(result.malformedCount, 0);
+});
+
+test("boardless Campaign and Practice tickets need no ranked window evidence", () => {
+  const sessions = ["campaign", "practice", "competitive", "unknown"].map((mode) => ({ document: {
+    name: `projects/${project}/databases/(default)/documents/run_sessions/run_${mode}`,
+    fields: encodeFields({ runSessionId: `run_${mode}`, uid: "owner", state: "issued", mode,
+      issuedAtMs: nowMs - 1000, expiresAtMs: nowMs + 1000,
+      runTicket: { runSessionId: `run_${mode}`, uid: "owner", mode,
+        issuedAtMs: nowMs - 1000, expiresAtMs: nowMs + 1000 } }),
+  } }));
+  const result = inventory(boards(), {}, [], sessions).runs;
+  assert.equal(result.missingBoardWindowEvidenceCount, 2);
+  assert.deepEqual(result.missingBoardWindowEvidenceStateCounts, { issued: 2 });
 });
 
 test("a missing current board remains a release blocker", () => {

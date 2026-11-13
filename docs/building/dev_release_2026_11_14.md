@@ -42,6 +42,23 @@ the two town-navigation cases lacked `isCharacterUnlocked` on their fake state.
 All 42 affected screen tests pass after those fixture corrections; the product
 layout is unchanged. Matching backend/validator component evidence is reusable.
 
+Live inspection found 28 unsubmitted tickets and one expired Campaign ticket
+retrying validation (206 observed attempts), with a zero-gold provisional grant
+and no validated-run record. Submission decoding omitted Campaign from its local
+mode list, so the provisional grant lacked the worker-required mode binding.
+Finalization now uses the shared mode definition; a real issuance/upload/retry
+regression passes. All 388 Functions emulator tests and six offline inventory
+tests pass. Inventory also recognizes boardless Campaign tickets while retaining
+missing-window warnings for ranked/unknown modes. This backend correction does
+not change client or worker inputs, so their matching evidence remains reusable.
+
+Before cancellation, the live baseline has 34 accepted runs and settled grants,
+3,379 canonical gold and zero pending/quarantined settlement. Cancellation tooling
+is prepared in ignored `.tmp/dev-release-20261114/`; it requires the environment
+mutation lock, matching cutover owner and a healthy paused issuer, and atomically
+fences reviewed tickets/revokes only the zero-gold provisional grant. Accepted
+evidence and canonical player data are protected by transaction read checks.
+
 Device installation and signed-in gameplay/replay/reward/leaderboard/ghost
 acceptance require a device; packaging and live service verification do not
 establish those results. Record any unrun checks explicitly.

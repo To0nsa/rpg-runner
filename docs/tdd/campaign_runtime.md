@@ -389,6 +389,12 @@ restores authoring on Stop. No runtime Build or canonical rewards are involved.
 
 ## Ticket, replay and account authority
 
+Upload finalization retains `campaign` mode in the provisional reward grant using
+the shared run-mode definition. The worker requires its mode/owner/session binding
+to match the issued session before any settlement handoff. Campaign tickets are
+boardless, like Practice; operational inventory does not require ranked window
+evidence for either mode. Finalize retries retain one grant and one task dispatch.
+
 `RunMode.campaign` is unranked. Only Competitive and Weekly require a board.
 Campaign never creates a board, leaderboard or ghost, and cannot pass as Practice.
 The create request adds `missionId` only in campaign mode. `levelId` continues to

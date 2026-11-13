@@ -755,7 +755,7 @@ async function inventoryRuns(
     if (Number.isSafeInteger(issuedAtMs) && issuedAtMs > observedAtMs + 5 * 60 * 1000) {
       futureTicketCount += 1;
     }
-    if (ticket.mode !== "practice" && Number.isSafeInteger(issuedAtMs)) {
+    if (ticket.mode !== "practice" && ticket.mode !== "campaign" && Number.isSafeInteger(issuedAtMs)) {
       if (
         !Number.isSafeInteger(ticket.boardOpensAtMs) ||
         !Number.isSafeInteger(ticket.boardClosesAtMs)

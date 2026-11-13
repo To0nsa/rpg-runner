@@ -21,6 +21,7 @@ import {
 } from "../../src/runs/submission_store.js";
 
 import { currentGameCompatVersion } from "../../src/runs/compatibility.js";
+import { campaignCatalog } from "../../src/campaign/generated_catalog.js";
 
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
@@ -199,6 +200,42 @@ test("upload grant + finalize moves run session to pending_validation and enqueu
   assert.equal(rewardGrant.get("boardKey"), undefined);
   assert.equal(rewardGrant.get("lifecycleState"), "provisional_created");
   assert.equal(rewardGrant.get("goldAmount"), 0);
+});
+
+test("campaign issuance and repeated finalization retain the worker reward binding", async () => {
+  const deps = new FakeRunSubmissionDependencies();
+  const mission = campaignCatalog.chapters[0]!.missions[0]!;
+  await loadOrCreateCanonicalState({ db, uid });
+  const { runTicket } = await createRunSession({ db, uid, mode: "campaign",
+    missionId: mission.id, levelId: mission.levelId,
+    gameCompatVersion: currentGameCompatVersion });
+  assert.equal(runTicket.mode, "campaign");
+  assert.ok(runTicket.campaign);
+  const runSessionId = String(runTicket.runSessionId);
+  const payload = { userId: uid, sessionId: "campaign_session", runSessionId };
+  const { uploadGrant } = await handleRunSessionCreateUploadGrant(
+    callableRequest(payload, uid), db, deps);
+  const objectPath = String(uploadGrant.objectPath);
+  deps.objectStore.setObjectMetadata(objectPath, { contentLengthBytes: 2048,
+    contentType: "application/octet-stream", generation: "7" });
+  const finalize = { ...payload, objectPath, contentLengthBytes: 2048,
+    canonicalSha256: "a".repeat(64) };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await handleRunSessionFinalizeUpload(
+      callableRequest(finalize, uid), db, deps);
+    assert.equal(response.submissionStatus.state, "pending_validation");
+  }
+  const session = await db.collection("run_sessions").doc(runSessionId).get();
+  const reward = await db.collection("reward_grants").doc(runSessionId).get();
+  assert.equal(reward.get("mode"), session.get("mode"));
+  assert.equal(reward.get("mode"), "campaign");
+  assert.equal(reward.get("uid"), session.get("uid"));
+  assert.equal(reward.get("runSessionId"), runSessionId);
+  assert.equal(reward.get("boardId"), undefined);
+  assert.equal(reward.get("boardKey"), undefined);
+  assert.equal(reward.get("lifecycleState"), "provisional_created");
+  assert.equal(session.get("uploadedReplay.storageGeneration"), "7");
+  assert.deepEqual(deps.taskDispatcher.enqueuedRunSessionIds, [runSessionId]);
 });
 
 test("finalize is idempotent for same replay metadata", async () => {

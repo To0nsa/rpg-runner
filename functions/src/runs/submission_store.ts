@@ -25,6 +25,7 @@ import {
 } from "./session_state.js";
 import { writeExpiredRunSessionTransition } from "./grant_terminalization.js";
 import { replayUploadMaxBytes } from "./limits.js";
+import { runModes, type RunModeValue } from "./mode.js";
 
 const runSessionsCollection = "run_sessions";
 const validatedRunsCollection = "validated_runs";
@@ -43,7 +44,7 @@ function isProvisionalRewardCreationEnabled(): boolean {
 interface RunSessionSubmissionRecord {
   runSessionId: string;
   uid: string;
-  mode?: "practice" | "competitive" | "weekly";
+  mode?: RunModeValue;
   boardId?: string;
   boardKey?: JsonObject;
   state: RunSessionState;
@@ -859,11 +860,11 @@ function decodeOptionalUploadedReplay(
 
 function decodeOptionalRunMode(
   value: unknown,
-): "practice" | "competitive" | "weekly" | undefined {
-  if (value !== "practice" && value !== "competitive" && value !== "weekly") {
+): RunModeValue | undefined {
+  if (typeof value !== "string" || !runModes.includes(value as RunModeValue)) {
     return undefined;
   }
-  return value;
+  return value as RunModeValue;
 }
 
 function decodeRunTicketRewardContext(value: unknown): {
