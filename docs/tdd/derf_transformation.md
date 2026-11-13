@@ -48,6 +48,12 @@ and terrain shape. Damage is 8 physical, once per target per activation. Authore
 `ActionFramePolicy` aligns extension and damage across tick rates/action speeds.
 Derf engages using authored weapon reach; engagement publishes that resolved
 range to locomotion. Other enemies retain their existing close-range tuning.
+For weapon-reach attacks, the commit/stop distance reserves the target's outward
+horizontal travel during the action-speed- and tick-rate-scaled windup, clamped
+at zero. Stationary or approaching targets retain the authored range. Engagement
+publishes the same reduced distance to locomotion and clamps the stand-off to it,
+so a fleeing player cannot make Derf stop at maximum reach and miss every strike.
+The attack's pose geometry, telegraph, damage and cooldown remain unchanged.
 
 ## Assets and snapshots
 
@@ -93,3 +99,8 @@ results describe current authored geometry.
 
 A paired full-Core fixture verifies identical snapshots, first-visible
 transformation, stationary strip playback, subsequent pursuit and player damage.
+The running-target regression covers both playable characters, both directions,
+and 30/60/120 Hz, alongside stationary controls, through real transformation,
+movement and damage. This pursuit correction changes replayed combat outcomes;
+online release requires matching client and replay-worker Core artifacts under
+the coordinated gameplay compatibility release workflow.

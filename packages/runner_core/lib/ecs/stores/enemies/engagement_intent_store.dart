@@ -3,7 +3,8 @@ import '../../sparse_set.dart';
 
 /// Engagement intent for melee enemies (desired slot + movement modifiers).
 class EngagementIntentStore extends SparseSet {
-  /// Resolved horizontal attack range, shared by engagement and locomotion.
+  /// Horizontal commit/stop distance, shared by engagement and locomotion.
+  /// Weapon-reach attacks reserve distance for target retreat during windup.
   final List<double> meleeRangeX = [];
 
   /// Desired target X for locomotion when not following a nav plan.

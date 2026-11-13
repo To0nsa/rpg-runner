@@ -23,6 +23,8 @@ His tentacle strike has a 0.30-second telegraph, 0.20-second damaging extension
 and 0.20-second retraction at 60 Hz. Cooldown starts on commit. Only the two
 full-extension poses deal damage: 8 physical, once per target. The tentacle
 reaches roughly 100 world units; empty surrounding sprite space is harmless.
+When chasing a fleeing target, he closes further before winding up so the
+target's normal running motion remains within reach when the tentacle extends.
 
 Derf keeps his 22-health maximum and existing resistance modifiers. Death uses
 the ground-enemy fall/impact lifecycle and the form's death art. Authoring

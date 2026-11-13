@@ -39,7 +39,8 @@ class EnemyEngagementSystem {
       if (enemies.enemyId[ei].isBoss) continue;
       final target = combatTarget(world, enemy, player);
       if (target == null) continue;
-      final targetX = world.transform.posX[world.transform.indexOf(target)];
+      final targetTi = world.transform.indexOf(target);
+      final targetX = world.transform.posX[targetTi];
       final archetype = enemyCatalog.get(enemies.enemyId[ei]);
       final primaryMeleeAbilityId = archetype.primaryMeleeAbilityId;
 
@@ -121,12 +122,35 @@ class EnemyEngagementSystem {
         primaryMeleeAbilityId: primaryMeleeAbilityId,
       );
       final preferredMeleeAbility = abilities.resolve(preferredMeleeAbilityId);
+      final preferredMeleeTiming = _resolveMeleeTiming(
+        preferredMeleeAbility,
+        actionSpeedBp,
+      );
       final delivery = preferredMeleeAbility?.hitDelivery;
-      final meleeRangeX =
+      final ex = world.transform.posX[ti];
+      final dxToTarget = targetX - ex;
+      final authoredMeleeRangeX =
           archetype.meleeRangePolicy == EnemyMeleeRangePolicy.weaponReach &&
               delivery is MeleeHitDelivery
           ? delivery.profile.reach
           : groundEnemyTuning.combat.meleeRangeX;
+      // A fleeing target must still be in reach after the telegraph. Share the
+      // reduced commit distance with locomotion so pursuit does not stop early.
+      final retreatSpeedX = max(
+        0.0,
+        world.transform.velX[targetTi] * (dxToTarget >= 0 ? 1 : -1),
+      );
+      final meleeRangeX =
+          archetype.meleeRangePolicy == EnemyMeleeRangePolicy.weaponReach &&
+              preferredMeleeTiming != null
+          ? max(
+              0.0,
+              authoredMeleeRangeX -
+                  retreatSpeedX *
+                      preferredMeleeTiming.windupTicks /
+                      groundEnemyTuning.tickHz,
+            )
+          : authoredMeleeRangeX;
       world.engagementIntent.meleeRangeX[engagementIndex] = meleeRangeX;
       final meleeStandOffX = _resolveMeleeStandOffX(
         preferredMeleeAbility,
@@ -142,8 +166,6 @@ class EnemyEngagementSystem {
         ticksLeft -= 1;
       }
 
-      final ex = world.transform.posX[ti];
-      final dxToTarget = targetX - ex;
       final distToTargetX = dxToTarget.abs();
       final sideNow = dxToTarget >= 0 ? -1 : 1;
       final collapseDistX =
@@ -190,10 +212,7 @@ class EnemyEngagementSystem {
             if (ci != null) {
               final selectedAbilityId = preferredMeleeAbilityId;
               final selectedAbility = preferredMeleeAbility;
-              final selectedTiming = _resolveMeleeTiming(
-                selectedAbility,
-                actionSpeedBp,
-              );
+              final selectedTiming = preferredMeleeTiming;
               if (selectedAbility == null || selectedTiming == null) {
                 break;
               }
