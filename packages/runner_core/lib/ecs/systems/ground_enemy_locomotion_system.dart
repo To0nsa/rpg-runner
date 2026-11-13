@@ -127,8 +127,9 @@ class GroundEnemyLocomotionSystem {
 
       final ex = world.transform.posX[enemyTi];
       // A direct walk is reachable combat ground, not a traversal commitment.
-      // Cancel pursuit momentum in range so it cannot carry an attacker through
-      // its opponent between strikes. Jump/drop execution keeps priority.
+      // Cancel pursuit momentum in range, but let an attacker inside its blade's
+      // blind spot back toward its slot. Jump/drop execution keeps priority.
+      var useEngagementTarget = false;
       if (grounded &&
           lockFacingToTarget &&
           navIntent.canWalkDirectlyToTarget[i] &&
@@ -138,15 +139,26 @@ class GroundEnemyLocomotionSystem {
               world.colliderAabb.halfY[world.colliderAabb.indexOf(enemy)] &&
           (targetX - ex).abs() <=
               world.engagementIntent.meleeRangeX[engagementIndex]) {
-        _stopLocomotion(world, enemy, enemyTi, world.terrainContact.has(enemy));
-        if (targetX != ex) {
-          setActorFacing(
+        final minimumRangeX = enemyCatalog
+            .get(world.enemy.enemyId[enemyIndex])
+            .meleeMinimumRangeX;
+        if ((targetX - ex).abs() >= minimumRangeX) {
+          _stopLocomotion(
             world,
             enemy,
-            targetX > ex ? Facing.right : Facing.left,
+            enemyTi,
+            world.terrainContact.has(enemy),
           );
+          if (targetX != ex) {
+            setActorFacing(
+              world,
+              enemy,
+              targetX > ex ? Facing.right : Facing.left,
+            );
+          }
+          continue;
         }
-        continue;
+        useEngagementTarget = true;
       }
       _applyGroundEnemyLocomotion(
         world,
@@ -159,6 +171,7 @@ class GroundEnemyLocomotionSystem {
         ex: ex,
         targetX: targetX,
         dtSeconds: dtSeconds,
+        useEngagementTarget: useEngagementTarget,
       );
     }
   }
@@ -272,12 +285,14 @@ class GroundEnemyLocomotionSystem {
     required double ex,
     required double targetX,
     required double dtSeconds,
+    bool useEngagementTarget = false,
   }) {
     final navIntent = world.navIntent;
     final engagementIntent = world.engagementIntent;
 
+    final hasPlan = navIntent.hasPlan[navIntentIndex] && !useEngagementTarget;
     var desiredX = navIntent.desiredX[navIntentIndex];
-    if (!navIntent.hasPlan[navIntentIndex]) {
+    if (!hasPlan) {
       desiredX = engagementIntent.desiredTargetX[engagementIndex];
       if (navIntent.hasSafeSurface[navIntentIndex]) {
         final minX = navIntent.safeSurfaceMinX[navIntentIndex];
@@ -288,7 +303,6 @@ class GroundEnemyLocomotionSystem {
       }
     }
 
-    final hasPlan = navIntent.hasPlan[navIntentIndex];
     final effectiveSpeedScale = hasPlan
         ? 1.0
         : engagementIntent.speedScale[engagementIndex];
@@ -312,7 +326,7 @@ class GroundEnemyLocomotionSystem {
       jumpNow:
           navIntent.jumpNow[navIntentIndex] &&
           _canJump(world, world.enemy.denseEntities[enemyIndex]),
-      hasPlan: navIntent.hasPlan[navIntentIndex],
+      hasPlan: hasPlan,
       commitMoveDirX: navIntent.commitMoveDirX[navIntentIndex],
       hasSafeSurface: navIntent.hasSafeSurface[navIntentIndex],
       safeSurfaceMinX: navIntent.safeSurfaceMinX[navIntentIndex],

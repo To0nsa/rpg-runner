@@ -50,6 +50,7 @@ class EnemyArchetype {
     this.previewAnimKey = AnimKey.idle,
     this.facingPolicy = EnemyFacingPolicy.movementDriven,
     this.meleeRangePolicy = EnemyMeleeRangePolicy.closeRange,
+    this.meleeMinimumRangeX = 0.0,
     this.primaryMeleeAbilityId,
     this.comboMeleeAbilityId,
     this.artFacingDir = Facing.left,
@@ -120,6 +121,10 @@ class EnemyArchetype {
 
   /// Source of horizontal melee engagement range; geometry owns weapon reach.
   final EnemyMeleeRangePolicy meleeRangePolicy;
+
+  /// Minimum anchor-to-target X distance in world units before committing melee.
+  /// Ground locomotion backs toward the engagement slot inside this distance.
+  final double meleeMinimumRangeX;
 
   /// Optional primary melee ability for this enemy.
   ///

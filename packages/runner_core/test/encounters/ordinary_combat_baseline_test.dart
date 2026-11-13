@@ -143,11 +143,11 @@ void main() {
     expect(transformedDerfs, isNotEmpty);
     expect(sawDerfStrike, isTrue);
     expect(strikeTurns, greaterThan(0));
-    // Gravity/terrain-aware homing changes attack outcomes starting at tick 258.
-    // This reviewed 817-tick trace retains the roster and facing checks above.
+    // Grojib repositions before either swing instead of committing in his blind
+    // spot. This 915-tick trace retains the roster and facing checks above.
     expect(
       digest,
-      'e32f9e70696b32e86b4000a2a409a7effba5e9f1164020c66cfe4d6815094ecb',
+      '5994421a39566e2bd3f63fe6f4533bce398a8e9b5dd6955e579c2c28deabcf81',
       reason: 'ticks=${core.tick}, enemies=$seenEnemies',
     );
   });

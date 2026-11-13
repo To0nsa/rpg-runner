@@ -35,6 +35,8 @@ const grojibArchetype = EnemyArchetype(
   deathBehavior: DeathBehavior.groundImpactThenDeath,
   primaryMeleeAbilityId: 'grojib.strike',
   comboMeleeAbilityId: 'grojib.strike2',
+  // 34 world units keeps standing targets within both low blade sweeps.
+  meleeMinimumRangeX: 34.0,
   tags: CreatureTagDef(mask: CreatureTagMask.humanoid),
 );
 

@@ -74,6 +74,15 @@ invert both the sprite and its combat capsules. This source correction affects
 combat outcomes when an autonomous actor turns during a strike, so it requires
 a coordinated client/worker compatibility release after deployed `2026.10.6`.
 
+Ground melee commitment also observes `EnemyArchetype.meleeMinimumRangeX`
+(anchor-to-target horizontal world units; zero by default). Grojib uses 34 units
+with the existing 40-unit outer range so both blade sweeps can reach a standing
+target. Inside that minimum, direct-walk combat locomotion follows the engagement
+slot instead of stopping or continuing the pursuit plan toward the target.
+Jump/drop commitments keep priority. Timing, weapon poses and collision remain
+unchanged. This spacing correction changes replayed outcomes and must ship with
+a matching client/worker gameplay compatibility release.
+
 `WorldContactCapsuleStore` remains the immutable, quantized terrain/navigation
 shape. `CombatHurtboxStore` is the separately resolved vulnerable body. Roll,
 leaning strike, air, hit and selected enemy poses can change combat bounds

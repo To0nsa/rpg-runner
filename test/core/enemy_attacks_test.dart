@@ -946,7 +946,7 @@ void main() {
 
     final groundEnemy = spawnGroundEnemy(
       world,
-      posX: 120,
+      posX: 143,
       posY: 100,
       velX: 0,
       velY: 0,

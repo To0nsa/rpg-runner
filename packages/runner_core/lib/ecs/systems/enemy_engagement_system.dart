@@ -204,7 +204,9 @@ class EnemyEngagementSystem {
                 enemy,
                 cooldownGroupId,
               );
-              final inMeleeRange = distToTargetX <= meleeRangeX;
+              final inMeleeRange =
+                  distToTargetX >= archetype.meleeMinimumRangeX &&
+                  distToTargetX <= meleeRangeX;
               if (cooldownReady && inMeleeRange) {
                 state = MeleeEngagementState.strike;
                 ticksLeft = selectedTiming.totalTicks;

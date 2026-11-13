@@ -33,6 +33,11 @@ attack. Their body and weapon shapes mirror horizontally with their facing.
 Player melee continues to rotate with the committed aim direction, including
 front and back strikes.
 
+Grojib backs away when the player is inside his blade's close blind spot. Both
+strikes require 34–40 world units of horizontal spacing before windup starts.
+Once committed, the visible blade capsules still decide whether the attack hits;
+moving out of the swing can evade it.
+
 ## Data Primitives
 
 ### Damage and Combat IDs

@@ -42,7 +42,7 @@ void main() {
       final fixture = _worldOnGraph(
         bundle,
         enemyBodyX: 200 * 1024,
-        playerBodyX: 230 * 1024,
+        playerBodyX: 240 * 1024,
       );
       final world = fixture.world;
       final tuning = GroundEnemyTuningDerived.from(
