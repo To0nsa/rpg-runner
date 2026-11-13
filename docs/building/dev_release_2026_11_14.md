@@ -59,6 +59,17 @@ mutation lock, matching cutover owner and a healthy paused issuer, and atomicall
 fences reviewed tickets/revokes only the zero-gold provisional grant. Accepted
 evidence and canonical player data are protected by transaction read checks.
 
+Client checks from `36410db5` passed all 1,664 tests (one existing skip). The web
+artifact compiled in 353.3 seconds and its Wasm compatibility dry run passed.
+Its browser gate then exposed retired hub labels in `web_smoke.mjs`. The corrected
+gate recognizes Local practice and the separate Runner/Campaign actions, and
+passes real Chrome hub, Options, readiness/start and game-over checks with no
+browser exceptions or backend requests against the unchanged compiled artifact.
+The release, integration and cache suites pass on both PowerShell 7 and Windows
+PowerShell 5.1 (62, 121 and 59 checks per shell). The shared preparation recipe
+fingerprint includes this script, so a new frozen preparation is required; the
+failed prior preparation remains preserved.
+
 Device installation and signed-in gameplay/replay/reward/leaderboard/ghost
 acceptance require a device; packaging and live service verification do not
 establish those results. Record any unrun checks explicitly.

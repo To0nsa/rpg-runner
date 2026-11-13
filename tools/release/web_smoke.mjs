@@ -86,6 +86,10 @@ const textExpression = `(() => {
 async function hasText(text) {
   return (await evaluate(textExpression)).includes(text);
 }
+async function hasPracticeHub() {
+  const text = await evaluate(textExpression);
+  return ['Local practice', 'Play Runner', 'Play Campaign'].every(label => text.includes(label));
+}
 async function click(label) {
   await until(`button ${label}`, () => evaluate(`(() => {
     const label = ${JSON.stringify(label)};
@@ -141,15 +145,15 @@ try {
     if (!placeholder) return false;
     placeholder.click(); return true;
   })()`));
-  await until('Developer Practice hub', () => hasText('DEVELOPER MODE'));
+  await until('Developer Practice hub', hasPracticeHub);
   console.log('PASS: release web starts in the Developer Practice hub.');
   await click('Options');
   await until('Practice-only Options', () => hasText('Account features are unavailable'));
   assert.equal(await evaluate(`document.querySelectorAll('flt-semantics[role="switch"]').length`), 0);
   console.log('PASS: browser Options has no online profile switch.');
   await click('Back');
-  await until('hub return', () => hasText('DEVELOPER MODE'));
-  await click('PLAY');
+  await until('hub return', hasPracticeHub);
+  await click('Play Runner');
   await until('local run readiness', () => hasText('Click or press Enter to start'), 120000);
   await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
   await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
