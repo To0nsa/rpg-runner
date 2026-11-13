@@ -60,6 +60,7 @@ class GroundEnemyEngagementTuning {
     this.meleeArriveSlowRadiusX = 12.0,
     this.meleeStrikeSpeedMul = 0.25,
     this.meleeRecoverSpeedMul = 0.5,
+    this.meleeBackstepSpeedMul = 0.25,
     this.meleeStandOffRatio = _defaultGroundEnemyMeleeStandOffRatio,
   });
 
@@ -77,6 +78,12 @@ class GroundEnemyEngagementTuning {
 
   /// Speed multiplier during recover state.
   final double meleeRecoverSpeedMul;
+
+  /// Fraction of chase speed allowed when backing away on combat ground.
+  ///
+  /// Kept below player running speed so spacing cannot become reverse pursuit.
+  /// Traversal commitments and airborne movement do not use this cap.
+  final double meleeBackstepSpeedMul;
 
   /// Preferred stand-off ratio of authored melee hitbox width.
   ///
@@ -160,6 +167,7 @@ class GroundEnemyTuningDerived {
         meleeArriveSlowRadiusX: engagement.meleeArriveSlowRadiusX,
         meleeStrikeSpeedMul: engagement.meleeStrikeSpeedMul,
         meleeRecoverSpeedMul: engagement.meleeRecoverSpeedMul,
+        meleeBackstepSpeedMul: engagement.meleeBackstepSpeedMul,
         meleeStandOffRatio: meleeStandOffRatio,
       ),
       locomotion: base.locomotion,

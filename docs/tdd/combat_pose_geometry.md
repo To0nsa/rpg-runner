@@ -83,6 +83,16 @@ Jump/drop commitments keep priority. Timing, weapon poses and collision remain
 unchanged. This spacing correction changes replayed outcomes and must ship with
 a matching client/worker gameplay compatibility release.
 
+Grounded melee slot movement away from the target is capped by
+`GroundEnemyEngagementTuning.meleeBackstepSpeedMul` (0.25 by default), including
+existing outward momentum. The uncapped locomotion reference keeps the animation
+cadence proportional to the slower travel. Forward pursuit, navigation plans,
+jump/drop commitments, airborne movement and swimming retain their movement rules.
+The engagement → melee commitment → locomotion → terrain ordering is unchanged.
+Moving-player regressions cover both characters and directions at 30/60/90 Hz;
+stationary-target regressions retain both strikes and the 34–40 unit commit gate.
+This movement correction also requires a matching client/worker compatibility release.
+
 `WorldContactCapsuleStore` remains the immutable, quantized terrain/navigation
 shape. `CombatHurtboxStore` is the separately resolved vulnerable body. Roll,
 leaning strike, air, hit and selected enemy poses can change combat bounds

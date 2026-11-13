@@ -35,6 +35,10 @@ front and back strikes.
 
 Grojib backs away when the player is inside his blade's close blind spot. Both
 strikes require 34–40 world units of horizontal spacing before windup starts.
+Grounded combat backsteps are capped at 25% of chase speed (75 world units per
+second before status and attack-state modifiers), with a slower animation cadence.
+A running player can close in and pass him instead of being followed by a
+backwards-running enemy ahead of them.
 Once committed, the visible blade capsules still decide whether the attack hits;
 moving out of the swing can evade it.
 

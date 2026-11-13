@@ -446,13 +446,35 @@ class GroundEnemyLocomotionSystem {
       }
     }
 
-    final nextVelX = applyAccelDecel(
+    final locomotionReferenceSpeed = desiredVelX.abs();
+    final limitBackstep =
+        grounded &&
+        lockFacingToTarget &&
+        !hasPlan &&
+        !jumpNow &&
+        commitMoveDirX == 0;
+    final targetDirX = targetX == ex ? facingDirX : (targetX > ex ? 1 : -1);
+    final backstepSpeedLimit =
+        baseSpeed *
+        clampDouble(tuning.engagement.meleeBackstepSpeedMul, 0.0, 1.0);
+    if (limitBackstep && desiredVelX * targetDirX < 0) {
+      desiredVelX = clampDouble(
+        desiredVelX,
+        -backstepSpeedLimit,
+        backstepSpeedLimit,
+      );
+    }
+    var nextVelX = applyAccelDecel(
       current: currentVelX,
       desired: desiredVelX,
       dtSeconds: dtSeconds,
       accelPerSecond: tuning.locomotion.accelX,
       decelPerSecond: tuning.locomotion.decelX,
     );
+    if (limitBackstep && nextVelX * targetDirX < 0) {
+      // Old pursuit momentum must not keep a retreating enemy ahead of a runner.
+      nextVelX = clampDouble(nextVelX, -backstepSpeedLimit, backstepSpeedLimit);
+    }
 
     double? jumpSnapVelX;
     if (hasPlan &&
@@ -486,7 +508,8 @@ class GroundEnemyLocomotionSystem {
     }
 
     final resolvedVelX = jumpSnapVelX ?? forcedAirborneVelX ?? nextVelX;
-    _writeLocomotionReferenceSpeed(world, enemy, desiredVelX.abs());
+    // Retain the uncapped stride reference so a backstep also slows its cadence.
+    _writeLocomotionReferenceSpeed(world, enemy, locomotionReferenceSpeed);
 
     if (jumpNow) {
       if (terrainGrounded) {
