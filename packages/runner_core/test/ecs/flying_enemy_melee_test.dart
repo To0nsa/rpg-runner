@@ -1,3 +1,4 @@
+import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
@@ -19,6 +20,7 @@ import 'package:runner_core/ecs/systems/hitbox_follow_owner_system.dart';
 import 'package:runner_core/ecs/systems/invulnerability_system.dart';
 import 'package:runner_core/ecs/systems/lifetime_system.dart';
 import 'package:runner_core/ecs/systems/melee_strike_system.dart';
+import 'package:runner_core/ecs/systems/player_movement_system.dart';
 import 'package:runner_core/ecs/systems/resource_regen_system.dart';
 import 'package:runner_core/ecs/systems/world_motion_authority.dart';
 import 'package:runner_core/ecs/world.dart';
@@ -73,6 +75,95 @@ void main() {
   }
 
   for (final hz in [30, 60, 90]) {
+    for (final character in PlayerCharacterRegistry.playable) {
+      for (final side in [-1, 0, 1]) {
+        for (final direction in [-1.0, 1.0]) {
+          for (final regenerate in [false, true]) {
+            test(
+              'Unoco melee hits running ${character.id.name} from side=$side '
+              'direction=$direction regen=$regenerate at $hz Hz',
+              () {
+                final f = _Fixture(
+                  hz,
+                  character,
+                  side,
+                  regenerate: regenerate,
+                  moveAxis: direction,
+                );
+                final initialHp = f.hp;
+                Facing? committedFacing;
+                (double, double, Facing)? recoveryPose;
+                for (var tick = 1; tick <= 5 * hz; tick++) {
+                  f.step(tick);
+                  if (f.activeAbility == 'unoco.strike') {
+                    committedFacing ??= f.enemyPose.$3;
+                    expect(f.enemyPose.$3, committedFacing);
+                    if (f.isRecovering) {
+                      recoveryPose ??= f.enemyPose;
+                      expect(f.enemyPose, recoveryPose);
+                    }
+                  } else if (committedFacing != null) {
+                    break;
+                  }
+                }
+                expect(committedFacing, isNotNull, reason: f.trace.join('\n'));
+                expect(f.hp, lessThan(initialHp), reason: f.trace.join('\n'));
+                expect(f.meleeHits, 1);
+                expect(recoveryPose, isNotNull);
+                if (regenerate) {
+                  expect(f.activeAbility, 'unoco.fire_bolt_cast');
+                }
+              },
+            );
+          }
+        }
+      }
+    }
+  }
+
+  for (final hz in [30, 60, 90]) {
+    for (final character in PlayerCharacterRegistry.playable) {
+      for (final direction in [-1.0, 1.0]) {
+        for (final escape in ['reverse', 'accelerate']) {
+          test('Running ${character.id.name} can $escape during Unoco windup '
+              'direction=$direction at $hz Hz', () {
+            final f = _Fixture(
+              hz,
+              character,
+              direction.toInt(),
+              regenerate: true,
+              moveAxis: direction,
+            );
+            var tick = 0;
+            while (f.activeAbility != 'unoco.strike' && tick < 5 * hz) {
+              f.step(++tick);
+            }
+            expect(f.activeAbility, 'unoco.strike');
+            final initialHp = f.hp;
+            final committedFacing = f.enemyPose.$3;
+            if (escape == 'reverse') {
+              f.moveAxis = -direction;
+            } else {
+              // Model a faster escape after commitment without changing the
+              // attacker's captured speed or moving either actor's position.
+              f.moveAxis = null;
+              f.world.transform.velX[f.world.transform.indexOf(f.player)] =
+                  direction * 600;
+            }
+            while (f.activeAbility == 'unoco.strike' && tick < 6 * hz) {
+              f.step(++tick);
+              if (f.activeAbility == 'unoco.strike') {
+                expect(f.enemyPose.$3, committedFacing);
+              }
+            }
+            expect(f.hp, initialHp, reason: f.trace.join('\n'));
+            expect(f.meleeHits, 0);
+            expect(f.activeAbility, 'unoco.fire_bolt_cast');
+          });
+        }
+      }
+    }
+
     test('Unoco strike can be evaded during windup at $hz Hz', () {
       final f = _Fixture(
         hz,
@@ -106,6 +197,7 @@ class _Fixture {
     PlayerCharacterDefinition character,
     int side, {
     required bool regenerate,
+    this.moveAxis,
   }) {
     movement = MovementTuningDerived.from(
       character.tuning.movement,
@@ -120,7 +212,7 @@ class _Fixture {
     player = factory.createPlayer(
       posX: 500,
       posY: 0,
-      velX: 0,
+      velX: (moveAxis ?? 0) * movement.base.maxSpeedX,
       velY: 0,
       facing: Facing.right,
       grounded: true,
@@ -204,6 +296,7 @@ class _Fixture {
   }
 
   final int hz;
+  double? moveAxis;
   final world = EcsWorld(seed: 7);
   late final int player;
   late final int enemy;
@@ -225,12 +318,16 @@ class _Fixture {
   final hits = HitboxDamageSystem();
   final invulnerability = InvulnerabilitySystem();
   final lifetime = LifetimeSystem();
+  final playerMovement = PlayerMovementSystem();
   final trace = <String>[];
   int meleeHits = 0;
 
   int get hp => world.health.hp[world.health.indexOf(player)];
   String? get activeAbility =>
       world.activeAbility.abilityId[world.activeAbility.indexOf(enemy)];
+  bool get isRecovering =>
+      world.activeAbility.phase[world.activeAbility.indexOf(enemy)] ==
+      AbilityPhase.recovery;
   (double, double, Facing) get enemyPose => (
     world.transform.posX[world.transform.indexOf(enemy)],
     world.transform.posY[world.transform.indexOf(enemy)],
@@ -244,6 +341,10 @@ class _Fixture {
     regen.step(world);
     authority.prepareTick(world, player: player, currentTick: tick);
     modes.step(world);
+    if (moveAxis != null) {
+      world.playerInput.moveAxis[world.playerInput.indexOf(player)] = moveAxis!;
+      playerMovement.step(world, movement, currentTick: tick);
+    }
     locomotion.step(
       world,
       player: player,
@@ -297,6 +398,6 @@ final TerrainGeometry _flatTerrain = const TerrainCompiler().compile([
       chunkKey: 'test',
       shapeId: 'floor',
     ),
-    vertices: [(0, 500), (1000, 500), (1000, 700), (0, 700)],
+    vertices: [(-10000, 500), (10000, 500), (10000, 700), (-10000, 700)],
   ),
 ], geometryVersion: 1);

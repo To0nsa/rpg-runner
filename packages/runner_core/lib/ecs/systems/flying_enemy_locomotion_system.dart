@@ -1,5 +1,6 @@
 import 'package:runner_core/ecs/entity_id.dart';
 
+import '../../abilities/ability_def.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/flying_enemy_tuning.dart';
 import '../../util/deterministic_rng.dart';
@@ -72,10 +73,14 @@ class FlyingEnemyLocomotionSystem {
           world.activeAbility.abilityId[activeIndex] != null &&
           world.activeAbility.abilityId[activeIndex] ==
               world.meleeIntent.abilityId[meleeIndex]) {
-        // Pursuit momentum overshoots contact during windup; regenerated mana
-        // can also resume hover before the strike's damaging pose. Hold the
-        // committed position and facing through recovery in either mode.
-        world.transform.velX[enemyTi] = 0.0;
+        // Keep the committed horizontal travel and facing instead of resuming
+        // pursuit/hover. Re-aiming here would defeat windup evasion; retaining
+        // approach momentum would overshoot an idle target.
+        final modeIndex = world.flyingEnemyCombatMode.indexOf(enemy);
+        world.transform.velX[enemyTi] =
+            world.activeAbility.phase[activeIndex] == AbilityPhase.recovery
+            ? 0.0
+            : world.flyingEnemyCombatMode.strikeVelocityX[modeIndex];
         world.transform.velY[enemyTi] = 0.0;
         continue;
       }

@@ -696,13 +696,21 @@ AABB corner beyond the strike's reach. Damage still resolves only in the
 ordinary active window; the target can move away during windup.
 
 `FlyingEnemyLocomotionSystem` suspends autonomous steering while the active
-ability matches the actor's committed melee intent. Both requested velocity
-axes are zeroed before terrain integration and facing is retained through
-windup, active frames and recovery. This prevents approach momentum from
-carrying the attacker past contact and prevents regenerated mana from resuming
-hover before the damaging pose. Ordinary terrain integration and subsequent
-external motion such as knockback retain authority. Steering timers and RNG do
-not advance during this hold; they resume after completion or interruption.
+ability matches the actor's committed melee intent. At commitment,
+`FlyingEnemyMeleeSystem` captures the selected target's horizontal velocity in
+`FlyingEnemyCombatModeStore.strikeVelocityX`, clamped to the attacker's horizontal
+flight-speed limit including its move-speed modifier. Before terrain integration,
+locomotion requests this fixed horizontal velocity through windup and active
+frames, with zero vertical velocity and the committed facing. Recovery requests
+zero on both axes. This preserves reach against steady running without carrying
+the faster approach momentum past an idle target. It does not track later target
+velocity or position changes, so windup evasion remains possible. Regenerated
+mana cannot resume hover before the damaging pose. Ordinary terrain integration
+and subsequent external motion such as knockback retain authority. The captured
+velocity follows the combat-mode store's entity lifecycle and is overwritten on
+each commit; only the matching active melee action may consume it. Steering
+timers and RNG do not advance during the action; they resume after completion or
+interruption.
 The combat-mode planner may select projectile mode during the strike, but
 active-ability gating prevents a new cast until recovery ends. This gameplay
 correction changes replay outcomes and requires a coordinated client/worker

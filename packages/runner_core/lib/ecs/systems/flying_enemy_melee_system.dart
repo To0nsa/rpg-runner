@@ -180,6 +180,18 @@ class FlyingEnemyMeleeSystem {
         recoveryTicks: recoveryTicks,
         facingDir: facing,
       );
+      final modifierIndex = world.statModifier.tryIndexOf(enemy);
+      final moveSpeedMul = modifierIndex == null
+          ? 1.0
+          : world.statModifier.moveSpeedMul[modifierIndex];
+      final maxSpeedX =
+          unocoDemonTuning.base.unocoDemonMaxSpeedX * moveSpeedMul;
+      // Match the runner's current travel, not the faster approach velocity.
+      // Capture once so later reversals, jumps and dashes can evade the swing.
+      combatMode.strikeVelocityX[i] = world.transform.velX[targetTi].clamp(
+        -maxSpeedX,
+        maxSpeedX,
+      );
       combatMode.requiresFallbackStrike[i] = false;
       world.enemy.lastMeleeTick[enemyIndex] = currentTick;
       world.enemy.lastMeleeFacing[enemyIndex] = facing;

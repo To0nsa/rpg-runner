@@ -20,10 +20,14 @@ class FlyingEnemyCombatModeDef {
   final bool requiresFallbackStrike;
 }
 
-/// Per flying-enemy combat mode selected by planner systems.
+/// Owns flying-enemy combat selection and committed melee travel.
 class FlyingEnemyCombatModeStore extends SparseSet {
   final List<FlyingEnemyCombatMode> mode = <FlyingEnemyCombatMode>[];
   final List<bool> requiresFallbackStrike = <bool>[];
+
+  /// Horizontal strike travel in world units/second, captured at commitment.
+  /// Only the matching active melee action consumes it; recovery holds still.
+  final List<double> strikeVelocityX = <double>[];
 
   void add(
     EntityId entity, [
@@ -32,19 +36,23 @@ class FlyingEnemyCombatModeStore extends SparseSet {
     final i = addEntity(entity);
     mode[i] = def.mode;
     requiresFallbackStrike[i] = def.requiresFallbackStrike;
+    strikeVelocityX[i] = 0.0;
   }
 
   @override
   void onDenseAdded(int denseIndex) {
     mode.add(FlyingEnemyCombatMode.projectile);
     requiresFallbackStrike.add(false);
+    strikeVelocityX.add(0.0);
   }
 
   @override
   void onSwapRemove(int removeIndex, int lastIndex) {
     mode[removeIndex] = mode[lastIndex];
     requiresFallbackStrike[removeIndex] = requiresFallbackStrike[lastIndex];
+    strikeVelocityX[removeIndex] = strikeVelocityX[lastIndex];
     mode.removeLast();
     requiresFallbackStrike.removeLast();
+    strikeVelocityX.removeLast();
   }
 }
