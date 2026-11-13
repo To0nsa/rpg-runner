@@ -83,10 +83,6 @@ const double eloiseAnimHitStepSeconds = 0.10;
 const int eloiseAnimDeathFrames = 6;
 const double eloiseAnimDeathStepSeconds = 0.12;
 
-// Spawn reuses idle timing/frames until a dedicated strip exists.
-const int eloiseAnimSpawnFrames = eloiseAnimIdleFrames;
-const double eloiseAnimSpawnStepSeconds = eloiseAnimIdleStepSeconds;
-
 const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.idle: eloiseAnimIdleFrames,
   AnimKey.stun: eloiseAnimStunFrames,
@@ -104,7 +100,6 @@ const Map<AnimKey, int> eloiseAnimFrameCountsByKey = <AnimKey, int>{
   AnimKey.roll: eloiseAnimRollFrames,
   AnimKey.hit: eloiseAnimHitFrames,
   AnimKey.death: eloiseAnimDeathFrames,
-  AnimKey.spawn: eloiseAnimSpawnFrames,
   AnimKey.walk: eloiseAnimWalkFrames,
 };
 
@@ -125,7 +120,6 @@ const Map<AnimKey, double> eloiseAnimStepTimeSecondsByKey = <AnimKey, double>{
   AnimKey.roll: eloiseAnimRollStepSeconds,
   AnimKey.hit: eloiseAnimHitStepSeconds,
   AnimKey.death: eloiseAnimDeathStepSeconds,
-  AnimKey.spawn: eloiseAnimSpawnStepSeconds,
   AnimKey.walk: eloiseAnimWalkStepSeconds,
 };
 
@@ -146,7 +140,6 @@ const Map<AnimKey, String> eloiseAnimSourcesByKey = <AnimKey, String>{
   AnimKey.roll: 'entities/player/roll.png',
   AnimKey.hit: 'entities/player/hit.png',
   AnimKey.death: 'entities/player/death.png',
-  AnimKey.spawn: 'entities/player/idle.png',
   AnimKey.walk: 'entities/player/walk.png',
 };
 
@@ -245,7 +238,6 @@ const PlayerTuning eloiseTuning = PlayerTuning(
   anim: AnimTuning(
     hitAnimSeconds: eloiseAnimHitFrames * eloiseAnimHitStepSeconds,
     deathAnimSeconds: eloiseAnimDeathFrames * eloiseAnimDeathStepSeconds,
-    spawnAnimSeconds: eloiseAnimSpawnFrames * eloiseAnimSpawnStepSeconds,
   ),
   combat: CombatTuning(invulnerabilitySeconds: 0.25),
 );

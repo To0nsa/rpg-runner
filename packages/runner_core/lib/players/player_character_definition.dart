@@ -246,8 +246,7 @@ class PlayerCharacterDefinition {
 
       // Tuning invariants (only basic sanity checks here).
       if (!tuning.anim.hitAnimSeconds.isFinite ||
-          !tuning.anim.deathAnimSeconds.isFinite ||
-          !tuning.anim.spawnAnimSeconds.isFinite) {
+          !tuning.anim.deathAnimSeconds.isFinite) {
         throw StateError(
           'PlayerCharacterDefinition($id) has non-finite AnimTuning seconds',
         );

@@ -736,7 +736,6 @@ class GameCore {
       currentTick: tick,
       playerDeathPhase: _playerDeathPhase,
       playerDeathStartTick: _playerDeathStartTick,
-      playerSpawnStartTick: _playerSpawnStartTick,
     );
     _combatHurtboxSystem.step(_world);
   }
@@ -1002,7 +1001,6 @@ class GameCore {
   /// selected world. The pure scheduler prewarm has already completed, but
   /// captured enemy/item mutations wait until the player and manager exist.
   void _spawnPlayer(double groundTopY) {
-    _playerSpawnStartTick = tick;
     _playerDeathPhase = DeathPhase.none;
     _playerDeathStartTick = -1;
     _playerDeathGrounded = null;
@@ -1195,7 +1193,6 @@ class GameCore {
   DeathPhase _playerDeathPhase = DeathPhase.none;
   int _playerDeathStartTick = -1;
   bool? _playerDeathGrounded;
-  int _playerSpawnStartTick = -1;
   // ─── ECS Systems ───
   // Stateless processors that operate on component stores.
 
@@ -1945,7 +1942,6 @@ class GameCore {
         playerDeathPhase: _playerDeathPhase,
         playerDeathStartTick: _playerDeathStartTick,
         playerDeathGrounded: _playerDeathGrounded,
-        playerSpawnStartTick: _playerSpawnStartTick,
       );
       _bossArenas.countScoreTick(tick);
       _deathAnimTicksLeft -= 1;
@@ -2256,7 +2252,6 @@ class GameCore {
       currentTick: tick,
       playerDeathPhase: _playerDeathPhase,
       playerDeathStartTick: _playerDeathStartTick,
-      playerSpawnStartTick: _playerSpawnStartTick,
     );
     _combatHurtboxSystem.step(_world);
     _projectilePoseSystem.step(_world, currentTick: tick);
@@ -2512,7 +2507,6 @@ class GameCore {
       currentTick: tick,
       playerDeathPhase: _playerDeathPhase,
       playerDeathStartTick: _playerDeathStartTick,
-      playerSpawnStartTick: _playerSpawnStartTick,
       advanceLocomotion: false,
     );
     _combatHurtboxSystem.step(_world);

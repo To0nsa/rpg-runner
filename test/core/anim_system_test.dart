@@ -45,7 +45,6 @@ void main() {
       int tick, {
       DeathPhase deathPhase = DeathPhase.none,
       int deathStartTick = -1,
-      int spawnStartTick = 0,
     }) {
       abilityPhaseSystem.step(world, currentTick: tick);
       animSystem.step(
@@ -54,7 +53,6 @@ void main() {
         currentTick: tick,
         playerDeathPhase: deathPhase,
         playerDeathStartTick: deathStartTick,
-        playerSpawnStartTick: spawnStartTick,
       );
     }
 
@@ -113,38 +111,35 @@ void main() {
         world.transform.velX[ti] = walkSpeed;
         world.transform.velY[ti] = 0.0;
 
-        final tick = playerAnimTuning.spawnAnimTicks + 1;
+        const tick = 1;
         animSystem.step(world, player: player, currentTick: tick);
 
         final ai = world.animState.indexOf(player);
         expect(world.animState.anim[ai], equals(AnimKey.walk));
       });
 
-      test('spawn uses spawn anim within window', () {
-        expect(playerAnimTuning.spawnAnimTicks, greaterThan(0));
+      test('player starts in idle at tick zero', () {
         final player = spawnPlayer(grounded: true);
 
         animSystem.step(world, player: player, currentTick: 0);
 
         final ai = world.animState.indexOf(player);
-        expect(world.animState.anim[ai], equals(AnimKey.spawn));
+        expect(world.animState.anim[ai], equals(AnimKey.idle));
       });
 
-      test('spawn uses spawnStartTick as frame origin', () {
-        expect(playerAnimTuning.spawnAnimTicks, greaterThan(2));
+      test('idle uses the global frame clock from the first tick', () {
         final player = spawnPlayer(grounded: true);
-        const spawnStartTick = 100;
 
-        stepPlayer(player, spawnStartTick + 2, spawnStartTick: spawnStartTick);
+        stepPlayer(player, 2);
 
         final ai = world.animState.indexOf(player);
-        expect(world.animState.anim[ai], equals(AnimKey.spawn));
+        expect(world.animState.anim[ai], equals(AnimKey.idle));
         expect(world.animState.animFrame[ai], equals(2));
       });
 
       test('dash uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
-        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        const tick = 5;
         const offset = 2;
         world.activeAbility.set(
           player,
@@ -166,7 +161,7 @@ void main() {
 
       test('dash movement ticks alone do not drive dash animation', () {
         final player = spawnPlayer(grounded: true);
-        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        const tick = 5;
         final movementIndex = world.movement.indexOf(player);
         world.movement.dashTicksLeft[movementIndex] = 5;
 
@@ -202,7 +197,7 @@ void main() {
 
       test('status-effect damage does not trigger hit animation', () {
         final player = spawnPlayer(grounded: true);
-        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        const tick = 5;
 
         world.lastDamage.add(player);
         final ldi = world.lastDamage.indexOf(player);
@@ -217,7 +212,7 @@ void main() {
 
       test('strike uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
-        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        const tick = 5;
         const offset = 1;
         world.activeAbility.set(
           player,
@@ -244,7 +239,7 @@ void main() {
           final movementIndex = world.movement.indexOf(player);
           world.movement.facing[movementIndex] = Facing.right;
 
-          final tick = playerAnimTuning.spawnAnimTicks + 5;
+          const tick = 5;
           const offset = 1;
           world.activeAbility.set(
             player,
@@ -271,7 +266,7 @@ void main() {
 
       test('charged shot uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
-        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        const tick = 5;
         const offset = 1;
         world.activeAbility.set(
           player,
@@ -296,7 +291,7 @@ void main() {
 
       test('quick shot uses active ability anim and frame', () {
         final player = spawnPlayer(grounded: true);
-        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        const tick = 5;
         const offset = 1;
         world.activeAbility.set(
           player,
@@ -321,7 +316,7 @@ void main() {
 
       test('does not clear active ability when ability id is unknown', () {
         final player = spawnPlayer(grounded: true);
-        final tick = playerAnimTuning.spawnAnimTicks + 5;
+        const tick = 5;
         const unknownAbilityId = 'test.unknown_ability';
         world.activeAbility.set(
           player,
@@ -346,7 +341,7 @@ void main() {
         'does not clear active ability when elapsed already exceeds total',
         () {
           final player = spawnPlayer(grounded: true);
-          final tick = playerAnimTuning.spawnAnimTicks + 5;
+          const tick = 5;
           world.activeAbility.set(
             player,
             id: 'eloise.quick_shot',

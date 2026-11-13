@@ -18,12 +18,13 @@ void main() {
       directionalStrike: true,
     );
 
-    test('spawn window is relative to spawnStartTick', () {
+    test('enemy spawn window is relative to spawnStartTick', () {
       final result = AnimResolver.resolve(
         profile,
-        AnimSignals.player(
+        AnimSignals.enemy(
           tick: 102,
           hp: 1,
+          deathPhase: DeathPhase.none,
           grounded: true,
           spawnStartTick: 100,
           spawnAnimTicks: 5,

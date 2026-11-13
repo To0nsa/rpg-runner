@@ -279,12 +279,7 @@ void main() {
                   tickHz: hz,
                   renderAnim: render,
                 ),
-              ).step(
-                h.world,
-                player: h.player,
-                currentTick: tick,
-                playerSpawnStartTick: -1000,
-              );
+              ).step(h.world, player: h.player, currentTick: tick);
               final anim = h.world.animState.anim.single;
               final visible =
                   h.world.animState.animFrame.single ~/
@@ -597,12 +592,7 @@ void main() {
         for (var tick = 1; tick <= hz + 1; tick++) {
           const ActiveAbilityPhaseSystem().step(h.world, currentTick: tick);
           MeleeStrikeSystem().step(h.world, currentTick: tick);
-          anim.step(
-            h.world,
-            player: h.player,
-            currentTick: tick,
-            playerSpawnStartTick: -1000,
-          );
+          anim.step(h.world, player: h.player, currentTick: tick);
           follow.step(h.world, currentTick: tick);
           grid.rebuild(h.world);
           hits.step(h.world, grid, currentTick: tick);

@@ -69,7 +69,6 @@ RenderAnimSetDefinition bountyHunterRenderAnim(ProjectileId weapon) {
   }
 
   strip(AnimKey.idle, 0, 8, .12);
-  strip(AnimKey.spawn, 0, 8, .06);
   strip(AnimKey.walk, 2, 8, .12);
   strip(AnimKey.run, 2, 8, .075);
   strip(AnimKey.jump, 4, 4, .09);
@@ -184,11 +183,7 @@ const bountyHunterTuning = PlayerTuning(
     jumpStaminaCost: 2,
     dashStaminaCost: 2,
   ),
-  anim: AnimTuning(
-    hitAnimSeconds: .27,
-    deathAnimSeconds: .7,
-    spawnAnimSeconds: .48,
-  ),
+  anim: AnimTuning(hitAnimSeconds: .27, deathAnimSeconds: .7),
   combat: CombatTuning(invulnerabilitySeconds: .25),
 );
 

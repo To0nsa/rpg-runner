@@ -363,12 +363,7 @@ class _Fixture {
     cast.step(world, player: player, currentTick: tick);
     melee.step(world, player: player, currentTick: tick);
     strikes.step(world, currentTick: tick);
-    anim.step(
-      world,
-      player: player,
-      currentTick: tick,
-      playerSpawnStartTick: -1000,
-    );
+    anim.step(world, player: player, currentTick: tick);
     hurtboxes.step(world);
     grid.rebuild(world);
     follow.step(world, currentTick: tick);

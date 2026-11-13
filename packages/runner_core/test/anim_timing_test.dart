@@ -62,17 +62,12 @@ void main() {
 
   test('player lifecycle windows use render-strip timing when available', () {
     final derived = AnimTuningDerived.from(
-      const AnimTuning(
-        hitAnimSeconds: 0.40,
-        deathAnimSeconds: 0.72,
-        spawnAnimSeconds: 0.56,
-      ),
+      const AnimTuning(hitAnimSeconds: 0.40, deathAnimSeconds: 0.72),
       tickHz: 60,
       renderAnim: renderAnim,
     );
 
     expect(derived.hitAnimTicks, 24);
     expect(derived.deathAnimTicks, 42);
-    expect(derived.spawnAnimTicks, 32);
   });
 }

@@ -64,6 +64,12 @@ Important: render does not decide gameplay phase. It only displays what Core alr
 4. Active action (ability-driven key/frame)
 5. Locomotion (jump/fall, spawn, idle, dash, walk, run)
 
+Players have no spawn animation or startup animation window. At tick zero and
+on the first live tick, Éloïse and Willow resolve ordinary idle, movement, or
+action poses immediately. Spawn windows apply only to autonomous actors whose
+profiles support them; enemy entrances and committed boss reappearances retain
+their existing clocks.
+
 Death takes precedence over retained living-actor stun locks. Derf's
 `AnimSystem` phase selection holds `transform` for its Core start-tick window
 while alive, then returns to this resolver. Normal-form idle/hit/death keys map
@@ -200,7 +206,6 @@ fullStripTicks = frameCountsByKey[key] * ticksPerFrameFor(key, tickHz)
 
 - `hitAnimSeconds`
 - `deathAnimSeconds`
-- `spawnAnimSeconds`
 
 When the selected player's `RenderAnimSetDefinition` supplies the matching
 strip, Core derives these lifecycle windows from the strip's quantized tick
@@ -209,7 +214,6 @@ without that strip timing. The resulting player windows control:
 
 - hit-react visibility window in `AnimResolver`
 - player death animation freeze/end handling in `GameCore`
-- player spawn animation window in `AnimResolver`
 
 They are not the per-ability action speed control. Enemy hit, spawn, and death
 durations are configured by their `EnemyCatalog` entries and use their render

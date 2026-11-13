@@ -87,6 +87,7 @@ class AnimSignals {
     this.activeActionFrame = 0,
   });
 
+  /// Player poses resolve immediately from gameplay state, without a spawn window.
   factory AnimSignals.player({
     required int tick,
     required int hp,
@@ -97,8 +98,6 @@ class AnimSignals {
     double velY = 0.0,
     int lastDamageTick = -1,
     int hitAnimTicks = 0,
-    int spawnStartTick = 0,
-    int spawnAnimTicks = 0,
     bool stunLocked = false,
     int stunStartTick = -1,
     AnimKey? activeActionAnim,
@@ -114,8 +113,6 @@ class AnimSignals {
       velY: velY,
       lastDamageTick: lastDamageTick,
       hitAnimTicks: hitAnimTicks,
-      spawnStartTick: spawnStartTick,
-      spawnAnimTicks: spawnAnimTicks,
       stunLocked: stunLocked,
       stunStartTick: stunStartTick,
       activeActionAnim: activeActionAnim,

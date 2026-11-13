@@ -273,11 +273,7 @@ class CombatTuningDerived {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AnimTuning {
-  const AnimTuning({
-    this.hitAnimSeconds = 0.40,
-    this.deathAnimSeconds = 0.72,
-    this.spawnAnimSeconds = 0.56,
-  });
+  const AnimTuning({this.hitAnimSeconds = 0.40, this.deathAnimSeconds = 0.72});
 
   static AnimTuning fromStripFrames({
     required Map<AnimKey, int> frameCounts,
@@ -294,17 +290,11 @@ class AnimTuning {
         frameCounts: frameCounts,
         stepTimeSecondsByKey: stepTimeSecondsByKey,
       ),
-      spawnAnimSeconds: anim_utils.secondsForKey(
-        key: AnimKey.spawn,
-        frameCounts: frameCounts,
-        stepTimeSecondsByKey: stepTimeSecondsByKey,
-      ),
     );
   }
 
   final double hitAnimSeconds;
   final double deathAnimSeconds;
-  final double spawnAnimSeconds;
 }
 
 class AnimTuningDerived {
@@ -313,7 +303,6 @@ class AnimTuningDerived {
     required this.base,
     required this.hitAnimTicks,
     required this.deathAnimTicks,
-    required this.spawnAnimTicks,
   });
 
   /// Compiles player animation lifecycle windows for [tickHz].
@@ -350,7 +339,6 @@ class AnimTuningDerived {
       base: base,
       hitAnimTicks: lifecycleTicksFor(AnimKey.hit, base.hitAnimSeconds),
       deathAnimTicks: lifecycleTicksFor(AnimKey.death, base.deathAnimSeconds),
-      spawnAnimTicks: lifecycleTicksFor(AnimKey.spawn, base.spawnAnimSeconds),
     );
   }
 
@@ -359,7 +347,6 @@ class AnimTuningDerived {
 
   final int hitAnimTicks;
   final int deathAnimTicks;
-  final int spawnAnimTicks;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

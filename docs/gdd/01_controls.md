@@ -64,6 +64,8 @@ not implemented.
 - All emit only `-1`, `0`, or `1`: backward, neutral, or forward. The choice
   changes touch presentation, never movement speed, acceleration or abilities.
 - Movement is allowed unless a **hard lock** exists (e.g., stun).
+- Éloïse and Willow start directly in their normal idle or movement animation.
+  Runs, Training Field and editor playtests have no player introductory animation.
 
 **Current implementation**
 - Default is **Arrows**. Holding both arrows or neither produces neutral input;

@@ -356,12 +356,7 @@ class _Fixture {
       world.animState.dashVisualFrame[world.animState.indexOf(player)];
   void step(int tick) {
     ActiveAbilityPhaseSystem().step(world, currentTick: tick);
-    system.step(
-      world,
-      player: player,
-      currentTick: tick,
-      playerSpawnStartTick: -1,
-    );
+    system.step(world, player: player, currentTick: tick);
   }
 
   void dash(int tick) {

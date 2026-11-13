@@ -48,7 +48,6 @@ class AnimSystem {
          supportsDash: true,
          supportsCast: true,
          supportsRanged: true,
-         supportsSpawn: true,
          supportsStun: true,
          directionalStrike: playerRenderAnim.sourcesByKey.containsKey(
            AnimKey.backStrike,
@@ -132,7 +131,6 @@ class AnimSystem {
     DeathPhase playerDeathPhase = DeathPhase.none,
     int playerDeathStartTick = -1,
     bool? playerDeathGrounded,
-    int playerSpawnStartTick = 0,
     bool advanceLocomotion = true,
   }) {
     _advanceLocomotion = advanceLocomotion;
@@ -143,7 +141,6 @@ class AnimSystem {
       deathPhase: playerDeathPhase,
       deathStartTick: playerDeathStartTick,
       deathGrounded: playerDeathGrounded,
-      spawnStartTick: playerSpawnStartTick,
     );
     _stepEnemies(world, currentTick: currentTick);
     for (var i = 0; i < world.npc.denseEntities.length; i++) {
@@ -172,7 +169,6 @@ class AnimSystem {
     required DeathPhase deathPhase,
     required int deathStartTick,
     required bool? deathGrounded,
-    required int spawnStartTick,
   }) {
     if (player < 0) return;
     if (!world.animState.has(player)) return;
@@ -205,8 +201,6 @@ class AnimSystem {
       velY: common.velY,
       lastDamageTick: common.lastDamageTick,
       hitAnimTicks: _playerAnimTuning.hitAnimTicks,
-      spawnStartTick: spawnStartTick,
-      spawnAnimTicks: _playerAnimTuning.spawnAnimTicks,
       stunLocked: common.stunLocked,
       stunStartTick: common.stunStartTick,
       activeActionAnim: activeAction.anim,
