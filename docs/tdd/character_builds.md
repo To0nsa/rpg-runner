@@ -77,6 +77,9 @@ validation, a busy state and retryable errors.
 
 Gear and Skills keep their widget subtrees mounted while switching builder
 tabs, retaining the selected slot, inspected item/ability and scroll positions.
+The Skills list starts at the bottom after its initial layout and when changing
+ability slots. Inspecting abilities and switching builder tabs preserve manual
+scrolling.
 Hidden editors disable tickers and focus and keep their viewport size when the
 app bar overlays Training Field. This browsing state lasts only for the builder
 route and selected character; it is not persisted in the saved build. Training

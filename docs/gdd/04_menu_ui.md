@@ -350,6 +350,8 @@ previously issued gifts credited to her without replacing current builds.
 - Header: “Character & Loadout”
 - Back returns to character selection. Gear, Skills and Training Field
   use the chosen character; Start and Restart use the remembered build directly.
+- The Skills sidebar opens at the bottom of each ability category. Manual
+  scrolling is retained while inspecting skills and switching builder tabs.
 
 - **Gear slots (4 slots)**
   - primary (main weapon)

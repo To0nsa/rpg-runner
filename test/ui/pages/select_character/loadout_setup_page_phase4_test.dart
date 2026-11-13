@@ -52,6 +52,79 @@ import 'package:rpg_runner/ui/pages/selectCharacter/skills/skills_radial_pane.da
 
 void main() {
   testWidgets(
+    'Skills sidebar starts at the bottom and retains manual scrolling',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.binding.setSurfaceSize(const Size(1000, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final appState = AppState.developer(
+        store: SharedPrefsDeveloperProfileStore(),
+      );
+      addTearDown(appState.dispose);
+      await appState.bootstrap();
+      await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(Tab).at(1));
+      await tester.pumpAndSettle();
+
+      final list = find.byType(SkillsListPane);
+      final scroll = find.descendant(
+        of: list,
+        matching: find.byType(Scrollable),
+      );
+      ScrollPosition position() =>
+          tester.state<ScrollableState>(scroll).position;
+      void expectBottom() {
+        expect(position().pixels, closeTo(position().maxScrollExtent, 0.01));
+        final last = tester.widget<SkillsListPane>(list).candidates.last;
+        expect(
+          find
+              .descendant(
+                of: list,
+                matching: find.text(
+                  abilityDisplayName(last.id, strings: gameStringsFor(null)),
+                ),
+              )
+              .hitTestable(),
+          findsOneWidget,
+        );
+      }
+
+      expectBottom();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(SkillsRadialPane),
+          matching: find.byIcon(
+            abilityRadialLayoutSpec.slotSpec(AbilitySlot.spell).icon,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(position().maxScrollExtent, greaterThan(0));
+      expectBottom();
+
+      await tester.drag(scroll, const Offset(0, 60));
+      await tester.pumpAndSettle();
+      final manualOffset = position().pixels;
+      expect(manualOffset, lessThan(position().maxScrollExtent));
+      await tester.tap(
+        find
+            .descendant(of: list, matching: find.byType(InkWell))
+            .hitTestable()
+            .first,
+      );
+      await tester.pumpAndSettle();
+      expect(position().pixels, closeTo(manualOffset, 0.01));
+      await tester.tap(find.byType(Tab).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(Tab).at(1));
+      await tester.pumpAndSettle();
+      expect(position().pixels, closeTo(manualOffset, 0.01));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Gear and Skills retain browsing state across tabs and Training Field',
     (tester) async {
       SharedPreferences.setMockInitialValues({});

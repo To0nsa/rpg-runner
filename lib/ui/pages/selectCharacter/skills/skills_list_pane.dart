@@ -14,7 +14,9 @@ import '../../../theme/ui_skill_icon_theme.dart';
 import '../../../theme/ui_tokens.dart';
 import '../ability/ability_picker_presenter.dart';
 
-class SkillsListPane extends StatelessWidget {
+/// Opens each ability slot's list at the bottom, retaining manual browsing
+/// while inspecting abilities or switching builder tabs.
+class SkillsListPane extends StatefulWidget {
   const SkillsListPane({
     super.key,
     required this.selectedSlot,
@@ -29,6 +31,39 @@ class SkillsListPane extends StatelessWidget {
   final AbilityKey? selectedAbilityId;
   final ValueChanged<AbilityPickerCandidate> onSelectAbility;
   final VoidCallback? onSelectProjectileSource;
+
+  @override
+  State<SkillsListPane> createState() => _SkillsListPaneState();
+}
+
+class _SkillsListPaneState extends State<SkillsListPane> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _startAtBottom();
+  }
+
+  @override
+  void didUpdateWidget(covariant SkillsListPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedSlot != widget.selectedSlot) _startAtBottom();
+  }
+
+  void _startAtBottom() {
+    // The list's extent is available only after its new category is laid out.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,11 +84,13 @@ class SkillsListPane extends StatelessWidget {
             child: Text(
               context.l10n.skillHeading(
                 slot:
-                    selectedSlot == AbilitySlot.spell &&
-                        (selectedAbilityId?.startsWith('bounty_hunter.') ??
+                    widget.selectedSlot == AbilitySlot.spell &&
+                        (widget.selectedAbilityId?.startsWith(
+                              'bounty_hunter.',
+                            ) ??
                             false)
                     ? 'fieldcraft'
-                    : selectedSlot.name,
+                    : widget.selectedSlot.name,
               ),
               style: ui.text.headline.copyWith(
                 color: ui.colors.textPrimary,
@@ -72,25 +109,26 @@ class SkillsListPane extends StatelessWidget {
             color: ui.colors.outline.withValues(alpha: 0.35),
           ),
           SizedBox(height: ui.space.xxs),
-          if (onSelectProjectileSource != null) ...[
+          if (widget.onSelectProjectileSource != null) ...[
             Align(
               alignment: Alignment.center,
               child: AppButton(
                 label: context.l10n.uiSelectProjectile,
                 variant: AppButtonVariant.secondary,
                 size: AppButtonSize.sm,
-                onPressed: onSelectProjectileSource,
+                onPressed: widget.onSelectProjectileSource,
               ),
             ),
           ],
           SizedBox(height: ui.space.xxs),
           Expanded(
             child: ListView.separated(
-              itemCount: candidates.length,
+              controller: _scrollController,
+              itemCount: widget.candidates.length,
               separatorBuilder: (_, _) => SizedBox(height: ui.space.xxs),
               itemBuilder: (context, index) {
-                final candidate = candidates[index];
-                final selected = candidate.id == selectedAbilityId;
+                final candidate = widget.candidates[index];
+                final selected = candidate.id == widget.selectedAbilityId;
                 return _AbilityListTile(
                   abilityId: candidate.id,
                   title: abilityDisplayName(
@@ -100,7 +138,7 @@ class SkillsListPane extends StatelessWidget {
                   selected: selected,
                   isOwned: candidate.isOwned,
                   isLegal: candidate.isEnabled,
-                  onTap: () => onSelectAbility(candidate),
+                  onTap: () => widget.onSelectAbility(candidate),
                 );
               },
             ),
