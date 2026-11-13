@@ -1,5 +1,7 @@
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../collision/terrain/terrain_numeric.dart';
+import '../../combat/combat_geometry.dart';
 import '../../combat/control_lock.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../snapshots/enums.dart';
@@ -9,6 +11,7 @@ import '../../util/fixed_math.dart';
 import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../combat_target.dart';
+import '../hit/capsule_hit_utils.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
@@ -113,6 +116,17 @@ class FlyingEnemyMeleeSystem {
         );
       }
 
+      final facing = targetCenterX >= enemyCenterX ? Facing.right : Facing.left;
+      if (!_strikeReachesTarget(
+        world,
+        enemyTransformIndex: enemyTi,
+        target: target,
+        profile: hitDelivery.profile,
+        facing: facing,
+      )) {
+        continue;
+      }
+
       final actionSpeedBp = _actionSpeedBpForEntity(world, enemy);
       final windupTicks = _scaleTicksForActionSpeed(
         _scaleAbilityTicks(meleeAbility.windupTicks),
@@ -128,7 +142,6 @@ class FlyingEnemyMeleeSystem {
         actionSpeedBp,
       );
 
-      final facing = targetCenterX >= enemyCenterX ? Facing.right : Facing.left;
       world.enemy.facing[enemyIndex] = facing;
       final dirX = facing == Facing.right ? 1.0 : -1.0;
 
@@ -173,6 +186,75 @@ class FlyingEnemyMeleeSystem {
       world.enemy.lastMeleeAnimTicks[enemyIndex] =
           windupTicks + activeTicks + recoveryTicks;
     }
+  }
+
+  bool _strikeReachesTarget(
+    EcsWorld world, {
+    required int enemyTransformIndex,
+    required EntityId target,
+    required CombatStrikeProfile profile,
+    required Facing facing,
+  }) {
+    final ti = world.transform.indexOf(target);
+    final targetX = world.transform.posX[ti];
+    final targetY = world.transform.posY[ti];
+    final hi = world.combatHurtbox.tryIndexOf(target);
+    var body = hi == null ? null : world.combatHurtbox.capsule[hi];
+    if (body == null) {
+      final ci = world.worldContactCapsule.tryIndexOf(target);
+      if (ci != null) {
+        final capsule = world.worldContactCapsule;
+        final scale = terrainPhysicsTicksPerWorldUnit.toDouble();
+        final x =
+            capsule.offsetXTicks[ci] *
+            colliderFacingSign(world, target) /
+            scale;
+        final y = capsule.offsetYTicks[ci] / scale;
+        final spine = capsule.verticalHalfSegmentTicks[ci] / scale;
+        body = CombatCapsule(
+          x,
+          y - spine,
+          x,
+          y + spine,
+          capsule.radiusTicks[ci] / scale,
+        );
+      } else {
+        // Isolated commit tests can omit terrain preparation; retain the same
+        // upright capsule baseline that preparation derives from their AABB.
+        final ai = world.colliderAabb.tryIndexOf(target);
+        if (ai == null) return false;
+        final aabb = world.colliderAabb;
+        final x = aabb.offsetX[ai] * colliderFacingSign(world, target);
+        final y = aabb.offsetY[ai];
+        final radius = aabb.halfX[ai];
+        final spine = (aabb.halfY[ai] - radius).clamp(0.0, double.infinity);
+        body = CombatCapsule(x, y - spine, x, y + spine, radius);
+      }
+    }
+    final enemyX = world.transform.posX[enemyTransformIndex];
+    final enemyY = world.transform.posY[enemyTransformIndex];
+    final mirror = facing == profile.artFacing ? 1.0 : -1.0;
+    // Body AABBs can touch above a rounded head while the strike still falls
+    // short. Keep approaching until authored damage geometry can reach it.
+    for (final frame in profile.frames) {
+      for (final strike in frame) {
+        if (capsulesOverlap(
+          firstAx: enemyX + strike.ax * mirror,
+          firstAy: enemyY + strike.ay,
+          firstBx: enemyX + strike.bx * mirror,
+          firstBy: enemyY + strike.by,
+          firstRadius: strike.radius,
+          secondAx: targetX + body.ax,
+          secondAy: targetY + body.ay,
+          secondBx: targetX + body.bx,
+          secondBy: targetY + body.by,
+          secondRadius: body.radius,
+        )) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   bool _canAffordCost(

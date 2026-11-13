@@ -121,6 +121,13 @@ cannot phase or relocate through terrain. After the short detour it returns to
 ordinary hover/combat steering; its attack ranges, projectile/melee timing,
 aiming policy, attack origins, cooldowns, and facing behavior are unchanged.
 
+When Unoco lacks mana for Fire Bolt, it approaches its target until body contact
+and its strike shape can reach the target's body, then commits a melee strike.
+It holds its position and facing through the strike's windup, active window,
+and recovery. Regenerating enough mana to cast
+does not make it retreat into hover during that strike. Once recovery ends,
+ordinary combat steering resumes. The target can still evade during windup.
+
 ## Derf Placement and Transformation
 
 Derf starts as a stationary explosion caster. First body visibility starts his

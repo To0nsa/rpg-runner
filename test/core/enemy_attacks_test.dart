@@ -430,11 +430,19 @@ void main() {
       expect(world.meleeIntent.tick[meleeIntentIndex], equals(-1));
       expect(world.projectileIntent.tick[projectileIntentIndex], equals(-1));
 
-      // Force contact to allow fallback strike commit.
+      // Touching body AABBs alone leaves the small round target out of reach.
       final enemyTransformIndex = world.transform.indexOf(unocoDemon);
       world.transform.setPosXY(
         unocoDemon,
         116.0,
+        world.transform.posY[enemyTransformIndex],
+      );
+      flyingMeleeSystem.step(world, player: player, currentTick: 1);
+      expect(world.meleeIntent.tick[meleeIntentIndex], equals(-1));
+
+      world.transform.setPosXY(
+        unocoDemon,
+        114.0,
         world.transform.posY[enemyTransformIndex],
       );
 
@@ -570,11 +578,11 @@ void main() {
       equals(-1),
     );
 
-    // Move into contact and commit fallback strike.
+    // Move within the authored strike's reach and commit the fallback.
     final enemyTransformIndex = world.transform.indexOf(unocoDemon);
     world.transform.setPosXY(
       unocoDemon,
-      116.0,
+      114.0,
       world.transform.posY[enemyTransformIndex],
     );
     flyingCombatModeSystem.step(world);

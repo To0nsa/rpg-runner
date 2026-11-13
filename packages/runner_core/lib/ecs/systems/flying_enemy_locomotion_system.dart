@@ -65,6 +65,21 @@ class FlyingEnemyLocomotionSystem {
         continue;
       }
 
+      final activeIndex = world.activeAbility.tryIndexOf(enemy);
+      final meleeIndex = world.meleeIntent.tryIndexOf(enemy);
+      if (activeIndex != null &&
+          meleeIndex != null &&
+          world.activeAbility.abilityId[activeIndex] != null &&
+          world.activeAbility.abilityId[activeIndex] ==
+              world.meleeIntent.abilityId[meleeIndex]) {
+        // Pursuit momentum overshoots contact during windup; regenerated mana
+        // can also resume hover before the strike's damaging pose. Hold the
+        // committed position and facing through recovery in either mode.
+        world.transform.velX[enemyTi] = 0.0;
+        world.transform.velY[enemyTi] = 0.0;
+        continue;
+      }
+
       final enemyIndex = world.enemy.tryIndexOf(enemy);
       if (enemyIndex == null) {
         assert(

@@ -687,6 +687,27 @@ directly and receives no rectangle solid list.
 
 ## Unoco Flying Contact, Hover, And Clearance
 
+`FlyingEnemyMeleeSystem` requires both body-AABB contact and overlap between an
+authored strike capsule (mirrored for the proposed facing) and the target's
+resolved body capsule before commitment. Before a body pose is available it
+uses the stable terrain capsule, or the equivalent AABB-derived baseline in
+isolated fixtures. This prevents an overhead approach from committing at an
+AABB corner beyond the strike's reach. Damage still resolves only in the
+ordinary active window; the target can move away during windup.
+
+`FlyingEnemyLocomotionSystem` suspends autonomous steering while the active
+ability matches the actor's committed melee intent. Both requested velocity
+axes are zeroed before terrain integration and facing is retained through
+windup, active frames and recovery. This prevents approach momentum from
+carrying the attacker past contact and prevents regenerated mana from resuming
+hover before the damaging pose. Ordinary terrain integration and subsequent
+external motion such as knockback retain authority. Steering timers and RNG do
+not advance during this hold; they resume after completion or interruption.
+The combat-mode planner may select projectile mode during the strike, but
+active-ability gating prevents a new cast until recovery ends. This gameplay
+correction changes replay outcomes and requires a coordinated client/worker
+compatibility release; no deployment is included in this source change.
+
 Unoco keeps its existing randomized `60-180`-world-unit hover-height and
 desired-range state. `FlyingEnemyLocomotionSystem` consumes RNG in the same
 order as the legacy path, resolves the same projectile/melee combat mode and
@@ -1067,6 +1088,12 @@ one-way pass-through, support suppression, and repeated bounded wall-detour
 routes without tangent oscillation, relocation, phasing, or new RNG. Existing
 Unoco steering and attack tests retain combat-mode, timing, target, origin, and
 facing coverage.
+`test/ecs/flying_enemy_melee_test.dart` adds continuous approach-to-damage
+regressions on flat solid terrain for both playable characters, approaches from
+both sides and directly overhead, and 30/60/90 Hz, with and without mana
+regeneration. It checks the committed pose through recovery, one melee hit,
+casting after recovery when mana permits, and a moving target evading during
+windup.
 Derf placement tests cover flat, exact-`45°`, just-over-limit, exact-32-pixel,
 just-under-width, blocked headroom, adjacent wall, both-direction same-support
 clamp, terminal absent/fallback rejection, stable diagnostics, streamed spawn
