@@ -9,7 +9,10 @@ import 'package:runner_core/meta/meta_service.dart';
 import 'package:game_presentation/game_icon.dart';
 
 import '../../../theme/ui_tokens.dart';
-import 'gear_picker_parts.dart';
+import '../../../components/item_picker_tile.dart';
+
+import 'package:game_presentation/gear_text.dart';
+import 'package:game_presentation/game_localization.dart';
 
 /// Right-side candidate panel.
 ///
@@ -195,60 +198,17 @@ class _GearCandidateTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
     final iconSize = (tileSize * 0.75).clamp(24.0, 48.0);
-    final selectedFillColor = UiBrandPalette.steelBlueInsetBottom;
-    final defaultFillColor = ui.colors.cardBackground;
-    final borderColor = selected
-        ? ui.colors.accentStrong
-        : (isEquipped ? ui.colors.success : ui.colors.outline);
-    final fillColor = selected ? selectedFillColor : defaultFillColor;
-    final radius = ui.radii.sm;
-
     return Align(
       alignment: Alignment.center,
       child: SizedBox.square(
         dimension: tileSize,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(radius),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              curve: Curves.easeOutCubic,
-              decoration: BoxDecoration(
-                color: fillColor,
-                borderRadius: BorderRadius.circular(radius),
-                border: Border.all(
-                  color: borderColor,
-                  width: selected ? ui.sizes.borderWidth : 1,
-                ),
-                boxShadow: selected ? ui.shadows.card : null,
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Center(
-                    child: GameIcon.gear(slot: slot, id: id, size: iconSize),
-                  ),
-                  if (isEquipped || selected)
-                    Positioned(
-                      top: 2,
-                      right: 2,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isEquipped) StateDot(color: ui.colors.success),
-                          if (isEquipped && selected) const SizedBox(width: 2),
-                          if (selected) StateDot(color: ui.colors.accentStrong),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
+        child: ItemPickerTile(
+          label: gearDisplayNameForSlot(slot, id, strings: context.gameL10n),
+          icon: GameIcon.gear(slot: slot, id: id, size: iconSize),
+          selected: selected,
+          statusLabel: isEquipped ? context.l10n.pickerEquipped : null,
+          onTap: onTap,
         ),
       ),
     );

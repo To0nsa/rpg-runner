@@ -21,15 +21,17 @@ import 'skills/skills_details_pane.dart';
 import 'skills/skills_list_pane.dart';
 import 'skills/skills_projectile_source_dialog.dart';
 import 'skills/skills_radial_pane.dart';
+import 'save_build_change.dart';
 
 /// Selection-screen skills surface for one [PlayerCharacterId].
 ///
 /// Keeps only ephemeral UI state locally (selected slot and inspected ability)
 /// while persisting actual loadout changes through [AppState].
 class SkillsBar extends StatefulWidget {
-  const SkillsBar({super.key, required this.characterId});
+  const SkillsBar({super.key, required this.characterId, this.buildIndex});
 
   final PlayerCharacterId characterId;
+  final int? buildIndex;
 
   @override
   State<SkillsBar> createState() => _SkillsBarState();
@@ -46,7 +48,10 @@ class _SkillsBarState extends State<SkillsBar> {
   Widget build(BuildContext context) {
     final ui = context.ui;
     final appState = context.watch<AppState>();
-    final loadout = appState.selection.loadoutFor(widget.characterId);
+    final loadout = appState.selection.loadoutFor(
+      widget.characterId,
+      buildIndex: widget.buildIndex,
+    );
     final availableSlots = _availableSlotsForMask(loadout.mask);
     final selectedSlot = _selectedSlotForBuild(availableSlots);
     final abilityOwnership = appState.meta.abilityOwnershipFor(
@@ -182,10 +187,14 @@ class _SkillsBarState extends State<SkillsBar> {
     if (!candidate.isOwned || !candidate.isEnabled) return;
     final equippedAbilityId = abilityIdForSlot(loadout, slot);
     if (equippedAbilityId == candidate.id) return;
-    await appState.setAbilitySlot(
-      characterId: widget.characterId,
-      slot: slot,
-      abilityId: candidate.id,
+    await saveBuildChange(
+      context,
+      () => appState.setAbilitySlot(
+        characterId: widget.characterId,
+        buildIndex: widget.buildIndex,
+        slot: slot,
+        abilityId: candidate.id,
+      ),
     );
   }
 
@@ -223,9 +232,13 @@ class _SkillsBarState extends State<SkillsBar> {
       options: options,
       initialSelection: loadout.projectileSlotSpellId,
       onSelect: (sourceSpellId) async {
-        await appState.setProjectileSpell(
-          characterId: widget.characterId,
-          spellId: sourceSpellId!,
+        await saveBuildChange(
+          context,
+          () => appState.setProjectileSpell(
+            characterId: widget.characterId,
+            buildIndex: widget.buildIndex,
+            spellId: sourceSpellId!,
+          ),
         );
       },
     );

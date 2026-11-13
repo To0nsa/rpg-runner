@@ -1,3 +1,11 @@
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/track/chunk_pattern.dart';
+import 'package:runner_core/interactions/world_interaction_catalog.dart';
+import 'package:runner_editor/src/app/pages/campaign/campaign_steps_tutorial_dialog.dart';
+import 'package:runner_editor/src/app/pages/campaign/campaign_tutorial_sequences.dart';
+
+import 'support/playtest_display_fixture.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,11 +15,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_overview.dart';
+import 'package:runner_editor/src/app/pages/campaign/campaign_route.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_marker_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_actor_terrain_projection.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_zoom_controls.dart';
+import 'package:runner_editor/src/app/pages/shared/authored_playtest_session.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_page.dart';
+import 'package:runner_editor/src/app/pages/campaign/campaign_journal_preview.dart';
+import 'package:runner_editor/src/app/pages/shared/playtest_launch_dialog.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_contents.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_marker_palette.dart';
 import 'package:runner_editor/src/app/pages/campaign/campaign_marker_editing.dart';
@@ -35,6 +47,7 @@ import 'package:runner_editor/src/workspace/editor_workspace.dart';
 import 'package:rpg_runner/playtest.dart';
 
 void main() {
+  setUp(installCalibratedDisplayFixture);
   final repo = Directory.current.parent.parent.path;
   late Directory fixture;
   late EditorWorkspace workspace;
@@ -105,6 +118,9 @@ void main() {
       );
   Map<String, Object?> layout(CampaignDocument d) => d.selected.toJson()
     ..remove('placements')
+    ..remove('tutorialSequences')
+    ..remove('requiresFirstCoin')
+    ..remove('blessingObjectiveShrineId')
     ..['collectibles'] = []
     ..['requiredRegions'] = []
     ..['requiredEnemies'] = []
@@ -113,9 +129,9 @@ void main() {
       for (final id in ['first', 'second'])
         {'id': id, 'levelId': 'forest', 'chunkKey': 'forest_campaign_fixture'},
     ]
-    ..['start'] = {'occurrenceId': 'first', 'x': 60, 'y': 224}
+    ..['start'] = {'missionChunkId': 'first', 'x': 60, 'y': 224}
     ..['exit'] = {
-      'origin': {'occurrenceId': 'second', 'x': 500, 'y': 0},
+      'origin': {'missionChunkId': 'second', 'x': 500, 'y': 0},
       'width': 100,
       'height': 270,
     };
@@ -153,6 +169,530 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Tutorial sequences tab edits through history and previews through launch settings',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1300, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      _copyTutorialAtlases(repo, fixture.path);
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final original = controller.document as CampaignDocument;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              controller: controller,
+              initialLocation: CampaignLocation(
+                original.selected.id,
+                tab: CampaignTab.tutorials,
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(find.text('Tutorial sequences'), findsOneWidget);
+      await tester.tap(find.text('Visible at mission start'));
+      await _pumpWorkspace(tester);
+      final jump = find.widgetWithText(CheckboxListTile, 'Jump');
+      await tester.ensureVisible(jump);
+      await tester.tap(jump);
+      await _pumpWorkspace(tester);
+      expect(
+        (controller.document as CampaignDocument).selected.initialTutorialHud,
+        contains(TutorialHudElement.jump),
+      );
+      controller.undo();
+      await _pumpWorkspace(tester);
+      expect(
+        (controller.document as CampaignDocument).selected.initialTutorialHud,
+        original.selected.initialTutorialHud,
+      );
+      await tester.ensureVisible(find.text('Visible at mission start'));
+      await _pumpWorkspace(tester);
+      await tester.tap(find.text('Visible at mission start'));
+      await _pumpWorkspace(tester);
+      final editButton = find.text('Edit sequence').first;
+      await tester.ensureVisible(editButton);
+      await tester.tap(editButton);
+      await _pumpWorkspace(tester);
+      expect(find.byType(CampaignTutorialDialog), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CampaignTutorialDialog),
+          matching: find.byType(Switch),
+        ),
+      );
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CampaignTutorialDialog),
+          matching: find.text('Apply'),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(
+        (controller.document as CampaignDocument)
+            .selected
+            .tutorialSequences
+            .first
+            .enabled,
+        isFalse,
+      );
+      controller.undo();
+      await _pumpWorkspace(tester);
+      expect(
+        (controller.document as CampaignDocument)
+            .selected
+            .tutorialSequences
+            .first
+            .enabled,
+        isTrue,
+      );
+      final preview = find.text('Preview sequence').first;
+      await tester.ensureVisible(preview);
+      await tester.tap(preview);
+      await _pumpWorkspace(tester);
+      expect(find.byType(PlaytestLaunchDialog), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(PlaytestLaunchDialog),
+          matching: find.text('Cancel'),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(find.byType(PlaytestLaunchDialog), findsNothing);
+      final decorationCard = find.byKey(
+        const ValueKey('decoration_introduction'),
+      );
+      await tester.scrollUntilVisible(
+        decorationCard,
+        400,
+        scrollable: find
+            .descendant(
+              of: find.byType(CampaignTutorialSequences),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      final decorationEdit = find.descendant(
+        of: decorationCard,
+        matching: find.text('Edit sequence'),
+      );
+      await tester.ensureVisible(decorationEdit);
+      await tester.tap(decorationEdit);
+      await _pumpWorkspace(tester);
+      final decorationDialog = tester.widget<CampaignTutorialDialog>(
+        find.byType(CampaignTutorialDialog),
+      );
+      expect(
+        decorationDialog.spritesByChunk['mission_chunk_2']!.any(
+          (s) => s.prefabKey == 'pixel_fantasy_caves_tree_02',
+        ),
+        isTrue,
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Sequence name'),
+        'Authored decoration',
+      );
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CampaignTutorialDialog),
+          matching: find.text('Apply'),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(
+        (controller.document as CampaignDocument).selected.tutorialSequences
+            .whereType<CampaignDecorationTutorial>()
+            .single
+            .name,
+        'Authored decoration',
+      );
+      controller.undo();
+      await _pumpWorkspace(tester);
+      expect(
+        (controller.document as CampaignDocument).selected.tutorialSequences
+            .whereType<CampaignDecorationTutorial>()
+            .single
+            .name,
+        'Decorations and obstacles',
+      );
+      final gapCard = find.byKey(const ValueKey('gap_introduction'));
+      await tester.scrollUntilVisible(
+        gapCard,
+        400,
+        scrollable: find
+            .descendant(
+              of: find.byType(CampaignTutorialSequences),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      final gapEdit = find.descendant(
+        of: gapCard,
+        matching: find.text('Edit sequence'),
+      );
+      await tester.ensureVisible(gapEdit);
+      await tester.tap(gapEdit);
+      await _pumpWorkspace(tester);
+      final gapDialog = tester.widget<CampaignTutorialDialog>(
+        find.byType(CampaignTutorialDialog),
+      );
+      expect(gapDialog.gapsByChunk['mission_chunk_3']!.single.width, 69);
+      final distance = find.widgetWithText(
+        TextFormField,
+        'Approach distance before gap (world units)',
+      );
+      await tester.ensureVisible(distance);
+      await tester.enterText(distance, '110');
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CampaignTutorialDialog),
+          matching: find.text('Apply'),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(
+        ((controller.document as CampaignDocument).selected.tutorialSequences
+                .whereType<CampaignGapTutorial>()
+                .single)
+            .approachDistance,
+        110,
+      );
+      controller.undo();
+      await _pumpWorkspace(tester);
+      expect(
+        ((controller.document as CampaignDocument).selected.tutorialSequences
+                .whereType<CampaignGapTutorial>()
+                .single)
+            .approachDistance,
+        96,
+      );
+      final platformCard = find.byKey(const ValueKey('platform_introduction'));
+      await tester.scrollUntilVisible(
+        platformCard,
+        400,
+        scrollable: find
+            .descendant(
+              of: find.byType(CampaignTutorialSequences),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      final platformEdit = find.descendant(
+        of: platformCard,
+        matching: find.text('Edit sequence'),
+      );
+      await tester.ensureVisible(platformEdit);
+      await tester.tap(platformEdit);
+      await _pumpWorkspace(tester);
+      final platformDialog = tester.widget<CampaignTutorialDialog>(
+        find.byType(CampaignTutorialDialog),
+      );
+      expect(
+        platformDialog.platformsByChunk['mission_chunk_4']!.first.bounds.x,
+        160,
+      );
+      final platformDistance = find.widgetWithText(
+        TextFormField,
+        'Approach distance before platform (world units)',
+      );
+      await tester.ensureVisible(platformDistance);
+      await tester.enterText(platformDistance, '80');
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CampaignTutorialDialog),
+          matching: find.text('Apply'),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(
+        ((controller.document as CampaignDocument).selected.tutorialSequences
+                .whereType<CampaignPlatformTutorial>()
+                .single)
+            .approachDistance,
+        80,
+      );
+      controller.undo();
+      await _pumpWorkspace(tester);
+      expect(
+        ((controller.document as CampaignDocument).selected.tutorialSequences
+                .whereType<CampaignPlatformTutorial>()
+                .single)
+            .approachDistance,
+        64,
+      );
+      final blessingCard = find.byKey(const ValueKey('blessing_introduction'));
+      await tester.scrollUntilVisible(
+        blessingCard,
+        400,
+        scrollable: find
+            .descendant(
+              of: find.byType(CampaignTutorialSequences),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      final blessingEdit = find.descendant(
+        of: blessingCard,
+        matching: find.text('Edit sequence'),
+      );
+      await tester.ensureVisible(blessingEdit);
+      await tester.tap(blessingEdit);
+      await _pumpWorkspace(tester);
+      final blessingDialog = tester.widget<CampaignStepsTutorialDialog>(
+        find.byType(CampaignStepsTutorialDialog),
+      );
+      expect(blessingDialog.shrines.single.id, 'shrine');
+      final blessingDistance = find.widgetWithText(
+        TextFormField,
+        'Approach distance before shrine (world units)',
+      );
+      await tester.ensureVisible(blessingDistance);
+      await tester.enterText(blessingDistance, '84');
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CampaignStepsTutorialDialog),
+          matching: find.text('Apply'),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      expect(
+        (controller.document as CampaignDocument).selected.tutorialSequences
+            .whereType<CampaignBlessingTutorial>()
+            .single
+            .approachDistance,
+        84,
+      );
+      expect(
+        (controller.document as CampaignDocument)
+            .selected
+            .blessingObjectiveShrineId,
+        'shrine',
+      );
+      controller.undo();
+      await _pumpWorkspace(tester);
+      expect(
+        (controller.document as CampaignDocument).selected.tutorialSequences
+            .whereType<CampaignBlessingTutorial>()
+            .single
+            .approachDistance,
+        96,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  test('tutorial edits survive Undo, Save and frozen authored Play capture', () async {
+    final chunkFile = File(
+      '${fixture.path}/assets/authoring/level/chunks/forest/forest_campaign_fixture.json',
+    );
+    final chunkJson =
+        jsonDecode(chunkFile.readAsStringSync()) as Map<String, dynamic>;
+    final gapChunk = jsonDecode(
+      File(
+        '$repo/assets/authoring/level/chunks/forest/forest_default_early_cmp_004.json',
+      ).readAsStringSync(),
+    );
+    chunkJson['collisionShapes'] = gapChunk['collisionShapes'];
+    chunkJson['waterRegions'] = [
+      {
+        'id': 'pool',
+        'x': 300,
+        'y': 224,
+        'width': 96,
+        'height': 46,
+        'materialKey': 'biome_water',
+      },
+    ];
+    chunkJson['prefabs'] = [
+      {
+        'prefabId': 'pixel_fantasy_caves_tree_02',
+        'prefabKey': 'pixel_fantasy_caves_tree_02',
+        'x': 484,
+        'y': 162,
+        'zIndex': -1,
+        'snapToGrid': false,
+      },
+    ];
+    const platformKey = 'tiny_swords_ground_platform_04_64x32_platform';
+    (chunkJson['prefabs'] as List).add({
+      'prefabId': platformKey,
+      'prefabKey': platformKey,
+      'x': 450,
+      'y': 160,
+      'zIndex': 0,
+      'snapToGrid': false,
+    });
+    _copyTutorialAtlases(repo, fixture.path);
+    chunkFile.writeAsStringSync(jsonEncode(chunkJson));
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+      initialPluginId: plugin.id,
+      initialWorkspacePath: fixture.path,
+    );
+    addTearDown(controller.dispose);
+    await controller.loadWorkspace();
+    final original = controller.document as CampaignDocument;
+    final tutorial = CampaignMovementTutorial.movementIntroduction().toJson();
+    tutorial['name'] = 'Authored movement';
+    final coin = CampaignCoinTutorial.introduction().toJson();
+    final objectives = CampaignObjectivesTutorial.introduction().toJson();
+    final jump = CampaignJumpTutorial.introduction(missionChunkId: 'second')
+        .toJson();
+    final water = CampaignWaterTutorial.introduction(
+      missionChunkId: 'second',
+      waterRegionId: 'pool',
+    ).toJson();
+    final swim = CampaignSwimmingTutorial.introduction().toJson();
+    final decoration = CampaignDecorationTutorial.introduction(
+      missionChunkId: 'second',
+      waterRegionId: 'pool',
+      decorationPrefabKey: 'pixel_fantasy_caves_tree_02',
+    ).toJson();
+    final gap = CampaignGapTutorial.introduction(
+      missionChunkId: 'second',
+      nearGroundShapeId: 'ground_001',
+      farGroundShapeId: 'solid_002',
+    ).toJson();
+    final platform = CampaignPlatformTutorial.introduction(
+      missionChunkId: 'second',
+      platformPrefabKey: platformKey,
+    ).toJson();
+    final blessing = CampaignBlessingTutorial.introduction(shrineId: 'basin')
+        .toJson();
+    final mobility = CampaignMobilityTutorial.introduction(
+      missionChunkId: 'second',
+      triggerX: 220,
+    ).toJson();
+    final combat = CampaignCombatTutorial.introduction(
+      missionChunkId: 'first',
+      markerSalt: 97,
+    ).toJson();
+    final updated = layout(original)
+      ..['blessingObjectiveShrineId'] = 'basin'
+      ..['placements'] = [
+        CampaignEnemySource(
+          'practice_enemy',
+          CampaignPoint(missionChunkId: 'first', x: 400, y: 224),
+          marker: const SpawnMarker(
+            enemyId: EnemyId.grojib,
+            x: 400,
+            chancePercent: 100,
+            salt: 97,
+          ),
+          required: false,
+        ).toJson(),
+        CampaignShrineSource(
+          'basin',
+          CampaignPoint(missionChunkId: 'second', x: 60, y: 224),
+          prefabKey: null,
+          placementKey: null,
+          shapeId: 'ground_001',
+          appearance: WorldInteractionAppearanceId.emberFlame,
+          activationWidth: 24,
+          scale: 1,
+        ).toJson(),
+      ]
+      ..['requiresFirstCoin'] = true
+      ..['collectibles'] = [
+        {'missionChunkId': 'first', 'x': 120, 'y': 205},
+      ]
+      ..['tutorialSequences'] = [
+        tutorial,
+        objectives,
+        coin,
+        jump,
+        water,
+        swim,
+        decoration,
+        gap,
+        platform,
+        blessing,
+        mobility,
+        combat,
+      ]
+      ..['initialTutorialHud'] = ['movement'];
+    controller.applyCommand(edit(original, updated));
+    final authored = controller.document as CampaignDocument;
+    expect(authored.selected.tutorialSequences.first.name, 'Authored movement');
+    final capture = await captureCampaignPlaytestPreparationInput(
+      document: authored,
+      workspaceRoot: fixture.path,
+    );
+    final prepared = preparePlaytest(capture);
+    expect(prepared.issues, isEmpty);
+    expect(prepared.appearance!.tutorialSequences[1].toJson(), objectives);
+    expect(prepared.appearance!.tutorialSequences[2].toJson(), coin);
+    expect(prepared.appearance!.tutorialSequences[3].toJson(), jump);
+    expect(prepared.appearance!.tutorialSequences[4].toJson(), water);
+    expect(prepared.appearance!.tutorialSequences[5].toJson(), swim);
+    expect(prepared.appearance!.tutorialSequences[6].toJson(), decoration);
+    expect(prepared.appearance!.tutorialSequences[7].toJson(), gap);
+    expect(prepared.appearance!.tutorialSequences[8].toJson(), platform);
+    expect(prepared.appearance!.tutorialSequences[9].toJson(), blessing);
+    expect(prepared.appearance!.tutorialSequences[10].toJson(), mobility);
+    expect(prepared.appearance!.tutorialSequences.last.toJson(), combat);
+    expect(
+      (prepared.scenario! as CampaignPlaytestScenario)
+          .mission
+          .requiredBlessingShrine,
+      (missionChunkId: 'second', bindingKey: 'basin'),
+    );
+    expect(prepared.appearance!.initialTutorialHud, {
+      TutorialHudElement.movement,
+    });
+    expect(
+      prepared.appearance!.tutorialSequences.first.name,
+      'Authored movement',
+    );
+    controller.undo();
+    expect(
+      (controller.document as CampaignDocument).selected.toJson(),
+      original.selected.toJson(),
+    );
+    controller.redo();
+    await controller.exportDirectWrite();
+    expect(controller.exportError, isNull);
+    final reopened = await plugin.loadFromRepo(workspace) as CampaignDocument;
+    expect(reopened.selected.tutorialSequences.first.toJson(), tutorial);
+    expect(reopened.selected.tutorialSequences[1].toJson(), objectives);
+    expect(reopened.selected.requiresFirstCoin, isTrue);
+    expect(reopened.selected.tutorialSequences[2].toJson(), coin);
+    expect(reopened.selected.tutorialSequences[3].toJson(), jump);
+    expect(reopened.selected.tutorialSequences[4].toJson(), water);
+    expect(reopened.selected.tutorialSequences[5].toJson(), swim);
+    expect(reopened.selected.tutorialSequences[6].toJson(), decoration);
+    expect(reopened.selected.tutorialSequences[7].toJson(), gap);
+    expect(reopened.selected.tutorialSequences[8].toJson(), platform);
+    expect(reopened.selected.tutorialSequences[9].toJson(), blessing);
+    expect(reopened.selected.tutorialSequences[10].toJson(), mobility);
+    expect(reopened.selected.tutorialSequences.last.toJson(), combat);
+    expect(reopened.selected.blessingObjectiveShrineId, 'basin');
+    expect(reopened.selected.initialTutorialHud, {TutorialHudElement.movement});
+    controller.applyCommand(
+      edit(
+        controller.document as CampaignDocument,
+        reopened.selected.toJson()..remove('tutorialSequences'),
+      ),
+    );
+    expect(
+      (controller.document as CampaignDocument).selected.tutorialSequences,
+      isEmpty,
+    );
+    expect(
+      prepared.appearance!.tutorialSequences.first.name,
+      'Authored movement',
+    );
+  });
+
   test('chapter creation allocates fresh drafts and metadata edits preserve identities', () async {
     final original = await plugin.loadFromRepo(workspace) as CampaignDocument;
     var current = plugin.applyEdit(
@@ -170,7 +710,7 @@ void main() {
     expect(current.selected.start, isNull);
     expect(current.selected.exit, isNull);
     expect(current.selected.firstClearXp, 0);
-    expect(current.selected.rewardAbilityId, isNull);
+    expect(current.selected.firstClearItems, isEmpty);
     expect(current.selected.levelId, original.selected.levelId);
     expect(current.selected.visualThemeId, original.selected.visualThemeId);
     expect(
@@ -304,6 +844,144 @@ void main() {
     },
   );
 
+  test(
+    'mission deletion guards identity, selection, Save and history',
+    () async {
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await controller.loadWorkspace();
+      CampaignDocument doc() => controller.document as CampaignDocument;
+      AuthoringCommand deletion(CampaignDocument document) => AuthoringCommand(
+        kind: CampaignDomainPlugin.deleteMission,
+        payload: {
+          'id': document.selected.id,
+          'expectedMission': document.selected.toJson(),
+          'confirmedName': document.selected.title['en']!,
+        },
+      );
+      final original = doc();
+      final command = deletion(original);
+      expect(
+        () => plugin.applyEdit(
+          original,
+          AuthoringCommand(
+            kind: command.kind,
+            payload: {...command.payload, 'confirmedName': 'wrong'},
+          ),
+        ),
+        throwsStateError,
+      );
+      final changed = plugin.applyEdit(
+        original,
+        edit(original, original.selected.toJson()..['firstClearXp'] = 9),
+      );
+      expect(() => plugin.applyEdit(changed, command), throwsStateError);
+      controller.applyCommand(command);
+      expect(doc().selected.id, original.catalog.chapters.first.missions[1].id);
+      expect(doc().catalog.retiredMissionIds, contains(original.selected.id));
+      controller.undo();
+      expect(doc().catalog.encode(), original.catalog.encode());
+      controller.redo();
+      await controller.exportDirectWrite();
+      expect(controller.exportError, isNull);
+      final reopened = await plugin.loadFromRepo(workspace) as CampaignDocument;
+      expect(
+        reopened.catalog.retiredMissionIds,
+        contains(original.selected.id),
+      );
+      controller.undo();
+      expect(
+        doc().catalog.missions.any((m) => m.id == original.selected.id),
+        isTrue,
+      );
+      controller.redo();
+      expect(
+        doc().catalog.missions.any((m) => m.id == original.selected.id),
+        isFalse,
+      );
+      while (doc().catalog.chapters.first.missions.length > 1) {
+        controller.applyCommand(deletion(doc()));
+      }
+      expect(() => plugin.applyEdit(doc(), deletion(doc())), throwsStateError);
+      controller.applyCommand(
+        AuthoringCommand(
+          kind: CampaignDomainPlugin.addMission,
+          payload: {'id': doc().catalog.chapters.first.id},
+        ),
+      );
+      final draftId = doc().selected.id;
+      controller.applyCommand(deletion(doc()));
+      await controller.exportDirectWrite();
+      controller.applyCommand(
+        AuthoringCommand(
+          kind: CampaignDomainPlugin.addMission,
+          payload: {'id': doc().catalog.chapters.first.id},
+        ),
+      );
+      expect(doc().selected.id, isNot(draftId));
+    },
+  );
+
+  testWidgets(
+    'delete mission requires its exact name and cancellation preserves it',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final original = controller.document as CampaignDocument;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: CampaignPage(controller: controller)),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      final action = find.widgetWithText(OutlinedButton, 'Delete mission');
+      await tester.ensureVisible(action);
+      await _pumpWorkspace(tester);
+      await tester.tap(action);
+      await _pumpWorkspace(tester);
+      final confirm = find.widgetWithText(FilledButton, 'Delete mission');
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+      final input = find.widgetWithText(
+        TextField,
+        'Type the exact name to confirm',
+      );
+      await tester.enterText(input, 'Reporting');
+      await _pumpWorkspace(tester);
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+      await tester.tap(find.text('Cancel'));
+      await _pumpWorkspace(tester);
+      expect(controller.document, same(original));
+      await tester.ensureVisible(action);
+      await _pumpWorkspace(tester);
+      await tester.tap(action);
+      await _pumpWorkspace(tester);
+      await tester.enterText(input, original.selected.title['en']!);
+      await _pumpWorkspace(tester);
+      await tester.tap(confirm);
+      await _pumpWorkspace(tester);
+      expect(
+        (controller.document as CampaignDocument).catalog.missions.any(
+          (m) => m.id == original.selected.id,
+        ),
+        isFalse,
+      );
+      expect(controller.pendingChanges.hasChanges, isTrue);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   test('reward edits reject unsupported IDs and stale chapter forms', () async {
     final original = await plugin.loadFromRepo(workspace) as CampaignDocument;
     expect(
@@ -317,7 +995,18 @@ void main() {
     expect(
       () => plugin.applyEdit(
         original,
-        edit(original, original.selected.toJson()..['rewardAbilityId'] = 'bad'),
+        edit(
+          original,
+          original.selected.toJson()
+            ..['firstClearItems'] = [
+              {
+                'kind': 'ability',
+                'slot': 'jump',
+                'itemId': 'bad',
+                'characterId': 'eloise',
+              },
+            ],
+        ),
       ),
       throwsFormatException,
     );
@@ -356,7 +1045,10 @@ void main() {
         original,
         original.selected.toJson()
           ..['firstClearXp'] = 55
-          ..['rewardAbilityId'] = null,
+          ..['firstClearGold'] = 125
+          ..['firstClearItems'] = [
+            {'kind': 'gear', 'slot': 'mainWeapon', 'itemId': 'cinderedge'},
+          ],
       ),
     );
     controller.applyCommand(
@@ -375,7 +1067,8 @@ void main() {
     expect(controller.pendingChanges.hasChanges, isFalse);
     final reopened = await plugin.loadFromRepo(workspace) as CampaignDocument;
     expect(reopened.selected.firstClearXp, 55);
-    expect(reopened.selected.rewardAbilityId, isNull);
+    expect(reopened.selected.firstClearGold, 125);
+    expect(reopened.selected.firstClearItems.single.item.itemId, 'cinderedge');
     expect(reopened.catalog.chapters.first.rewardCharacterId, isNull);
     expect(reopened.catalog.chapters.first.rewardXp, 75);
     expect(reopened.catalog.chapters.first.rewardGold, 250);
@@ -396,16 +1089,19 @@ void main() {
     expect(restored.catalog.chapters.first.rewardCharacterId, 'bountyHunter');
     expect(restored.catalog.chapters.first.rewardXp, 0);
     expect(restored.catalog.chapters.first.rewardItems, isEmpty);
-    expect(restored.selected.rewardAbilityId, isNull);
+    expect(restored.selected.firstClearItems.single.item.itemId, 'cinderedge');
     controller.undo();
     restored = controller.document as CampaignDocument;
-    expect(restored.selected.rewardAbilityId, 'eloise.double_jump');
+    expect(
+      restored.selected.firstClearItems.single.item.itemId,
+      'eloise.double_jump',
+    );
     expect(restored.selected.firstClearXp, 40);
     controller.redo();
     controller.redo();
     restored = controller.document as CampaignDocument;
     expect(restored.catalog.chapters.first.rewardCharacterId, isNull);
-    expect(restored.selected.rewardAbilityId, isNull);
+    expect(restored.selected.firstClearItems.single.item.itemId, 'cinderedge');
     expect(controller.pendingChanges.hasChanges, isFalse);
     controller.applyCommand(
       edit(restored, restored.selected.toJson()..['firstClearXp'] = 56),
@@ -443,11 +1139,27 @@ void main() {
       final prepared = preparePlaytest(capture);
       expect(prepared.issues, isEmpty);
       expect(prepared.scenario, isA<CampaignPlaytestScenario>());
+      final playController = RunnerPlaytestController();
+      addTearDown(playController.dispose);
+      final host = buildDefaultAuthoredPlaytestHost(
+        scenario: prepared.scenario!,
+        controller: playController,
+        assetBundle: RunnerCapturedAssetBundle({}),
+        appearance: prepared.appearance!,
+        onStop: () {},
+      ) as RunnerPlaytestHost;
+      expect(host.presentation.showMobileHud, isTrue);
+      // The calibrated outer editor frame owns device geometry exactly once.
+      expect(host.presentation.display, isNull);
+      expect(
+        host.presentation.viewportMode,
+        ViewportScaleMode.pixelPerfectCover,
+      );
       expect(
         (prepared.scenario as CampaignPlaytestScenario)
             .mission
             .route
-            .occurrences
+            .missionChunks
             .map((o) => o.id),
         ['first', 'second'],
       );
@@ -712,9 +1424,7 @@ void main() {
     await session.loadWorkspace();
     final original = session.document as CampaignDocument;
     final otherMission = original.catalog.missions.last.toJson();
-    session.applyCommand(
-      edit(original, layout(original)..['combatAllowed'] = true),
-    );
+    session.applyCommand(edit(original, layout(original)));
     final initial = session.document as CampaignDocument;
     final chunks = {
       for (final c in initial.compile(initial.selected).chunks)
@@ -740,11 +1450,17 @@ void main() {
     ]) {
       editing.choose(brush);
       final candidate = editing.create(
-        CampaignPoint(occurrenceId: 'first', x: x, y: y),
+        CampaignPoint(missionChunkId: 'first', x: x, y: y),
       );
       expect(editing.commit(null, candidate), isNull, reason: brush.name);
+      expect(editing.placedEntries.map((entry) => entry.key), [
+        candidate.key,
+      ], reason: brush.name);
     }
     expect(editing.mission.placements, hasLength(8));
+    editing.choose(CampaignMarkerBrush.none);
+    expect(editing.placedEntries, hasLength(10));
+    expect(editing.tool, CampaignMarkerTool.select);
     expect(
       () => editing.document.compile(editing.mission),
       throwsFormatException,
@@ -756,7 +1472,7 @@ void main() {
           .compile(editing.mission)
           .definition
           .route
-          .occurrences
+          .missionChunks
           .first
           .pattern
           .encounters,
@@ -768,7 +1484,7 @@ void main() {
     final stale = editing.mission;
     final moved = editing.move(
       coin,
-      CampaignPoint(occurrenceId: 'second', x: 120, y: 208),
+      CampaignPoint(missionChunkId: 'second', x: 120, y: 208),
     );
     expect(editing.commit(coin, moved), isNull);
     expect(editing.commit(moved, coin, expected: stale), contains('changed'));
@@ -790,6 +1506,119 @@ void main() {
     );
     expect(reopened.catalog.missions.last.toJson(), otherMission);
   }, timeout: const Timeout(Duration(minutes: 2)));
+
+  testWidgets(
+    'marker library None disables placement and the collapsed list filters by kind',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final original = controller.document as CampaignDocument;
+      final json = layout(original)
+        ..['collectibles'] = [
+          {'missionChunkId': 'first', 'x': 120, 'y': 200},
+        ];
+      controller.applyCommand(edit(original, json));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              controller: controller,
+              initialLocation: CampaignLocation(
+                original.selected.id,
+                tab: CampaignTab.markers,
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      final editing = tester
+          .widget<CampaignMarkerPalette>(find.byType(CampaignMarkerPalette))
+          .editing;
+      final panel = find.byKey(const ValueKey('campaign_placed_markers'));
+      final rows = find.descendant(of: panel, matching: find.byType(ListTile));
+      Finder brush(String name) => find.byKey(ValueKey('campaign_brush_$name'));
+      Future<void> tap(Finder target) async {
+        await tester.ensureVisible(target);
+        await tester.tap(target);
+        await _pumpWorkspace(tester);
+      }
+
+      void expectRows(List<String> labels) {
+        expect(
+          tester
+              .widgetList<ListTile>(rows)
+              .map((row) => (row.title! as Text).data),
+          labels,
+        );
+        expect(
+          find.descendant(
+            of: panel,
+            matching: find.text('${labels.length} mission markers'),
+          ),
+          findsOneWidget,
+        );
+      }
+
+      expect(tester.widget<ChoiceChip>(brush('none')).selected, isTrue);
+      expect(rows, findsNothing);
+      await tap(find.text('Placed markers'));
+      expectRows(['Player start', 'Mission exit', 'Gold coin']);
+      final scene = find.byKey(const ValueKey('campaign_preview_first'));
+      Offset point(double x) =>
+          tester.getTopLeft(scene) +
+          Offset(x, 200) * (tester.getSize(scene).height / 270);
+      for (final (kind, x) in [('gold', 200.0), ('health', 280.0)]) {
+        await tap(brush(kind));
+        await tester.tapAt(point(x));
+        await _pumpWorkspace(tester);
+      }
+      expectRows(['health gem']);
+      await tap(brush('gold'));
+      expectRows(['Gold coin', 'Gold coin']);
+      await tap(rows.first);
+      expect(editing.tool, CampaignMarkerTool.select);
+      expect(tester.widget<ChoiceChip>(brush('gold')).selected, isTrue);
+      expectRows(['Gold coin', 'Gold coin']);
+      await tap(brush('start'));
+      expectRows(['Player start']);
+      await tap(brush('exit'));
+      expectRows(['Mission exit']);
+      await tap(brush('visit'));
+      expectRows([]);
+      await tap(brush('none'));
+      expectRows([
+        'Player start',
+        'Mission exit',
+        'Gold coin',
+        'Gold coin',
+        'health gem',
+      ]);
+      expect(editing.tool, CampaignMarkerTool.select);
+      expect(editing.candidate, isNull);
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey('campaign_marker_tool_place')),
+            )
+            .onSelected,
+        isNull,
+      );
+      final before = controller.document;
+      await tester.tapAt(point(400));
+      await _pumpWorkspace(tester);
+      expect(controller.document, same(before));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets(
     'blessing fire feedback preserves the route viewport while hovering and dragging',
@@ -960,6 +1789,105 @@ void main() {
     },
   );
 
+  testWidgets('enemy return switch supports undo, redo, Save and reopen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+      initialPluginId: plugin.id,
+      initialWorkspacePath: fixture.path,
+    );
+    addTearDown(controller.dispose);
+    await tester.runAsync(controller.loadWorkspace);
+    final original = controller.document as CampaignDocument;
+    controller.applyCommand(
+      edit(original, {
+        ...layout(original),
+        'placements': [
+          {
+            'id': 'guard',
+            'kind': 'enemy',
+            'position': {'missionChunkId': 'first', 'x': 300, 'y': 224},
+            'enemyId': 'grojib',
+            'placement': 'ground',
+            'chancePercent': 100,
+            'salt': 42,
+            'required': false,
+          },
+        ],
+      }),
+    );
+    final key = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CampaignPage(
+            key: key,
+            controller: controller,
+            initialLocation: CampaignLocation(
+              original.selected.id,
+              tab: CampaignTab.markers,
+            ),
+          ),
+        ),
+      ),
+    );
+    await _pumpWorkspace(tester);
+    final editing = tester
+        .widget<CampaignMarkerPalette>(find.byType(CampaignMarkerPalette))
+        .editing;
+    editing.select('placement:guard');
+    await _pumpWorkspace(tester);
+    final properties = find.text('Selected marker properties');
+    await tester.ensureVisible(properties);
+    await tester.tap(properties);
+    await _pumpWorkspace(tester);
+    final toggle = find.byKey(
+      const ValueKey('campaign_enemy_return_on_retreat'),
+    );
+    await tester.ensureVisible(toggle);
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    await tester.tap(toggle);
+    await _pumpWorkspace(tester);
+    bool returns() =>
+        ((controller.document as CampaignDocument).selected.placements.single
+                as CampaignEnemySource)
+            .returnWhenPlayerRetreats;
+    expect(returns(), isFalse);
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    final shortcuts = key.currentState as EditorPageSessionShortcutHandler;
+    shortcuts.handleUndoSessionShortcut();
+    await _pumpWorkspace(tester);
+    expect(returns(), isTrue);
+    shortcuts.handleRedoSessionShortcut();
+    await _pumpWorkspace(tester);
+    expect(returns(), isFalse);
+    final saved = await tester.runAsync(
+      () => (key.currentState as EditorPageSaveHandler).saveEditorPage(),
+    );
+    await _pumpWorkspace(tester);
+    expect(saved, EditorPageSaveResult.saved);
+    final reopened = await tester.runAsync(
+      () => plugin.loadFromRepo(workspace),
+    ) as CampaignDocument;
+    expect(
+      (reopened.selected.placements.single as CampaignEnemySource)
+          .returnWhenPlayerRetreats,
+      isFalse,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    // Save remounts image previews; release their I/O before fixture teardown.
+    for (var i = 0; i < 8; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+    }
+  });
+
   testWidgets(
     'visual coins and attached fires support drag, draft Save, undo and reopen',
     (tester) async {
@@ -1047,6 +1975,10 @@ void main() {
       await gesture.up();
       await _pumpWorkspace(tester);
       expect(controller.document, same(beforeCancelledDrag));
+      final properties = find.text('Selected marker properties');
+      await tester.ensureVisible(properties);
+      await tester.tap(properties);
+      await _pumpWorkspace(tester);
       await tester.enterText(
         find.byKey(const ValueKey('campaign_marker_x')),
         'not a number',
@@ -1109,11 +2041,11 @@ void main() {
         chunkBytes,
       );
       final duplicated = CampaignMissionSource.decode(
-        duplicateCampaignOccurrence(mission(), 0),
+        duplicateCampaignMissionChunk(mission(), 0),
       );
       expect(duplicated.placements, hasLength(4));
       expect(duplicated.placements.map((p) => p.id).toSet(), hasLength(4));
-      expect(duplicated.placements.last.occurrenceId, 'occurrence_1');
+      expect(duplicated.placements.last.missionChunkId, 'mission_chunk_1');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       // Let real image I/O close after the Save-triggered preview remount.
@@ -1271,7 +2203,7 @@ void main() {
       );
       await _pumpWorkspace(tester);
       final append = find.widgetWithText(TextButton, 'Append chunk');
-      for (var count = 3; count <= 16; count++) {
+      for (var count = 3; count <= 48; count++) {
         await tester.ensureVisible(append);
         await tester.tap(append);
         await _pumpWorkspace(tester);
@@ -1279,6 +2211,7 @@ void main() {
         expect(mission.route, hasLength(count));
         expect(mission.route.map((o) => o.id).toSet(), hasLength(count));
         expect(mission.route.last.chunkKey, chunk.chunkKey);
+        expect(mission.route.last.id, 'mission_chunk_${count - 2}');
         final location =
             (key.currentState as EditorPageNavigationState).navigationLocation!
                 as CampaignLocation;
@@ -1286,7 +2219,7 @@ void main() {
         expect(location.chunkSearch, chunk.chunkKey);
         expect(location.groupFilter, chunk.assemblyGroupId);
         expect(location.difficultyFilter, chunk.difficulty);
-        expect(location.selectedOccurrenceId, mission.route.last.id);
+        expect(location.selectedMissionChunkId, mission.route.last.id);
       }
       expect(tester.widget<TextButton>(append).onPressed, isNull);
       controller.undo();
@@ -1296,6 +2229,191 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+
+  testWidgets(
+    'inline mission settings validate and join Save, Undo and selection',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+        initialPluginId: plugin.id,
+        initialWorkspacePath: fixture.path,
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.loadWorkspace);
+      final loaded = controller.document as CampaignDocument;
+      controller.applyCommand(
+        AuthoringCommand(
+          kind: CampaignDomainPlugin.addMission,
+          payload: {'id': loaded.catalog.chapters.first.id},
+        ),
+      );
+      final edited = (controller.document as CampaignDocument).selected;
+      // This metadata test uses an empty draft and hides unrelated atlas previews.
+      final key = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CampaignPage(
+              key: key,
+              controller: controller,
+              initialLocation: CampaignLocation(
+                edited.id,
+                chunkSearch: 'no_matching_settings_fixture',
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpWorkspace(tester);
+      final page = key.currentState as EditorPageSaveHandler;
+      final drafts = key.currentState as EditorPageLocalDraftState;
+      CampaignDocument document() => controller.document as CampaignDocument;
+      Future<void> fill(String label, String value) async {
+        final field = find.widgetWithText(TextFormField, label);
+        await tester.ensureVisible(field);
+        await tester.enterText(field, value);
+        await _pumpWorkspace(tester);
+      }
+
+      expect(find.byType(AlertDialog), findsNothing);
+      await fill('Title (en)', 'Inline mission');
+      expect(drafts.hasLocalDraftChanges, isTrue);
+      expect(page.canSaveEditorPage, isTrue);
+      expect(document().selected.title['en'], edited.title['en']);
+      await tester.ensureVisible(find.widgetWithText(Tab, 'Français').first);
+      await _pumpWorkspace(tester);
+      await tester.tap(find.widgetWithText(Tab, 'Français').first);
+      await _pumpWorkspace(tester);
+      await fill('Title (fr)', '');
+      expect(await page.saveEditorPage(), EditorPageSaveResult.blocked);
+      expect(drafts.hasLocalDraftChanges, isTrue);
+      await tester.tap(find.text('Route'));
+      await _pumpWorkspace(tester);
+      expect(
+        (key.currentState as EditorPageNavigationState).navigationLocation,
+        isA<CampaignLocation>().having(
+          (v) => v.tab,
+          'tab',
+          CampaignTab.contents,
+        ),
+      );
+      await fill('Title (fr)', 'Mission en ligne');
+      await tester.ensureVisible(find.widgetWithText(Tab, 'English').first);
+      await _pumpWorkspace(tester);
+      await tester.tap(find.widgetWithText(Tab, 'English').first);
+      await _pumpWorkspace(tester);
+      await fill('Assignment (en)', 'Editable in the sidebar.');
+      final inclusion = find.widgetWithText(
+        SwitchListTile,
+        'Include in game Build',
+      );
+      await tester.ensureVisible(inclusion);
+      final includedBefore = document().selected.includeInBuild;
+      await tester.tap(inclusion);
+      await _pumpWorkspace(tester);
+      final saved = await tester.runAsync(page.saveEditorPage);
+      expect(saved?.permitsDeparture, isTrue);
+      await _pumpWorkspace(tester);
+      expect(document().selected.title['en'], 'Inline mission');
+      expect(document().selected.title['fr'], 'Mission en ligne');
+      expect(document().selected.description['en'], 'Editable in the sidebar.');
+      expect(document().selected.includeInBuild, !includedBefore);
+      expect(drafts.hasLocalDraftChanges, isFalse);
+      expect(controller.pendingChanges.hasChanges, isFalse);
+      await fill('Title (en)', 'Discard this draft');
+      (key.currentState as EditorPageSessionShortcutHandler)
+          .handleUndoSessionShortcut();
+      await _pumpWorkspace(tester);
+      expect(find.text('Discard this draft'), findsNothing);
+      expect(document().selected.title['en'], 'Inline mission');
+      await fill('Title (en)', 'Accepted before switching');
+      final next = find.text('2. Signs in the Grove');
+      await tester.ensureVisible(next);
+      await tester.tap(next);
+      await _pumpWorkspace(tester);
+      expect(document().selected.id, 'signs_in_the_grove');
+      expect(
+        document().catalog.missions
+            .firstWhere((m) => m.id == edited.id)
+            .title['en'],
+        'Accepted before switching',
+      );
+      expect(find.text('Signs in the Grove'), findsWidgets);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets('mission Play and F5 configure HUD before starting a runtime', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(plugins: [plugin]),
+      initialPluginId: plugin.id,
+      initialWorkspacePath: fixture.path,
+    );
+    addTearDown(controller.dispose);
+    await tester.runAsync(controller.loadWorkspace);
+    final original = controller.document;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: CampaignPage(controller: controller)),
+      ),
+    );
+    await _pumpWorkspace(tester);
+    final page =
+        tester.state(find.byType(CampaignPage)) as EditorPagePlaytestHandler;
+    await tester.tap(find.text('Play mission (F5)'));
+    await _pumpWorkspace(tester);
+    expect(find.byType(PlaytestLaunchDialog), findsOneWidget);
+    expect(page.locksEditorShell, isTrue);
+    expect(find.byType(RunnerPlaytestHost), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('playtest_display_preset')));
+    await _pumpWorkspace(tester);
+    await tester.tap(find.text('Pixel 7').last);
+    await _pumpWorkspace(tester);
+    await tester.tap(find.byKey(const ValueKey('playtest_show_mobile_hud')));
+    await _pumpWorkspace(tester);
+    await tester.tap(find.text('Cancel'));
+    await _pumpWorkspace(tester);
+    expect(controller.document, same(original));
+    expect(page.locksEditorShell, isFalse);
+    expect(page.handlePlaytestShortcut(LogicalKeyboardKey.f5), isTrue);
+    await _pumpWorkspace(tester);
+    expect(find.byType(PlaytestLaunchDialog), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('playtest_display_width')),
+          )
+          .controller!
+          .text,
+      '844',
+    );
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.byKey(const ValueKey('playtest_show_mobile_hud')),
+          )
+          .value,
+      isTrue,
+    );
+    // Repeated launch requests must not stack dialogs or prepare in the background.
+    page.handlePlaytestShortcut(LogicalKeyboardKey.f5);
+    await _pumpWorkspace(tester);
+    expect(find.byType(PlaytestLaunchDialog), findsOneWidget);
+    expect(find.byType(RunnerPlaytestHost), findsNothing);
+    await tester.tap(find.text('Cancel'));
+    await _pumpWorkspace(tester);
+    expect(controller.document, same(original));
+    expect(controller.pendingChanges.hasChanges, isFalse);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets('campaign workspace exposes editable missions and route tools', (
     tester,
@@ -1315,14 +2433,31 @@ void main() {
       ),
     );
     await _pumpWorkspace(tester);
-    expect(find.text('Mission settings'), findsOneWidget);
+    expect(find.text('Mission Settings'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
     expect(find.text('Play mission (F5)'), findsOneWidget);
-    await tester.tap(find.text('Mission settings'));
-    await _pumpWorkspace(tester);
     expect(find.text('Title (en)'), findsOneWidget);
-    expect(find.text('Title (fr)'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
+    expect(find.text('Title (fr)'), findsNothing);
+    await tester.tap(find.widgetWithText(Tab, 'Français').first);
     await _pumpWorkspace(tester);
+    expect(find.text('Title (en)'), findsNothing);
+    expect(find.text('Title (fr)'), findsOneWidget);
+    final preview = find.text('Preview Journal after this mission');
+    await tester.ensureVisible(preview);
+    await tester.tap(preview);
+    await _pumpWorkspace(tester);
+    expect(find.byType(CampaignJournalPreview), findsOneWidget);
+    expect(
+      find.text(
+        (controller.document as CampaignDocument).catalog.journal!.titleFor(
+          'en',
+        ),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Close'));
+    await _pumpWorkspace(tester);
+    expect(controller.pendingChanges.hasChanges, isFalse);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -1407,8 +2542,8 @@ void main() {
         find.byKey(const ValueKey('campaign_persistent_preview')),
       );
       await tap(find.text('Route'));
-      await tap(find.byKey(const ValueKey('campaign_occurrence_first')));
-      expect(location().selectedOccurrenceId, 'first');
+      await tap(find.byKey(const ValueKey('campaign_mission_chunk_first')));
+      expect(location().selectedMissionChunkId, 'first');
       expect(controller.document, same(beforeView));
       await tester.binding.setSurfaceSize(const Size(800, 700));
       await _pumpWorkspace(tester);
@@ -1418,14 +2553,13 @@ void main() {
         ),
         same(preview),
       );
-      await tap(find.widgetWithText(Tab, 'Settings'));
-      expect(find.text('Selected occurrence'), findsOneWidget);
-      expect(find.text('first'), findsOneWidget);
+      await tap(find.widgetWithText(Tab, 'Mission Settings'));
+      expect(find.text('Selected mission chunk'), findsOneWidget);
+      expect(find.text('Mission chunk ID: first'), findsOneWidget);
       await tap(find.text('Edit chunk'));
       expect(openedChunk, 'forest_campaign_fixture');
-      expect(location().selectedOccurrenceId, 'first');
-      await tap(find.text('Mission settings'));
-      await tap(find.text('Cancel'));
+      expect(location().selectedMissionChunkId, 'first');
+      expect(find.byType(AlertDialog), findsNothing);
       await tap(find.widgetWithText(Tab, 'Chapters'));
       expect(find.text('Chapter 1'), findsOneWidget);
       await tap(find.widgetWithText(Tab, 'Workspace'));
@@ -1473,51 +2607,42 @@ void main() {
       );
       await _pumpWorkspace(tester);
       expect(location().tab, CampaignTab.route);
-      expect(location().selectedOccurrenceId, 'first');
+      expect(location().selectedMissionChunkId, 'first');
       expect(location().chunkSearch, 'forest_campaign_fixture');
-      // Route actions still act on stable occurrences, including reference guards.
+      // Route actions still act on stable mission chunks, including reference guards.
       expect(location().groupFilter, campaignChunk.assemblyGroupId);
       expect(location().difficultyFilter, campaignChunk.difficulty);
-      final first = find.byKey(const ValueKey('campaign_occurrence_first'));
+      final first = find.byKey(const ValueKey('campaign_mission_chunk_first'));
       await tap(
-        find.descendant(
-          of: first,
-          matching: find.byTooltip('Duplicate occurrence'),
-        ),
+        find.descendant(of: first, matching: find.byTooltip('Duplicate chunk')),
       );
       expect(
         (controller.document as CampaignDocument).selected.route.map(
           (o) => o.id,
         ),
-        ['first', 'occurrence_1', 'second'],
+        ['first', 'mission_chunk_1', 'second'],
       );
-      expect(location().selectedOccurrenceId, 'occurrence_1');
+      expect(location().selectedMissionChunkId, 'mission_chunk_1');
       final copy = find.byKey(
-        const ValueKey('campaign_occurrence_occurrence_1'),
+        const ValueKey('campaign_mission_chunk_mission_chunk_1'),
       );
       await tap(
         find.descendant(of: copy, matching: find.byTooltip('Move left')),
       );
       expect(
         (controller.document as CampaignDocument).selected.route.first.id,
-        'occurrence_1',
+        'mission_chunk_1',
       );
       await tap(
-        find.descendant(
-          of: copy,
-          matching: find.byTooltip('Remove occurrence'),
-        ),
+        find.descendant(of: copy, matching: find.byTooltip('Remove chunk')),
       );
       expect(
         (controller.document as CampaignDocument).selected.route,
         hasLength(2),
       );
-      expect(location().selectedOccurrenceId, isNull);
+      expect(location().selectedMissionChunkId, isNull);
       await tap(
-        find.descendant(
-          of: first,
-          matching: find.byTooltip('Remove occurrence'),
-        ),
+        find.descendant(of: first, matching: find.byTooltip('Remove chunk')),
       );
       expect(
         (controller.document as CampaignDocument).selected.route,
@@ -1525,7 +2650,7 @@ void main() {
       );
       expect(
         find.text(
-          'Remove or replace the mission markers on this occurrence first.',
+          'Remove or replace the mission markers on this mission chunk first.',
         ),
         findsOneWidget,
       );
@@ -1673,6 +2798,7 @@ void main() {
 
       palette.editing.select('start');
       await _pumpWorkspace(tester);
+      await tap(find.text('Selected marker properties'));
       final x = find.byKey(const ValueKey('campaign_marker_x'));
       await tester.ensureVisible(x);
       await tester.enterText(x, 'invalid');
@@ -1695,7 +2821,7 @@ void main() {
   );
 
   testWidgets(
-    'route preview fills its height and scrolls through all 16 occurrences',
+    'route preview fills its height and scrolls through all 48 chunks',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1600, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1709,16 +2835,16 @@ void main() {
       final original = controller.document as CampaignDocument;
       final mission = layout(original)
         ..['route'] = [
-          for (var i = 0; i < 16; i++)
+          for (var i = 0; i < 48; i++)
             {
               'id': 'route_$i',
               'levelId': 'forest',
               'chunkKey': 'forest_campaign_fixture',
             },
         ]
-        ..['start'] = {'occurrenceId': 'route_0', 'x': 60, 'y': 224}
+        ..['start'] = {'missionChunkId': 'route_0', 'x': 60, 'y': 224}
         ..['exit'] = {
-          'origin': {'occurrenceId': 'route_15', 'x': 500, 'y': 0},
+          'origin': {'missionChunkId': 'route_47', 'x': 500, 'y': 0},
           'width': 100,
           'height': 270,
         };
@@ -1744,18 +2870,18 @@ void main() {
         matching: find.byType(Scrollbar),
       );
       final scrollController = tester.widget<Scrollbar>(scrollbar).controller!;
-      Finder occurrence(int index) =>
+      Finder missionChunk(int index) =>
           find.byKey(ValueKey('campaign_preview_route_$index'));
-      final firstSize = tester.getSize(occurrence(0));
+      final firstSize = tester.getSize(missionChunk(0));
       expect(firstSize.height, greaterThan(200));
       expect(firstSize.width / firstSize.height, closeTo(600 / 270, .001));
       final art = find.descendant(
-        of: occurrence(0),
+        of: missionChunk(0),
         matching: find.byType(ChunkCompositionPreview),
       );
       expect(tester.getSize(art), firstSize);
       final firstOverlay = tester
-          .widget<CustomPaint>(occurrence(0))
+          .widget<CustomPaint>(missionChunk(0))
           .foregroundPainter!;
       expect(
         (Canvas canvas) => firstOverlay.paint(canvas, firstSize),
@@ -1763,7 +2889,7 @@ void main() {
           ..scale(x: firstSize.height / 270)
           ..circle(x: 60, y: 224, color: Colors.lightBlueAccent),
       );
-      expect(occurrence(15), findsNothing);
+      expect(missionChunk(47), findsNothing);
 
       // Use the visible scrollbar, proving that desktop users can reach the end.
       final barRect = tester.getRect(scrollbar);
@@ -1773,14 +2899,14 @@ void main() {
         kind: PointerDeviceKind.mouse,
       );
       await _pumpWorkspace(tester);
-      expect(occurrence(15).hitTestable(), findsOneWidget);
+      expect(missionChunk(47).hitTestable(), findsOneWidget);
       expect(
         scrollController.offset,
         closeTo(scrollController.position.maxScrollExtent, 1),
       );
-      final lastSize = tester.getSize(occurrence(15));
+      final lastSize = tester.getSize(missionChunk(47));
       final lastOverlay = tester
-          .widget<CustomPaint>(occurrence(15))
+          .widget<CustomPaint>(missionChunk(47))
           .foregroundPainter!;
       expect(
         (Canvas canvas) => lastOverlay.paint(canvas, lastSize),
@@ -1795,15 +2921,15 @@ void main() {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
       await tester.dragFrom(
         tester.getCenter(routeCanvas),
-        const Offset(50000, 0),
+        const Offset(100000, 0),
         kind: PointerDeviceKind.mouse,
       );
       await _pumpWorkspace(tester);
       expect(scrollController.offset, 0);
-      expect(occurrence(0).hitTestable(), findsOneWidget);
+      expect(missionChunk(0).hitTestable(), findsOneWidget);
       await tester.dragFrom(
         tester.getCenter(routeCanvas),
-        const Offset(-50000, 0),
+        const Offset(-100000, 0),
         kind: PointerDeviceKind.mouse,
       );
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
@@ -1812,7 +2938,31 @@ void main() {
         scrollController.offset,
         scrollController.position.maxScrollExtent,
       );
-      expect(occurrence(15).hitTestable(), findsOneWidget);
+      expect(missionChunk(47).hitTestable(), findsOneWidget);
+      final card = find.byKey(const ValueKey('campaign_mission_chunk_route_3'));
+      final routeList = find
+          .descendant(
+            of: find.byType(CampaignRoute),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(card, 250, scrollable: routeList);
+      await _pumpWorkspace(tester);
+      final title = find.descendant(
+        of: card,
+        matching: find.text('4. forest_campaign_fixture'),
+      );
+      await tester.tap(title);
+      await _pumpWorkspace(tester);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(missionChunk(3).hitTestable(), findsOneWidget);
+      final selectedOffset = scrollController.offset;
+      expect(selectedOffset, greaterThan(0));
+      scrollController.jumpTo(0);
+      await tester.tap(title);
+      await _pumpWorkspace(tester);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(scrollController.offset, closeTo(selectedOffset, 1));
       final offset = scrollController.offset;
       await tester.tap(find.text('Markers'));
       await _pumpWorkspace(tester);
@@ -1821,8 +2971,8 @@ void main() {
       await _pumpWorkspace(tester);
       scrollController.jumpTo(scrollController.position.maxScrollExtent);
       await _pumpWorkspace(tester);
-      expect(occurrence(15).hitTestable(), findsOneWidget);
-      final resized = tester.getSize(occurrence(15));
+      expect(missionChunk(47).hitTestable(), findsOneWidget);
+      final resized = tester.getSize(missionChunk(47));
       expect(resized.height, greaterThan(0));
       expect(
         tester
@@ -1887,6 +3037,12 @@ void main() {
     await tap(find.text('Create'));
     expect(find.text('Required.'), findsWidgets);
     await fill('Chapter title (en)', 'North Pass');
+    await tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(Tab, 'Français'),
+      ),
+    );
     await fill('Chapter title (fr)', 'Col du Nord');
     await fill('Map X (left 0 → right 1)', '2');
     await tap(find.text('Create'));
@@ -1963,7 +3119,12 @@ void main() {
     );
     await tap(inside('Chapter settings'));
     await fill('Chapter title (en)', 'Northern Pass');
-    await tap(find.text('Apply'));
+    await tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Apply'),
+      ),
+    );
     expect(inside('Northern Pass'), findsOneWidget);
     expect(
       (controller.document as CampaignDocument).catalog.chapters.last.id,
@@ -2019,7 +3180,7 @@ void main() {
       CampaignDocument document() => controller.document as CampaignDocument;
 
       Future<void> open(String button) async {
-        await tester.tap(find.text(button));
+        await tester.tap(find.text(button).last);
         await _pumpWorkspace(tester);
       }
 
@@ -2035,20 +3196,67 @@ void main() {
         await _pumpWorkspace(tester);
       }
 
-      await open('Mission settings');
-      await choose('First-clear ability', 'None');
+      await open('First-clear mission rewards');
+      await tester.tap(find.byTooltip('Remove Double Jump'));
       await open('Cancel');
-      expect(document().selected.rewardAbilityId, 'eloise.double_jump');
+      expect(
+        document().selected.firstClearItems.single.item.itemId,
+        'eloise.double_jump',
+      );
       expect(controller.pendingChanges.hasChanges, isFalse);
 
-      await open('Mission settings');
-      await choose('First-clear ability', 'None');
+      await open('First-clear mission rewards');
+      await tester.tap(find.byTooltip('Remove Double Jump'));
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'First-clear XP'),
+        '55',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'First-clear gold'),
+        '80',
+      );
+      final missionSearch = find.byKey(const Key('catalog-search'));
+      await tester.ensureVisible(missionSearch);
+      await tester.enterText(missionSearch, 'cinderedge');
+      await _pumpWorkspace(tester);
+      final missionGear = find.byKey(
+        const ValueKey('gear/mainWeapon/cinderedge/'),
+      );
+      await tester.ensureVisible(missionGear);
+      await tester.tap(missionGear);
+      await tester.enterText(missionSearch, 'double_jump');
+      await _pumpWorkspace(tester);
+      final missionAbility = find.byKey(
+        const ValueKey('ability/jump/eloise.double_jump/eloise'),
+      );
+      await tester.ensureVisible(missionAbility);
+      await tester.tap(missionAbility);
       await open('Apply');
-      expect(document().selected.rewardAbilityId, isNull);
-      await open('Mission settings');
-      await choose('First-clear ability', 'Éloïse — Double Jump');
+      expect(
+        document().selected.firstClearItems.map((gift) => gift.item.itemId),
+        ['cinderedge', 'eloise.double_jump'],
+      );
+      expect(document().selected.firstClearXp, 55);
+      expect(document().selected.firstClearGold, 80);
+      controller.undo();
+      await _pumpWorkspace(tester);
+      expect(
+        document().selected.firstClearItems.single.item.itemId,
+        'eloise.double_jump',
+      );
+
+      expect(find.text('Allow combat content'), findsNothing);
+      expect(find.byType(AlertDialog), findsNothing);
+      await open('First-clear mission rewards');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'First-clear gold'),
+        '321',
+      );
       await open('Apply');
-      expect(document().selected.rewardAbilityId, 'eloise.double_jump');
+      expect(document().selected.firstClearGold, 321);
+      controller.undo();
+      await _pumpWorkspace(tester);
+      expect(document().selected.firstClearGold, 0);
 
       final beforeCancel = document();
       await open('Chapter rewards');
@@ -2061,7 +3269,7 @@ void main() {
       expect(document().catalog.chapters.first.rewardCharacterId, isNull);
       expect(
         find.text('Chapter rewards: 0 XP · 0 gold · 0 items · No character'),
-        findsOneWidget,
+        findsNothing,
       );
       await open('Chapter rewards');
       await choose('Completion character', 'Willow');
@@ -2072,7 +3280,7 @@ void main() {
       );
       expect(
         find.text('Chapter rewards: 0 XP · 0 gold · 0 items · Willow'),
-        findsOneWidget,
+        findsNothing,
       );
       await open('Chapter rewards');
       Future<void> amount(String label, String value) async {
@@ -2116,4 +3324,15 @@ Future<void> _pumpWorkspace(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(seconds: 1));
   await tester.pump();
+}
+
+void _copyTutorialAtlases(String repo, String fixturePath) {
+  for (final path in [
+    'assets/images/level/atlases/pixel_fantasy_caves/props2.png',
+    'assets/images/level/atlases/tiny_swords/ground.png',
+  ]) {
+    final target = File('$fixturePath/$path');
+    target.parent.createSync(recursive: true);
+    File('$repo/$path').copySync(target.path);
+  }
 }

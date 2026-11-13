@@ -487,6 +487,10 @@ void main() {
       );
       final chunkCore = GameCore.chunkPlaytest(scenario: chunkScenario);
       final levelCore = GameCore.levelPlaytest(scenario: levelScenario);
+      expect(chunkScenario.equippedLoadout, isNull);
+      expect(levelScenario.equippedLoadout, isNull);
+      expect(chunkCore.buildSnapshot().hud.hasSecondarySlot, isTrue);
+      expect(levelCore.buildSnapshot().hud.hasSecondarySlot, isTrue);
       expect(
         chunkCore.buildSnapshot().traps.map((t) => t.source.trapId),
         everyElement(TrapId.spike),
@@ -591,7 +595,33 @@ void main() {
         contentDocument: repositoryDocument,
       );
       final result = preparePlaytest(input);
-      expect(result.issues, isEmpty);
+      expect(
+        result.issues,
+        isEmpty,
+        reason: result.issues
+            .map((issue) => '${issue.code}: ${issue.message}')
+            .join('\n'),
+      );
+      final scenario = result.scenario! as LevelPlaytestScenario;
+      final runnerKeys = repositoryDocument.chunks
+          .where(
+            (chunk) =>
+                chunk.levelId == 'forest' &&
+                chunk.status == 'active' &&
+                chunk.usage == 'runner',
+          )
+          .map((chunk) => chunk.chunkKey)
+          .toSet();
+      expect(scenario.terrainCatalog.chunksByKey.keys.toSet(), runnerKeys);
+      // Campaign source is still captured and validated, but cannot enter the
+      // runner's terrain catalog alongside its runner-only pattern source.
+      final campaignChunk = repositoryDocument.chunks.firstWhere(
+        (chunk) => chunk.levelId == 'forest' && chunk.usage == 'campaign',
+      );
+      expect(
+        input.chunkSources.values.join(),
+        contains(campaignChunk.chunkKey),
+      );
       expect(
         (result.scenario! as LevelPlaytestScenario)
             .levelDefinition

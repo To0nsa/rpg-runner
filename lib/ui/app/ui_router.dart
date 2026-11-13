@@ -13,6 +13,7 @@ import '../pages/leaderboards/leaderboards_page.dart';
 import '../pages/messages/messages_page.dart';
 import '../pages/town/town_page.dart';
 import '../pages/town/town_store_page.dart';
+import '../pages/town/town_equipment_args.dart';
 import '../pages/town/town_catalog.dart';
 import '../pages/library/library_page.dart';
 import '../pages/achievements/achievements_page.dart';
@@ -59,7 +60,11 @@ class UiRouter {
       case UiRoutes.setupLevel:
         return _pageRoute(settings, const LevelSetupPage());
       case UiRoutes.setupLoadout:
-        return _pageRoute(settings, const LoadoutSetupPage());
+        final args = settings.arguments;
+        return _pageRoute(
+          settings,
+          LoadoutSetupPage(args: args is LoadoutSetupArgs ? args : null),
+        );
       case UiRoutes.selectCharacter:
         return _pageRoute(settings, const CharacterSelectionPage());
       case UiRoutes.setupProfileName:
@@ -74,7 +79,11 @@ class UiRouter {
         return _pageRoute(settings, const TownPage());
       case UiRoutes.townStore:
       case UiRoutes.townEquipment:
-        return _pageRoute(settings, const TownStorePage());
+        final args = settings.arguments;
+        return _pageRoute(
+          settings,
+          TownStorePage(equipmentArgs: args is TownEquipmentArgs ? args : null),
+        );
       case UiRoutes.townTraining:
         return _pageRoute(
           settings,

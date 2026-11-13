@@ -5,7 +5,7 @@ were implemented locally on 2026-10-31 and await deployment. See the
 [release evidence](../verification/achievements-dev-2026-10-30.md) and
 [technical contract](../tdd/achievements.md).
 
-The **Hall of Honour** opens from the southern courtyard building on the
+The **Hall of Honour** opens from the small building beside the eastern wall on the
 Théodonis Town map, selected by the owner. Its label and building marker both
 open the menu; Back returns to Town. A gold attention dot appears on its label
 while any achievement reward is available. The name is a game destination;

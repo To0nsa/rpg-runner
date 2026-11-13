@@ -14,10 +14,14 @@ class MoveButtons extends StatefulWidget {
     super.key,
     required this.onAxisChanged,
     required this.tuning,
+    this.onEngage,
   });
 
   final ValueChanged<double> onAxisChanged;
   final MoveButtonsTuning tuning;
+
+  /// Called before retaining a new pointer; false rejects it without input.
+  final bool Function()? onEngage;
 
   @override
   State<MoveButtons> createState() => _MoveButtonsState();
@@ -86,10 +90,21 @@ class _MoveButtonsState extends State<MoveButtons> {
       height: widget.tuning.buttonHeight,
       child: Listener(
         behavior: HitTestBehavior.opaque,
-        onPointerDown: (event) =>
-            _setPointerSide(event.pointer, _sideForX(event.localPosition.dx)),
-        onPointerMove: (event) =>
-            _setPointerSide(event.pointer, _sideForX(event.localPosition.dx)),
+        onPointerDown: (event) {
+          final x = event.localPosition.dx;
+          if (widget.onEngage != null &&
+              x > widget.tuning.buttonWidth &&
+              x < widget.tuning.buttonWidth + widget.tuning.gap) {
+            return;
+          }
+          if (widget.onEngage?.call() == false) return;
+          _setPointerSide(event.pointer, _sideForX(x));
+        },
+        onPointerMove: (event) {
+          if (_pointerSides.containsKey(event.pointer)) {
+            _setPointerSide(event.pointer, _sideForX(event.localPosition.dx));
+          }
+        },
         onPointerUp: (event) => _removePointer(event.pointer),
         onPointerCancel: (event) => _removePointer(event.pointer),
         child: Row(

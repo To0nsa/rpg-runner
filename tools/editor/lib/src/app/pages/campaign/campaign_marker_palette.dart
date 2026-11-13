@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:game_presentation/gold_coin.dart';
 import 'package:tool_ui/tool_ui.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -7,6 +8,7 @@ import 'package:runner_core/traps/trap_id.dart';
 
 import '../chunkCreator/v2/chunk_enemy_catalog_browser.dart';
 import '../chunkCreator/v2/chunk_trap_panel.dart';
+import '../shared/game_asset_bundle.dart';
 import 'campaign_marker_editing.dart';
 import 'campaign_marker_painter.dart';
 import 'campaign_marker_inspector.dart';
@@ -21,10 +23,12 @@ class CampaignMarkerPalette extends StatelessWidget {
   final CampaignMarkerEditing editing;
   final VoidCallback onLinkTarget;
   final VoidCallback? onPlace;
+  static final _assets = EditorGameAssetBundle();
 
   @override
   Widget build(BuildContext context) {
     final e = editing;
+    final placedEntries = e.placedEntries;
     return SingleChildScrollView(
       key: const PageStorageKey('campaign_markers_scroll'),
       child: Column(
@@ -44,12 +48,18 @@ class CampaignMarkerPalette extends StatelessWidget {
                       ChoiceChip(
                         key: ValueKey('campaign_brush_${brush.name}'),
                         label: Text(_label(brush)),
-                        avatar: Icon(_icon(brush), size: 18),
-                        selected:
-                            e.brush == brush &&
-                            e.tool == CampaignMarkerTool.place,
+                        avatar: brush == CampaignMarkerBrush.gold
+                            ? DefaultAssetBundle(
+                                bundle: _assets,
+                                child: const GoldCoin(size: 18),
+                              )
+                            : Icon(_icon(brush), size: 18),
+                        selected: e.brush == brush,
                         onSelected: (_) {
-                          if (e.choose(brush)) onPlace?.call();
+                          if (e.choose(brush) &&
+                              brush != CampaignMarkerBrush.none) {
+                            onPlace?.call();
+                          }
                         },
                       ),
                   ],
@@ -122,22 +132,24 @@ class CampaignMarkerPalette extends StatelessWidget {
           CampaignMarkerInspector(editing: e),
           const SizedBox(height: 12),
           ToolSectionCard(
+            key: const ValueKey('campaign_placed_markers'),
             title: 'Placed markers',
             collapsible: true,
+            initiallyExpanded: false,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  '${e.entries.length} mission markers',
+                  '${placedEntries.length} mission markers',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                for (final entry in e.entries)
+                for (final entry in placedEntries)
                   ListTile(
                     dense: true,
                     selected: entry.key == e.selectedKey,
                     title: Text(campaignMarkerLabel(entry)),
                     subtitle: Text(
-                      '${entry.position.occurrenceId} · ${entry.position.x}, ${entry.position.y}',
+                      'Mission chunk ID: ${entry.position.missionChunkId} · ${entry.position.x}, ${entry.position.y}',
                     ),
                     onTap: () => e.select(entry.key),
                   ),
@@ -164,7 +176,9 @@ class CampaignMarkerPalette extends StatelessWidget {
                   ListTile(
                     dense: true,
                     title: Text('Defeat enemy ${target.markerSalt}'),
-                    subtitle: Text(target.occurrenceId),
+                    subtitle: Text(
+                      'Mission chunk ID: ${target.missionChunkId}',
+                    ),
                     trailing: IconButton(
                       tooltip: 'Unlink objective',
                       icon: const Icon(Icons.link_off),
@@ -175,7 +189,9 @@ class CampaignMarkerPalette extends StatelessWidget {
                   ListTile(
                     dense: true,
                     title: Text('Rescue ${target.encounterId}'),
-                    subtitle: Text(target.occurrenceId),
+                    subtitle: Text(
+                      'Mission chunk ID: ${target.missionChunkId}',
+                    ),
                     trailing: IconButton(
                       tooltip: 'Unlink objective',
                       icon: const Icon(Icons.link_off),
@@ -199,6 +215,7 @@ class CampaignMarkerPalette extends StatelessWidget {
 }
 
 String _label(CampaignMarkerBrush brush) => switch (brush) {
+  CampaignMarkerBrush.none => 'None',
   CampaignMarkerBrush.gold => 'Gold coin',
   CampaignMarkerBrush.health => 'Health gem',
   CampaignMarkerBrush.mana => 'Mana gem',
@@ -212,7 +229,7 @@ String _label(CampaignMarkerBrush brush) => switch (brush) {
   CampaignMarkerBrush.visit => 'Visit region',
 };
 IconData _icon(CampaignMarkerBrush brush) => switch (brush) {
-  CampaignMarkerBrush.gold => Icons.monetization_on_outlined,
+  CampaignMarkerBrush.none => Icons.block_outlined,
   CampaignMarkerBrush.health ||
   CampaignMarkerBrush.mana ||
   CampaignMarkerBrush.stamina => Icons.diamond_outlined,

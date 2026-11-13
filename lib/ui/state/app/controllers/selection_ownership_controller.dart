@@ -82,21 +82,26 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
 
   Future<void> setAbilitySlot({
     required PlayerCharacterId characterId,
+    int? buildIndex,
     required AbilitySlot slot,
     required AbilityKey abilityId,
   }) async {
+    buildIndex ??= _selection.selectedBuildIndexFor(characterId);
+    if (!_app.isBuildUnlocked(buildIndex)) {
+      throw StateError('This build is locked.');
+    }
     final developer = _app._developerController;
     if (developer != null) {
       return developer.setLoadout(
         characterId,
         _withAbilityInLoadout(
-          loadout: _selection.loadoutFor(characterId),
+          loadout: _selection.loadoutFor(characterId, buildIndex: buildIndex),
           slot: slot,
           abilityId: abilityId,
         ),
+        buildIndex: buildIndex,
       );
     }
-    final buildIndex = _selection.selectedBuildIndexFor(characterId);
     final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(
@@ -135,19 +140,24 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
 
   Future<void> setProjectileSpell({
     required PlayerCharacterId characterId,
+    int? buildIndex,
     required ProjectileId spellId,
   }) async {
+    buildIndex ??= _selection.selectedBuildIndexFor(characterId);
+    if (!_app.isBuildUnlocked(buildIndex)) {
+      throw StateError('This build is locked.');
+    }
     final developer = _app._developerController;
     if (developer != null) {
       return developer.setLoadout(
         characterId,
         _copyLoadout(
-          _selection.loadoutFor(characterId),
+          _selection.loadoutFor(characterId, buildIndex: buildIndex),
           projectileSlotSpellId: spellId,
         ),
+        buildIndex: buildIndex,
       );
     }
-    final buildIndex = _selection.selectedBuildIndexFor(characterId);
     final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(
@@ -184,21 +194,26 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
 
   Future<void> equipGear({
     required PlayerCharacterId characterId,
+    int? buildIndex,
     required GearSlot slot,
     required Object itemId,
   }) async {
+    buildIndex ??= _selection.selectedBuildIndexFor(characterId);
+    if (!_app.isBuildUnlocked(buildIndex)) {
+      throw StateError('This build is locked.');
+    }
     final developer = _app._developerController;
     if (developer != null) {
       return developer.setLoadout(
         characterId,
         _withGearInLoadout(
-          loadout: _selection.loadoutFor(characterId),
+          loadout: _selection.loadoutFor(characterId, buildIndex: buildIndex),
           slot: slot,
           itemId: itemId,
         ),
+        buildIndex: buildIndex,
       );
     }
-    final buildIndex = _selection.selectedBuildIndexFor(characterId);
     final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(
@@ -216,14 +231,16 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
       nextLoadout,
       buildIndex: buildIndex,
     );
-    _meta = _meta.setEquippedFor(
-      characterId,
-      _withGearInMeta(
-        equipped: _meta.equippedFor(characterId),
-        slot: slot,
-        itemId: itemId,
-      ),
-    );
+    if (_selection.selectedBuildIndexFor(characterId) == buildIndex) {
+      _meta = _meta.setEquippedFor(
+        characterId,
+        _withGearInMeta(
+          equipped: _meta.equippedFor(characterId),
+          slot: slot,
+          itemId: itemId,
+        ),
+      );
+    }
     _notifyListeners();
     await _enqueueOwnershipCommand(
       OwnershipPendingCommand(
@@ -255,15 +272,20 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     await _setSelection(_selection.selectBuild(id, index));
   }
 
-  Future<void> setBuildName(String buildName) async {
+  Future<void> setBuildName(
+    String buildName, {
+    PlayerCharacterId? characterId,
+    int? buildIndex,
+  }) async {
     if (buildName.trim().isEmpty ||
         SelectionState.normalizeBuildName(buildName) != buildName.trim()) {
       throw ArgumentError(
         'Use 1–${SelectionState.buildNameMaxLength} characters for the build name.',
       );
     }
-    final characterId = _selection.selectedCharacterId;
-    final index = _selection.selectedBuildIndexFor(characterId);
+    characterId ??= _selection.selectedCharacterId;
+    final index = buildIndex ?? _selection.selectedBuildIndexFor(characterId);
+    if (!_app.isBuildUnlocked(index)) throw StateError('This build is locked.');
     await _app.ensureOwnershipSyncedBeforeRunStart();
     if (!_app.isBuildUnlocked(index)) throw StateError('This build is locked.');
     if (buildName.trim() ==

@@ -88,7 +88,7 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
     required StagedTerrainChunkData draftTerrain,
     required Iterable<StagedTerrainChunkData> terrainChunks,
     required PlayerCharacterDefinition playerCharacter,
-    required EquippedLoadoutDef equippedLoadout,
+    EquippedLoadoutDef? equippedLoadout,
   }) {
     levelDefinition = immutablePlaytestLevelDefinition(levelDefinition);
     if (seed <= 0) {
@@ -242,7 +242,7 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
     required Iterable<ChunkPattern> patterns,
     required Iterable<StagedTerrainChunkData> terrainChunks,
     required PlayerCharacterDefinition playerCharacter,
-    required EquippedLoadoutDef equippedLoadout,
+    EquippedLoadoutDef? equippedLoadout,
   }) {
     levelDefinition = immutablePlaytestLevelDefinition(levelDefinition);
     if (seed <= 0) {
@@ -393,7 +393,9 @@ final class ChunkPlaytestScenario implements PlaytestScenario {
   final StagedTerrainChunkData draftTerrain;
   @override
   final PlayerCharacterDefinition playerCharacter;
-  final EquippedLoadoutDef equippedLoadout;
+
+  /// Null uses the character catalog starter equipment; explicit overrides are exact.
+  final EquippedLoadoutDef? equippedLoadout;
   final ChunkPlaytestScenarioPath path;
   final StagedTerrainChunkCatalog terrainCatalog;
   final Map<String, ChunkPattern> _patternsByKey;

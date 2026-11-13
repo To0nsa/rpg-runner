@@ -9,71 +9,76 @@ import 'package:runner_core/tuning/track_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('publishes all occurrences once and retains them on return travel', () {
-    final streamer = _streamer();
-    final requests = <SpawnEnemyRequest>[];
-    final projected = streamer.selectionForStep(
-      cameraLeft: 0,
-      cameraRight: 600,
-    );
-    expect(streamer.activeChunks, isEmpty);
-    expect(projected.map((c) => c.occurrenceId), [
-      'entrance',
-      'camp',
-      'return',
-    ]);
-    final upcoming = streamer.upcomingSelections(viewWidth: 600, count: 12);
-    expect(upcoming, hasLength(1));
-    expect(upcoming.single.map(_record), projected.map(_record));
-    expect(() => upcoming.clear(), throwsUnsupportedError);
-
-    final first = streamer.step(
-      cameraLeft: 0,
-      cameraRight: 600,
-      spawnEnemy: requests.add,
-    );
-    expect(first.changed, isTrue);
-    expect(first.spawnedChunks.map((c) => c.occurrenceId), [
-      'entrance',
-      'camp',
-      'return',
-    ]);
-    expect(first.spawnedChunks.map((c) => c.tier), [
-      ChunkPatternTier.easy,
-      ChunkPatternTier.normal,
-      ChunkPatternTier.easy,
-    ]);
-    expect(streamer.activeChunks.map(_record), projected.map(_record));
-    expect(streamer.activeChunks.map((c) => c.startX), [0, 600, 1200]);
-    expect(streamer.activeChunks.last.endX, 1800);
-    // Hashash uses its authored position here, not the runner's edge spawn.
-    expect(requests.map((r) => r.x), [120, 280, 720, 880, 1320, 1480]);
-    expect(
-      requests.every((r) => r.source == EnemySpawnRequestSource.authoredMarker),
-      isTrue,
-    );
-    expect(streamer.dynamicVisualSprites.map((s) => s.x), [40, 640, 1240]);
-    final initial = streamer.activeChunks;
-    for (final left in [600.0, 1200.0, 24000.0, 600.0, 0.0, -600.0, 1200.0]) {
-      expect(
-        streamer.selectionForStep(cameraLeft: left, cameraRight: left + 600),
-        same(initial),
+  test(
+    'publishes all mission chunks once and retains them on return travel',
+    () {
+      final streamer = _streamer();
+      final requests = <SpawnEnemyRequest>[];
+      final projected = streamer.selectionForStep(
+        cameraLeft: 0,
+        cameraRight: 600,
       );
-      final step = streamer.step(
-        cameraLeft: left,
-        cameraRight: left + 600,
+      expect(streamer.activeChunks, isEmpty);
+      expect(projected.map((c) => c.missionChunkId), [
+        'entrance',
+        'camp',
+        'return',
+      ]);
+      final upcoming = streamer.upcomingSelections(viewWidth: 600, count: 12);
+      expect(upcoming, hasLength(1));
+      expect(upcoming.single.map(_record), projected.map(_record));
+      expect(() => upcoming.clear(), throwsUnsupportedError);
+
+      final first = streamer.step(
+        cameraLeft: 0,
+        cameraRight: 600,
         spawnEnemy: requests.add,
       );
-      expect(step.changed, isFalse);
-      expect(step.spawnedChunks, isEmpty);
-      expect(streamer.activeChunks, same(initial));
-      expect(streamer.upcomingSelections(viewWidth: 600, count: 12), isEmpty);
-    }
-    expect(requests, hasLength(6));
-    expect(streamer.difficultyAtWorldX(-1), isNull);
-    expect(streamer.difficultyAtWorldX(600), ChunkPatternTier.normal);
-    expect(streamer.difficultyAtWorldX(1800), isNull);
-  });
+      expect(first.changed, isTrue);
+      expect(first.spawnedChunks.map((c) => c.missionChunkId), [
+        'entrance',
+        'camp',
+        'return',
+      ]);
+      expect(first.spawnedChunks.map((c) => c.tier), [
+        ChunkPatternTier.easy,
+        ChunkPatternTier.normal,
+        ChunkPatternTier.easy,
+      ]);
+      expect(streamer.activeChunks.map(_record), projected.map(_record));
+      expect(streamer.activeChunks.map((c) => c.startX), [0, 600, 1200]);
+      expect(streamer.activeChunks.last.endX, 1800);
+      // Hashash uses its authored position here, not the runner's edge spawn.
+      expect(requests.map((r) => r.x), [120, 280, 720, 880, 1320, 1480]);
+      expect(
+        requests.every(
+          (r) => r.source == EnemySpawnRequestSource.authoredMarker,
+        ),
+        isTrue,
+      );
+      expect(streamer.dynamicVisualSprites.map((s) => s.x), [40, 640, 1240]);
+      final initial = streamer.activeChunks;
+      for (final left in [600.0, 1200.0, 24000.0, 600.0, 0.0, -600.0, 1200.0]) {
+        expect(
+          streamer.selectionForStep(cameraLeft: left, cameraRight: left + 600),
+          same(initial),
+        );
+        final step = streamer.step(
+          cameraLeft: left,
+          cameraRight: left + 600,
+          spawnEnemy: requests.add,
+        );
+        expect(step.changed, isFalse);
+        expect(step.spawnedChunks, isEmpty);
+        expect(streamer.activeChunks, same(initial));
+        expect(streamer.upcomingSelections(viewWidth: 600, count: 12), isEmpty);
+      }
+      expect(requests, hasLength(6));
+      expect(streamer.difficultyAtWorldX(-1), isNull);
+      expect(streamer.difficultyAtWorldX(600), ChunkPatternTier.normal);
+      expect(streamer.difficultyAtWorldX(1800), isNull);
+    },
+  );
 
   test(
     'preserves encounter and boss metadata without filtering copied content',
@@ -158,7 +163,7 @@ void main() {
 }
 
 Object _record(ActiveTrackChunkSnapshot c) =>
-    (c.index, c.occurrenceId, c.chunkKey, c.startX, c.endX, c.tier);
+    (c.index, c.missionChunkId, c.chunkKey, c.startX, c.endX, c.tier);
 
 TrackStreamer _streamer({
   int seed = 42,
@@ -208,7 +213,7 @@ TrackStreamer _streamer({
         ('camp', ChunkPatternTier.normal),
         ('return', ChunkPatternTier.easy),
       ])
-        FiniteChunkOccurrence(
+        FiniteMissionChunk(
           id: id,
           sourceLevelId: 'forest',
           pattern: pattern ?? repeated,

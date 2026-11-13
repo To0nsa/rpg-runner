@@ -353,6 +353,7 @@ ChunkVisualSpriteRel _rotateSprite(
   );
   return ChunkVisualSpriteRel(
     assetPath: sprite.assetPath,
+    prefabKey: sprite.prefabKey,
     srcX: sprite.srcX,
     srcY: sprite.srcY,
     srcWidth: sprite.srcWidth,
@@ -382,6 +383,7 @@ ChunkVisualSpriteRel _sprite({
   final height = slice.height * scale;
   return ChunkVisualSpriteRel(
     assetPath: _runtimeAssetPath(slice.sourceImagePath),
+    prefabKey: prefab.prefabKey,
     srcX: slice.x,
     srcY: slice.y,
     srcWidth: slice.width,

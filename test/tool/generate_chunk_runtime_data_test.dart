@@ -16,6 +16,10 @@ void main() {
     final catalog = jsonDecode(
       File('assets/authoring/campaign/chapter_defs.json').readAsStringSync(),
     ) as Map<String, dynamic>;
+    final mapPath = (catalog['map'] as Map)['assetPath'] as String;
+    final mapTarget = File('${root.path}/$mapPath');
+    mapTarget.parent.createSync(recursive: true);
+    File(mapPath).copySync(mapTarget.path);
     final chapter = (catalog['chapters'] as List).first as Map<String, dynamic>;
     chapter.addAll({
       'rewardXp': 75,
@@ -37,19 +41,31 @@ void main() {
     }
     final mission = missions.first as Map<String, dynamic>;
     mission['includeInBuild'] = true;
+    mission['firstClearGold'] = 125;
+    mission['firstClearItems'] = [
+      {'kind': 'gear', 'slot': 'mainWeapon', 'itemId': 'cinderedge'},
+      {
+        'kind': 'ability',
+        'slot': 'jump',
+        'itemId': 'eloise.double_jump',
+        'characterId': 'eloise',
+      },
+    ];
+    mission.remove('tutorialSequences');
+    mission['blessingObjectiveShrineId'] = 'fire';
     mission['route'] = [
       for (final id in ['first', 'last'])
         {'id': id, 'levelId': 'field', 'chunkKey': 'chunk_ok'},
     ];
-    mission['start'] = {'occurrenceId': 'first', 'x': 100, 'y': 224};
+    mission['start'] = {'missionChunkId': 'first', 'x': 100, 'y': 224};
     mission['exit'] = {
-      'origin': {'occurrenceId': 'last', 'x': 500, 'y': 0},
+      'origin': {'missionChunkId': 'last', 'x': 500, 'y': 0},
       'width': 100,
       'height': 270,
     };
     mission['requiredRegions'] = [
       {
-        'origin': {'occurrenceId': 'first', 'x': 20, 'y': 0},
+        'origin': {'missionChunkId': 'first', 'x': 20, 'y': 0},
         'width': 60,
         'height': 270,
       },
@@ -57,15 +73,41 @@ void main() {
     mission['collectibles'] = [];
     mission['requiredEnemies'] = [];
     mission['requiredRescues'] = [];
-    mission['combatAllowed'] = true;
     mission['placements'] = [
       for (final id in ['first', 'last'])
-        {'id': 'coin_$id', 'kind': 'gold', 'position': {'occurrenceId': id, 'x': 300, 'y': 205}},
-      {'id': 'gem', 'kind': 'gem', 'resource': 'mana', 'position': {'occurrenceId': 'last', 'x': 400, 'y': 205}},
-      {'id': 'fire', 'kind': 'shrine', 'position': {'occurrenceId': 'last', 'x': 450, 'y': 224},
-        'prefabKey': null, 'placementKey': null, 'shapeId': 'ground', 'appearance': 'blueFlame', 'activationWidth': 24, 'scale': 1},
-      {'id': 'optional_enemy', 'kind': 'enemy', 'position': {'occurrenceId': 'last', 'x': 350, 'y': 224},
-        'enemyId': 'grojib', 'placement': 'ground', 'chancePercent': 0, 'salt': 100, 'required': false},
+        {
+          'id': 'coin_$id',
+          'kind': 'gold',
+          'position': {'missionChunkId': id, 'x': 300, 'y': 205},
+        },
+      {
+        'id': 'gem',
+        'kind': 'gem',
+        'resource': 'mana',
+        'position': {'missionChunkId': 'last', 'x': 400, 'y': 205},
+      },
+      {
+        'id': 'fire',
+        'kind': 'shrine',
+        'position': {'missionChunkId': 'last', 'x': 450, 'y': 224},
+        'prefabKey': null,
+        'placementKey': null,
+        'shapeId': 'ground',
+        'appearance': 'blueFlame',
+        'activationWidth': 24,
+        'scale': 1,
+      },
+      {
+        'id': 'optional_enemy',
+        'kind': 'enemy',
+        'position': {'missionChunkId': 'last', 'x': 350, 'y': 224},
+        'enemyId': 'grojib',
+        'placement': 'ground',
+        'chancePercent': 0,
+        'salt': 100,
+        'required': false,
+        'returnWhenPlayerRetreats': false,
+      },
     ];
     _writeFile(
       root.path,
@@ -87,10 +129,44 @@ void main() {
         content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1),
       ) as Map;
       final projected = (projection['chapters'] as List).first as Map;
+      final projectedMission = (projected['missions'] as List).first as Map;
+      expect(projection['journal'], catalog['journal']);
+      expect(projected['journal'], chapter['journal']);
+      expect(projectedMission['journal'], mission['journal']);
+      for (final draft in (projected['missions'] as List).skip(1)) {
+        expect(draft['available'], isFalse);
+        expect(
+          (draft as Map).containsKey('journal'),
+          isFalse,
+          reason: 'Excluded outcome prose must not ship in $output',
+        );
+      }
+      for (final field in [
+        'firstClearXp',
+        'firstClearGold',
+        'firstClearItems',
+      ]) {
+        expect(projectedMission[field], mission[field]);
+      }
+
       for (final field in ['rewardXp', 'rewardGold', 'rewardItems']) {
         expect(projected[field], chapter[field], reason: '$output/$field');
       }
     }
+    expect(
+      File(
+        '${root.path}/packages/runner_core/lib/campaign/campaign_registry.dart',
+      ).readAsStringSync(),
+      contains("bindingKey: 'fire'"),
+    );
+    expect(
+      File(
+        '${root.path}/packages/runner_core/lib/campaign/campaign_registry.dart',
+      ).readAsStringSync(),
+      contains(
+        "persistentPursuitEnemies: [(missionChunkId: 'last', markerSalt: 100)]",
+      ),
+    );
     final probe = await _runCompiledRegistryProbe(root.path, '');
     expect(probe.exitCode, 0, reason: '${probe.stdout} ${probe.stderr}');
     final replay = await _runGeneratedTrapWorker(
@@ -1192,6 +1268,7 @@ void main() {
       expect(outputFile.existsSync(), isTrue);
       final output = outputFile.readAsStringSync();
       expect(output, contains('fieldEasyPatterns'));
+      expect(output, contains("prefabKey: 'grass'"));
       expect(output, contains('authoredChunkPatternSourcesByLevel'));
       expect(output, isNot(contains('SolidRel(')));
       expect(output, contains('visualSprites: <ChunkVisualSpriteRel>['));

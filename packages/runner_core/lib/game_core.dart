@@ -24,6 +24,7 @@ import 'camera/autoscroll_camera.dart';
 import 'camera/finite_follow_camera.dart';
 import 'campaign/campaign_mission_definition.dart';
 import 'campaign/campaign_session.dart';
+import 'campaign/campaign_enemy_system.dart';
 import 'interactions/world_interaction_catalog.dart';
 import 'bosses/boss_arena_system.dart';
 import 'bosses/boss_victory_blessing_system.dart';
@@ -150,6 +151,8 @@ import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/actor_frame_snapshot.dart';
 import 'snapshots/terrain_player_debug_snapshot.dart';
 import 'snapshot_builder.dart';
+import 'combat/player_combat_opportunity.dart';
+import 'snapshots/combat_opportunity_snapshot.dart';
 import 'loadout/loadout_validator.dart';
 import 'spawn_service.dart';
 import 'progression/run_rewards.dart';
@@ -874,6 +877,7 @@ class GameCore {
         blockOneWay: false,
       ).isClear,
     );
+    _combatSightline = projectileAimVisibility.isClear;
     _abilityActivationSystem = AbilityActivationSystem(
       tickHz: tickHz,
       inputBufferTicks: _abilities.inputBufferTicks,
@@ -1121,6 +1125,7 @@ class GameCore {
   final LevelDefinition _levelDefinition;
   final TrainingFieldSession? _trainingField;
   final CampaignSession? _campaign;
+  final CampaignEnemySystem _campaignEnemySystem = CampaignEnemySystem();
 
   /// Queues a local selection for the next marked chunk; mutation happens only
   /// inside the next simulation tick, after its terrain has been published.
@@ -1547,6 +1552,18 @@ class GameCore {
 
   /// Enemy catalog for render-side animation loading.
   EnemyCatalog get enemyCatalog => _enemyCatalog;
+
+  late final bool Function(double, double, double, double) _combatSightline;
+
+  /// Current marker actor opportunity; null after death, missing spawn, or outside Campaign.
+  CombatOpportunitySnapshot? campaignCombatOpportunity(
+    CampaignEnemyTarget target,
+  ) => playerCombatOpportunity(
+    _world,
+    player: _player,
+    target: _campaign?.enemyEntity(target),
+    pathClear: _combatSightline,
+  );
 
   /// Player X position in world coordinates.
   double get playerPosX =>
@@ -2040,7 +2057,9 @@ class GameCore {
     // ─── Phase 3: AI, input, and movement ───
     _campaign?.applyBounds(_world, _player);
     _bossArenas.control(_world, player: _player, tick: tick);
-    // Visibility gates must lock newly spawned Derfs before navigation/combat.
+    // Campaign marker actors already exist; activation precedes every AI gate.
+    _campaignEnemySystem.step(_world, player: _player, tick: tick);
+    // Derf's entrance/engagement transformation locks precede navigation/combat.
     _derfTransformationSystem.step(
       _world,
       currentTick: tick,
@@ -2234,11 +2253,19 @@ class GameCore {
     );
     // Convert intents into actual hitboxes/projectiles/target-point impacts.
     // Self abilities first so buffs/blocks/i-frames can affect spawns & downstream combat deterministically.
-    _meleeStrikeSystem.step(_world, currentTick: tick);
+    _meleeStrikeSystem.step(
+      _world,
+      currentTick: tick,
+      onPlayerAttack: _events.add,
+    );
     // Resolve orb aim, facing and casting origins from this tick's final positions.
     _shoggothCombat.refreshOrbCast(_world, player: _player, currentTick: tick);
     _goddessCombat.refreshOrbCast(_world, player: _player, currentTick: tick);
-    _projectileLaunchSystem.step(_world, currentTick: tick);
+    _projectileLaunchSystem.step(
+      _world,
+      currentTick: tick,
+      onPlayerAttack: _events.add,
+    );
     _targetPointImpactSystem.step(_world, currentTick: tick);
 
     _bossArenas.protectCombat(_world, _player);
@@ -2310,6 +2337,12 @@ class GameCore {
       queueStatus: _statusSystem.queue,
       onParticipationDamage:
           ({required target, required hpLost100, required credit}) {
+            _campaignEnemySystem.recordDamage(
+              _world,
+              target: target,
+              tick: tick,
+              tickHz: tickHz,
+            );
             _combatTotals.recordHpLost(
               playerTarget: target == _player,
               enemyTarget: _world.enemy.has(target),
@@ -2479,18 +2512,11 @@ class GameCore {
         _endRun(RunEndReason.missionFailed);
         return;
       }
-      final transform = _world.transform.indexOf(_player);
-      if (mission.resolveLivingPlayer(
-        _world.transform.posX[transform],
-        _world.transform.posY[transform],
-      )) {
-        _endRun(RunEndReason.missionCompleted);
-        return;
-      }
     }
 
-    // ─── Phase 15: Resource regeneration ───
-    // Final living-player support grants modifiers before this tick's regen.
+    // Commit living-player top contacts before objective resolution so a shrine
+    // landing and its objective completion appear in the same snapshot. Fatal
+    // damage/objective failure still win; regeneration still follows the exit gate.
     const WorldInteractionSystem().step(
       _world,
       player: _player,
@@ -2498,6 +2524,20 @@ class GameCore {
       geometryVersion: _worldMotionAuthority.terrainGeometryVersion,
       emit: _events.add,
     );
+    if (mission != null) {
+      final transform = _world.transform.indexOf(_player);
+      if (mission.resolveLivingPlayer(
+        _world.transform.posX[transform],
+        _world.transform.posY[transform],
+        hasCollectedCoin: collectibles > 0,
+        interactions: _world.interactions,
+      )) {
+        _endRun(RunEndReason.missionCompleted);
+        return;
+      }
+    }
+
+    // ─── Phase 15: Resource regeneration ───
     _resourceRegenSystem.step(_world);
 
     // ─── Phase 16: Animation ───
@@ -2723,7 +2763,7 @@ class GameCore {
       ),
     );
     if (!placement.accepted) {
-      _campaign?.registerEnemy(request, null);
+      _campaign?.registerEnemy(_world, request, null);
       return;
     }
     final body = placement.bodyCenter!;
@@ -2773,7 +2813,7 @@ class GameCore {
           spawnBodyY: bodyY,
         );
     }
-    _campaign?.registerEnemy(request, entity);
+    _campaign?.registerEnemy(_world, request, entity);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

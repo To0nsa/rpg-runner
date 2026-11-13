@@ -40,6 +40,7 @@ import 'package:game_presentation/ability_text.dart';
 import 'package:runner_core/meta/gear_slot.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/gear/gear_picker_candidates_panel.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/gears_tab.dart';
+import 'package:rpg_runner/ui/pages/town/town_equipment_args.dart';
 import 'package:rpg_runner/ui/pages/selectCharacter/skills/skills_list_pane.dart';
 import 'package:rpg_runner/ui/controls/action_button.dart';
 import 'package:rpg_runner/ui/controls/ability_slot_visual_spec.dart';
@@ -124,6 +125,50 @@ void main() {
     },
   );
 
+  testWidgets('Training Field uses the edited build without activating it', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.binding.setSurfaceSize(const Size(800, 450));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final appState = AppState.developer(
+      store: SharedPrefsDeveloperProfileStore(),
+    );
+    addTearDown(appState.dispose);
+    await appState.bootstrap();
+    await appState.setProjectileSpell(
+      characterId: PlayerCharacterId.bountyHunter,
+      buildIndex: 0,
+      spellId: ProjectileId.hunterCrossbow,
+    );
+    await tester.pumpWidget(
+      _TestApp(
+        appState: appState,
+        args: const LoadoutSetupArgs(
+          characterId: PlayerCharacterId.bountyHunter,
+          buildIndex: 0,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Tab).at(2));
+    await tester.pump();
+    final game = tester
+        .widget<GameWidget<RunnerFlameGame>>(
+          find.byType(GameWidget<RunnerFlameGame>),
+        )
+        .game!;
+    await _trainingReady(tester, game);
+    expect(game.controller.playerCharacter.id, PlayerCharacterId.bountyHunter);
+    expect(
+      game.controller.playerCharacter.renderAnim.sourcesByKey.values.join(),
+      contains('/crossbow/'),
+    );
+    expect(appState.selection.selectedCharacterId, PlayerCharacterId.eloise);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
   testWidgets(
     'Gear and Skills retain browsing state across tabs and Training Field',
     (tester) async {
@@ -643,7 +688,16 @@ void main() {
         isEmpty,
       );
       expect(find.byTooltip('Choose training opponent'), findsOneWidget);
-      await tester.tap(find.byType(Tab).first);
+      // A tab/source change can retire Training while its picker awaits input.
+      // Its late result must not select an opponent or resume the next attempt.
+      await tester.tap(find.byKey(const ValueKey('training-enemy-settings')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      tester.widget<TabBar>(find.byType(TabBar)).controller!.index = 0;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(GameWidget<RunnerFlameGame>), findsNothing);
+      await tester.tap(find.text('Derf'));
       await tester.pumpAndSettle();
       expect(
         tester.widget<AppBar>(find.byType(AppBar)).forceMaterialTransparency,
@@ -670,26 +724,31 @@ void main() {
       TargetPlatform.windows,
     }),
   );
-  testWidgets(
-    'GearsTab shows + Town shortcut and navigates after confirmation',
-    (tester) async {
-      final appState = await _bootstrappedAppState();
-      await tester.pumpWidget(_TestApp(appState: appState));
-      await tester.pumpAndSettle();
+  testWidgets('GearsTab shortcut opens Equipment with its browsing context', (
+    tester,
+  ) async {
+    final appState = await _bootstrappedAppState();
+    await tester.pumpWidget(_TestApp(appState: appState));
+    await tester.pumpAndSettle();
 
-      final shortcut = find.byKey(const ValueKey<String>('gear-town-shortcut'));
-      expect(shortcut, findsAtLeastNWidgets(1));
+    final shortcut = find.byKey(const ValueKey<String>('gear-town-shortcut'));
+    expect(shortcut, findsAtLeastNWidgets(1));
 
-      await tester.tap(shortcut.first);
-      await tester.pumpAndSettle();
+    await tester.tap(shortcut.first);
+    await tester.pumpAndSettle();
 
-      expect(find.text('Visit Town store?'), findsOneWidget);
-      await tester.tap(find.text('Go to Town'));
-      await tester.pumpAndSettle();
+    expect(find.text('Visit Town store?'), findsOneWidget);
+    await tester.tap(find.text('Go to Town'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('town-page-marker'), findsOneWidget);
-    },
-  );
+    expect(find.text('equipment-page-marker'), findsOneWidget);
+    final route = ModalRoute.of(
+      tester.element(find.text('equipment-page-marker')),
+    )!;
+    final args = route.settings.arguments! as TownEquipmentArgs;
+    expect(args.characterId, PlayerCharacterId.eloise);
+    expect(args.slot.name, 'mainWeapon');
+  });
 
   testWidgets(
     'SkillsTab shows locked entries and locked details Find in Town CTA',
@@ -796,10 +855,12 @@ class _TestApp extends StatelessWidget {
   const _TestApp({
     required this.appState,
     this.screenPadding = EdgeInsets.zero,
+    this.args,
   });
 
   final AppState appState;
   final EdgeInsets screenPadding;
+  final LoadoutSetupArgs? args;
 
   @override
   Widget build(BuildContext context) {
@@ -824,9 +885,11 @@ class _TestApp extends StatelessWidget {
             UiSkillIconTheme.standard,
           ],
         ),
-        home: const LoadoutSetupPage(),
+        home: LoadoutSetupPage(args: args),
         routes: <String, WidgetBuilder>{
           UiRoutes.town: (_) => const _RouteMarker('town-page-marker'),
+          UiRoutes.townEquipment: (_) =>
+              const _RouteMarker('equipment-page-marker'),
         },
       ),
     );

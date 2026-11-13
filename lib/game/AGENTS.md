@@ -29,6 +29,9 @@ If a change affects the actual rules of the game, it probably belongs in `packag
 
 - `lib/game/game_controller.dart`: owns `GameCore`, fixed-tick stepping, snapshot history, and transient event dispatch
 - `lib/game/runner_flame_game.dart`: main Flame scene and render synchronization
+- `lib/game/runner_gameplay_runtime.dart`: shared per-attempt resource graph;
+  sessions choose Core factories and lifecycle policy. Stop fences ticks/preparation;
+  dispose follows view unmount, including a never-mounted cleanup path.
 - `lib/game/input/runner_input_router.dart`: converts held/edge inputs into upcoming tick commands
 - `lib/game/tick_input_frame.dart`: buffered input frame representation
 - `lib/game/components/`: player, enemy, projectile, pickup, ground, aim, and sprite animation views

@@ -1,7 +1,9 @@
+import '../ui/tutorial/campaign_tutorial_practice_hint.dart';
+import '../ui/tutorial/campaign_tutorial_geometry.dart';
+import '../game/input/runner_gameplay_action.dart';
+
 import 'package:flame/cache.dart';
-import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:runner_core/contracts/render_contract.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/playtest/chunk_playtest_scenario.dart';
 import 'package:runner_core/playtest/level_playtest_scenario.dart';
@@ -10,20 +12,29 @@ import 'package:runner_core/playtest/campaign_playtest_scenario.dart';
 
 import 'runner_playtest_appearance.dart';
 
-import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
 
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
-import '../game/input/runner_gameplay_action.dart';
-import '../game/input/runner_input_router.dart';
-import '../game/input/runner_semantic_action_dispatcher.dart';
 import '../game/runner_flame_game.dart';
+import '../game/runner_gameplay_runtime.dart';
 import '../ui/input/desktop/runner_desktop_aim_geometry.dart';
 import '../ui/input/desktop/runner_desktop_input_adapter.dart';
-import '../ui/viewport/game_viewport.dart';
+import '../ui/input/runner_gameplay_bindings.dart';
+import '../ui/tutorial/campaign_tutorial_overlay.dart';
+
+import 'package:runner_content_pipeline/campaign_tutorial.dart';
+
+import '../ui/runner_gameplay_surface.dart';
 import '../ui/viewport/viewport_metrics.dart';
+import '../ui/hud/game/game_overlay.dart';
+import '../ui/runner_game_ui_state.dart';
+import '../ui/theme/ui_theme.dart';
+import 'runner_playtest_presentation.dart';
+import 'runner_playtest_display_frame.dart';
 import 'runner_workspace_asset_bundle.dart';
+
+part 'runner_playtest_session.dart';
 
 /// Creates a fresh isolated Flame image cache for one runtime generation.
 typedef RunnerPlaytestImagesFactory = Images Function(AssetBundle? assetBundle);
@@ -92,6 +103,15 @@ final class RunnerPlaytestController extends ChangeNotifier {
   );
   _RunnerPlaytestDelegate? _delegate;
   bool _disposed = false;
+  bool _presentationBlocked = false;
+
+  /// Tooling can suspend a live attempt while its display calibration resolves.
+  /// Clearing the block permits an explicit Start/Resume; it never resumes.
+  void setPresentationBlocked(bool blocked) {
+    if (_presentationBlocked == blocked) return;
+    _presentationBlocked = blocked;
+    _delegate?.setPresentationBlocked(blocked);
+  }
 
   /// Latest lifecycle status published synchronously by the mounted host.
   RunnerPlaytestStatus get status => _status;
@@ -142,6 +162,7 @@ final class RunnerPlaytestController extends ChangeNotifier {
     }
     _delegate = delegate;
     _status = status;
+    delegate.setPresentationBlocked(_presentationBlocked);
   }
 
   void _detach(_RunnerPlaytestDelegate delegate) {
@@ -162,11 +183,11 @@ final class RunnerPlaytestController extends ChangeNotifier {
   }
 }
 
-/// Runs one validated authored-chunk scenario without app or backend state.
+/// Runs one validated authored scenario without app or backend state.
 ///
 /// Every restart rebuilds the complete Core/controller/Flame/input graph from
 /// [scenario]. [assetBundle] defaults to the normal Flutter bundle; the editor
-/// should supply [RunnerWorkspaceAssetBundle]. [onStop] fires once after the
+/// should supply [RunnerCapturedAssetBundle]. [onStop] fires once after the
 /// runtime has been removed and disposed.
 class RunnerPlaytestHost extends StatefulWidget {
   const RunnerPlaytestHost({
@@ -177,6 +198,8 @@ class RunnerPlaytestHost extends StatefulWidget {
     required this.onStop,
     this.assetBundle,
     this.imagesFactory,
+    this.presentation = const RunnerPlaytestPresentation(),
+    this.showIdentityBanner = true,
   });
 
   /// Immutable, already-validated inputs used to construct every generation.
@@ -201,6 +224,11 @@ class RunnerPlaytestHost extends StatefulWidget {
   /// ownership of the previous cache to runtime disposal.
   final RunnerPlaytestImagesFactory? imagesFactory;
 
+  /// Pre-launch presentation choices; the runtime exposes no settings controls.
+  /// Restart retains them and keyboard input remains available with either HUD.
+  final RunnerPlaytestPresentation presentation;
+  final bool showIdentityBanner;
+
   @override
   State<RunnerPlaytestHost> createState() => _RunnerPlaytestHostState();
 }
@@ -215,32 +243,43 @@ abstract interface class _RunnerPlaytestDelegate {
   bool requestFocus();
   bool releaseFocus();
   bool stop();
+  void setPresentationBlocked(bool blocked);
 }
 
 class _RunnerPlaytestHostState extends State<RunnerPlaytestHost>
     implements _RunnerPlaytestDelegate {
-  final GlobalKey _surfaceKey = GlobalKey();
-  final Set<_RunnerPlaytestRuntime> _retiredRuntimes =
-      <_RunnerPlaytestRuntime>{};
+  final _surfaceKey = GlobalKey<RunnerGameplaySurfaceState>();
+  final _absentMovementTarget = GlobalKey();
+  late final _RunnerPlaytestSession _session;
+  _RunnerPlaytestRuntime? get _runtime => _session._runtime;
+  RunnerPlaytestPhase get _phase => _session._phase;
+  String? get _failureCode => _session._failureCode;
+  String? get _failureMessage => _session._failureMessage;
+  RunnerPlaytestStatus get _status => _session._status;
 
-  _RunnerPlaytestRuntime? _runtime;
-  RunnerPlaytestPhase _phase = RunnerPlaytestPhase.loading;
-  int _runtimeGeneration = 0;
-  String? _failureCode;
-  String? _failureMessage;
-  bool _stopNotified = false;
-  bool _stopCallbackPending = false;
+  final ThemeData _hudTheme = createUiTheme();
+
+  bool get _hudVisible => widget.presentation.showMobileHud;
+  bool get _isCampaign => widget.scenario is CampaignPlaytestScenario;
 
   @override
   void initState() {
     super.initState();
-    _installFreshRuntime(initial: true);
+    _session = _RunnerPlaytestSession(
+      scenario: widget.scenario,
+      appearance: widget.appearance,
+      assetBundle: widget.assetBundle,
+      imagesFactory: widget.imagesFactory,
+      resolveAimGeometry: _aimGeometryFor,
+      onStop: widget.onStop,
+    )..addListener(_onSessionChanged);
     widget.controller._attach(this, _status);
   }
 
   @override
   void didUpdateWidget(covariant RunnerPlaytestHost oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _session.onStop = widget.onStop;
     if (!identical(oldWidget.controller, widget.controller)) {
       oldWidget.controller._detach(this);
       widget.controller._attach(this, _status);
@@ -249,404 +288,142 @@ class _RunnerPlaytestHostState extends State<RunnerPlaytestHost>
         !identical(oldWidget.assetBundle, widget.assetBundle) ||
         !identical(oldWidget.imagesFactory, widget.imagesFactory) ||
         !identical(oldWidget.appearance, widget.appearance)) {
-      _installFreshRuntime();
+      _session
+        ..scenario = widget.scenario
+        ..appearance = widget.appearance
+        ..assetBundle = widget.assetBundle
+        ..imagesFactory = widget.imagesFactory
+        .._installFreshRuntime();
+    } else if (oldWidget.presentation != widget.presentation) {
+      _runtime?.desktopInput.cancelAll();
     }
-  }
-
-  RunnerPlaytestStatus get _status {
-    final progress = _runtime?.game.loadState.value.progress ?? 0.0;
-    return RunnerPlaytestStatus(
-      phase: _phase,
-      runtimeGeneration: _runtimeGeneration,
-      loadProgress: progress.clamp(0.0, 1.0),
-      failureCode: _failureCode,
-      failureMessage: _failureMessage,
-    );
-  }
-
-  @override
-  GameStateSnapshot? get snapshot => _runtime?.controller.snapshot;
-
-  @override
-  bool start() {
-    final runtime = _runtime;
-    if (_phase != RunnerPlaytestPhase.ready || runtime == null) {
-      return false;
-    }
-    runtime.desktopInput.setEnabled(true);
-    runtime.controller.setPaused(false);
-    _setPhase(RunnerPlaytestPhase.running);
-    _requestRuntimeFocus(runtime);
-    return true;
-  }
-
-  @override
-  bool pause() {
-    final runtime = _runtime;
-    if (_phase != RunnerPlaytestPhase.running || runtime == null) {
-      return false;
-    }
-    runtime.desktopInput.setEnabled(false);
-    runtime.controller.setPaused(true);
-    _setPhase(RunnerPlaytestPhase.paused);
-    return true;
-  }
-
-  @override
-  bool resume() {
-    final runtime = _runtime;
-    if (_phase != RunnerPlaytestPhase.paused || runtime == null) {
-      return false;
-    }
-    runtime.desktopInput.setEnabled(true);
-    runtime.controller.setPaused(false);
-    _setPhase(RunnerPlaytestPhase.running);
-    _requestRuntimeFocus(runtime);
-    return true;
-  }
-
-  @override
-  bool togglePause() {
-    return switch (_phase) {
-      RunnerPlaytestPhase.running => pause(),
-      RunnerPlaytestPhase.paused => resume(),
-      RunnerPlaytestPhase.loading ||
-      RunnerPlaytestPhase.ready ||
-      RunnerPlaytestPhase.gameOver ||
-      RunnerPlaytestPhase.failed ||
-      RunnerPlaytestPhase.stopped => false,
-    };
-  }
-
-  @override
-  bool restart() {
-    if (_phase == RunnerPlaytestPhase.stopped) return false;
-    _installFreshRuntime();
-    return true;
-  }
-
-  @override
-  bool requestFocus() {
-    final runtime = _runtime;
-    if (runtime == null ||
-        _phase == RunnerPlaytestPhase.loading ||
-        _phase == RunnerPlaytestPhase.failed ||
-        _phase == RunnerPlaytestPhase.stopped) {
-      return false;
-    }
-    runtime.desktopInput.requestFocus();
-    return true;
-  }
-
-  @override
-  bool releaseFocus() {
-    final runtime = _runtime;
-    if (runtime == null) return false;
-    runtime.desktopInput.releaseFocus();
-    return true;
-  }
-
-  @override
-  bool stop() {
-    if (_phase == RunnerPlaytestPhase.stopped) return false;
-    final oldRuntime = _runtime;
-    oldRuntime?.prepareForRemoval();
-    _runtime = null;
-    _phase = RunnerPlaytestPhase.stopped;
-    _failureCode = null;
-    _failureMessage = null;
-    _stopCallbackPending = true;
-    if (mounted) setState(() {});
-    widget.controller._publish(_status);
-
-    if (oldRuntime == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _invokeStopOnce());
-    } else {
-      _retireRuntime(oldRuntime, afterDispose: _invokeStopOnce);
-    }
-    return true;
-  }
-
-  void _installFreshRuntime({bool initial = false}) {
-    final oldRuntime = _runtime;
-    oldRuntime?.prepareForRemoval();
-    _runtimeGeneration += 1;
-    _phase = RunnerPlaytestPhase.loading;
-    _failureCode = null;
-    _failureMessage = null;
-
-    try {
-      _runtime = _createRuntime(_runtimeGeneration);
-    } on Object catch (error) {
-      _runtime = null;
-      _phase = RunnerPlaytestPhase.failed;
-      _recordFailure(error, construction: true);
-    }
-
-    if (!initial && mounted) setState(() {});
-    if (!initial) widget.controller._publish(_status);
-    if (oldRuntime != null) _retireRuntime(oldRuntime);
-  }
-
-  _RunnerPlaytestRuntime _createRuntime(int generation) {
-    final controller = GameController(
-      core: switch (widget.scenario) {
-        CampaignPlaytestScenario scenario => GameCore.campaignPlaytest(
-          mission: scenario.mission,
-          playerCharacter: scenario.playerCharacter,
-          equippedLoadout: scenario.equippedLoadout,
-          seed: scenario.seed,
-          tickHz: scenario.tickHz,
-        ),
-        ChunkPlaytestScenario scenario => GameCore.chunkPlaytest(
-          scenario: scenario,
-        ),
-        LevelPlaytestScenario scenario => GameCore.levelPlaytest(
-          scenario: scenario,
-        ),
-        _ => throw ArgumentError('Unsupported playtest scenario type.'),
-      },
-      tickHz: widget.scenario.tickHz,
-    )..setPaused(true);
-    final input = RunnerInputRouter(controller: controller);
-    final actions = RunnerSemanticActionDispatcher(
-      input: input,
-      resolveInputMode: (action) => _resolveInputMode(controller, action),
-    );
-    final projectilePreview = AimPreviewModel();
-    final meleePreview = AimPreviewModel();
-    final imageCache =
-        widget.imagesFactory?.call(widget.assetBundle) ??
-        Images(bundle: widget.assetBundle);
-    final game = RunnerFlameGame(
-      controller: controller,
-      input: input,
-      projectileAimPreview: projectilePreview,
-      meleeAimPreview: meleePreview,
-      playerCharacter: widget.scenario.playerCharacter,
-      imageCache: imageCache,
-      parallaxThemes: widget.appearance.parallaxThemes,
-      terrainMaterials: widget.appearance.terrainMaterials,
-    );
-    final desktopInput = RunnerDesktopInputController(
-      dispatcher: actions,
-      resolveAimGeometry: () => _aimGeometryFor(generation),
-      onFocusLost: () => _handleFocusLost(generation),
-      onCancelPresentation: () {
-        projectilePreview.end();
-        meleePreview.end();
-      },
-    )..setEnabled(false);
-
-    late final _RunnerPlaytestRuntime runtime;
-    runtime = _RunnerPlaytestRuntime(
-      generation: generation,
-      controller: controller,
-      game: game,
-      desktopInput: desktopInput,
-      projectilePreview: projectilePreview,
-      meleePreview: meleePreview,
-      imageCache: imageCache,
-      onLoadStateChanged: () => _handleLoadState(runtime),
-      onControllerChanged: () => _handleControllerState(runtime),
-    );
-    runtime.attachHostListeners();
-    return runtime;
-  }
-
-  AbilityInputMode _resolveInputMode(
-    GameController controller,
-    RunnerGameplayAction action,
-  ) {
-    final hud = controller.snapshot.hud;
-    return switch (action) {
-      RunnerGameplayAction.primary => hud.meleeInputMode,
-      RunnerGameplayAction.secondary => hud.secondaryInputMode,
-      RunnerGameplayAction.projectile => hud.projectileInputMode,
-      RunnerGameplayAction.mobility => hud.mobilityInputMode,
-      RunnerGameplayAction.jump ||
-      RunnerGameplayAction.spell ||
-      RunnerGameplayAction.moveLeft ||
-      RunnerGameplayAction.moveRight => AbilityInputMode.tap,
-    };
   }
 
   RunnerDesktopAimGeometry? _aimGeometryFor(int generation) {
-    final runtime = _runtime;
-    final surfaceContext = _surfaceKey.currentContext;
-    if (runtime == null ||
-        runtime.generation != generation ||
-        surfaceContext == null) {
-      return null;
-    }
-    final renderBox = surfaceContext.findRenderObject();
-    if (renderBox is! RenderBox ||
-        !renderBox.hasSize ||
-        renderBox.size.isEmpty) {
-      return null;
-    }
-    final player = runtime.controller.snapshot.playerEntity;
-    if (player == null) return null;
-    final metrics = computeViewportMetrics(
-      BoxConstraints.tight(renderBox.size),
-      MediaQuery.devicePixelRatioOf(context),
-      virtualWidth,
-      virtualHeight,
-      ViewportScaleMode.pixelPerfectContain,
-    );
-    return RunnerDesktopAimGeometry.fromWorld(
-      metrics: metrics,
-      camera: runtime.controller.snapshot.camera,
-      playerWorldPosition: Offset(player.pos.x, player.pos.y),
-    );
-  }
-
-  void _handleLoadState(_RunnerPlaytestRuntime runtime) {
-    if (!identical(_runtime, runtime) ||
-        _phase != RunnerPlaytestPhase.loading) {
-      return;
-    }
-    if (runtime.game.loadState.value.phase == RunLoadPhase.worldReady) {
-      _phase = RunnerPlaytestPhase.ready;
-      runtime.desktopInput.setEnabled(false);
-      if (mounted) setState(() {});
-      widget.controller._publish(_status);
-      _requestRuntimeFocus(runtime);
-      return;
-    }
-    if (mounted) setState(() {});
-    widget.controller._publish(_status);
-  }
-
-  void _handleControllerState(_RunnerPlaytestRuntime runtime) {
-    if (!identical(_runtime, runtime) ||
-        !runtime.controller.snapshot.gameOver ||
-        _phase == RunnerPlaytestPhase.gameOver ||
-        _phase == RunnerPlaytestPhase.stopped) {
-      return;
-    }
-    runtime.desktopInput.setEnabled(false);
-    _setPhase(RunnerPlaytestPhase.gameOver);
-  }
-
-  void _handleFocusLost(int generation) {
-    final runtime = _runtime;
-    if (runtime == null ||
-        runtime.generation != generation ||
-        _phase != RunnerPlaytestPhase.running) {
-      return;
-    }
-    runtime.controller.setPaused(true);
-    runtime.desktopInput.setEnabled(false);
-    _setPhase(RunnerPlaytestPhase.paused);
-  }
-
-  void _handleLoadFailure(int generation, Object error) {
-    final runtime = _runtime;
-    if (runtime == null || runtime.generation != generation) return;
-    runtime.desktopInput.setEnabled(false);
-    runtime.controller.setPaused(true);
-    _recordFailure(error, construction: false);
-    _setPhase(RunnerPlaytestPhase.failed, preserveFailure: true);
-  }
-
-  void _recordFailure(Object error, {required bool construction}) {
-    if (error case final RunnerWorkspaceAssetException workspaceError) {
-      _failureCode = workspaceError.code;
-      _failureMessage = workspaceError.message;
-      return;
-    }
-    _failureCode = construction
-        ? 'runner_playtest_runtime_construction_failed'
-        : 'runner_playtest_asset_load_failed';
-    _failureMessage = error.toString();
-  }
-
-  void _setPhase(RunnerPlaytestPhase phase, {bool preserveFailure = false}) {
-    _phase = phase;
-    if (!preserveFailure) {
-      _failureCode = null;
-      _failureMessage = null;
-    }
-    if (mounted) setState(() {});
-    widget.controller._publish(_status);
-  }
-
-  void _requestRuntimeFocus(_RunnerPlaytestRuntime runtime) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && identical(_runtime, runtime)) {
-        runtime.desktopInput.requestFocus();
-      }
-    });
-  }
-
-  void _retireRuntime(
-    _RunnerPlaytestRuntime runtime, {
-    VoidCallback? afterDispose,
-  }) {
-    runtime.detachHostListeners();
-    _retiredRuntimes.add(runtime);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_retiredRuntimes.remove(runtime)) return;
-      runtime.dispose();
-      afterDispose?.call();
-    });
-  }
-
-  void _invokeStopOnce() {
-    if (_stopNotified || !_stopCallbackPending) return;
-    _stopCallbackPending = false;
-    _stopNotified = true;
-    widget.onStop();
+    if (_runtime?.generation != generation) return null;
+    return _surfaceKey.currentState?.aimGeometry;
   }
 
   @override
   Widget build(BuildContext context) {
     final runtime = _runtime;
-    return ColoredBox(
-      color: const Color(0xFF05070A),
-      child: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          if (runtime != null)
-            SizedBox.expand(
-              key: _surfaceKey,
-              child: RunnerDesktopInputAdapter(
-                controller: runtime.desktopInput,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final metrics = computeViewportMetrics(
-                      constraints,
-                      MediaQuery.devicePixelRatioOf(context),
-                      virtualWidth,
-                      virtualHeight,
-                      ViewportScaleMode.pixelPerfectContain,
-                    );
-                    return GameViewport(
-                      metrics: metrics,
-                      child: GameWidget<RunnerFlameGame>(
-                        key: ValueKey<RunnerFlameGame>(runtime.game),
-                        game: runtime.game,
-                        autofocus: false,
-                        loadingBuilder: (_) => const SizedBox.expand(),
-                        errorBuilder: (_, error) =>
-                            _RunnerPlaytestLoadFailureReporter(
-                              generation: runtime.generation,
-                              error: error,
-                              onError: _handleLoadFailure,
-                            ),
+    final preview = RunnerPlaytestDisplayFrame(
+      display: widget.presentation.display,
+      child: ColoredBox(
+        color: const Color(0xFF05070A),
+        child: runtime == null
+            ? _buildLifecycleOverlay()
+            : RunnerGameplaySurface(
+                key: _surfaceKey,
+                runtime: runtime.graph,
+                bindings: runtime.bindings,
+                viewportMode: widget.presentation.viewportMode,
+                onLoadError: (error) =>
+                    _session._handleLoadFailure(runtime.generation, error),
+                overlayBuilder: (context, metrics) => Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (_hudVisible &&
+                        (_phase == RunnerPlaytestPhase.ready ||
+                            _phase == RunnerPlaytestPhase.running ||
+                            _phase == RunnerPlaytestPhase.paused))
+                      _buildMobileHud(runtime, metrics),
+                    if (!_hudVisible &&
+                        (_phase == RunnerPlaytestPhase.ready ||
+                            _phase == RunnerPlaytestPhase.running))
+                      AnimatedBuilder(
+                        animation: runtime.bindings,
+                        builder: (context, _) {
+                          final tutorial = runtime.bindings.tutorial;
+                          if (!tutorial.showing) {
+                            return CampaignTutorialPracticeHint(
+                              text: tutorial.combatPracticeHint,
+                            );
+                          }
+                          return CampaignTutorialOverlay(
+                            tutorial: tutorial.active!,
+                            step: tutorial.step,
+                            onNext: tutorial.hasNextStep
+                                ? tutorial.nextStep
+                                : null,
+                            control: TutorialMovementControl.keyboard,
+                            targetKey: _absentMovementTarget,
+                            surfaceKey: _surfaceKey,
+                            worldTarget: tutorial.worldTargetBounds != null
+                                ? () {
+                                    final bounds = tutorial.worldTargetBounds;
+                                    return bounds == null
+                                        ? null
+                                        : campaignTutorialWorldTarget(
+                                            bounds,
+                                            runtime.controller.snapshot.camera,
+                                            metrics,
+                                          );
+                                  }
+                                : null,
+                          );
+                        },
                       ),
-                    );
-                  },
+                    _buildLifecycleOverlay(),
+                  ],
                 ),
               ),
-            ),
-          const _RunnerPlaytestIdentityBanner(),
-          _buildLifecycleOverlay(),
-        ],
       ),
     );
+    if (_isCampaign || !widget.showIdentityBanner) return preview;
+    return Column(
+      children: [
+        const Text('PLAYTEST - NO REWARDS/REPLAY'),
+        Expanded(child: preview),
+      ],
+    );
   }
+
+  Widget _buildMobileHud(
+    _RunnerPlaytestRuntime runtime,
+    ViewportMetrics metrics,
+  ) => Theme(
+    data: _hudTheme,
+    child: DefaultTextStyle(
+      style: _hudTheme.textTheme.bodyMedium!,
+      child: ExcludeFocus(
+        child: AnimatedBuilder(
+          animation: Listenable.merge([runtime.controller, runtime.bindings]),
+          builder: (context, _) => GameOverlay(
+            key: ValueKey(runtime.generation),
+            tutorial: runtime.bindings.tutorial,
+            onTutorialAction: (action) =>
+                _session.start(tutorialAction: action),
+            controller: runtime.controller,
+            input: runtime.bindings.actions,
+            projectileAimPreview: runtime.projectilePreview,
+            meleeAimPreview: runtime.meleePreview,
+            aimCancelHitboxRect: runtime.bindings.aimCancelHitboxRect,
+            forceAimCancelSignal: runtime.bindings.forceAimCancelSignal,
+            playerImpactFeedbackSignal: runtime.bindings.impactSignal,
+            movementInputEpoch: runtime.bindings.movementEpoch,
+            movementControlMode: widget.presentation.movementControlMode,
+            indicatorFrames: runtime.game.offscreenIndicators,
+            viewportMetrics: metrics,
+            uiState: RunnerGameUiState(
+              started: _phase != RunnerPlaytestPhase.ready,
+              paused: runtime.controller.snapshot.paused,
+              gameOver: false,
+              runLoaded: true,
+            ),
+            showLifecycleOverlays: false,
+            onStart: start,
+            onTogglePause: togglePause,
+            showExitButton: true,
+            onExit: stop,
+            exitConfirmOpen: false,
+            onExitConfirmResume: resume,
+            onExitConfirmExit: stop,
+          ),
+        ),
+      ),
+    ),
+  );
 
   Widget _buildLifecycleOverlay() {
     switch (_phase) {
@@ -660,15 +437,32 @@ class _RunnerPlaytestHostState extends State<RunnerPlaytestHost>
           ],
         );
       case RunnerPlaytestPhase.ready:
+        if (_session._showingTutorial) {
+          return _hudVisible
+              ? const SizedBox.shrink()
+              : Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: TextButton(
+                      onPressed: stop,
+                      child: const Text('Stop'),
+                    ),
+                  ),
+                );
+        }
         return _RunnerPlaytestPanel(
           title: 'Ready',
-          detail: 'Click Start or press Enter.',
+          detail: _isCampaign
+              ? 'Local playtest — no rewards or replay. Click Start or press Enter.'
+              : 'Click Start or press Enter.',
           actions: <Widget>[
             FilledButton(onPressed: start, child: const Text('Start')),
             OutlinedButton(onPressed: stop, child: const Text('Stop')),
           ],
         );
       case RunnerPlaytestPhase.running:
+        if (_hudVisible) return const SizedBox.shrink();
         return _RunnerPlaytestToolbar(
           onPause: pause,
           onRestart: restart,
@@ -711,159 +505,40 @@ class _RunnerPlaytestHostState extends State<RunnerPlaytestHost>
     }
   }
 
+  void _onSessionChanged() {
+    if (!mounted) return;
+    setState(() {});
+    widget.controller._publish(_status);
+  }
+
+  @override
+  GameStateSnapshot? get snapshot => _session.snapshot;
+  @override
+  bool start() => _session.start();
+  @override
+  bool pause() => _session.pause();
+  @override
+  bool resume() => _session.resume();
+  @override
+  bool togglePause() => _session.togglePause();
+  @override
+  bool restart() => _session.restart();
+  @override
+  bool requestFocus() => _session.requestFocus();
+  @override
+  bool releaseFocus() => _session.releaseFocus();
+  @override
+  bool stop() => _session.stop();
+  @override
+  void setPresentationBlocked(bool blocked) =>
+      _session.setPresentationBlocked(blocked);
+
   @override
   void dispose() {
     widget.controller._detach(this);
-    final runtime = _runtime;
-    _runtime = null;
-    runtime?.prepareForRemoval();
-    runtime?.detachHostListeners();
-    runtime?.dispose();
-    for (final retired in _retiredRuntimes) {
-      retired.dispose();
-    }
-    _retiredRuntimes.clear();
-    _invokeStopOnce();
+    _session.removeListener(_onSessionChanged);
+    _session.dispose();
     super.dispose();
-  }
-}
-
-final class _RunnerPlaytestRuntime {
-  _RunnerPlaytestRuntime({
-    required this.generation,
-    required this.controller,
-    required this.game,
-    required this.desktopInput,
-    required this.projectilePreview,
-    required this.meleePreview,
-    required this.imageCache,
-    required this.onLoadStateChanged,
-    required this.onControllerChanged,
-  });
-
-  final int generation;
-  final GameController controller;
-  final RunnerFlameGame game;
-  final RunnerDesktopInputController desktopInput;
-  final AimPreviewModel projectilePreview;
-  final AimPreviewModel meleePreview;
-  final Images imageCache;
-  final VoidCallback onLoadStateChanged;
-  final VoidCallback onControllerChanged;
-  bool _listenersAttached = false;
-  bool _disposed = false;
-
-  void attachHostListeners() {
-    if (_listenersAttached) return;
-    _listenersAttached = true;
-    game.loadState.addListener(onLoadStateChanged);
-    controller.addListener(onControllerChanged);
-  }
-
-  void detachHostListeners() {
-    if (!_listenersAttached) return;
-    _listenersAttached = false;
-    game.loadState.removeListener(onLoadStateChanged);
-    controller.removeListener(onControllerChanged);
-  }
-
-  void prepareForRemoval() {
-    if (_disposed) return;
-    desktopInput.setEnabled(false);
-    controller.setPaused(true);
-    detachHostListeners();
-  }
-
-  void dispose() {
-    if (_disposed) return;
-    _disposed = true;
-    detachHostListeners();
-    desktopInput.dispose();
-    controller.shutdown();
-    controller.dispose();
-    projectilePreview.dispose();
-    meleePreview.dispose();
-    imageCache.clearCache();
-  }
-}
-
-class _RunnerPlaytestLoadFailureReporter extends StatefulWidget {
-  const _RunnerPlaytestLoadFailureReporter({
-    required this.generation,
-    required this.error,
-    required this.onError,
-  });
-
-  final int generation;
-  final Object error;
-  final void Function(int generation, Object error) onError;
-
-  @override
-  State<_RunnerPlaytestLoadFailureReporter> createState() =>
-      _RunnerPlaytestLoadFailureReporterState();
-}
-
-class _RunnerPlaytestLoadFailureReporterState
-    extends State<_RunnerPlaytestLoadFailureReporter> {
-  @override
-  void initState() {
-    super.initState();
-    _report();
-  }
-
-  @override
-  void didUpdateWidget(covariant _RunnerPlaytestLoadFailureReporter oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.generation != widget.generation ||
-        !identical(oldWidget.error, widget.error)) {
-      _report();
-    }
-  }
-
-  void _report() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) widget.onError(widget.generation, widget.error);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) => const SizedBox.expand();
-}
-
-class _RunnerPlaytestIdentityBanner extends StatelessWidget {
-  const _RunnerPlaytestIdentityBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: SafeArea(
-        minimum: const EdgeInsets.all(12),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xDD11151C),
-              border: Border.all(color: const Color(0xFFDBA740)),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              child: Text(
-                'PLAYTEST - NO REWARDS/REPLAY\n'
-                'A/D move  Space jump  Shift mobility\n'
-                'Mouse/J primary  RMB/K projectile  Q secondary  E/L spell',
-                style: TextStyle(
-                  color: Color(0xFFFFE4A3),
-                  fontSize: 11,
-                  height: 1.35,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

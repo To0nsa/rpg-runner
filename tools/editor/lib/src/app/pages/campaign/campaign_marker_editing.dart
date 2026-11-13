@@ -26,6 +26,7 @@ import '../shared/terrain_polygon_exact_edit_controller.dart';
 enum CampaignMarkerTool { select, place, move }
 
 enum CampaignMarkerBrush {
+  none,
   gold,
   health,
   mana,
@@ -50,7 +51,7 @@ final class CampaignMarkerEditing extends ChangeNotifier {
   CampaignDocument get document => _document!;
   CampaignMissionSource get mission => document.selected;
   CampaignMarkerTool tool = CampaignMarkerTool.select;
-  CampaignMarkerBrush brush = CampaignMarkerBrush.gold;
+  CampaignMarkerBrush brush = CampaignMarkerBrush.none;
   EnemyId enemy = EnemyId.grojib;
   TrapId trap = TrapId.spike;
   WorldInteractionAppearanceId appearance =
@@ -62,6 +63,31 @@ final class CampaignMarkerEditing extends ChangeNotifier {
   bool gestureActive = false;
   bool get hasDraft => gestureActive || exact.hasChanges;
   List<CampaignMarkerEntry> get entries => campaignMarkerEntries(mission);
+
+  /// Sidebar filtering follows the library choice, independently of scene
+  /// selection and tools. The scene still uses the complete [entries] list.
+  List<CampaignMarkerEntry> get placedEntries => entries.where((entry) {
+    final placement = entry.placement;
+    return switch (brush) {
+      CampaignMarkerBrush.none => true,
+      CampaignMarkerBrush.gold =>
+        (placement is CampaignPickupSource && placement.resource == null) ||
+            entry.key.startsWith('collectibles:'),
+      CampaignMarkerBrush.health ||
+      CampaignMarkerBrush.mana ||
+      CampaignMarkerBrush.stamina =>
+        placement is CampaignPickupSource &&
+            placement.resource?.name == brush.name,
+      CampaignMarkerBrush.shrine => placement is CampaignShrineSource,
+      CampaignMarkerBrush.enemy => placement is CampaignEnemySource,
+      CampaignMarkerBrush.trap => placement is CampaignTrapSource,
+      CampaignMarkerBrush.rescue => placement is CampaignRescueSource,
+      CampaignMarkerBrush.start => entry.key == 'start',
+      CampaignMarkerBrush.exit => entry.key == 'exit',
+      CampaignMarkerBrush.visit => entry.key.startsWith('requiredRegions:'),
+    };
+  }).toList();
+
   CampaignMarkerEntry? get selected =>
       entries.where((e) => e.key == selectedKey).firstOrNull;
 
@@ -93,12 +119,15 @@ final class CampaignMarkerEditing extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Arms repeated placement after resolving fields; false keeps the current
-  /// tool and panel visible so the author can correct a blocked draft.
+  /// Chooses the library filter and arms placement, or selection for None.
+  /// Resolves fields first; false keeps the current tool and panel visible so
+  /// the author can correct a blocked draft.
   bool choose(CampaignMarkerBrush value) {
     if (!finishDraft()) return false;
     brush = value;
-    tool = CampaignMarkerTool.place;
+    tool = value == CampaignMarkerBrush.none
+        ? CampaignMarkerTool.select
+        : CampaignMarkerTool.place;
     error = null;
     candidate = null;
     notifyListeners();
@@ -125,6 +154,9 @@ final class CampaignMarkerEditing extends ChangeNotifier {
   );
 
   CampaignMarkerEntry create(CampaignPoint point) {
+    if (brush == CampaignMarkerBrush.none) {
+      throw StateError('Choose a marker from the library before placing.');
+    }
     final name = id(brush.name);
     final CampaignPlacementSource? placement = switch (brush) {
       CampaignMarkerBrush.gold => CampaignPickupSource(name, point),
@@ -151,7 +183,7 @@ final class CampaignMarkerEditing extends ChangeNotifier {
       ),
       CampaignMarkerBrush.trap => CampaignTrapSource(
         name,
-        point.occurrenceId,
+        point.missionChunkId,
         TrapPlacement(
           trapId: trap,
           x: point.x.round(),
@@ -161,7 +193,7 @@ final class CampaignMarkerEditing extends ChangeNotifier {
       ),
       CampaignMarkerBrush.rescue => CampaignRescueSource(
         name,
-        point.occurrenceId,
+        point.missionChunkId,
         EncounterDefinition(
           id: name,
           name: 'Rescue',
@@ -208,13 +240,13 @@ final class CampaignMarkerEditing extends ChangeNotifier {
     CampaignPoint point, {
     CampaignShrineSource? previous,
   }) {
-    final occurrence = mission.route.firstWhere(
-      (o) => o.id == point.occurrenceId,
+    final missionChunk = mission.route.firstWhere(
+      (o) => o.id == point.missionChunkId,
     );
-    final terrain = compiled[occurrence.chunkKey]?.stagedTerrain;
+    final terrain = compiled[missionChunk.chunkKey]?.stagedTerrain;
     if (terrain == null) {
       throw StateError(
-        'This occurrence needs valid compiled terrain before attaching a fire.',
+        'This mission chunk needs valid compiled terrain before attaching a fire.',
       );
     }
     CampaignShrineSource? result;
@@ -226,7 +258,7 @@ final class CampaignMarkerEditing extends ChangeNotifier {
       try {
         final binding = WorldInteractionBinding(
           key: id,
-          chunkKey: occurrence.chunkKey,
+          chunkKey: missionChunk.chunkKey,
           prefabKey: lineage?.prefabKey,
           placementKey: polygon.id.placementKey,
           shapeId: polygon.id.shapeId,
@@ -245,7 +277,7 @@ final class CampaignMarkerEditing extends ChangeNotifier {
         best = distance;
         result = CampaignShrineSource(
           id,
-          CampaignPoint(occurrenceId: point.occurrenceId, x: x, y: y),
+          CampaignPoint(missionChunkId: point.missionChunkId, x: x, y: y),
           prefabKey: lineage?.prefabKey,
           placementKey: polygon.id.placementKey,
           shapeId: polygon.id.shapeId,
@@ -336,6 +368,12 @@ final class CampaignMarkerEditing extends ChangeNotifier {
     if (!finishDraft()) return;
     final entry = selected;
     if (entry == null) return;
+    if (entry.placement?.id == mission.blessingObjectiveShrineId &&
+        mission.blessingObjectiveShrineId != null) {
+      error = 'Reassign or remove the blessing objective before deleting its shrine.';
+      notifyListeners();
+      return;
+    }
     apply(removeCampaignMarker(mission, entry));
     selectedKey = null;
     memberId = null;
@@ -367,7 +405,7 @@ final class CampaignMarkerEditing extends ChangeNotifier {
       }
       final copy = decodeCampaignPlacements([json]).single;
       final point = CampaignPoint(
-        occurrenceId: entry.position.occurrenceId,
+        missionChunkId: entry.position.missionChunkId,
         x: entry.position.x + (entry.position.x < 560 ? 24 : -24),
         y: entry.position.y,
       );
@@ -405,7 +443,7 @@ final class CampaignMarkerEditing extends ChangeNotifier {
           : EncounterEnemyPlacement(id: name, enemyId: enemy, x: x);
       final value = CampaignRescueSource(
         group.id,
-        group.occurrenceId,
+        group.missionChunkId,
         addEncounterMember(group.encounter, member),
         required: group.required,
       );
@@ -436,7 +474,7 @@ final class CampaignMarkerEditing extends ChangeNotifier {
           : addEncounterMember(p.encounter, copy);
       final value = CampaignRescueSource(
         p.id,
-        p.occurrenceId,
+        p.missionChunkId,
         group,
         required: p.required,
       );

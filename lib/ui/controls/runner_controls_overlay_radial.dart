@@ -1,3 +1,7 @@
+import 'run_controls_tuning.dart';
+import 'widgets/jump_control.dart';
+import 'widgets/tap_ability_control.dart';
+
 import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +25,7 @@ import '../theme/ui_action_button_theme.dart';
 import 'widgets/spell_control.dart';
 import 'widgets/melee_control.dart';
 import 'widgets/movement_control.dart';
+import 'widgets/movement_control_placement.dart';
 import 'widgets/projectile_control.dart';
 
 /// Radial in-run control overlay that maps ability modes to concrete widgets.
@@ -34,6 +39,14 @@ class RunnerControlsOverlay extends StatelessWidget {
     required this.onMoveAxis,
     this.movementControlMode = MovementControlMode.arrows,
     this.movementEnabled = true,
+    this.actionsEnabled = true,
+    this.blockedSlots = const {},
+    this.attackTargetKeys = const {},
+    this.visibleSlots = const {...AbilitySlot.values},
+    this.movementTargetKey,
+    this.jumpTargetKey,
+    this.mobilityTargetKey,
+    this.onMovementEngage,
     this.movementInputEpoch = 0,
     required this.onJumpPressed,
     required this.onMobilityPressed,
@@ -98,6 +111,12 @@ class RunnerControlsOverlay extends StatelessWidget {
   final ValueChanged<double> onMoveAxis;
   final MovementControlMode movementControlMode;
   final bool movementEnabled;
+  final bool actionsEnabled;
+  final Set<AbilitySlot> blockedSlots;
+  final Map<AbilitySlot, Key> attackTargetKeys;
+  final Set<AbilitySlot> visibleSlots;
+  final Key? movementTargetKey, jumpTargetKey, mobilityTargetKey;
+  final bool Function()? onMovementEngage;
 
   /// Changes whenever the run cancels input, even across a frameless pause.
   final int movementInputEpoch;
@@ -169,7 +188,7 @@ class RunnerControlsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themedTuning = _resolveRunControlsTuning(
+    final themedTuning = resolveRunControlsTuning(
       base: tuning,
       actionButtons: context.actionButtons,
     );
@@ -182,7 +201,6 @@ class RunnerControlsOverlay extends StatelessWidget {
       abilityId: secondaryAbilityId,
     );
     final mobilitySlot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.mobility);
-    final jumpSlot = abilityRadialLayoutSpec.slotSpec(AbilitySlot.jump);
     final layout = ControlsRadialLayoutSolver.solve(
       layout: themedTuning.layout,
       action: action,
@@ -201,14 +219,22 @@ class RunnerControlsOverlay extends StatelessWidget {
     String labelFor(AbilitySlot slot) =>
         abilityRadialLayoutSpec.slotSpec(slot).label(context.l10n);
     Widget feedback(AbilitySlot slot, int cooldown, Widget child) =>
-        ResourceActionFeedback(
-          missing: cooldown > 0
-              ? ControlResourceUsage.none
-              : missingResourcesBySlot[slot] ?? ControlResourceUsage.none,
-          onShortfall: onResourceShortfall,
-          child: child,
+        IgnorePointer(
+          ignoring: !actionsEnabled || blockedSlots.contains(slot),
+          child: Opacity(
+            opacity: blockedSlots.contains(slot) ? 0.35 : 1,
+            child: ResourceActionFeedback(
+              missing: cooldown > 0
+                  ? ControlResourceUsage.none
+                  : missingResourcesBySlot[slot] ?? ControlResourceUsage.none,
+              onShortfall: onResourceShortfall,
+              child: child,
+            ),
+          ),
         );
     final movement = MovementControl(
+      key: movementTargetKey,
+      onEngage: onMovementEngage,
       tuning: themedTuning,
       onMoveAxis: onMoveAxis,
       mode: movementControlMode,
@@ -218,30 +244,12 @@ class RunnerControlsOverlay extends StatelessWidget {
 
     return Stack(
       children: [
-        Positioned.fill(
-          child: Align(
-            alignment: Alignment.bottomLeft,
-            child: FractionallySizedBox(
-              // Keep activation and the base center within the run's left 33%.
-              widthFactor: movementControlMode == MovementControlMode.joystick
-                  ? 0.33
-                  : null,
-              heightFactor: movementControlMode == MovementControlMode.joystick
-                  ? 0.5
-                  : null,
-              child: Padding(
-                padding: movementControlMode == MovementControlMode.joystick
-                    ? EdgeInsets.zero
-                    : EdgeInsets.only(
-                        left: themedTuning.layout.edgePadding,
-                        bottom: themedTuning.layout.bottomEdgePadding,
-                      ),
-                child: movement,
-              ),
-            ),
-          ),
+        MovementControlPlacement(
+          mode: movementControlMode,
+          layout: themedTuning.layout,
+          child: movement,
         ),
-        if (hasProjectileSlot)
+        if (hasProjectileSlot && visibleSlots.contains(AbilitySlot.projectile))
           Positioned(
             right: anchorFor(AbilitySlot.projectile).right,
             bottom: anchorFor(AbilitySlot.projectile).bottom,
@@ -249,6 +257,7 @@ class RunnerControlsOverlay extends StatelessWidget {
               AbilitySlot.projectile,
               projectileCooldownTicksLeft,
               ProjectileControl(
+                key: attackTargetKeys[AbilitySlot.projectile],
                 tuning: themedTuning,
                 inputMode: projectileInputMode,
                 size: sizeFor(AbilitySlot.projectile),
@@ -272,28 +281,29 @@ class RunnerControlsOverlay extends StatelessWidget {
               ),
             ),
           ),
-        Positioned(
-          right: anchorFor(AbilitySlot.spell).right,
-          bottom: anchorFor(AbilitySlot.spell).bottom,
-          child: feedback(
-            AbilitySlot.spell,
-            spellCooldownTicksLeft,
-            SpellControl(
-              abilityId: spellAbilityId,
-              tuning: themedTuning,
-              size: sizeFor(AbilitySlot.spell),
-              label: labelFor(AbilitySlot.spell),
-              resources:
-                  resourcesBySlot[AbilitySlot.spell] ??
-                  ControlResourceUsage.none,
-              onPressed: onSpellPressed,
-              affordable: spellAffordable,
-              cooldownTicksLeft: spellCooldownTicksLeft,
-              cooldownTicksTotal: spellCooldownTicksTotal,
+        if (visibleSlots.contains(AbilitySlot.spell))
+          Positioned(
+            right: anchorFor(AbilitySlot.spell).right,
+            bottom: anchorFor(AbilitySlot.spell).bottom,
+            child: feedback(
+              AbilitySlot.spell,
+              spellCooldownTicksLeft,
+              SpellControl(
+                abilityId: spellAbilityId,
+                tuning: themedTuning,
+                size: sizeFor(AbilitySlot.spell),
+                label: labelFor(AbilitySlot.spell),
+                resources:
+                    resourcesBySlot[AbilitySlot.spell] ??
+                    ControlResourceUsage.none,
+                onPressed: onSpellPressed,
+                affordable: spellAffordable,
+                cooldownTicksLeft: spellCooldownTicksLeft,
+                cooldownTicksTotal: spellCooldownTicksTotal,
+              ),
             ),
           ),
-        ),
-        if (hasSecondarySlot)
+        if (hasSecondarySlot && visibleSlots.contains(AbilitySlot.secondary))
           Positioned(
             right: anchorFor(AbilitySlot.secondary).right,
             bottom: anchorFor(AbilitySlot.secondary).bottom,
@@ -375,140 +385,142 @@ class RunnerControlsOverlay extends StatelessWidget {
                     ),
             ),
           ),
-        Positioned(
-          right: anchorFor(AbilitySlot.primary).right,
-          bottom: anchorFor(AbilitySlot.primary).bottom,
-          child: feedback(
-            AbilitySlot.primary,
-            meleeCooldownTicksLeft,
-            MeleeControl(
-              tuning: themedTuning,
-              inputMode: meleeInputMode,
-              size: sizeFor(AbilitySlot.primary),
-              deadzoneRadius: layout.directionalDeadzoneRadius,
-              label: labelFor(AbilitySlot.primary),
-              resources:
-                  resourcesBySlot[AbilitySlot.primary] ??
-                  ControlResourceUsage.none,
-              onPressed: onMeleePressed,
-              onHoldStart: onMeleeHoldStart,
-              onHoldEnd: onMeleeHoldEnd,
-              onChargeHoldStart: onMeleeChargeHoldStart,
-              onChargeHoldEnd: onMeleeChargeHoldEnd,
-              onAimDir: onAimDir,
-              onAimClear: onAimClear,
-              onCommitted: onMeleeCommitted,
-              aimPreview: meleeAimPreview,
-              affordable: meleeAffordable,
-              cooldownTicksLeft: meleeCooldownTicksLeft,
-              cooldownTicksTotal: meleeCooldownTicksTotal,
-              cancelHitboxRect: aimCancelHitboxRect,
-              forceCancelSignal: forceAimCancelSignal,
+        if (visibleSlots.contains(AbilitySlot.primary))
+          Positioned(
+            right: anchorFor(AbilitySlot.primary).right,
+            bottom: anchorFor(AbilitySlot.primary).bottom,
+            child: feedback(
+              AbilitySlot.primary,
+              meleeCooldownTicksLeft,
+              MeleeControl(
+                key: attackTargetKeys[AbilitySlot.primary],
+                tuning: themedTuning,
+                inputMode: meleeInputMode,
+                size: sizeFor(AbilitySlot.primary),
+                deadzoneRadius: layout.directionalDeadzoneRadius,
+                label: labelFor(AbilitySlot.primary),
+                resources:
+                    resourcesBySlot[AbilitySlot.primary] ??
+                    ControlResourceUsage.none,
+                onPressed: onMeleePressed,
+                onHoldStart: onMeleeHoldStart,
+                onHoldEnd: onMeleeHoldEnd,
+                onChargeHoldStart: onMeleeChargeHoldStart,
+                onChargeHoldEnd: onMeleeChargeHoldEnd,
+                onAimDir: onAimDir,
+                onAimClear: onAimClear,
+                onCommitted: onMeleeCommitted,
+                aimPreview: meleeAimPreview,
+                affordable: meleeAffordable,
+                cooldownTicksLeft: meleeCooldownTicksLeft,
+                cooldownTicksTotal: meleeCooldownTicksTotal,
+                cancelHitboxRect: aimCancelHitboxRect,
+                forceCancelSignal: forceAimCancelSignal,
+              ),
             ),
           ),
-        ),
-        Positioned(
-          right: anchorFor(AbilitySlot.mobility).right,
-          bottom: anchorFor(AbilitySlot.mobility).bottom,
-          child: feedback(
-            AbilitySlot.mobility,
-            mobilityRecastAvailable ? 0 : mobilityCooldownTicksLeft,
-            mobilityInputMode == AbilityInputMode.tap
-                ? ActionButton(
-                    label: labelFor(AbilitySlot.mobility),
-                    icon: mobilitySlot.icon,
-                    resources:
-                        resourcesBySlot[AbilitySlot.mobility] ??
-                        ControlResourceUsage.none,
-                    onPressed: onMobilityPressed,
-                    recastAvailable: mobilityRecastAvailable,
-                    tuning: action,
-                    cooldownRing: cooldownRing,
-                    affordable: mobilityAffordable,
-                    cooldownTicksLeft: mobilityCooldownTicksLeft,
-                    cooldownTicksTotal: mobilityCooldownTicksTotal,
-                    size: sizeFor(AbilitySlot.mobility),
-                  )
-                : mobilityInputMode == AbilityInputMode.holdMaintain
-                ? HoldActionButton(
-                    label: labelFor(AbilitySlot.mobility),
-                    icon: mobilitySlot.icon,
-                    resources:
-                        resourcesBySlot[AbilitySlot.mobility] ??
-                        ControlResourceUsage.none,
-                    onHoldStart: onMobilityHoldStart,
-                    onHoldEnd: onMobilityHoldEnd,
-                    tuning: action,
-                    cooldownRing: cooldownRing,
-                    affordable: mobilityAffordable,
-                    cooldownTicksLeft: mobilityCooldownTicksLeft,
-                    cooldownTicksTotal: mobilityCooldownTicksTotal,
-                    size: sizeFor(AbilitySlot.mobility),
-                  )
-                : mobilityInputMode == AbilityInputMode.holdRelease
-                ? HoldActionButton(
-                    label: labelFor(AbilitySlot.mobility),
-                    icon: mobilitySlot.icon,
-                    resources:
-                        resourcesBySlot[AbilitySlot.mobility] ??
-                        ControlResourceUsage.none,
-                    onHoldStart: onMobilityHoldStart,
-                    onHoldEnd: onMobilityHoldEnd,
-                    onRelease: onMobilityCommitted,
-                    tuning: action,
-                    cooldownRing: cooldownRing,
-                    affordable: mobilityAffordable,
-                    cooldownTicksLeft: mobilityCooldownTicksLeft,
-                    cooldownTicksTotal: mobilityCooldownTicksTotal,
-                    size: sizeFor(AbilitySlot.mobility),
-                  )
-                : DirectionalActionButton(
-                    label: labelFor(AbilitySlot.mobility),
-                    icon: mobilitySlot.icon,
-                    resources:
-                        resourcesBySlot[AbilitySlot.mobility] ??
-                        ControlResourceUsage.none,
-                    onHoldStart: onMobilityHoldStart,
-                    onHoldEnd: onMobilityHoldEnd,
-                    onAimDir: onAimDir,
-                    onAimClear: onAimClear,
-                    onCommit: onMobilityCommitted,
-                    projectileAimPreview: meleeAimPreview,
-                    tuning: directional,
-                    cooldownRing: cooldownRing,
-                    cancelHitboxRect: aimCancelHitboxRect,
-                    affordable: mobilityAffordable,
-                    cooldownTicksLeft: mobilityCooldownTicksLeft,
-                    cooldownTicksTotal: mobilityCooldownTicksTotal,
-                    size: sizeFor(
-                      AbilitySlot.mobility,
-                      familyOverride: AbilityRadialSlotFamily.directional,
+        if (visibleSlots.contains(AbilitySlot.mobility) &&
+            mobilityInputMode == AbilityInputMode.tap)
+          TapAbilityControl(
+            slot: AbilitySlot.mobility,
+            targetKey: mobilityTargetKey,
+            tuning: tuning,
+            enabled: actionsEnabled,
+            affordable: mobilityAffordable,
+            cooldownTicksLeft: mobilityCooldownTicksLeft,
+            cooldownTicksTotal: mobilityCooldownTicksTotal,
+            recastAvailable: mobilityRecastAvailable,
+            resources:
+                resourcesBySlot[AbilitySlot.mobility] ??
+                ControlResourceUsage.none,
+            missing:
+                missingResourcesBySlot[AbilitySlot.mobility] ??
+                ControlResourceUsage.none,
+            onShortfall: onResourceShortfall,
+            onPressed: onMobilityPressed,
+          ),
+        if (visibleSlots.contains(AbilitySlot.mobility) &&
+            mobilityInputMode != AbilityInputMode.tap)
+          Positioned(
+            right: anchorFor(AbilitySlot.mobility).right,
+            bottom: anchorFor(AbilitySlot.mobility).bottom,
+            child: feedback(
+              AbilitySlot.mobility,
+              mobilityRecastAvailable ? 0 : mobilityCooldownTicksLeft,
+              mobilityInputMode == AbilityInputMode.holdMaintain
+                  ? HoldActionButton(
+                      label: labelFor(AbilitySlot.mobility),
+                      icon: mobilitySlot.icon,
+                      resources:
+                          resourcesBySlot[AbilitySlot.mobility] ??
+                          ControlResourceUsage.none,
+                      onHoldStart: onMobilityHoldStart,
+                      onHoldEnd: onMobilityHoldEnd,
+                      tuning: action,
+                      cooldownRing: cooldownRing,
+                      affordable: mobilityAffordable,
+                      cooldownTicksLeft: mobilityCooldownTicksLeft,
+                      cooldownTicksTotal: mobilityCooldownTicksTotal,
+                      size: sizeFor(AbilitySlot.mobility),
+                    )
+                  : mobilityInputMode == AbilityInputMode.holdRelease
+                  ? HoldActionButton(
+                      label: labelFor(AbilitySlot.mobility),
+                      icon: mobilitySlot.icon,
+                      resources:
+                          resourcesBySlot[AbilitySlot.mobility] ??
+                          ControlResourceUsage.none,
+                      onHoldStart: onMobilityHoldStart,
+                      onHoldEnd: onMobilityHoldEnd,
+                      onRelease: onMobilityCommitted,
+                      tuning: action,
+                      cooldownRing: cooldownRing,
+                      affordable: mobilityAffordable,
+                      cooldownTicksLeft: mobilityCooldownTicksLeft,
+                      cooldownTicksTotal: mobilityCooldownTicksTotal,
+                      size: sizeFor(AbilitySlot.mobility),
+                    )
+                  : DirectionalActionButton(
+                      label: labelFor(AbilitySlot.mobility),
+                      icon: mobilitySlot.icon,
+                      resources:
+                          resourcesBySlot[AbilitySlot.mobility] ??
+                          ControlResourceUsage.none,
+                      onHoldStart: onMobilityHoldStart,
+                      onHoldEnd: onMobilityHoldEnd,
+                      onAimDir: onAimDir,
+                      onAimClear: onAimClear,
+                      onCommit: onMobilityCommitted,
+                      projectileAimPreview: meleeAimPreview,
+                      tuning: directional,
+                      cooldownRing: cooldownRing,
+                      cancelHitboxRect: aimCancelHitboxRect,
+                      affordable: mobilityAffordable,
+                      cooldownTicksLeft: mobilityCooldownTicksLeft,
+                      cooldownTicksTotal: mobilityCooldownTicksTotal,
+                      size: sizeFor(
+                        AbilitySlot.mobility,
+                        familyOverride: AbilityRadialSlotFamily.directional,
+                      ),
+                      deadzoneRadius: layout.directionalDeadzoneRadius,
+                      forceCancelSignal: forceAimCancelSignal,
                     ),
-                    deadzoneRadius: layout.directionalDeadzoneRadius,
-                    forceCancelSignal: forceAimCancelSignal,
-                  ),
-          ),
-        ),
-        Positioned(
-          right: anchorFor(AbilitySlot.jump).right,
-          bottom: anchorFor(AbilitySlot.jump).bottom,
-          child: feedback(
-            AbilitySlot.jump,
-            0,
-            ActionButton(
-              label: labelFor(AbilitySlot.jump),
-              icon: jumpSlot.icon,
-              resources:
-                  resourcesBySlot[AbilitySlot.jump] ??
-                  ControlResourceUsage.none,
-              onPressed: onJumpPressed,
-              tuning: action,
-              cooldownRing: cooldownRing,
-              affordable: jumpAffordable,
-              size: sizeFor(AbilitySlot.jump),
             ),
           ),
-        ),
+        if (visibleSlots.contains(AbilitySlot.jump))
+          JumpControl(
+            targetKey: jumpTargetKey,
+            tuning: tuning,
+            enabled: actionsEnabled,
+            affordable: jumpAffordable,
+            resources:
+                resourcesBySlot[AbilitySlot.jump] ?? ControlResourceUsage.none,
+            missing:
+                missingResourcesBySlot[AbilitySlot.jump] ??
+                ControlResourceUsage.none,
+            onShortfall: onResourceShortfall,
+            onPressed: onJumpPressed,
+          ),
         if (chargeBarVisible)
           Positioned(
             right: layout.projectileCharge.right,
@@ -522,30 +534,6 @@ class RunnerControlsOverlay extends StatelessWidget {
       ],
     );
   }
-}
-
-ControlsTuning _resolveRunControlsTuning({
-  required ControlsTuning base,
-  required UiActionButtonTheme actionButtons,
-}) {
-  final baseStyle = base.style;
-  return ControlsTuning(
-    layout: base.layout,
-    moveButtons: base.moveButtons,
-    moveJoystick: base.moveJoystick,
-    style: ControlsStyleTuning(
-      actionButton: actionButtons.resolveAction(
-        base: baseStyle.actionButton,
-        surface: UiActionButtonSurface.run,
-      ),
-      directionalActionButton: actionButtons.resolveDirectional(
-        base: baseStyle.directionalActionButton,
-        surface: UiActionButtonSurface.run,
-      ),
-      cooldownRing: baseStyle.cooldownRing,
-      chargeBar: baseStyle.chargeBar,
-    ),
-  );
 }
 
 class _ChargeBar extends StatelessWidget {

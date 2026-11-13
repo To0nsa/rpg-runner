@@ -10,6 +10,73 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get tutorialNext => 'Next';
+
+  @override
+  String tutorialStepProgress({required int step, required int total}) {
+    return 'Step $step/$total';
+  }
+
+  @override
+  String get characterTrainingTab => 'Training';
+
+  @override
+  String get characterSelected => 'Selected';
+
+  @override
+  String characterSelect({required String name}) {
+    return 'Select $name';
+  }
+
+  @override
+  String get characterActiveBuild => 'Active build';
+
+  @override
+  String get characterUseBuild => 'Use this build';
+
+  @override
+  String characterSelectBuildSemantics({
+    required String build,
+    required String character,
+  }) {
+    return 'Use $build with $character';
+  }
+
+  @override
+  String characterEditBuildSemantics({
+    required String build,
+    required String character,
+  }) {
+    return 'Edit $build for $character';
+  }
+
+  @override
+  String characterBuildUnlockLevel({required int level}) {
+    return 'Unlocks at level $level';
+  }
+
+  @override
+  String get characterNextRun => 'Selected for next run';
+
+  @override
+  String characterBuildSummary({
+    required String character,
+    required String build,
+  }) {
+    return '$character · $build';
+  }
+
+  @override
+  String get characterRenameBuild => 'Rename';
+
+  @override
+  String get characterBuildSaved => 'Saved';
+
+  @override
+  String get characterBuildSaveFailed =>
+      'Could not save your changes. Please retry.';
+
+  @override
   String get appTitle => 'Lothringen: The Long Run';
 
   @override
@@ -2197,13 +2264,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get codexOpeningTitle => 'The roads of Lothringen';
-
-  @override
-  String get codexOpening =>
-      'Théodonis stands behind old walls, surrounded by farmland and forests. The city has survived wars, raids and disease, and its apparent stability rests on institutions that have weathered many crises.\n\nLong ago, Éloïse founded La Main to confront a hidden threat. After her disappearance, the order continued its work in secret. More recently, an incident at the Villa Twinsen left questions unanswered.\n\nOn the roads of Lothringen, Neyla leads a traveling company of performers. They bring shows to the communities they visit and offer help along the way. Their journey now leads toward Théodonis.';
-
-  @override
   String get codexGrojibLore =>
       'Grojib closes the distance without hesitation. A traveler who holds their ground after the first blow may find another strike already on its way.';
 
@@ -2245,11 +2305,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get codexGrojibTactics =>
-      'A ground pursuer with a follow-up melee strike that can stun on hit. Leave room for the second swing.';
+      'A ground pursuer with a follow-up melee strike that can stun on hit.';
 
   @override
   String get codexHashashTactics =>
-      'A mobile assassin with a teleporting ambush. Watch for its return before committing.';
+      'A mobile assassin with a teleporting ambush.';
 
   @override
   String get codexDerfTactics =>
@@ -2257,35 +2317,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get codexUnocoTactics =>
-      'A flying caster that can also strike at close range. Keep moving while its projectile is aimed.';
+      'A flying caster that can also strike at close range.';
 
   @override
-  String get codexBringerTactics =>
-      'A scythe fighter with dark pillars. Read the wind-up and move clear of the marked ground.';
+  String get codexBringerTactics => 'A scythe fighter with dark pillars.';
 
   @override
   String get codexGoddessTactics =>
-      'Combines claw attacks, dark orbs and ground eruptions. Reposition when the arena is threatened.';
+      'Combines claw attacks, dark orbs and ground eruptions.';
 
   @override
   String get codexShoggothTactics =>
-      'Uses tentacles, dark orbs and summoned creatures. Manage the smaller threats while watching the boss.';
+      'Uses tentacles, dark orbs and summoned creatures.';
 
   @override
   String get codexVoidcallerTactics =>
-      'Uses vertical and diagonal beams, fire claws and tentacle summons. Keep a route out of overlapping attacks.';
+      'Uses vertical and diagonal beams, fire claws and tentacle summons.';
 
   @override
   String get codexShoggothMinionTactics =>
-      'A small ground attacker summoned by Shoggoth. Avoid being crowded while the boss attacks.';
+      'A small ground attacker summoned by Shoggoth.';
 
   @override
-  String get codexVoidTentacleTactics =>
-      'A summoned melee threat. Move beyond its lash before turning to attack it.';
+  String get codexVoidTentacleTactics => 'A summoned melee threat.';
 
   @override
   String get codexForestLore =>
-      'Val Outpost stands beside the road through the Long-Eared Owls’ Forest. Its soldiers patrol the wooded route, train for the forest’s hazards, and carry warnings of danger back to Théodonis. Travelers can rest under their guard before continuing their journey.';
+      'Set apart from Théodonis in a darker stretch of the Long-Eared Owls’ Forest, Val Outpost consists of half a dozen large tents in a well-organized, guarded camp. In quieter times, it maintains a presence on the road and prepares soldiers for combat and survival in the forest.\n\nCaptain Théo commands twenty-four elite forest guards here, while Hanna, their field medic, tends the wounded. Their orders are to contain a bugbear tribe’s expansion across the Vosga and secure the approaches to the road. Tensions return in waves, and the outpost must absorb them before they reach Théodonis.\n\nVal also serves as a link to the city. Its captain can have messages relayed to Théodonis, and the camp offers refuge to travelers in distress: a hot meal, a clean place to sleep, and a few hours under the soldiers’ guard. Beyond the tents, the forest remains dangerous.';
 
   @override
   String get codexFieldLore =>
@@ -2299,9 +2357,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get levelDeprecatedName => 'New Level';
-
-  @override
-  String get libraryBrand => 'Les Soleils d’or • Lothringen';
 
   @override
   String get townName => 'Théodonis';
@@ -2996,13 +3051,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get developerIdentity => 'Developer';
 
   @override
-  String get townEquipment => 'Equipment';
+  String get townEquipment => 'Equipment store';
 
   @override
   String get townTraining => 'Training Hall';
 
   @override
-  String get townEquipmentMarker => 'Equipment merchant marker';
+  String get townEquipmentMarker => 'Equipment store marker';
 
   @override
   String get townTrainingMarker => 'Training hall marker';
@@ -3022,6 +3077,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get townUnownedOnly => 'Not yet unlocked';
 
   @override
+  String townBuyAmount({required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return 'Buy $goldString';
+  }
+
+  @override
+  String townBuyGoldLabel({required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return 'Buy for $goldString gold';
+  }
+
+  @override
+  String townLearnAmount({required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return 'Learn $goldString';
+  }
+
+  @override
+  String townLearnGoldLabel({required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return 'Learn for $goldString gold';
+  }
+
+  @override
+  String get pickerEquipped => 'Equipped';
+
+  @override
   String get townOwned => 'Owned';
 
   @override
@@ -3031,19 +3129,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get townLearn => 'Learn';
 
   @override
-  String get townSharedAccessory => 'Usable by both · One purchase';
-
-  @override
   String get townCatalogueUnavailable =>
       'The catalogue is unavailable. Return to town and reconnect to load it.';
 
   @override
   String get townNoMatchingEntries => 'No entries match these filters.';
-
-  @override
-  String townCompareWith({required String item, required String build}) {
-    return 'Compared with $item · $build';
-  }
 
   @override
   String townCategory({
@@ -3163,4 +3253,117 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get campaignChapterRewardsGranted => 'Chapter rewards received.';
+
+  @override
+  String campaignCollectCoin({required int collected}) {
+    return 'Collect a coin $collected/1';
+  }
+
+  @override
+  String get codexCombatAdvice => 'Combat advice';
+
+  @override
+  String get codexInnateDefences => 'Innate defences';
+
+  @override
+  String get codexBoss => 'Boss';
+
+  @override
+  String get codexNoInnateModifiers => 'None';
+
+  @override
+  String codexAttackDetails({required String category, required String types}) {
+    return '$category · $types damage';
+  }
+
+  @override
+  String get codexGrojibRole => 'Ground pursuer';
+
+  @override
+  String get codexGrojibAdvice => 'Leave room for the second swing.';
+
+  @override
+  String get codexHashashRole => 'Teleporting assassin';
+
+  @override
+  String get codexHashashAdvice => 'Watch for its return before committing.';
+
+  @override
+  String get codexDerfRole => 'Transforming caster';
+
+  @override
+  String get codexDerfAdvice => 'Allow for the reach of its extended tentacle.';
+
+  @override
+  String get codexUnocoRole => 'Flying caster';
+
+  @override
+  String get codexUnocoAdvice => 'Keep moving while its projectile is aimed.';
+
+  @override
+  String get codexBringerRole => 'Scythe fighter';
+
+  @override
+  String get codexBringerAdvice =>
+      'Read the wind-up and move clear of the marked ground.';
+
+  @override
+  String get codexGoddessRole => 'Claw and orb fighter';
+
+  @override
+  String get codexGoddessAdvice => 'Reposition when the arena is threatened.';
+
+  @override
+  String get codexShoggothRole => 'Tentacled summoner';
+
+  @override
+  String get codexShoggothAdvice =>
+      'Manage the smaller threats while watching the boss.';
+
+  @override
+  String get codexVoidcallerRole => 'Beam caster';
+
+  @override
+  String get codexVoidcallerAdvice =>
+      'Keep a route out of overlapping attacks.';
+
+  @override
+  String get codexShoggothMinionRole => 'Summoned ground attacker';
+
+  @override
+  String get codexShoggothMinionAdvice =>
+      'Avoid being crowded while the boss attacks.';
+
+  @override
+  String get codexVoidTentacleRole => 'Summoned melee attacker';
+
+  @override
+  String get hubRunnerHeading => 'Runner';
+
+  @override
+  String get hubRunnerPlay => 'Play Runner';
+
+  @override
+  String get hubCampaignPlay => 'Play Campaign';
+
+  @override
+  String get hubChangeBuild => 'Change build';
+
+  @override
+  String get hubLocalPractice => 'Local practice';
+
+  @override
+  String get hubWeeklyPlay => 'Play';
+
+  @override
+  String get codexVoidTentacleAdvice =>
+      'Move beyond its lash before turning to attack it.';
+
+  @override
+  String campaignReceiveBlessing({required int received}) {
+    return 'Receive a blessing $received/1';
+  }
+
+  @override
+  String get journalEmpty => 'No journal entries yet.';
 }

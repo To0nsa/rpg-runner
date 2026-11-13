@@ -1,5 +1,6 @@
 import 'package:runner_core/campaign/campaign_mission_definition.dart';
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/interactions/world_interaction_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/game_core.dart';
@@ -170,22 +171,200 @@ void main() {
     );
   });
 
-  test('combat-free admission rejects retained encounter markers', () {
-    expect(() => _mission(combatAllowed: false), throwsArgumentError);
+  test('coin objective gates exit and completes identically on replay', () {
+    final mission = _coinMission();
+    final core = GameCore.campaignPlaytest(
+      mission: mission,
+      playerCharacter: PlayerCharacterRegistry.eloise,
+      seed: 42,
+    );
+    final frames = <List<Command>>[];
+    void travel(double destination) {
+      for (var budget = 0; budget < 1200 && !core.gameOver; budget++) {
+        final x = core.buildSnapshot().playerEntity!.pos.x;
+        if ((destination - x).abs() < 6) return;
+        final frame = <Command>[
+          MoveAxisCommand(tick: core.tick + 1, axis: destination > x ? 1 : -1),
+        ];
+        frames.add(frame);
+        core.applyCommands(frame);
+        core.stepOneTick();
+        expect(
+          (core.buildSnapshot().playerEntity!.pos.x - x).abs(),
+          lessThan(15),
+        );
+      }
+    }
+
+    travel(520);
+    expect(core.buildSnapshot().playerEntity!.pos.x, greaterThan(500));
+    expect(
+      core.gameOver,
+      isFalse,
+      reason: 'Exit overlap before pickup must fail.',
+    );
+    expect(core.buildSnapshot().campaign!.required, 1);
+    expect(core.buildSnapshot().campaign!.completed, 0);
+    expect(core.buildSnapshot().campaign!.exitReady, isFalse);
+    travel(80);
+    expect(core.collectibles, 1);
+    expect(core.buildSnapshot().campaign!.firstCoinCollected, isTrue);
+    expect(core.buildSnapshot().campaign!.completed, 1);
+    expect(core.buildSnapshot().campaign!.exitReady, isTrue);
+    travel(520);
+    final outcome = core.drainEvents().whereType<RunEndedEvent>().single;
+    expect(outcome.reason, RunEndReason.missionCompleted);
+    final replay = GameCore.campaignPlaytest(
+      mission: mission,
+      playerCharacter: PlayerCharacterRegistry.eloise,
+      seed: 42,
+    );
+    for (final frame in frames) {
+      replay.applyCommands(frame);
+      replay.stepOneTick();
+    }
+    final replayOutcome = replay
+        .drainEvents()
+        .whereType<RunEndedEvent>()
+        .single;
+    expect(
+      (replayOutcome.tick, replayOutcome.reason, replayOutcome.goldEarned),
+      (outcome.tick, outcome.reason, outcome.goldEarned),
+    );
+    expect(() => _coinMission(coins: false), throwsArgumentError);
+  });
+
+  test('selected blessing shrine gates exit and replays exactly', () {
+    final base = _coinMission();
+    CampaignMissionDefinition mission({
+      String target = 'required',
+      CampaignRegion? exit,
+    }) => CampaignMissionDefinition(
+      id: 'blessing_objective_fixture',
+      route: base.route,
+      terrainChunks: trainingFieldDefinition.terrain.chunks,
+      start: base.start,
+      exit: exit ?? base.exit,
+      visualThemeId: base.visualThemeId,
+      requiredBlessingShrine: (missionChunkId: 'first', bindingKey: target),
+      interactions: [
+        for (final (id, x) in [('required', 80.0), ('other', 400.0)])
+          WorldInteractionBinding(
+            key: id,
+            chunkKey: base.route.missionChunks.first.pattern.chunkKey!,
+            prefabKey: null,
+            shapeId: 'ground_001',
+            missionChunkId: 'first',
+            surfaceX: x,
+            activationWidth: 24,
+            interactionId: WorldInteractionId.regenerationShrine,
+            appearanceId: WorldInteractionAppearanceId.emberFlame,
+          ),
+      ],
+    );
+    expect(() => mission(target: 'missing'), throwsArgumentError);
+    final definition = mission();
+    GameCore create() => GameCore.campaignPlaytest(
+      mission: definition,
+      playerCharacter: PlayerCharacterRegistry.eloise,
+      seed: 42,
+    );
+    final core = create();
+    final frames = <List<Command>>[];
+    void travel(double destination) {
+      for (var i = 0; i < 1200 && !core.gameOver; i++) {
+        final x = core.buildSnapshot().playerEntity!.pos.x;
+        if ((destination - x).abs() < 6) return;
+        final commands = <Command>[
+          MoveAxisCommand(tick: core.tick + 1, axis: destination > x ? 1 : -1),
+        ];
+        frames.add(commands);
+        core.applyCommands(commands);
+        core.stepOneTick();
+      }
+    }
+
+    travel(520);
+    expect(core.gameOver, isFalse);
+    expect(core.buildSnapshot().hud.blessings, hasLength(1));
+    expect(
+      core.buildSnapshot().campaign!.blessingReceived,
+      isFalse,
+      reason: 'An unrelated shrine cannot satisfy the selected objective.',
+    );
+    expect(core.buildSnapshot().campaign!.exitReady, isFalse);
+    travel(80);
+    expect(core.buildSnapshot().campaign!.blessingReceived, isTrue);
+    expect(core.buildSnapshot().campaign!.completed, 1);
+    expect(core.buildSnapshot().hud.blessings, hasLength(1));
+    travel(520);
+    final ended = core.drainEvents().whereType<RunEndedEvent>().single;
+    expect(ended.reason, RunEndReason.missionCompleted);
+    final replay = create();
+    for (final commands in frames) {
+      replay.applyCommands(commands);
+      replay.stepOneTick();
+    }
+    final replayed = replay.drainEvents().whereType<RunEndedEvent>().single;
+    expect((replayed.tick, replayed.reason), (ended.tick, ended.reason));
+    expect(create().buildSnapshot().campaign!.blessingReceived, isFalse);
+    final simultaneous = GameCore.campaignPlaytest(
+      mission: mission(
+        target: 'other',
+        exit: CampaignRegion(
+          origin: CampaignPoint(missionChunkId: 'first', x: 350, y: 0),
+          width: 100,
+          height: 270,
+        ),
+      ),
+      playerCharacter: PlayerCharacterRegistry.eloise,
+      seed: 42,
+    );
+    for (var i = 0; i < 200 && !simultaneous.gameOver; i++) {
+      simultaneous.applyCommands([
+        MoveAxisCommand(tick: simultaneous.tick + 1, axis: 1),
+      ]);
+      simultaneous.stepOneTick();
+    }
+    expect(
+      simultaneous.drainEvents().whereType<RunEndedEvent>().single.reason,
+      RunEndReason.missionCompleted,
+    );
+    expect(simultaneous.buildSnapshot().campaign!.blessingReceived, isTrue);
+    expect(
+      simultaneous
+          .buildSnapshot()
+          .interactions
+          .where((s) => s.active)
+          .single
+          .elapsedTicks,
+      0,
+      reason:
+          'Overlapping exit and shrine complete on the actual activation tick.',
+    );
+  });
+
+  test('combat is determined by authored markers', () {
+    expect(
+      _mission().route.missionChunks[1].pattern.spawnMarkers,
+      hasLength(1),
+    );
+    expect(
+      _mission(combat: false).route.missionChunks
+          .every((o) => o.pattern.spawnMarkers.isEmpty),
+      isTrue,
+    );
   });
 }
 
-CampaignMissionDefinition _mission({
-  bool combat = true,
-  bool combatAllowed = true,
-}) {
+CampaignMissionDefinition _mission({bool combat = true}) {
   final field = trainingFieldDefinition;
   final flat = field.chunks.first;
   return CampaignMissionDefinition(
     id: 'return_trip_fixture',
     route: FiniteChunkPatternSource([
       for (final id in ['first', 'middle', 'last'])
-        FiniteChunkOccurrence(
+        FiniteMissionChunk(
           id: id,
           sourceLevelId: 'training_field',
           tier: ChunkPatternTier.easy,
@@ -206,32 +385,49 @@ CampaignMissionDefinition _mission({
         ),
     ]),
     terrainChunks: field.terrain.chunks,
-    start: CampaignPoint(occurrenceId: 'first', x: 300, y: 224),
+    start: CampaignPoint(missionChunkId: 'first', x: 300, y: 224),
     exit: CampaignRegion(
-      origin: CampaignPoint(occurrenceId: 'last', x: 500, y: 0),
+      origin: CampaignPoint(missionChunkId: 'last', x: 500, y: 0),
       width: 100,
       height: 270,
     ),
     visualThemeId: field.visualThemeId,
-    combatAllowed: combatAllowed,
     collectibles: [
-      CampaignPoint(occurrenceId: 'first', x: 80, y: 205),
-      CampaignPoint(occurrenceId: 'last', x: 150, y: 205),
+      CampaignPoint(missionChunkId: 'first', x: 80, y: 205),
+      CampaignPoint(missionChunkId: 'last', x: 150, y: 205),
     ],
     requiredRegions: [
       CampaignRegion(
-        origin: CampaignPoint(occurrenceId: 'first', x: 20, y: 0),
+        origin: CampaignPoint(missionChunkId: 'first', x: 20, y: 0),
         width: 100,
         height: 270,
       ),
       CampaignRegion(
-        origin: CampaignPoint(occurrenceId: 'last', x: 100, y: 0),
+        origin: CampaignPoint(missionChunkId: 'last', x: 100, y: 0),
         width: 100,
         height: 270,
       ),
     ],
     requiredEnemies: combat
-        ? [(occurrenceId: 'middle', markerSalt: 42)]
+        ? [(missionChunkId: 'middle', markerSalt: 42)]
         : const [],
+  );
+}
+
+CampaignMissionDefinition _coinMission({bool coins = true}) {
+  final base = _mission(combat: false);
+  return CampaignMissionDefinition(
+    id: 'coin_objective_fixture',
+    route: base.route,
+    terrainChunks: trainingFieldDefinition.terrain.chunks,
+    start: base.start,
+    exit: CampaignRegion(
+      origin: CampaignPoint(missionChunkId: 'first', x: 480, y: 0),
+      width: 100,
+      height: 270,
+    ),
+    visualThemeId: base.visualThemeId,
+    requiresFirstCoin: true,
+    collectibles: coins ? [base.collectibles.first] : [],
   );
 }

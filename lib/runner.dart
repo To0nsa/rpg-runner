@@ -11,6 +11,14 @@
 // Boss entrances and arena completion remain inside that same run session.
 // Campaign hosts pass RunMode.campaign and the ticket's CampaignBinding. Finite
 // missions have no board/ghost; only verified settlement unlocks progress and XP.
+// Authored Campaign movement introductions wait at tick zero after readiness;
+// the first movement press starts play and keeps that same gesture held.
+// Campaign initial HUD and lesson reveals gate actions across input devices.
+// Objectives and first-coin lessons pause after a short practice walk and pickup,
+// respectively, and resume on fresh movement;
+// a chunk-entry obstacle sequence advances two informational pages with Next,
+// then reveals resources and resumes on a fresh Jump, dispatching that real press;
+// host lifecycle/exit guards retain priority. Progress resets with the attempt.
 // The running HUD includes left/top off-screen actor markers measured from the
 // visible viewport; indicators remain presentation-only and pass touches through.
 // RunnerControlScheme.automatic selects desktop keyboard/mouse or mobile touch;
@@ -19,6 +27,9 @@
 // Hosts can choose MovementControlMode.arrows, .joystick (floating), or
 // .fixedJoystick via the widget/route. All emit identical digital movement;
 // the host owns preference persistence.
+// Runtime/input/view mechanics are shared with Training and editor Play; hosted
+// runs keep their own readiness, replay and lifecycle policy. Device preview and
+// monitor calibration remain editor-only; embeddings inherit the real display.
 // Hosts add RunnerLocalizations.delegates and supportedLocales to their app.
 // English is the default/fallback; locale changes must not recreate run sessions.
 //

@@ -1,3 +1,5 @@
+import 'support/playtest_display_fixture.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -23,9 +25,12 @@ import 'package:runner_editor/src/playtest/authored_playtest_preparation.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
+import '../../../test/test_support/fixture_sprite_bounds.dart';
+
 late ChunkV2Document _repositoryDocument;
 
 void main() {
+  setUp(installCalibratedDisplayFixture);
   late String workspaceRoot;
   late ui.Image fixtureImage;
   late ChunkPlaytestScenario repositoryScenario;
@@ -39,7 +44,8 @@ void main() {
     final canvas = ui.Canvas(recorder);
     canvas.drawColor(const ui.Color(0x00000000), ui.BlendMode.src);
     final picture = recorder.endRecording();
-    fixtureImage = await picture.toImage(3072, 2048);
+    final bounds = fixtureSpriteBounds();
+    fixtureImage = await picture.toImage(bounds.width, bounds.height);
     picture.dispose();
     final repositoryDocument = await ChunkDomainPlugin().loadV2FromRepo(
       EditorWorkspace(rootPath: workspaceRoot),
@@ -140,14 +146,17 @@ void main() {
         capturedInput!.chunkSources.values.join(),
         contains('phase5_pending'),
       );
-      expect(capturedInput!.selectedChunkKeys, <String>[
-        'forest_rocky_grove_easy_001',
-        'forest_rocky_grove_easy_002',
-        'forest_rocky_grove_easy_003',
-        'forest_rocky_grove_easy_004',
-        'forest_rocky_grove_easy_005',
-        'forest_rocky_grove_easy_006',
-      ]);
+      final matchingOwners =
+          _repositoryDocument.chunks
+              .where(
+                (chunk) =>
+                    chunk.chunkKey.startsWith('forest_rocky_grove_easy_'),
+              )
+              .map((chunk) => chunk.chunkKey)
+              .toList()
+            ..sort();
+      expect(matchingOwners, isNotEmpty);
+      expect(capturedInput!.selectedChunkKeys, matchingOwners);
 
       final host = tester.widget<RunnerPlaytestHost>(
         find.byType(RunnerPlaytestHost),
@@ -250,6 +259,8 @@ void main() {
       ),
     );
     await tester.pump();
+    await acceptPlaySetupIfVisible(tester);
+    await _pumpUntilVisible(tester, find.text('Preparing chunk playtest'));
     expect(find.text('Preparing chunk playtest'), findsOneWidget);
     expect(_pageHandler(tester).locksEditorShell, isTrue);
 
@@ -635,6 +646,7 @@ Future<void> _mountPage(
                 required controller,
                 required assetBundle,
                 required onStop,
+                presentation,
               }) => RunnerPlaytestHost(
                 appearance: appearance,
                 scenario: scenario,
@@ -642,6 +654,8 @@ Future<void> _mountPage(
                 assetBundle: assetBundle,
                 imagesFactory: (_) => _FixtureImages(fixtureImage),
                 onStop: onStop,
+                presentation:
+                    presentation ?? const RunnerPlaytestPresentation(),
               ),
         ),
       ),
@@ -660,6 +674,7 @@ Future<void> _pumpUntilHostPhase(
   final watch = Stopwatch()..start();
   while (watch.elapsed < const Duration(seconds: 30)) {
     await tester.pump(const Duration(milliseconds: 25));
+    await acceptPlaySetupIfVisible(tester);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 5)),
     );
@@ -681,6 +696,7 @@ Future<void> _pumpUntilHostPhase(
 Future<void> _pumpUntilHostRemoved(WidgetTester tester) async {
   for (var attempt = 0; attempt < 120; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 25));
+    await acceptPlaySetupIfVisible(tester);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 5)),
     );
@@ -774,6 +790,7 @@ final class _MemoryChunkPlugin implements AuthoringDomainPlugin {
 Future<void> _pumpUntilVisible(WidgetTester tester, Finder finder) async {
   for (var i = 0; i < 250; i += 1) {
     await tester.pump(const Duration(milliseconds: 25));
+    await acceptPlaySetupIfVisible(tester);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 2)),
     );

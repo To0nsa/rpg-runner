@@ -2,6 +2,112 @@
 
 Standalone authoring tool for `rpg_runner` content workflows.
 
+## Campaign tutorials
+
+Open **Campaign → Reporting for Duty → Tutorial sequences**.
+**Visible at mission start** controls the initial HUD; this mission begins with
+movement only. Hidden abilities also block keyboard/mouse. Each lesson's
+**Reveal and keep visible** settings add HUD features for the rest of the attempt.
+
+**Edit sequence** edits the enabled state, title and instructions in English/French.
+For movement, select a control variant. The objectives lesson targets the real
+objectives panel; **Collect a coin before exiting** in mission settings enables the
+actual coin requirement. The coin lesson targets the real Distance/
+Collectibles panel. Drag inside the spotlight to move, drag a corner to resize, or
+choose **Draw spotlight** to replace its bounds. **Apply** joins normal Undo/Redo;
+**Save** writes mission source.
+
+**Preview sequence** opens the device/HUD/control setup and runs the captured mission.
+Use movement to start. After about three metres of walking in either direction,
+the game pauses to introduce **Collect a coin 0/1**. Release and move again,
+then collect the first coin to pause
+for its explanation and see **Collect a coin 1/1** with a green checkmark.
+The card holds for three seconds of gameplay, then fades away; tutorial reading
+and pauses do not consume that time.
+Release and use movement again to continue. Restart resets the lessons and revealed
+HUD. The authoring diagram fits its panel; Play uses calibrated physical size.
+Reporting for Duty also contains **Obstacles, jump and resources**, attached to
+`mission_chunk_2`. Edit it as one sequence with **1. Obstacle**, **2. Jump** and
+**3. Resources** tabs. Each page has English/French text, reveals and a drawable
+spotlight. The obstacle page shows the selected chunk and editable local target
+bounds; changing those bounds never changes terrain. The other pages reuse the
+real Jump button and resource bars. Apply saves all three pages together; Cancel
+discards the draft. Reattach or remove this sequence before deleting its chunk.
+In Play, walk into chunk two, use Next twice, then press Jump to resume and try it.
+
+**Water introduction** follows the pool after the rock. Select its mission chunk
+and water region, set the approach distance in world units, and draw/adjust the
+spotlight over the chunk preview. The default 20-unit approach also catches
+airborne players. Fresh movement resumes. **First swim** is a separate optional
+hint: it highlights Jump on actual swimming, and a fresh Jump/Space performs the
+upward stroke. Skipping the pool leaves the hint available without blocking later
+lessons. Both cards support English/French editing and reset on restart. Moving
+the authored water moves its target; deleting it requires repairing the reference.
+
+See the [tutorial contract](../../docs/tdd/campaign_tutorials.md).
+
+**Decorations and obstacles** follows landing beyond the pool, whether the player
+swims or jumps across. It highlights the pale tree and explains passable scenery;
+fresh movement resumes and no additional HUD is revealed by default. In the same
+panel editor, select the chunk, preceding water and **Decoration to highlight**,
+then edit both languages and draw/adjust its spotlight. The target follows the
+prefab's position, scale and rotation. Select a unique single-sprite decoration:
+missing, solid, repeated or tiled prefab targets require repair before Build/Play.
+Restart repeats the lesson; backtracking does not.
+
+**Gap crossing** follows the decoration lesson in chunk three. Select **Mission
+chunk with a dry gap** and **Gap banks**, adjust **Approach distance before gap**,
+then edit the bilingual card and draw/adjust its spotlight. Candidates come from
+the compiled terrain: dry gaps between flat solid ground banks. Their stable
+shape IDs keep the target attached when geometry moves; removing a bank or
+filling the gap requires repair before Build/Play. The default pauses on safe
+ground 96 world units before the edge. Fresh movement resumes without jumping;
+walk closer and time Jump normally. No extra HUD or success card appears.
+
+**Platforms** introduces the first raised platform in chunk four. Select **Mission
+chunk with platforms** and **Platform**, set the approach distance, then edit both
+languages and draw/adjust the spotlight over the chunk preview. Choose a unique
+placed one-way prefab; multiple render tiles are supported, while repeated
+instances or changed collision require repairing the target. Moving or resizing
+it updates the spotlight and approach from captured data. The default pauses on
+safe ground 64 units before the first platform. Fresh movement resumes, and the
+player uses the existing Jump control to pass through the underside and land on
+top. No new HUD or landing popup is added.
+
+**Blessing objective and regeneration** targets the basin in chunk seven. Its
+shared three-page editor has **1. Objective**, **2. Blessing**, **3. Regeneration**.
+Select **Objective shrine marker**, adjust the approach distance (96 by default),
+and edit both languages and each page's spotlight. Apply selects that marker as
+the mission's required blessing goal as well as updating guidance in one Undo step.
+Move the existing marker to move its target; repair references before deleting it.
+The mission setting **Receive a blessing before exiting** controls the requirement
+independently of guidance. Remove the lesson before removing/changing that goal,
+or change the selected shrine through the lesson editor.
+
+In Play, movement resumes after the objective page. Jump onto the actual basin to
+receive the blessing and open page two. Next introduces regeneration and the fire
+indicator beneath the resource bars; movement resumes again. Passing the basin
+without activating it leaves the goal pending. Its green completion row fades only
+after resumed gameplay. Cancel, Undo/Redo, Save and captured Play use the same
+paths as the other sequences; disabling the lesson leaves the Core goal intact.
+
+**Projectiles and sword** binds a guaranteed enemy marker. Its three pages share
+one Apply/Cancel draft: enemy explanation, Projectile, then Sword. Edit approach
+distance, both languages, the practice hint and each spotlight. In Play, a real
+projectile launch temporarily locks further shots; Sword appears at Core-owned
+melee reach and its real execution unlocks Projectile. Movement remains available.
+The starting Éloïse attack pair is taught; alternate builds and early enemy death
+release both controls safely. Save, Undo/Redo and frozen Play use the normal source
+pipeline. Reporting for Duty targets the Grojib after Dash in chunk ten.
+
+**Mobility: Dash** introduces the control after the eighth-chunk pool, near the
+bush. In **Tutorial sequences**, edit **Trigger mission chunk** and **Trigger X
+(world units)**; the composition preview shows the trigger line. Reporting for
+Duty uses `mission_chunk_8`, X `522`. Edit both languages and draw, move or resize
+the spotlight over the actual Mobility button. Play waits until the player is on
+dry ground and Dash is ready. A fresh button press or Shift resumes with a real
+dash. Other equipped mobility skills are revealed there without the Dash card.
+
 ## Create and edit items
 
 Choose **Items** in the page selector. Select an existing item to edit it, choose
@@ -135,7 +241,7 @@ Implemented authoring domains:
   active-level parallax and terrain-material scene preview, Core-backed
   actor-traversability and marker-placement previews, scene-based composition,
   shared pan/zoom/grid controls, and Prefab transform editing
-- Level Creator workspace with searchable library, visual Contents, ordered
+- Runner Level workspace with searchable library, visual Contents, ordered
   sections in Flow, Appearance, contextual inspection, complete diagnostics,
   seeded Core sample runs, whole-Level Play, and guarded Chunk/Parallax handoffs
 - parallax theme authoring scoped by active level, with ordered layer editing,
@@ -193,7 +299,7 @@ and captured Play preserve water. See the
 [pool authoring guide](../../docs/gdd/swimming.md) and
 [example source](../../docs/examples/water_pool_chunk.json).
 
-Level Creator runs the whole selected level through the real Core simulation
+Runner Level runs the whole selected level through the real Core simulation
 and Flame renderer. Chunk Creator runs a focused loop of the filtered chunk
 owners, including their enemy markers without the Level's enemy-free opening.
 Play searches for a clear spawn along the normal ground in a matching opening
@@ -253,7 +359,7 @@ tab, viewport, undo/redo history, and pending diff.
 
 ## Create, Save, Play, And Build A Level
 
-1. Open **Level Creator**, choose **New level**, and enter its name. IDs are
+1. Open **Runner Level**, choose **New level**, and enter its name. IDs are
    allocated by the domain; Advanced allows an explicit stable ID. Choose an
    independent background copy, a shared background, or an empty background.
 2. **Save** commits the Level and any new background together. New levels and
@@ -955,27 +1061,94 @@ Level migration, exact admission and release compatibility.
 
 ## Campaign authoring
 
-Open **Campaign** and expand a **Chapter** bar (starting with **Chapter 1 — Val
+For an ordinary enemy in **Markers**, expand **Selected marker properties** and
+set **Return when player retreats**. Enabled (default), it waits near its marker,
+engages on approach/damage and returns when the player leaves its territory.
+Disabled, it keeps following after activation. Both modes create the actor during
+mission loading, so it can be seen before engagement without appearing suddenly.
+The setting supports Undo/Redo and Save, and is included in Build and captured
+Play. Rescue groups and bosses keep their separate behavior.
+
+Open **Campaign settings** above the chapter list to name the current campaign
+under **English / Français** tabs and **Choose map…** using the native file explorer.
+Choose a PNG, JPEG or WebP inside `assets/images/maps/`, with lowercase snake_case
+filenames; move external artwork there first. The dialog previews the image and
+reads its dimensions. **Apply** creates an undoable edit; **Cancel** discards it.
+Use **Save**, then **Build** to update the game's campaign name and map. Review
+chapter positions after changing artwork. This still authors one campaign.
+The supplied maps are organized as `lothringen_bonfire.jpg`, `theodonis.jpg`
+and `theodonis_region_unlabelled.png` in that folder; the regional image remains
+the initial campaign map and `theodonis.jpg` remains the Town map.
+
+Open **Campaign Level** and expand a **Chapter** bar (starting with **Chapter 1 — Val
 Outpost**) to select a mission. Each chapter contains its own mission list and
 settings; collapsing it changes only the workspace view. **Create chapter** asks
 for English/French titles, descriptions and a regional-map position (0–1 from
 left/top to right/bottom). **Chapter settings** edits those details later.
+Under **Chapter marker position**, click or drag on the full map preview to place
+the marker, or edit **Map X** (horizontal) and **Map Y** (vertical); the preview
+and coordinates update together. Zoom with the control or **Ctrl+scroll**, pan
+with **Ctrl+drag**, and use **Fit map** to reset. **Game preview** shows the actual
+game map framing, labels, leader lines and white location dots in landscape or
+portrait. Chapter labels share automatic placement with the game.
+The sidebar keeps chapter titles, settings/reward actions and mission lists;
+descriptions and reward summaries remain in their dialogs.
+Campaign, chapter and mission settings group translated text under **English / Français**
+tabs. Switching languages retains edits; shared settings stay below the tabs.
+Applying validates both languages and opens the first tab with invalid text.
+
+**Campaign opening** in Campaign settings, **Chapter introduction** in Chapter
+settings, and **Mission completion update** in Mission Settings each enable an
+optional Journal entry. Supply both translations, with a title (120 characters)
+and text (12,000 characters, including paragraph breaks). Turning an entry off
+removes it when applied; turning it back on before applying retains the draft.
+Mission Journal fields participate in the existing Apply/Reset, Save, Play and
+navigation transaction. All Journal changes retain source-drift guards and Undo/Redo.
+
+For Val, Campaign opening contains **Val Outpost** (the spoiler-free location
+description); its Chapter introduction contains **After Le feu de joie** (the
+story setup). This order is shared by the preview and Library Journal.
+
+**Preview Journal after this mission** opens the accumulated English/French story
+through the selected mission. Choose another checkpoint or **Opening only** to
+check continuity. This editorial preview includes draft missions through that point
+and never changes player progress. In the game, Library Journal shows published
+mission updates only after confirmed successful clears; replaying a mission does
+not duplicate them. Update the later Val draft passages alongside their final
+investigation evidence before including those missions in Build.
+
 Each mission has **Move mission earlier / later** arrows. The first/last boundary
 disables the corresponding arrow; reordering changes sequential prerequisites
 and supports Undo/Redo.
+
+**Delete mission**, beside **Add mission**, deletes the selected mission after
+you type its exact displayed English name. Cancel leaves it unchanged; deletion
+is undoable and requires **Save** to persist. Deleted IDs remain reserved, and a
+chapter must retain one mission. Chapter rewards show **Completion skills** and
+**Completion items** above their shared selector.
+
+Missions support up to **48 chunks**. Selecting a chunk in **Route** scrolls its
+preview into view; **Edit chunk**, **Duplicate chunk** and **Remove chunk** act on
+that route entry (Remove leaves the reusable source chunk intact).
 
 Campaign keeps the chapter/mission library on the left and workspace tabs above
 the scene. **Contents** browses Campaign chunks with visual previews, Group and
 Difficulty filters, and text search. All active criteria intersect; **Clear filters**
 resets them. **Append chunk** adds to the route while keeping Contents open and
 retaining the current filters. Each append creates a separate placement of the
-reusable chunk, called an occurrence in Route. **Route**
+reusable chunk, shown with a **Mission chunk ID** in Route. New placements use
+`mission_chunk_1`, `mission_chunk_2`, etc. Markers and objectives reference them
+through `missionChunkId`; that ID stays attached when the route is reordered. **Route**
 controls their exact sequence. **Markers** expands the central canvas and puts
-**Marker library**, **Marker properties**, **Placed markers** and **Shared chunk
+**Marker library**, **Selected marker properties**, **Placed markers** and **Shared chunk
 objectives** together in the right authoring sidebar, matching Chunk Creator's
 scene-and-sidebar workflow. Smaller windows expose **Chapters / Workspace /
 Authoring** tabs; selecting a brush returns to the canvas. The library,
 placed-marker list and shared-objective sections can fold independently.
+**Placed markers** starts collapsed. **None** is the initial library choice:
+it disables placement and shows all mission markers in the expanded list.
+Choosing a marker kind filters that list and its count to the matching kind;
+selecting an existing marker or changing scene tools keeps the library filter.
 Tab changes retain the route viewport and sidebar state.
 
 The route preview joins chunk artwork at the canvas height. Use the bottom
@@ -1008,14 +1181,19 @@ linked as objectives; edit their source through Route.
 **Gold coin** and **Health/Mana/Stamina gem** place the existing pickups directly.
 **Blessing fire** attaches only the effect to a nearby flat, collidable shrine or
 platform top. It adds no base or collision. Choose ember or blue fire and adjust
-its contact width/scale in Marker properties. Geometry changes that invalidate the
-attachment require reattaching it. Placements affect one mission occurrence;
+its contact width/scale in Selected marker properties. This section starts collapsed;
+click its heading to expand it. Geometry changes that invalidate the
+attachment require reattaching it. Placements affect one mission chunk;
 shared chunks and other missions stay unchanged. Route duplication copies local
-placements with fresh identities. Removing a referenced occurrence is blocked
+placements with fresh identities. Removing a referenced mission chunk is blocked
 until its markers are moved or removed.
-The settings panel shows rewards, build status, selected chunk usage and validation.
-Open **Mission settings** there to edit the mission. Back from Chunk Creator restores
-the selected mission, workspace tab, search, filters and valid chunk/occurrence selection.
+The Mission Settings sidebar directly edits translated title/assignment, region,
+background theme and Build inclusion, and opens first-clear mission rewards.
+Apply accepts field edits; Reset discards them. Save, Play and mission/tab changes
+also accept valid edits, while invalid fields block the action. Undo first discards
+a field draft. Selected chunk usage and validation remain below the form.
+Back from Chunk Creator restores
+the selected mission, workspace tab, search, filters and valid chunk/mission chunk selection.
 
 New chapters start with one empty mission. That mission has no rewards and is
 excluded from Build.
@@ -1028,18 +1206,23 @@ per chapter.
 
 To reuse a Runner layout, use **Copy to Campaign** in **Chunk Creator** first.
 Append campaign chunks from **Contents** in exact order, then reorder, duplicate
-or remove occurrences in **Route**. Place the player start, exit and objectives
+or remove mission chunks in **Route**. Place the player start, exit and objectives
 in **Markers**.
-Edit the selected occurrence in **Chunk Creator**; use **Copy to Campaign** to
+Edit the selected mission chunk in **Chunk Creator**; use **Copy to Campaign** to
 make an independent layout before changing it. Both **Copy to Campaign** and
 **Copy to Runner** let you edit the suggested chunk name and omit enemy markers,
 rescue encounters, boss arenas and traps. Terrain, scenery and water are kept;
 shared prefabs and materials remain shared references. **Copy to Runner** makes
 an inactive runner draft. Ordinary **Duplicate** keeps all content. Add the new
-copy to the mission route explicitly; copying does not replace an occurrence.
+copy to the mission route explicitly; copying does not replace a mission chunk.
 
-Set **First-clear XP** and **First-clear ability** in **Mission settings**.
-The ability selector currently offers **None** or **Éloïse — Double Jump**.
+Open **First-clear mission rewards** from the Mission Settings sidebar. The modal
+shares Chapter rewards' layout and picker, with
+XP (0–100,000), gold (0–1,000,000), and up to eight existing catalogue items/skills.
+Skills require a recipient character. Its rewards grant once after the first
+verified clear. Apply commits rewards through the ordinary Undo/Redo transaction;
+Cancel discards the reward draft. There is no combat toggle:
+leave enemies, rescues and bosses out of the authored route for a combat-free mission.
 Use **Chapter rewards** beneath the chapter description to configure completion
 XP (0–100,000), gold (0–1,000,000), up to eight catalogue items/skills, and
 **Willow** or **None** as the completion character. The searchable picker uses
@@ -1052,8 +1235,10 @@ Chapter rewards supplement mission first-clear rewards and **Markers → Gold co
 (one gold per pickup). Val Outpost starts with zero
 extra completion XP/gold/items, keeping its existing mission balance.
 
-Save and Undo use the normal workspace transaction. F5 captures the current mission
+Save and Undo use the normal workspace transaction. F5 prepares the current mission
 for local Play; Build publishes only missions explicitly included in their settings.
+**Play mission** and F5 use the shared [Mobile Play preview](#mobile-play-preview)
+setup. Mission compilation and objectives retain the finite Campaign rules.
 The four Val Outpost missions start as excluded drafts for manual layout authoring.
 See the [runtime/source contract](../../docs/tdd/campaign_runtime.md).
 
@@ -1065,3 +1250,29 @@ gold pickups, and keep combat disabled. F5 verifies the captured unsaved mission
 test outward and return travel with basic jump before enabling **Include in Build**.
 Save the mission and run the shared Build action. The same generated catalog must
 ship with game, issuer and replay worker for authenticated launch.
+
+## Mobile Play preview
+
+Chunk **Test chunk**, Runner Level **Play level**, and Campaign **Play mission**
+open the same setup dialog before capture. Choose HUD visibility, arrows or
+floating/fixed joystick, and a phone/tablet/custom display. All default to HUD on.
+Presets use Chrome DevTools landscape dimensions/DPR: iPhone SE, iPhone 12 Pro
+(default), iPhone 14 Pro Max, Pixel 7, Samsung Galaxy S20 Ultra/A55 and iPad Mini.
+Custom displays require logical width/height, DPR and the active rectangular
+screen diagonal in mm. The entire game/HUD share the same device rectangle;
+the inner game uses pixel-perfect cover scaling.
+
+Cancel discards setup choices without capturing sources or starting a runtime;
+valid field edits already accepted by the page remain undoable authoring edits.
+Accepted settings survive Restart and remain local to the open authoring page.
+They never change authored sources or saved game preferences. Éloïse uses her
+standard equipment, including her shield. Keyboard input remains available with
+HUD off; focus loss pauses until explicit Resume.
+
+On first use, measure the calibration line with a real ruler on the monitor you
+will use. Saved profiles are specific to that monitor's resolution and orientation.
+The game/HUD retain the device's calibrated physical size when the editor resizes;
+use scrollbars for overflow. Moving across displays pauses Play until calibration
+is resolved; Resume is explicit. Remote sessions require profile confirmation.
+The native Windows adapter requires a full editor rebuild/restart, not hot reload.
+See the [architecture and calibration contract](../../docs/tdd/shared_gameplay_runtime.md).

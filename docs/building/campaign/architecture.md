@@ -12,7 +12,7 @@ production-layout/device acceptance; this document is not a second task ledger.
 | --- | --- |
 | Campaign chapter | Stable ID, location/map anchor, ordered mission IDs, introduction, chapter completion |
 | Mission | Stable ID, presentation keys, route, objectives, rules, score policy, reward policy references, prerequisites |
-| Route occurrence | Stable instance ID referencing one source chunk at an exact sequence position |
+| Mission chunk | Stable instance ID referencing one source chunk at an exact sequence position |
 | Source chunk | Existing reusable geometry, scenery, and authored gameplay definitions |
 | Mission attempt | Ticket/content binding, selected build, fixed-tick state, objective state, terminal outcome |
 | Account campaign progress | Verified clears, mission/chapter reward entitlements, character availability, and versioned personal best records |
@@ -40,11 +40,11 @@ Do not make Training Field's unrewarded factory the production mission entry.
 
 ## Fixed route and content identity
 
-A route contains an exact finite list of occurrences. An occurrence references
+A route contains an exact finite list of mission chunks. A mission chunk references
 the source owner and chunk key without transferring ownership. Sequence position
 determines its world transform; its stable instance ID identifies gameplay state.
 Reordering changes geometry/content revision but does not silently retarget
-objectives to a different occurrence. Repeated references instantiate separate
+objectives to a different mission chunk. Repeated references instantiate separate
 enemies, pickups, encounters, and trigger state.
 
 Resolve sources into immutable compiled data before play. Bind every attempt to
@@ -54,7 +54,7 @@ The same trusted artifact is available to the app and validator. Editing a share
 chunk invalidates dependent mission artifacts even if mission JSON is unchanged.
 
 There is no random selection, tier fallback, wrapping, or continuation beyond
-the last occurrence. Validate each actual adjacent join. Source-level ownership
+the last mission chunk. Validate each actual adjacent join. Source-level ownership
 checks remain intact for runner content; campaign compilation adds an explicit
 reference path rather than globally weakening those checks. Reuse existing world
 units, supported chunk dimensions, and placement compilation for the first version.
@@ -95,7 +95,7 @@ become an unrecorded input to authoritative gameplay.
 
 ## Encounters and instance state
 
-Give each placed gameplay element an identity scoped to the route occurrence and
+Give each placed gameplay element an identity scoped to the route mission chunk and
 source element. Activate a placement once under a Core-owned rule; viewing its
 chunk again cannot create another instance. Defeated enemies stay defeated,
 collected items stay collected, and rescued/failed encounters keep their result.
@@ -115,7 +115,7 @@ ordering; fixed layouts do not require removing crits or AI randomness.
 
 Mission-defined enemies may pursue through appropriate adjoining areas. Restrict
 an encounter only through explicit bounds/leash rules; do not fail a rescue merely
-because the player walks left. Route occurrences with existing runner-only boss
+because the player walks left. Route mission chunks with existing runner-only boss
 or encounter behavior require adaptation or rejection before Play/Build.
 
 ## Objectives, completion, and attempt lifecycle

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../app/ui_routes.dart';
 import '../components/menu_scaffold.dart';
-import '../l10n/app_localization.dart';
 import '../theme/ui_tokens.dart';
 import 'campaign_chapter_dialog.dart';
 import 'campaign_map.dart';
+import 'campaign_catalog.dart';
 
 /// Keeps the regional map mounted while chapter details open in a modal.
 class CampaignPage extends StatelessWidget {
@@ -13,7 +13,7 @@ class CampaignPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MenuScaffold(
-    title: context.l10n.campaignHeading,
+    title: CampaignCatalog.title(Localizations.localeOf(context).languageCode),
     overlayAppBar: true,
     background: ColoredBox(color: context.ui.colors.background),
     child: CampaignRegionalMap(

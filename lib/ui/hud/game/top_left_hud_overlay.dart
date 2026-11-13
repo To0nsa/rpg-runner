@@ -4,7 +4,7 @@ import 'package:runner_core/players/player_character_definition.dart';
 
 import '../../../game/game_controller.dart';
 import '../../controls/control_resource_usage.dart';
-import '../../components/hud_frame.dart';
+import 'resource_bars_panel.dart';
 import '../../theme/ui_tokens.dart';
 import 'level_blessings_hud.dart';
 import 'resource_bar.dart';
@@ -16,10 +16,15 @@ class TopLeftHudOverlay extends StatelessWidget {
     this.active = true,
     this.compact = false,
     this.warningSignal,
+    this.resourcesTargetKey,
+    this.blessingResourcesTargetKey,
+    this.showBlessings = true,
     super.key,
   });
 
   final GameController controller;
+  final Key? resourcesTargetKey, blessingResourcesTargetKey;
+  final bool showBlessings;
   final bool active;
   final bool compact;
   final ValueListenable<ControlResourceUsage>? warningSignal;
@@ -33,46 +38,30 @@ class TopLeftHudOverlay extends StatelessWidget {
       return IgnorePointer(
         child: RepaintBoundary(
           child: Column(
+            key: blessingResourcesTargetKey,
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              HudPanel(
-                key: ObjectKey(controller),
-                padding: EdgeInsets.all(ui.space.xs),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ResourceBar(
-                      compact: compact,
-                      resource: HudResource.health,
-                      value: hud.hp,
-                      maximum: hud.hpMax,
-                      active: active,
-                      warningSignal: warningSignal,
-                    ),
-                    SizedBox(height: ui.space.xxs / 2),
-                    ResourceBar(
-                      compact: compact,
-                      resource:
-                          controller.playerCharacter.id ==
-                              PlayerCharacterId.bountyHunter
-                          ? HudResource.supplies
-                          : HudResource.mana,
-                      value: hud.mana,
-                      maximum: hud.manaMax,
-                      active: active,
-                      warningSignal: warningSignal,
-                    ),
-                    SizedBox(height: ui.space.xxs / 2),
-                    ResourceBar(
-                      compact: compact,
-                      resource: HudResource.stamina,
-                      value: hud.stamina,
-                      maximum: hud.staminaMax,
-                      active: active,
-                      warningSignal: warningSignal,
-                    ),
-                  ],
+              // Keep the measured target stable while resetting bar animation state
+              // when the host replaces the attempt's controller.
+              KeyedSubtree(
+                key: resourcesTargetKey,
+                child: ResourceBarsPanel(
+                  key: ObjectKey(controller),
+                  health: hud.hp,
+                  healthMax: hud.hpMax,
+                  ability: hud.mana,
+                  abilityMax: hud.manaMax,
+                  stamina: hud.stamina,
+                  staminaMax: hud.staminaMax,
+                  abilityResource:
+                      controller.playerCharacter.id ==
+                          PlayerCharacterId.bountyHunter
+                      ? HudResource.supplies
+                      : HudResource.mana,
+                  active: active,
+                  compact: compact,
+                  warningSignal: warningSignal,
                 ),
               ),
               if (active && hud.riposteTicksLeft > 0) ...[
@@ -83,7 +72,7 @@ class TopLeftHudOverlay extends StatelessWidget {
                   tickHz: controller.tickHz,
                 ),
               ],
-              if (hud.blessings.isNotEmpty) ...[
+              if (showBlessings && hud.blessings.isNotEmpty) ...[
                 SizedBox(height: ui.space.xxs),
                 LevelBlessingsHud(
                   blessings: hud.blessings,

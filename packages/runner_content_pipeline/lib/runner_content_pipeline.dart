@@ -21,3 +21,6 @@ export 'src/boss_arena_source.dart';
 export 'src/encounter_readiness.dart';
 
 export 'src/prefab_rotation.dart';
+
+export 'campaign_tutorial.dart';
+export 'campaign_journal.dart';

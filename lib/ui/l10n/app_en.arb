@@ -1,5 +1,35 @@
 {
+  "tutorialNext": "Next",
+  "@tutorialNext": {"description": "Advance a paused tutorial to its next informational step."},
+  "tutorialStepProgress": "Step {step}/{total}",
+  "@tutorialStepProgress": {"description": "Current page of one tutorial sequence.", "placeholders": {"step": {"type": "int"}, "total": {"type": "int"}}},
   "@@locale": "en",
+  "characterTrainingTab": "Training",
+  "@characterTrainingTab": {"description": "Compact label for the Training Field editor tab; its accessible label retains the full name."},
+  "characterSelected": "Selected",
+  "@characterSelected": {"description": "Badge on the currently selected character."},
+  "characterSelect": "Select {name}",
+  "@characterSelect": {"description": "Selects a character with its remembered build.", "placeholders": {"name": {"type": "String"}}},
+  "characterActiveBuild": "Active build",
+  "@characterActiveBuild": {"description": "The build selected for the next run."},
+  "characterUseBuild": "Use this build",
+  "@characterUseBuild": {"description": "Activates the build being edited and its character."},
+  "characterSelectBuildSemantics": "Use {build} with {character}",
+  "@characterSelectBuildSemantics": {"description": "Accessible build selection action.", "placeholders": {"build": {"type": "String"}, "character": {"type": "String"}}},
+  "characterEditBuildSemantics": "Edit {build} for {character}",
+  "@characterEditBuildSemantics": {"description": "Opens a build without activating it.", "placeholders": {"build": {"type": "String"}, "character": {"type": "String"}}},
+  "characterBuildUnlockLevel": "Unlocks at level {level}",
+  "@characterBuildUnlockLevel": {"description": "Account level required to unlock a build slot.", "placeholders": {"level": {"type": "int"}}},
+  "characterNextRun": "Selected for next run",
+  "@characterNextRun": {"description": "Heading for the current character and build summary."},
+  "characterBuildSummary": "{character} · {build}",
+  "@characterBuildSummary": {"description": "Character and build identity in the summary and editor. Preserve player-authored build names.", "placeholders": {"character": {"type": "String"}, "build": {"type": "String"}}},
+  "characterRenameBuild": "Rename",
+  "@characterRenameBuild": {"description": "Compact visible build rename action."},
+  "characterBuildSaved": "Saved",
+  "@characterBuildSaved": {"description": "Build changes have finished saving."},
+  "characterBuildSaveFailed": "Could not save your changes. Please retry.",
+  "@characterBuildSaveFailed": {"description": "Build save failure; queued changes can be retried."},
   "appTitle": "Lothringen: The Long Run",
   "@appTitle": {
     "description": "Application title. The product name is not translated."
@@ -2651,14 +2681,6 @@
       }
     }
   },
-  "codexOpeningTitle": "The roads of Lothringen",
-  "@codexOpeningTitle": {
-    "description": "Codex world-reference prose: codexOpeningTitle. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
-  },
-  "codexOpening": "Théodonis stands behind old walls, surrounded by farmland and forests. The city has survived wars, raids and disease, and its apparent stability rests on institutions that have weathered many crises.\n\nLong ago, Éloïse founded La Main to confront a hidden threat. After her disappearance, the order continued its work in secret. More recently, an incident at the Villa Twinsen left questions unanswered.\n\nOn the roads of Lothringen, Neyla leads a traveling company of performers. They bring shows to the communities they visit and offer help along the way. Their journey now leads toward Théodonis.",
-  "@codexOpening": {
-    "description": "Codex world-reference prose: codexOpening. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
-  },
   "codexGrojibLore": "Grojib closes the distance without hesitation. A traveler who holds their ground after the first blow may find another strike already on its way.",
   "@codexGrojibLore": {
     "description": "Codex world-reference prose: codexGrojibLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
@@ -2699,11 +2721,11 @@
   "@codexVoidTentacleLore": {
     "description": "Codex world-reference prose: codexVoidTentacleLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexGrojibTactics": "A ground pursuer with a follow-up melee strike that can stun on hit. Leave room for the second swing.",
+  "codexGrojibTactics": "A ground pursuer with a follow-up melee strike that can stun on hit.",
   "@codexGrojibTactics": {
     "description": "Codex world-reference prose: codexGrojibTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexHashashTactics": "A mobile assassin with a teleporting ambush. Watch for its return before committing.",
+  "codexHashashTactics": "A mobile assassin with a teleporting ambush.",
   "@codexHashashTactics": {
     "description": "Codex world-reference prose: codexHashashTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
@@ -2711,37 +2733,37 @@
   "@codexDerfTactics": {
     "description": "Codex world-reference prose: codexDerfTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexUnocoTactics": "A flying caster that can also strike at close range. Keep moving while its projectile is aimed.",
+  "codexUnocoTactics": "A flying caster that can also strike at close range.",
   "@codexUnocoTactics": {
     "description": "Codex world-reference prose: codexUnocoTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexBringerTactics": "A scythe fighter with dark pillars. Read the wind-up and move clear of the marked ground.",
+  "codexBringerTactics": "A scythe fighter with dark pillars.",
   "@codexBringerTactics": {
     "description": "Codex world-reference prose: codexBringerTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexGoddessTactics": "Combines claw attacks, dark orbs and ground eruptions. Reposition when the arena is threatened.",
+  "codexGoddessTactics": "Combines claw attacks, dark orbs and ground eruptions.",
   "@codexGoddessTactics": {
     "description": "Codex world-reference prose: codexGoddessTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexShoggothTactics": "Uses tentacles, dark orbs and summoned creatures. Manage the smaller threats while watching the boss.",
+  "codexShoggothTactics": "Uses tentacles, dark orbs and summoned creatures.",
   "@codexShoggothTactics": {
     "description": "Codex world-reference prose: codexShoggothTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexVoidcallerTactics": "Uses vertical and diagonal beams, fire claws and tentacle summons. Keep a route out of overlapping attacks.",
+  "codexVoidcallerTactics": "Uses vertical and diagonal beams, fire claws and tentacle summons.",
   "@codexVoidcallerTactics": {
     "description": "Codex world-reference prose: codexVoidcallerTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexShoggothMinionTactics": "A small ground attacker summoned by Shoggoth. Avoid being crowded while the boss attacks.",
+  "codexShoggothMinionTactics": "A small ground attacker summoned by Shoggoth.",
   "@codexShoggothMinionTactics": {
     "description": "Codex world-reference prose: codexShoggothMinionTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexVoidTentacleTactics": "A summoned melee threat. Move beyond its lash before turning to attack it.",
+  "codexVoidTentacleTactics": "A summoned melee threat.",
   "@codexVoidTentacleTactics": {
     "description": "Codex world-reference prose: codexVoidTentacleTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
   },
-  "codexForestLore": "Val Outpost stands beside the road through the Long-Eared Owls’ Forest. Its soldiers patrol the wooded route, train for the forest’s hazards, and carry warnings of danger back to Théodonis. Travelers can rest under their guard before continuing their journey.",
+  "codexForestLore": "Set apart from Théodonis in a darker stretch of the Long-Eared Owls’ Forest, Val Outpost consists of half a dozen large tents in a well-organized, guarded camp. In quieter times, it maintains a presence on the road and prepares soldiers for combat and survival in the forest.\n\nCaptain Théo commands twenty-four elite forest guards here, while Hanna, their field medic, tends the wounded. Their orders are to contain a bugbear tribe’s expansion across the Vosga and secure the approaches to the road. Tensions return in waves, and the outpost must absorb them before they reach Théodonis.\n\nVal also serves as a link to the city. Its captain can have messages relayed to Théodonis, and the camp offers refuge to travelers in distress: a hot meal, a clean place to sleep, and a few hours under the soldiers’ guard. Beyond the tents, the forest remains dangerous.",
   "@codexForestLore": {
-    "description": "Codex world-reference prose: codexForestLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French."
+    "description": "Library > Locations > Val Outpost: three spoiler-free paragraphs grounded in the Guide du maitre de jeu (Val Outpost and Théo’s squad) and Les Soleils d’or, chapter 3 (Le feu de joie). Preserve Théo, Hanna, Théodonis, Vosga and the twenty-four forest guards; bugbears are gobelours in French. Long-Eared Owls’ Forest is the English name for the Forêt des Moyen-Ducs. Keep the paragraph breaks and do not reveal the caravan attack or its outcome."
   },
   "codexFieldLore": "Léonards’ farm is the largest agricultural estate around Théodonis. A powerful family oversees its fields and harvests.",
   "@codexFieldLore": {
@@ -2757,10 +2779,6 @@
   },
   "levelDeprecatedName": "New Level",
   "@levelDeprecatedName": {
-    "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
-  },
-  "libraryBrand": "Les Soleils d’or • Lothringen",
-  "@libraryBrand": {
     "description": "Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings."
   },
   "townName": "Théodonis",
@@ -3616,7 +3634,7 @@
   "@developerIdentity": {
     "description": "Default synthetic profile name in local Developer Practice; custom names remain unchanged."
   },
-  "townEquipment": "Equipment",
+  "townEquipment": "Equipment store",
   "@townEquipment": {
     "description": "Town equipment merchant title and navigation."
   },
@@ -3624,7 +3642,7 @@
   "@townTraining": {
     "description": "Town service for learning permanent abilities; distinct from Training Field practice."
   },
-  "townEquipmentMarker": "Equipment merchant marker",
+  "townEquipmentMarker": "Equipment store marker",
   "@townEquipmentMarker": {
     "description": "Accessible equipment building marker."
   },
@@ -3645,6 +3663,38 @@
     "description": "Catalogue category filter showing every slot."
   },
   "townUnownedOnly": "Not yet unlocked",
+  "townBuyAmount": "Buy {gold}",
+  "@townBuyAmount": {
+    "description": "Equipment purchase button, followed by coin artwork. Price comes from the server offer.",
+    "placeholders": { "gold": { "type": "int", "format": "decimalPattern" } }
+  },
+  "townBuyGoldLabel": "Buy for {gold} gold",
+  "@townBuyGoldLabel": {
+    "description": "Accessible equipment purchase action including the currency represented visually by coin artwork.",
+    "placeholders": { "gold": { "type": "int", "format": "decimalPattern" } }
+  },
+  "townLearnAmount": "Learn {gold}",
+  "@townLearnAmount": {
+    "description": "Training Hall learn button, followed by coin artwork. Price comes from the server offer.",
+    "placeholders": {
+      "gold": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "townLearnGoldLabel": "Learn for {gold} gold",
+  "@townLearnGoldLabel": {
+    "description": "Accessible Training Hall purchase action including the currency represented visually by coin artwork.",
+    "placeholders": {
+      "gold": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "pickerEquipped": "Equipped",
+  "@pickerEquipped": { "description": "Accessible check-mark state for an equipped item in the character builder's gear picker." },
   "@townUnownedOnly": {
     "description": "Optional catalogue filter hiding owned entries."
   },
@@ -3660,10 +3710,6 @@
   "@townLearn": {
     "description": "Purchase a permanent ability with earned gold."
   },
-  "townSharedAccessory": "Usable by both · One purchase",
-  "@townSharedAccessory": {
-    "description": "Accessories are account-wide; no second purchase for the other character."
-  },
   "townCatalogueUnavailable": "The catalogue is unavailable. Return to town and reconnect to load it.",
   "@townCatalogueUnavailable": {
     "description": "Retained schema-1 snapshot cannot safely support explicit-character catalogue purchases."
@@ -3671,18 +3717,6 @@
   "townNoMatchingEntries": "No entries match these filters.",
   "@townNoMatchingEntries": {
     "description": "Empty filtered catalogue, including when every entry is owned."
-  },
-  "townCompareWith": "Compared with {item} · {build}",
-  "@townCompareWith": {
-    "description": "Expanded equipment comparison; item is currently equipped name, build is selected saved build name for browsed character.",
-    "placeholders": {
-      "item": {
-        "type": "String"
-      },
-      "build": {
-        "type": "String"
-      }
-    }
   },
   "townCategory": "{slot, select, mainWeapon{Weapons} offhandWeapon{{character, select, bountyHunter{Bomb kits} other{Shields}}} spellBook{{character, select, bountyHunter{Field kits} other{Spellbooks}}} accessory{Accessories} primary{Primary} secondary{Secondary} projectile{{service, select, training{Ranged techniques} other{{character, select, bountyHunter{Ranged weapons} other{Ranged spells}}}}} mobility{Mobility} jump{Jump} spell{{character, select, bountyHunter{Fieldcraft} other{Spells}}} other{Equipment}}",
   "@townCategory": {
@@ -3812,5 +3846,152 @@
   "campaignChapterRewardsGranted": "Chapter rewards received.",
   "@campaignChapterRewardsGranted": {
     "description": "Shown only after canonical chapter reward settlement."
+  },
+  "campaignCollectCoin": "Collect a coin {collected}/1",
+  "@campaignCollectCoin": {"description": "Coin objective progress; collected is 0 or 1.", "placeholders": {"collected": {"type": "int"}}},
+  "codexCombatAdvice": "Combat advice",
+  "@codexCombatAdvice": {
+    "description": "Heading for one concise tactical recommendation in a discovered Bestiary entry."
+  },
+  "codexInnateDefences": "Innate defences",
+  "@codexInnateDefences": {
+    "description": "Heading grouping an enemy’s innate damage resistances and weaknesses. Values come from Core."
+  },
+  "codexBoss": "Boss",
+  "@codexBoss": {
+    "description": "Short classification above a discovered boss’s name in its Bestiary entry."
+  },
+  "codexNoInnateModifiers": "None",
+  "@codexNoInnateModifiers": {
+    "description": "Empty value under either Resistances or Weaknesses. French agrees with the feminine plural category, using Aucune."
+  },
+  "codexAttackDetails": "{category} · {types} damage",
+  "@codexAttackDetails": {
+    "description": "Bestiary attack metadata, below its separate ability name. Category is localized; types includes localized damage types and mixed-damage percentages. Example: melee · Physical damage.",
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "types": {
+        "type": "String"
+      }
+    }
+  },
+  "codexGrojibRole": "Ground pursuer",
+  "@codexGrojibRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "codexGrojibAdvice": "Leave room for the second swing.",
+  "@codexGrojibAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "codexHashashRole": "Teleporting assassin",
+  "@codexHashashRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "codexHashashAdvice": "Watch for its return before committing.",
+  "@codexHashashAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "codexDerfRole": "Transforming caster",
+  "@codexDerfRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "codexDerfAdvice": "Allow for the reach of its extended tentacle.",
+  "@codexDerfAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "codexUnocoRole": "Flying caster",
+  "@codexUnocoRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "codexUnocoAdvice": "Keep moving while its projectile is aimed.",
+  "@codexUnocoAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "codexBringerRole": "Scythe fighter",
+  "@codexBringerRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "codexBringerAdvice": "Read the wind-up and move clear of the marked ground.",
+  "@codexBringerAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "codexGoddessRole": "Claw and orb fighter",
+  "@codexGoddessRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "codexGoddessAdvice": "Reposition when the arena is threatened.",
+  "@codexGoddessAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "codexShoggothRole": "Tentacled summoner",
+  "@codexShoggothRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "codexShoggothAdvice": "Manage the smaller threats while watching the boss.",
+  "@codexShoggothAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "codexVoidcallerRole": "Beam caster",
+  "@codexVoidcallerRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "codexVoidcallerAdvice": "Keep a route out of overlapping attacks.",
+  "@codexVoidcallerAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "codexShoggothMinionRole": "Summoned ground attacker",
+  "@codexShoggothMinionRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "codexShoggothMinionAdvice": "Avoid being crowded while the boss attacks.",
+  "@codexShoggothMinionAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "codexVoidTentacleRole": "Summoned melee attacker",
+  "@codexVoidTentacleRole": {
+    "description": "Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore."
+  },
+  "hubRunnerHeading": "Runner",
+  "@hubRunnerHeading": {
+    "description": "Short heading on the main menu card for the endless Runner mode. Runner is the mode name."
+  },
+  "hubRunnerPlay": "Play Runner",
+  "@hubRunnerPlay": {
+    "description": "Main menu card footer: immediately launch the selected Runner level and mode. Keep concise; may wrap on compact screens."
+  },
+  "hubCampaignPlay": "Play Campaign",
+  "@hubCampaignPlay": {
+    "description": "Main menu card footer: launch the last available unlocked campaign mission, including replay. Does not always continue unfinished progress."
+  },
+  "hubChangeBuild": "Change build",
+  "@hubChangeBuild": {
+    "description": "Quiet main menu character-card footer; opens character and saved build selection, without launching gameplay."
+  },
+  "hubLocalPractice": "Local practice",
+  "@hubLocalPractice": {
+    "description": "Compact main menu status in Developer Practice; local runs without online services. The Developer profile name remains visible above."
+  },
+  "hubWeeklyPlay": "Play",
+  "@hubWeeklyPlay": {
+    "description": "Compact text action beside the Weekly Runner title on the main menu. Launches Weekly immediately."
+  },
+  "codexVoidTentacleAdvice": "Move beyond its lash before turning to attack it.",
+  "@codexVoidTentacleAdvice": {
+    "description": "Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French."
+  },
+  "campaignReceiveBlessing": "Receive a blessing {received}/1",
+  "@campaignReceiveBlessing": {
+    "description": "Required campaign shrine objective progress. Received is 0 before the selected basin activates and 1 afterwards.",
+    "placeholders": {
+      "received": {
+        "type": "int"
+      }
+    }
+  },
+  "journalEmpty": "No journal entries yet.",
+  "@journalEmpty": {
+    "description": "Library Journal empty state when no authored opening or unlocked story entries exist."
   }
 }

@@ -33,12 +33,22 @@ recorder, controller, input state or gameplay route.
 
 ## Resources and access
 
+Campaign movement lesson titles and per-control instructions are authored in
+English/French in `chapter_defs.json`, validated by the content pipeline and
+projected into the Campaign catalog. Their overlay resolves the host's supported
+locale through `context.l10n`; editor presets are copied into editable source.
+
 App messages live in `lib/ui/l10n/app_en.arb` and `app_fr.arb`. English messages
 carry descriptions and typed placeholder metadata. `l10n.yaml` enables named
 parameters and required resource attributes. `flutter gen-l10n` writes source
 under `lib/ui/l10n/generated/` and the untranslated report beside the ARBs.
 Source ARBs and generated Dart are checked in together; generated Dart is never
 hand-edited. The root Pub workspace owns dependency resolution and its lockfile.
+
+Campaign Journal titles and prose are bilingual authored content in
+`chapter_defs.json`, decoded by `CampaignJournalEntry` and emitted by the existing
+Campaign build. Library resolves the active locale from that catalog. The prior
+fixed opening ARBs are removed; generic Journal labels/empty text remain app ARBs.
 
 Widgets import `app_localization.dart` and read `context.l10n`. That lookup
 subscribes to inherited localization changes. Non-widget presenters must receive

@@ -41,6 +41,10 @@ Revision, command idempotency, auth and reward settlement behavior are unchanged
 All timings are authored at 60 Hz and scaled by existing tick math. Supplies
 reuse Core's mana store and serialized contracts; the UI changes the resource
 label for Willow. No new command encoding or resource authority is introduced.
+The run's selected character configures `PickupRenderRegistry` and its
+`PickupRenderCatalog`: `restorationMana` uses the existing gold gem strip
+(zero-based row 3) for Willow and the blue strip (row 1) for Éloïse. The pickup
+variant, restoration amount, frame count and animation timing remain shared.
 
 - `BombHitDelivery` commits through the secondary weapon and offhand slot mask.
   `ProjectileLaunchSystem` materializes a bomb only when the queued release

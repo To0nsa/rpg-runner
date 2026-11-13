@@ -10,7 +10,9 @@ import 'package:rpg_runner/ui/app/ui_router.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/components/enemy_portrait.dart';
 import 'package:rpg_runner/ui/codex/codex_catalog.dart';
+import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 import 'package:rpg_runner/ui/pages/library/codex_entry_page.dart';
+import 'package:rpg_runner/ui/pages/library/bestiary_entry_view.dart';
 import 'package:rpg_runner/ui/pages/library/library_page.dart';
 import 'package:rpg_runner/ui/pages/library/location_map.dart';
 import 'package:rpg_runner/ui/pages/town/town_page.dart';
@@ -303,17 +305,156 @@ void main() {
       find.text(CodexCatalog.enemyLore(EnemyId.grojib, appStringsFor(null))),
       findsOneWidget,
     );
-    expect(find.textContaining('Second Strike • melee'), findsOneWidget);
+    final secondStrike = find.byKey(
+      const ValueKey('bestiary-attack-grojib.strike2'),
+    );
+    expect(
+      find.descendant(of: secondStrike, matching: find.text('Second Strike')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: secondStrike,
+        matching: find.text('melee · Physical damage'),
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('can stun on hit'), findsOneWidget);
+    expect(find.text('Leave room for the second swing.'), findsOneWidget);
+    expect(find.text('Bestiary'), findsNothing);
+    expect(find.text('Grojib'), findsOneWidget);
+    expect(find.byType(EnemyPortrait), findsOneWidget);
     expect(find.textContaining('Strike2'), findsNothing);
     app.setDefeats({});
     await tester.pumpAndSettle();
     expect(find.text('Entry locked'), findsOneWidget);
     expect(find.text('Attacks'), findsNothing);
+    expect(find.byType(BestiaryEntryView), findsNothing);
+    expect(find.text('Leave room for the second swing.'), findsNothing);
   });
 
+  for (final locale in [const Locale('en'), const Locale('fr')]) {
+    testWidgets(
+      'field guides retain every catalog attack and summon in $locale',
+      (tester) async {
+        final app = _CodexAppState();
+        addTearDown(app.dispose);
+        app.setDefeats({
+          for (final id in CodexCatalog.bestiaryEntries)
+            id.name: CodexCatalog.killsRequired(id),
+        });
+        final strings = appStringsFor(locale);
+        for (final enemy in CodexCatalog.bestiaryEntries) {
+          await tester.pumpWidget(
+            _app(app, CodexEntryPage.enemy(enemy), locale: locale),
+          );
+          await tester.pumpAndSettle();
+          for (final creature in [enemy, ...CodexCatalog.summonsFor(enemy)]) {
+            expect(
+              find.text(CodexCatalog.enemyAdvice(creature, strings)),
+              findsOneWidget,
+            );
+            expect(
+              find.text(CodexCatalog.enemyRole(creature, strings)),
+              findsOneWidget,
+            );
+            expect(
+              find.text(CodexCatalog.enemyLore(creature, strings)),
+              findsOneWidget,
+            );
+            for (final ability in CodexCatalog.attacks(creature)) {
+              expect(
+                find.byKey(ValueKey('bestiary-attack-${ability.id}')),
+                findsOneWidget,
+              );
+            }
+          }
+          expect(tester.takeException(), isNull);
+        }
+      },
+    );
+
+    for (final layout in [
+      (size: const Size(568, 320), scale: 1.0, columns: true),
+      (size: const Size(640, 360), scale: 1.0, columns: true),
+      (size: const Size(844, 390), scale: 1.0, columns: true),
+      (size: const Size(320, 640), scale: 1.8, columns: false),
+      (size: const Size(568, 320), scale: 1.8, columns: false),
+      (size: const Size(640, 360), scale: 1.8, columns: false),
+      (size: const Size(1024, 768), scale: 1.0, columns: true),
+    ]) {
+      testWidgets(
+        'field guide fits ${layout.size} at ${layout.scale} text in $locale',
+        (tester) async {
+          tester.view.physicalSize = layout.size;
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.runAsync(() async {
+            final fonts = FontLoader('CrimsonText');
+            for (final face in ['Regular', 'Bold', 'Italic']) {
+              fonts.addFont(
+                rootBundle.load(
+                  'assets/fonts/Crimson_Text/CrimsonText-$face.ttf',
+                ),
+              );
+            }
+            await fonts.load();
+          });
+          final app = _CodexAppState();
+          addTearDown(app.dispose);
+          app.setDefeats({'voidcaller': 5});
+          await tester.pumpWidget(
+            _app(
+              app,
+              const CodexEntryPage.enemy(EnemyId.voidcaller),
+              textScale: layout.scale,
+              locale: locale,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(find.byType(EnemyPortrait), findsNWidgets(2));
+          final strings = appStringsFor(locale);
+          final attacks = find.text(strings.uiAttacks).first;
+          final behaviour = find.text(strings.uiBehaviour).first;
+          if (layout.columns) {
+            expect(
+              tester.getTopLeft(behaviour).dx,
+              greaterThan(tester.getTopRight(attacks).dx),
+            );
+            expect(
+              tester.getTopLeft(behaviour).dy,
+              closeTo(tester.getTopLeft(attacks).dy, 1),
+            );
+            expect(
+              tester.getBottomLeft(attacks).dy,
+              lessThan(layout.size.height),
+            );
+          } else {
+            expect(
+              tester.getTopLeft(behaviour).dy,
+              greaterThan(tester.getTopLeft(attacks).dy),
+            );
+          }
+          for (final text in tester.widgetList<Text>(find.byType(Text))) {
+            expect(text.overflow, isNot(TextOverflow.ellipsis));
+          }
+          await tester.drag(
+            find.byType(SingleChildScrollView).last,
+            const Offset(0, -10000),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.text(CodexCatalog.enemyLore(EnemyId.voidTentacle, strings)),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
   testWidgets(
-    'locations show two independent 10000 gates and opening uses PDF timeline',
+    'locations show two independent 10000 gates and Journal uses the post-fire timeline',
     (tester) async {
       final app = _CodexAppState();
       addTearDown(app.dispose);
@@ -352,10 +493,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Library · Journal'), findsOneWidget);
       expect(
-        find.text(CodexCatalog.opening(appStringsFor(null))),
+        find.text(CampaignCatalog.journal.opening!.bodyFor('en')),
         findsOneWidget,
       );
-      expect(find.textContaining('Les Soleils d’or'), findsOneWidget);
+      expect(find.textContaining('have reached Théodonis'), findsOneWidget);
     },
   );
 
@@ -494,7 +635,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('town-training-marker')));
       await tester.pumpAndSettle();
-      expect(find.text('Training Hall'), findsNWidgets(2));
+      expect(find.text('Training Hall'), findsOneWidget);
       expect(
         tester.widget<TownStorePage>(find.byType(TownStorePage)).initialService,
         TownService.training,
@@ -559,7 +700,12 @@ void main() {
   }
 }
 
-Widget _app(AppState app, Widget home, {double textScale = 1}) => MultiProvider(
+Widget _app(
+  AppState app,
+  Widget home, {
+  double textScale = 1,
+  Locale? locale,
+}) => MultiProvider(
   providers: [
     ChangeNotifierProvider<AppState>.value(value: app),
     Provider<UiAssetLifecycle>(
@@ -569,6 +715,9 @@ Widget _app(AppState app, Widget home, {double textScale = 1}) => MultiProvider(
   ],
   child: MaterialApp(
     theme: createUiTheme(),
+    locale: locale,
+    localizationsDelegates: RunnerLocalizations.delegates,
+    supportedLocales: RunnerLocalizations.supportedLocales,
     onGenerateRoute: UiRouter.onGenerateRoute,
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(context)

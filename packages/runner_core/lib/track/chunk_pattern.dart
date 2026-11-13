@@ -84,12 +84,16 @@ class ChunkVisualSpriteRel {
     this.flipX = false,
     this.flipY = false,
     this.rotationDegrees = 0,
+    this.prefabKey,
   }) : assert(srcWidth > 0),
        assert(srcHeight > 0),
        assert(width > 0),
        assert(height > 0);
 
   final String assetPath;
+  /// Source identity for visual attachments; never used by collision or replay.
+  /// Null for hand-built sprites without an authored prefab.
+  final String? prefabKey;
   final int srcX;
   final int srcY;
   final int srcWidth;

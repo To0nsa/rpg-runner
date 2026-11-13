@@ -50,6 +50,7 @@ class HashashTeleportEvadeMiddleware implements DamageMiddleware {
     }
 
     final target = queue.target[index];
+    if (!world.campaignEnemy.canFight(target)) return;
     if (world.deathState.has(target)) return;
     if (world.controlLock.isStunned(target, currentTick)) return;
 

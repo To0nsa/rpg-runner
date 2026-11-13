@@ -8,7 +8,7 @@ final class CampaignPlaytestScenario implements PlaytestScenario {
   CampaignPlaytestScenario({
     required this.mission,
     required this.playerCharacter,
-    this.equippedLoadout = const EquippedLoadoutDef(),
+    this.equippedLoadout,
     this.seed = 4401,
     this.tickHz = 60,
   }) {
@@ -19,7 +19,10 @@ final class CampaignPlaytestScenario implements PlaytestScenario {
   final CampaignMissionDefinition mission;
   @override
   final PlayerCharacterDefinition playerCharacter;
-  final EquippedLoadoutDef equippedLoadout;
+
+  /// Null uses the character catalog's starter equipment and enabled slots.
+  /// An explicit override is preserved exactly, including disabled slots.
+  final EquippedLoadoutDef? equippedLoadout;
   final int seed;
   @override
   final int tickHz;

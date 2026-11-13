@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+import 'package:runner_core/campaign/campaign_mission_definition.dart';
 import 'package:tool_ui/tool_ui.dart';
 
-/// Exact occurrence order, distinct from the Level Creator's random pool.
+/// Exact mission chunk order, distinct from the Level Creator's random pool.
 class CampaignRoute extends StatelessWidget {
   const CampaignRoute({
     super.key,
     required this.mission,
-    required this.selectedOccurrenceId,
+    required this.selectedMissionChunkId,
     required this.onSelected,
     required this.onMove,
     required this.onDuplicate,
@@ -17,7 +18,7 @@ class CampaignRoute extends StatelessWidget {
   });
 
   final CampaignMissionSource mission;
-  final String? selectedOccurrenceId;
+  final String? selectedMissionChunkId;
   final ValueChanged<String> onSelected;
   final void Function(int, int) onMove;
   final ValueChanged<int> onDuplicate, onRemove;
@@ -39,7 +40,7 @@ class CampaignRoute extends StatelessWidget {
       ),
       const SizedBox(height: 8),
       Text(
-        '${mission.route.length} / 16 occurrences · exact route order · camera follows both directions',
+        '${mission.route.length} / ${CampaignMissionDefinition.maxMissionChunks} chunks · exact route order · camera follows both directions',
       ),
       if (mission.route.isEmpty)
         const Padding(
@@ -52,8 +53,8 @@ class CampaignRoute extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(top: 8),
           child: ToolListCard(
-            key: ValueKey('campaign_occurrence_${mission.route[i].id}'),
-            isSelected: mission.route[i].id == selectedOccurrenceId,
+            key: ValueKey('campaign_mission_chunk_${mission.route[i].id}'),
+            isSelected: mission.route[i].id == selectedMissionChunkId,
             onTap: () => onSelected(mission.route[i].id),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,7 +63,7 @@ class CampaignRoute extends StatelessWidget {
                   '${i + 1}. ${mission.route[i].chunkKey}',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                Text(mission.route[i].id),
+                Text('Mission chunk ID: ${mission.route[i].id}'),
                 Wrap(
                   children: [
                     IconButton(
@@ -78,19 +79,21 @@ class CampaignRoute extends StatelessWidget {
                       icon: const Icon(Icons.arrow_forward),
                     ),
                     IconButton(
-                      tooltip: 'Duplicate occurrence',
-                      onPressed: mission.route.length >= 16
+                      tooltip: 'Duplicate chunk',
+                      onPressed:
+                          mission.route.length >=
+                              CampaignMissionDefinition.maxMissionChunks
                           ? null
                           : () => onDuplicate(i),
                       icon: const Icon(Icons.copy),
                     ),
                     IconButton(
-                      tooltip: 'Edit shared chunk / copy mode',
+                      tooltip: 'Edit chunk',
                       onPressed: onEdit == null ? null : () => onEdit!(i),
                       icon: const Icon(Icons.edit),
                     ),
                     IconButton(
-                      tooltip: 'Remove occurrence',
+                      tooltip: 'Remove chunk',
                       onPressed: () => onRemove(i),
                       icon: const Icon(Icons.remove_circle_outline),
                     ),

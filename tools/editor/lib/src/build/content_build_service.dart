@@ -261,6 +261,7 @@ final class ContentBuildService extends ChangeNotifier {
                     relative.startsWith('assets/authoring/campaign/') ||
                     relative.startsWith('assets/authoring/items/')) &&
                 relative.endsWith('.json')) ||
+            relative.startsWith('assets/images/maps/') ||
             ((relative.startsWith('assets/images/level/atlases/') ||
                     relative.startsWith('assets/images/entities/traps/') ||
                     relative.startsWith(

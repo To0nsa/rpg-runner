@@ -16,7 +16,7 @@ void validateCampaignStart(CampaignMissionDefinition mission) {
     bindings: [
       for (var i = 0; i < mission.route.length; i++)
         mission.terrainCatalog.bind(
-          chunkKey: mission.route.occurrences[i].pattern.chunkKey!,
+          chunkKey: mission.route.missionChunks[i].pattern.chunkKey!,
           chunkIndex: i,
           worldOriginXTicks: physicsCoordinateToTicks(i * 600.0),
         ),

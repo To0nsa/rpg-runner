@@ -17,11 +17,13 @@ import '../../game/replay/buffered_ghost_playback.dart';
 import '../../game/replay/ghost_render_frame.dart';
 import '../../game/replay/run_recorder.dart';
 import '../../game/runner_flame_game.dart';
+import '../../game/runner_gameplay_runtime.dart';
 import '../../game/terrain/prepared_terrain_assets.dart';
 import '../app/ui_routes.dart';
 import '../app/app_runtime_policy.dart';
 import '../state/ownership/selection_state.dart';
 import 'run_startup_diagnostics.dart';
+import 'run_replay_finalization.dart';
 
 /// The required dependency that prevented a run from becoming playable.
 enum RunStartupFailure { world, recorder }
@@ -51,50 +53,52 @@ class RunnerRunSession extends ChangeNotifier {
     final character = PlayerCharacterRegistry.resolve(
       descriptor.playerCharacterId,
     );
-    controller = GameController(
-      core: descriptor.campaign != null
-          ? GameCore.campaign(
-              missionId: descriptor.campaign!.missionId,
-              contentDigest: descriptor.campaign!.contentDigest,
-              terrainPreparation: PreparedTerrainAssets().prepare,
-              seed: descriptor.seed,
-              runId: descriptor.runId,
-              tickHz: descriptor.tickHz,
-              playerCharacter: character,
-              equippedLoadout: descriptor.equippedLoadout,
-            )
-          : GameCore(
-              terrainPreparation: PreparedTerrainAssets().prepare,
-              seed: descriptor.seed,
-              runId: descriptor.runId,
-              tickHz: descriptor.tickHz,
-              levelDefinition: LevelRegistry.byId(descriptor.levelId),
-              playerCharacter: character,
-              equippedLoadoutOverride: descriptor.equippedLoadout,
-            ),
-      tickHz: descriptor.tickHz,
-    )..setPaused(true);
-    _constructionMicros = _startupWatch?.elapsedMicroseconds;
-    input = RunnerInputRouter(controller: controller);
-    if (!descriptor.isDeveloperPractice) {
-      controller.addAppliedCommandFrameListener(_recordFrame);
-    }
+    final core = descriptor.campaign != null
+        ? GameCore.campaign(
+            missionId: descriptor.campaign!.missionId,
+            contentDigest: descriptor.campaign!.contentDigest,
+            terrainPreparation: PreparedTerrainAssets().prepare,
+            seed: descriptor.seed,
+            runId: descriptor.runId,
+            tickHz: descriptor.tickHz,
+            playerCharacter: character,
+            equippedLoadout: descriptor.equippedLoadout,
+          )
+        : GameCore(
+            terrainPreparation: PreparedTerrainAssets().prepare,
+            seed: descriptor.seed,
+            runId: descriptor.runId,
+            tickHz: descriptor.tickHz,
+            levelDefinition: LevelRegistry.byId(descriptor.levelId),
+            playerCharacter: character,
+            equippedLoadoutOverride: descriptor.equippedLoadout,
+          );
     final replay = descriptor.ghostReplayBootstrap?.replayBlob;
     if (replay != null) {
       _ghost = BufferedGhostPlayback(replayBlob: replay)
         ..addListener(_publishGhost);
-      controller.addListener(_advanceGhost);
     }
-    game = RunnerFlameGame(
-      controller: controller,
-      input: input,
-      imageCache: imageCache,
-      projectileAimPreview: projectileAimPreview,
-      meleeAimPreview: meleeAimPreview,
-      playerCharacter: character,
-      ghostRenderListenable: _ghostFeed,
-      ghostPreparation: _ghost?.prepare(),
-    );
+    try {
+      runtime = RunnerGameplayRuntime(
+        core: core,
+        createImages: imageCache == null ? null : () => imageCache,
+        ghostRenderListenable: _ghostFeed,
+        ghostPreparation: _ghost?.prepare(),
+      );
+    } catch (_) {
+      _ghost?.dispose();
+      _ghostFeed.dispose();
+      rethrow;
+    }
+    _constructionMicros = _startupWatch?.elapsedMicroseconds;
+    finalization = RunReplayFinalization(
+      descriptor: descriptor,
+      scoreTuning: controller.scoreTuning,
+    )..addListener(_onFinalizationChanged);
+    if (!descriptor.isDeveloperPractice) {
+      controller.addAppliedCommandFrameListener(_recordFrame);
+    }
+    if (_ghost != null) controller.addListener(_advanceGhost);
     game.loadState.addListener(_onWorldChanged);
     _recorderPreparation = descriptor.isDeveloperPractice
         ? Future<void>.value()
@@ -107,11 +111,13 @@ class RunnerRunSession extends ChangeNotifier {
       : null;
   int? _constructionMicros;
   bool _startupReported = false;
-  late final GameController controller;
-  late final RunnerInputRouter input;
-  late final RunnerFlameGame game;
-  final AimPreviewModel projectileAimPreview = AimPreviewModel();
-  final AimPreviewModel meleeAimPreview = AimPreviewModel();
+  late final RunnerGameplayRuntime runtime;
+  late final RunReplayFinalization finalization;
+  GameController get controller => runtime.controller;
+  RunnerInputRouter get input => runtime.input;
+  RunnerFlameGame get game => runtime.game;
+  AimPreviewModel get projectileAimPreview => runtime.projectilePreview;
+  AimPreviewModel get meleeAimPreview => runtime.meleePreview;
   final ValueNotifier<GhostRenderFrame?> _ghostFeed = ValueNotifier(null);
   BufferedGhostPlayback? _ghost;
   RunRecorder? _recorder;
@@ -120,6 +126,7 @@ class RunnerRunSession extends ChangeNotifier {
   late final Future<void> _recorderPreparation;
   Future<void>? _closing;
   bool _stopped = false;
+  bool _disposed = false;
 
   RunRecorder? get recorder => _recorder;
   bool get isReady =>
@@ -212,6 +219,10 @@ class RunnerRunSession extends ChangeNotifier {
     }
   }
 
+  void _onFinalizationChanged() {
+    if (!_stopped) notifyListeners();
+  }
+
   void _reportStartup() {
     final watch = _startupWatch;
     if (watch == null || _startupReported) return;
@@ -252,11 +263,12 @@ class RunnerRunSession extends ChangeNotifier {
   Future<void> stop() {
     if (_closing != null) return _closing!;
     _stopped = true;
+    finalization.retire();
+    finalization.removeListener(_onFinalizationChanged);
     game.loadState.removeListener(_onWorldChanged);
-    game.cancelPreparation();
     controller.removeListener(_advanceGhost);
     controller.removeAppliedCommandFrameListener(_recordFrame);
-    controller.shutdown();
+    runtime.stop();
     _ghost?.dispose();
     _ghost = null;
     _closing = _closeRecorder();
@@ -265,6 +277,7 @@ class RunnerRunSession extends ChangeNotifier {
 
   Future<void> _closeRecorder() async {
     await _recorderPreparation;
+    await finalization.pending;
     final recorder = _recorder;
     _recorder = null;
     await recorder?.close();
@@ -272,6 +285,8 @@ class RunnerRunSession extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
     unawaited(
       stop().catchError((Object error, StackTrace stack) {
         debugPrintStack(
@@ -281,9 +296,8 @@ class RunnerRunSession extends ChangeNotifier {
         );
       }),
     );
-    controller.dispose();
-    projectileAimPreview.dispose();
-    meleeAimPreview.dispose();
+    runtime.dispose();
+    finalization.dispose();
     _ghostFeed.dispose();
     super.dispose();
   }

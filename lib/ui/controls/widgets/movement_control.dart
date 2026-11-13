@@ -14,6 +14,7 @@ class MovementControl extends StatefulWidget {
     required this.onMoveAxis,
     this.mode = MovementControlMode.arrows,
     this.enabled = true,
+    this.onEngage,
     this.inputEpoch = 0,
   });
 
@@ -21,6 +22,7 @@ class MovementControl extends StatefulWidget {
   final ValueChanged<double> onMoveAxis;
   final MovementControlMode mode;
   final bool enabled;
+  final bool Function()? onEngage;
 
   /// A new epoch discards touches held across host input cancellation.
   final int inputEpoch;
@@ -51,11 +53,13 @@ class _MovementControlState extends State<MovementControl> {
         child: switch (widget.mode) {
           MovementControlMode.arrows => MoveButtons(
             onAxisChanged: widget.onMoveAxis,
+            onEngage: widget.onEngage,
             tuning: widget.tuning.moveButtons,
           ),
           MovementControlMode.joystick ||
           MovementControlMode.fixedJoystick => MoveJoystick(
             onAxisChanged: widget.onMoveAxis,
+            onEngage: widget.onEngage,
             tuning: widget.tuning.moveJoystick,
             style: widget.tuning.moveButtons,
             floating: widget.mode == MovementControlMode.joystick,

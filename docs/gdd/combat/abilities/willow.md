@@ -2,17 +2,22 @@
 
 Willow is the playable bounty hunter. Choose Éloïse or Willow before opening
 the character builder. Each character has three independent builds with their
-own gear, ranged weapon and six abilities. Tap a card to select its character,
-or a build button to open that configuration. Build 1 is available immediately;
+own gear, ranged weapon and six abilities. Tap the character art/name
+to select its remembered build. Tap a build row to select that character
+and build in place; use its separate Edit action to modify it without changing
+the next-run selection. Build 1 is available immediately;
 Build 2 unlocks at confirmed account level 5 and Build 3 at level 12. Locked
 buttons show their required level, including in Developer Practice.
 
-Both cards fit on one screen, with illustration/name on the left, build buttons
-on the right, and a dark overlay marking the unselected character. Builds start
-as Build 1/2/3 and can be renamed from the builder header using up to 28
-characters. The rename button shows an edit icon for the slot's default name;
-after renaming, the custom name itself is the button, without an edit icon.
-Start, Restart and Training Field use the remembered build.
+Both cards fit on one landscape screen, with illustration/name on the left and
+build rows on the right; narrow portrait screens stack them. Available characters
+remain undimmed. A gold frame identifies the selected character, and a check plus
+Active build identifies its selected build. Edit actions use a pencil icon with
+a tooltip. Card heights retain their previous reserved footer allowance, without
+a next-run summary or Select/Selected/locked-name footer controls. Builds start
+as Build 1/2/3 and can be renamed using up to 28 characters. The editor retains
+its original centered tabs and default-pencil/custom-name rename control.
+Start and Restart use the remembered build; Training Field tests the edited build.
 
 
 Willow and Éloïse share the same apparent body size in menus and gameplay.
@@ -26,6 +31,9 @@ Willow has 90 health, 100 stamina and 100 Supplies. Baseline regeneration is
 0.5 health, 1.5 stamina and 3 Supplies per second. Supplies power shots,
 fieldcraft and bomb throws. There are no ammo
 pickups, magazines or finite bomb stocks.
+Mana/Supplies restoration gems appear yellow/gold when playing Willow, matching
+Supplies; the same pickups appear blue for Éloïse's mana. Health and stamina
+gems retain their red and green colors.
 
 Equip one ranged weapon before a run. The weapon changes the sprite set,
 projectile, speed, damage multiplier and minimum pellet count. The three weapons

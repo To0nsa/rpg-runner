@@ -8,7 +8,7 @@ diff/link validation; do not run application suites merely to publish the plan.
 
 | Area | Required evidence | Milestone |
 | --- | --- | --- |
-| Fixed route | Exact order across seeds; stable repeated occurrences; no continuation past final chunk; invalid references fail clearly | M1/M2 |
+| Fixed route | Exact order across seeds; stable repeated mission chunks; no continuation past final chunk; invalid references fail clearly | M1/M2 |
 | Camera/bounds | Left/right following, edge clamping, narrow-route framing, dash/teleport/knockback boundaries; no behind-camera death | M1 |
 | Terrain lifetime | Return after crossing actual unload/activation boundaries where used; collision ready before tick; no unsupported active actors | M1 |
 | Persistent state | Dead enemies, collected items, damaged living enemies, cooldown/status/AI state, rescues, and traps survive return travel correctly | M1 |
@@ -29,7 +29,7 @@ diff/link validation; do not run application suites merely to publish the plan.
 
 Follow the [level traversal workflow](../../../.agent/workflows/test-level-traversal.md)
 with generated freshness checked first. Declare mission/content fingerprint,
-occurrence sequence, combat seeds, player builds, enemy catalog profiles, tick
+mission chunk sequence, combat seeds, player builds, enemy catalog profiles, tick
 rates, coordinate boundaries, activation policy, and finite tick/route horizons.
 
 A campaign route test traverses the actual joins forward and backward with one
@@ -47,7 +47,7 @@ exit objective. Crossing the actual declared boundary or entering the actual
 exit region is required; proximity tolerances cannot substitute for completion.
 
 Use actual catalog movement limits, start support, physics, water/trap behavior,
-and composed terrain. Retain exact failing occurrence sequences and combat seeds.
+and composed terrain. Retain exact failing mission chunk sequences and combat seeds.
 Diagnose geometry, graph planning, and movement execution separately. Do not
 teleport actors, skip chunks, widen tolerances to hide failures, or increase
 character/enemy capabilities merely to make reused terrain pass.

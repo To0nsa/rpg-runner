@@ -103,24 +103,58 @@ backend membership; prices and purchases remain server-owned. See
 saved-loadout compatibility policy. Adding an item within an existing category
 does not require a handwritten backend catalogue entry.
 
-`TownStorePage` accepts an initial `TownService` from its route. Service, browsed
-character, category, unowned filter and expanded entry are route-local state.
-Entry defaults to the active playable character. Browsing does not submit a
-selection command. `TownOfferCard` renders names, art and authoritative Core
-descriptions; gear comparisons use the browsed character's selected saved build.
-Ranged sources show candidate and equipped source details. Willow details select
-Supplies by character identity.
+`TownStorePage` receives a fixed `TownService` from its route, with no in-page
+service switch or introduction. Browsed character, category and selected item are
+route-local state. Entry defaults to the active unlocked
+character. Both services reuse `AppSegmentedControl` with the shared typography
+and gold-edged treatment. Individual segments use `AppState.isCharacterUnlocked`;
+Willow's disabled segment shows a lock and the existing Campaign unlock tooltip.
+The Campaign chapter reward remains the availability authority. Optional
+`TownEquipmentArgs` carry the builder's character, category and build context for
+the category icons without submitting a selection command. Invalid or locked
+build indices fall back to the character's saved selection. Changing the browsed
+character clears that build override. A locked entry character or live availability
+revocation falls back to Éloïse. The change handler and purchase entry point also
+check availability, including retained callbacks. These are client presentation
+guards; backend purchase policy and the ownership wire contract are unchanged.
 
-Owned entries remain inspectable and have no purchase action. Shared accessories
-are labelled explicitly. Controls wrap for narrow/large-text layouts and the list
-builds entries lazily. Every new message belongs to the app English/French ARBs.
+`TownStoreWorkspace` presents both services through category icons, selected
+details and a lazy, scrollable item grid. GEAR, Equipment and Training share
+`ItemPickerTile`; names and art still come from `game_presentation`. Training
+category icons follow the browsed character's saved abilities. Its All categories
+entry remains route-local; learned techniques are always included. One centered
+price-bearing Buy/Learn action purchases the selected offer. Equipment always
+filters out owned entries, with no ownership toggle or retained purchased
+selection. Ownership refresh removes a bought item
+and selects the first remaining offer; an empty category clears details and Buy.
+Training shows Core-backed ability details as soon as an entry is selected.
+
+`TownOfferDetails` uses the existing Core-backed gear stat presenter for the
+selected item's own bonuses and effects. Equipment never builds comparisons,
+stat deltas or duplicate equipped-source details. Long effects flow at full
+width, and enlarged text stacks numeric stat labels/values. Willow details select
+Supplies by character identity. Training still uses the saved loadout as tooltip
+context for its techniques.
+
+Training's owned entries remain inspectable, with a semantic Learned check on
+the tile and a Learned status replacing the purchase action. Ownership refresh
+retains a purchased technique for inspection.
+Equipment hides owned entries, including shared accessories for either character.
+Accessory details omit the redundant shared-use/purchase sentence. Landscape
+details and catalogue scroll independently; the purchase action stays outside the
+details scroller. Narrow/large-text layouts
+stack into one document with a wrapping category rail. Item names retain tooltips
+and accessible labels; checks expose owned/equipped state independently of color.
+Every new message belongs to the app English/French ARBs.
 Town building labels and their dot markers open the same route; Back returns to
-the map. The legacy `/meta/town/store` route opens Equipment.
+the map. Entry from GEAR instead returns to the builder. The legacy
+`/meta/town/store` route opens Equipment.
 
 Displayed gold may include journaled rewards, but spending remains confirmed-only.
 The existing dismissible reward-verification dialog blocks premature purchase;
 confirmation never automatically resubmits it. A purchase in flight disables
-purchase and character/service switching. Errors leave browsing available.
+purchase, character and category/item switching. The command
+pins its recipient before awaiting the ownership API. Errors leave browsing available.
 
 ## Verification
 

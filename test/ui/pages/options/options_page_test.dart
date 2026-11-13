@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rpg_runner/ui/app/app_services.dart';
+import 'package:rpg_runner/ui/components/app_segmented_control.dart';
 import 'package:rpg_runner/ui/controls/movement_control_mode.dart';
 import 'package:rpg_runner/ui/pages/options/options_page.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
@@ -81,11 +82,11 @@ void main() {
           expect(await store.loadMovementMode(), mode);
           expect(
             tester
-                .widget<SegmentedButton<MovementControlMode>>(
-                  find.byType(SegmentedButton<MovementControlMode>),
+                .widget<AppSegmentedControl<MovementControlMode>>(
+                  find.byType(AppSegmentedControl<MovementControlMode>),
                 )
                 .selected,
-            {mode},
+            mode,
           );
           expect(tester.takeException(), isNull);
         }

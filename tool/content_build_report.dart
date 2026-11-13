@@ -44,6 +44,7 @@ final class ContentBuildSnapshot {
     'assets/authoring/items': '.json',
     'assets/images/level/atlases': '.png',
     'assets/images/parallax': '.png',
+    'assets/images/maps': '',
     'assets/images/entities/traps': '.png',
     'assets/images/entities/npc': '.png',
     'tool': '.dart',

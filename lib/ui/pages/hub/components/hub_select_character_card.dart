@@ -7,10 +7,10 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 
 import 'hub_select_card_body.dart';
+import 'hub_card_action.dart';
 import 'hub_select_card_frame.dart';
 import '../../../components/player_idle_preview.dart';
 import '../../../theme/ui_hub_theme.dart';
-import '../../../theme/ui_tokens.dart';
 
 /// Hub card showing the currently selected character and build name.
 class HubSelectCharacterCard extends StatelessWidget {
@@ -32,14 +32,21 @@ class HubSelectCharacterCard extends StatelessWidget {
 
     return HubSelectCardFrame(
       onTap: onChange,
-      background: const ColoredBox(color: UiBrandPalette.cardBackground),
+      footer: HubCardAction(
+        label: context.l10n.hubChangeBuild,
+        variant: HubCardActionVariant.change,
+        onPressed: onChange,
+      ),
+      background: ColoredBox(color: hub.surface),
       child: HubSelectCardBody(
-        label: context.l10n.uiCharacterSelection,
+        label: context.l10n.uiCharacter,
         title: characterDisplayName(def.id, strings: context.gameL10n),
         subtitle: buildName,
-        trailing: PlayerIdlePreview(
-          characterId: characterId,
-          size: hub.characterPreviewSize,
+        characterPreview: ExcludeSemantics(
+          child: PlayerIdlePreview(
+            characterId: characterId,
+            size: hub.characterPreviewSize,
+          ),
         ),
       ),
     );

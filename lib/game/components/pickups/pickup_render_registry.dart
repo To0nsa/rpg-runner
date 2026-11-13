@@ -6,6 +6,7 @@ import 'package:flame/components.dart';
 
 import 'package:runner_core/contracts/render_anim_set_definition.dart';
 import 'package:runner_core/pickups/pickup_render_catalog.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 
@@ -77,9 +78,12 @@ class PickupRenderEntry {
 
 /// Render registry for pickups (PickupVariant -> render wiring).
 class PickupRenderRegistry {
+  /// Uses the run character's pickup art unless an explicit catalog is supplied.
   PickupRenderRegistry({
-    PickupRenderCatalog catalog = const PickupRenderCatalog(),
-  }) : _catalog = catalog;
+    PlayerCharacterId playerCharacter = PlayerCharacterId.eloise,
+    PickupRenderCatalog? catalog,
+  }) : _catalog =
+           catalog ?? PickupRenderCatalog(playerCharacter: playerCharacter);
 
   final PickupRenderCatalog _catalog;
 

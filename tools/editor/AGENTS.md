@@ -139,11 +139,13 @@ paths.
 
 ## Consistent UX, Modularization, Reuse, And Redundancy Bar
 
-Treat editor changes as maintainability work, not just feature delivery.
+Keep editor changes maintainable.
 
 - the editor is one product: keep equivalent layouts, selection behavior,
   toolbars, dialogs, validation feedback, scene controls, and visual treatment
   consistent across authoring routes
+- multilingual forms use tabs and retain drafts; reveal invalid tabs. Keep shared
+  fields outside. Reuse Campaign's `CampaignLocalizedTextFields`.
 - reuse-first: before adding new helpers/widgets/state flows, search existing
   code (`rg`) for equivalent behavior and extend the established pattern when
   possible
@@ -348,7 +350,7 @@ When editor contracts or workflows change:
   output replacement.
 - Campaign uses this same Save/Build/captured-Play lifecycle. Its schema-1 catalog
   owns routes and mission markers; chunk geometry remains in Chunk Creator.
-  Keep occurrence IDs stable and reject deleting/rekeying/moving referenced
+  Keep mission chunk IDs stable; reject deleting/rekeying/moving referenced
   chunks until mission references are rebound. Runner/Campaign mode copies keep
   layout, scenery and water while omitting enemy markers, rescue encounters,
   boss arenas and traps. Ordinary Duplicate retains all content. Never silently

@@ -60,6 +60,13 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
   - aim+commit abilities commit on release
   - cancel rules must remain consistent
 
+Shared menu selectors use an inset charcoal rail with separated, rounded choices.
+The selected choice has a slate fill, light text and a fine worn-gold border;
+inactive choices use quieter text. Inter labels use restrained tracking. Compact
+and regular choices have minimum touch heights of 44 and 48 logical pixels,
+respectively. Long labels wrap within the available width. Keyboard focus and
+selection are announced independently, and unavailable choices remain disabled.
+
 ### 2.4 Display Orientation (Hard Constraint)
 
 - The entire app runs in **landscape (horizontal)** orientation.
@@ -82,9 +89,11 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 
 ### Campaign
 
-The hub keeps Runner Level Selection, Character Selection and Campaign in one
-fitted row. Runner and Campaign each have a Play button directly below their
-card, matching its width. Runner Play uses the selected runner setup. Campaign
+The hub keeps Runner, Character and Campaign in one fitted row. Runner and
+Campaign each integrate a full-width Play footer into the same rounded frame as
+their artwork. Tapping the upper section opens selection; tapping the footer
+launches gameplay. The Character card has a quieter Change build footer.
+Runner Play uses the selected runner setup. Campaign
 Play starts the last available, unlocked mission in authored chapter/mission
 order, including a replay when that mission is already complete. Draft missions
 are skipped; the button is disabled when no playable mission is unlocked.
@@ -166,7 +175,9 @@ online run modes are unavailable. See [technical contract](../tdd/developer_prac
   - Icons: `Profile`, `Leaderboards`, `Options`, `Town` → open those screens
   - `Town` → Théodonis city map → `Town Store` or `Library`
 - From Character Selection:
-  - Unlocked build button → Setup Character Loadout for that character and build
+  - Character art/name or Select → selects its remembered build in place
+  - Unlocked build row → selects that character and build in place
+  - Separate Edit action → opens that saved build without activating it
   - `Back` → Play Hub
 - From Setup Character Loadout:
   - `Try on Dummy` → Loadout Lab
@@ -215,28 +226,42 @@ Start fast. Show current setup summaries without clutter.
 
 ### Layout
 
-- **Primary actions:** Play below Runner Level Selection and Campaign, each
-  matching its card's width; the Character Selection column has no Play button.
+- **Primary actions:** Play Runner and Play Campaign form flush card footers,
+  with one shared outer frame and a subtle divider. Each footer has a separate
+  tap/focus target from its selection section. Character has Change build.
+- **Presentation:** thin gold card outlines and the existing steel-blue beveled
+  game buttons form the footers, with square top corners and no footer icons.
+  Character previews are enlarged and anchored at the lower right of the
+  artwork, independently of the text. Consistent dark artwork scrims and
+  Crimson Text for names, headings and supporting labels retain the reading
+  hierarchy. The landscape content group is capped at 1100 logical pixels and fits 568 × 320
+  at the default text scale. Enlarged text on compact screens stacks the cards
+  at full width and allows scrolling without shrinking controls.
 
 - **Compact summary card: Selected Level**
   - name + small thumbnail
   - **Run Type badge**: `Practice (Random)` or `Competitive (Season)`
-  - `Edit` button
+  - tap the artwork/summary to choose a level
   - **Weekly badge (en-avant)**
-    - shared row above the selection cards, with its own Play and Leaderboard actions
+    - compact framed panel above the selection cards, with label-sized Play and
+      Leaderboard controls reusing the Bestiary's filled Open treatment and
+      retaining 48-pixel minimum touch targets; local Developer Practice shows only
+      Local practice instead of disabled online actions
     - shows: `WEEKLY RUNNER - WXX`, using the week suffix from the existing
-      weekly progress window without its year or the featured level name; before
+      weekly progress window without its year; before
       a window is available, shows `WEEKLY RUNNER`
+    - shows the localized featured level name beneath the week heading, using
+      the weekly run's level independently of the normal Runner selection
     - **`Weekly` quick button**:
       - starts the weekly run immediately (no extra navigation)
       - optional secondary action: `Weekly LB` (opens Leaderboards pre-filtered to Weekly)
 
 - **Compact summary card: Selected Loadout**
   - character portrait/icon
-  - shows 5 equipped ability icons
-  - `Edit` button
+  - character name and selected build name
+  - `Change build` footer opens character/build selection
 
-- **Small icons (top/right)**
+- **Small icons in the left navigation rail**
   - `Profile`
   - `Leaderboards`
   - `Options`
@@ -339,7 +364,8 @@ Choose level cleanly, while surfacing the **Weekly Challenge** as the competitiv
 ### Purpose
 
 Choose Éloïse or [Willow](combat/abilities/willow.md) on the preceding character
-selection screen, then edit that character's remembered loadout. The equipped
+selection screen, then edit any unlocked saved build independently of the
+next-run selection. The equipped
 section visually mirrors the in-game HUD cluster **on this page only**.
 These are the complete roster; the former development duplicate is retired.
 Old selections return to Éloïse, with earned duplicate-character skills and
@@ -347,9 +373,10 @@ previously issued gifts credited to her without replacing current builds.
 
 ### Layout
 
-- Header: “Character & Loadout”
+- Header: centered Gear, Skills and Training Field tabs with the original
+  default-name pencil/custom-name rename control.
 - Back returns to character selection. Gear, Skills and Training Field
-  use the chosen character; Start and Restart use the remembered build directly.
+  use the edited character/build; Start and Restart use the remembered build directly.
 - The Skills sidebar opens at the bottom of each ability category. Manual
   scrolling is retained while inspecting skills and switching builder tabs.
 
@@ -548,7 +575,7 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 ### Layout / Navigation
 
 - `Town` on the Play Hub opens the city map.
-- `Equipment`, `Training Hall` and `Library` markers around Théodonis open their respective
+- `Equipment store`, `Training Hall` and `Library` markers around Théodonis open their respective
   screens. They indicate services in the city, not precise street addresses.
 - The map fills the screen behind the transparent AppBar. Drag and pinch
   gestures allow inspection; only a reset control is shown. Compact service
@@ -569,6 +596,8 @@ around Théodonis on the city map supplied as `assets/Théodonis.jpg`.
 
 Gold displays include journaled run rewards immediately, without a pending badge
 or separate balance. Purchases still require confirmed funds.
+Balances, prices, claim actions and pending-reward dialogs use the gameplay coin
+artwork at their existing icon sizes.
 If the displayed balance can afford an action but its confirmed balance cannot,
 show a dismissible "Your rewards are on their way" modal. Players can continue
 playing. If confirmation arrives while the modal is open, it changes to "Your
@@ -603,8 +632,9 @@ Already confirmed funds remain usable while another run is being verified.
   compact portrait/name cards with progress
   counts inside a trailing bar.
 - Locations: 10,000 points in one Competitive run, separately for Val Outpost and Léonards’ farm.
-- Journal: an introduction to Théodonis, La Main and Neyla's traveling company
-  in the era of Les Soleils d’or.
+- Journal: the post–Le feu de joie opening, available chapter introductions and
+  accumulated confirmed Campaign outcomes. Entries are authored in Campaign;
+  draft outcomes stay hidden and replays do not duplicate them.
 - Account-wide confirmed progress, locked-entry requirements and readable
   discovered entries. See [Codex rules](codex.md) and
   [persistence contract](../tdd/codex.md).

@@ -21,13 +21,17 @@ final class RunnerDesktopInputController {
     required RunnerSemanticActionDispatcher dispatcher,
     required RunnerDesktopAimGeometryResolver resolveAimGeometry,
     VoidCallback? onFocusLost,
+    bool Function(RunnerGameplayAction action)? onActionStart,
     VoidCallback? onCancelPresentation,
+    VoidCallback? onCancelAllPresentation,
     void Function(double x, double y)? onAimChanged,
     VoidCallback? onAimCleared,
   }) : _dispatcher = dispatcher,
        _resolveAimGeometry = resolveAimGeometry,
        _onFocusLost = onFocusLost,
+       _onActionStart = onActionStart,
        _onCancelPresentation = onCancelPresentation,
+       _onCancelAllPresentation = onCancelAllPresentation,
        _onAimChanged = onAimChanged,
        _onAimCleared = onAimCleared,
        focusNode = FocusNode(debugLabel: 'runner-desktop-gameplay') {
@@ -39,7 +43,11 @@ final class RunnerDesktopInputController {
   final RunnerSemanticActionDispatcher _dispatcher;
   final RunnerDesktopAimGeometryResolver _resolveAimGeometry;
   final VoidCallback? _onFocusLost;
+  final bool Function(RunnerGameplayAction action)? _onActionStart;
   final VoidCallback? _onCancelPresentation;
+  // Charge interruption retains movement; only full cancellation invalidates
+  // the touch movement epoch when desktop and touch controls share a host.
+  final VoidCallback? _onCancelAllPresentation;
   final void Function(double x, double y)? _onAimChanged;
   final VoidCallback? _onAimCleared;
   final Map<PhysicalKeyboardKey, RunnerGameplayAction> _keyActions =
@@ -68,12 +76,14 @@ final class RunnerDesktopInputController {
     if (!enabled) cancelAll();
   }
 
-  /// Requests gameplay focus after first clearing stale device state.
-  void requestFocus() {
+  /// Requests gameplay focus, normally clearing stale device state first.
+  /// Only an accepted fresh tutorial action may preserve its new input;
+  /// ready/disabled input has already been neutralized by the host.
+  void requestFocus({bool preserveStartInput = false}) {
     if (_disposed || focusNode.hasFocus || _hadFocus || _focusRequestPending) {
       return;
     }
-    cancelAll();
+    if (!preserveStartInput) cancelAll();
     _focusRequestPending = true;
     focusNode.requestFocus();
   }
@@ -101,13 +111,21 @@ final class RunnerDesktopInputController {
     _pointerPosition = null;
     _dispatcher.cancelAll();
     _onCancelPresentation?.call();
+    _onCancelAllPresentation?.call();
   }
 
   /// Translates a focused physical key event into source-state transitions.
   KeyEventResult handleKeyEvent(KeyEvent event) {
-    if (_disposed || !_enabled) return KeyEventResult.ignored;
+    if (_disposed) return KeyEventResult.ignored;
     final action = _keyActions[event.physicalKey];
+    if (!_enabled && event is KeyDownEvent && action != null) {
+      _onActionStart?.call(action);
+    }
+    if (!_enabled) return KeyEventResult.ignored;
     if (action == null) return KeyEventResult.ignored;
+    if (event is KeyDownEvent && !_dispatcher.isAllowed(action)) {
+      return KeyEventResult.handled;
+    }
 
     if (event is KeyRepeatEvent) {
       return KeyEventResult.handled;

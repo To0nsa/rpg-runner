@@ -8,6 +8,7 @@ import '../../game/game_controller.dart';
 import '../../game/input/aim_preview.dart';
 import '../../game/input/runner_input_router.dart';
 import '../../game/runner_flame_game.dart';
+import '../../game/runner_gameplay_runtime.dart';
 import '../../game/terrain/prepared_terrain_assets.dart';
 
 /// A local, disposable build test. No tickets, recorder, rewards or AppState.
@@ -16,46 +17,45 @@ final class TrainingFieldSession extends ChangeNotifier {
     required PlayerCharacterDefinition character,
     required EquippedLoadoutDef loadout,
   }) {
-    controller = GameController(
+    runtime = RunnerGameplayRuntime(
       core: GameCore.trainingField(
         definition: trainingFieldDefinition,
         playerCharacter: character,
         equippedLoadout: loadout,
         terrainPreparation: PreparedTerrainAssets().prepare,
       ),
-    )..setPaused(true);
-    input = RunnerInputRouter(controller: controller);
-    game = RunnerFlameGame(
-      controller: controller,
-      input: input,
-      playerCharacter: character,
-      projectileAimPreview: projectilePreview,
-      meleeAimPreview: meleePreview,
     );
     game.loadState.addListener(_changed);
   }
-  late final GameController controller;
-  late final RunnerInputRouter input;
-  late final RunnerFlameGame game;
-  final projectilePreview = AimPreviewModel();
-  final meleePreview = AimPreviewModel();
+  late final RunnerGameplayRuntime runtime;
+  GameController get controller => runtime.controller;
+  RunnerInputRouter get input => runtime.input;
+  RunnerFlameGame get game => runtime.game;
+  AimPreviewModel get projectilePreview => runtime.projectilePreview;
+  AimPreviewModel get meleePreview => runtime.meleePreview;
+  bool _stopped = false;
   bool _disposed = false;
   bool get ready => game.loadState.value.phase == RunLoadPhase.worldReady;
   bool get failed => game.loadState.value.phase == RunLoadPhase.failed;
 
   void _changed() {
-    if (!_disposed) notifyListeners();
+    if (!_stopped) notifyListeners();
+  }
+
+  /// Cancels work while retaining notifiers until the previous view unmounts.
+  void stop() {
+    if (_stopped) return;
+    _stopped = true;
+    game.loadState.removeListener(_changed);
+    runtime.stop();
   }
 
   @override
   void dispose() {
+    if (_disposed) return;
     _disposed = true;
-    game.loadState.removeListener(_changed);
-    game.cancelPreparation();
-    controller.shutdown();
-    controller.dispose();
-    projectilePreview.dispose();
-    meleePreview.dispose();
+    stop();
+    runtime.dispose();
     super.dispose();
   }
 }

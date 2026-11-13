@@ -350,7 +350,7 @@ void main() {
 
     await tester.tap(find.byType(DropdownButton<String>).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('LEVEL CREATOR').last);
+    await tester.tap(find.text('RUNNER LEVEL').last);
     // This route restores local view preferences and projects repository
     // dependencies; allow real file events to complete outside fake frame time.
     for (var attempt = 0; attempt < 100; attempt++) {

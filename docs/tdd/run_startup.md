@@ -27,10 +27,13 @@ and submission, and requires only world readiness. Restarts remain local.
   A still-valid cached ticket suppresses redundant warmup requests.
   Cancelling a UI request prevents navigation and subsequent preparation steps;
   it does not revoke backend calls that have already been issued.
-- RunnerRunSession owns the local GameController, input router, aim models,
-  RunnerFlameGame, ghost playback/feed, and replay recorder for one descriptor.
-  RunnerGameWidget owns presentation, lifecycle/input policy, restart navigation,
-  haptics, and completed-run submission UI.
+- RunnerRunSession owns one shared RunnerGameplayRuntime plus ghost playback/feed,
+  replay recorder and immutable RunReplayFinalization. RunnerGameWidget owns
+  presentation, lifecycle policy, restart navigation and completed-run UI.
+  RunnerGameplayBindings owns input/feedback subscriptions, and
+  RunnerGameplaySurface owns viewport composition. See
+  [shared runtime](shared_gameplay_runtime.md) for stop/unmount/dispose ordering
+  and finalization that can outlive the view without borrowing a new run ID.
 - RunnerFlameGame owns render readiness. Its registries own asset requirements;
   Core owns terrain selection and the existing bounded preparation cache.
 

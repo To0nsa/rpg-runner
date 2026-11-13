@@ -23,6 +23,10 @@ store owners.
   selected-state, leading/preview, details, and trailing-action structure.
 - `ToolWorkspaceCard` owns the outer outlined route surface and workspace
   padding without taking over route sizing or scroll state.
+- `ToolLanguageTabs` shares English/Français authoring tabs with Admin. It retains
+  hidden field state while excluding hidden fields from focus and animation;
+  Campaign keeps form validation, saved values and revealing the first language
+  with an error through its own tab controller.
 - `EditorOwnerDraftState<T>` is the neutral create/edit/rename draft-state
   contract shared by Prefab and Chunk. It owns no widgets, domain commands, or
   persistence; each route decides when to resolve a draft and how Save is

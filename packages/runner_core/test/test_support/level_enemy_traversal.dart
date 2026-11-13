@@ -447,41 +447,7 @@ class EnemyTraversalHarness {
         targetChunk++;
         _placeCurrentTarget();
       }
-      water.step(world, authority.waterRegions);
-      if (enemyId == EnemyId.unocoDemon) {
-        flyingLocomotion.step(
-          world,
-          player: player,
-          groundTopY: level.groundTopY,
-          dtSeconds: movement.dtSeconds,
-          currentTick: tick,
-        );
-      } else {
-        navigation.step(
-          world,
-          player: player,
-          currentTick: tick,
-          waterRegions: authority.waterRegions,
-        );
-        engagement.step(world, player: player, currentTick: tick);
-        groundLocomotion.step(
-          world,
-          player: player,
-          dtSeconds: movement.dtSeconds,
-          currentTick: tick,
-        );
-      }
-      gravity.step(world, movement, physics: level.tuning.physics);
-      authority.step(
-        world,
-        player: player,
-        movement: movement,
-        fixedPointPilotEnabled: level.tuning.physics.fixedPointPilot.enabled,
-        fixedPointSubpixelScale:
-            level.tuning.physics.fixedPointPilot.subpixelScale,
-        currentTick: tick,
-      );
-      water.step(world, authority.waterRegions);
+      stepMovement();
       _recordTrace();
       if (enemyY >
           level.resolveKillPlaneY(
@@ -645,6 +611,46 @@ class EnemyTraversalHarness {
       geometryVersion: bundle.version,
       currentTick: tick,
     );
+  }
+
+  /// Advances existing actors through the same AI/physics phases as pursuit.
+  /// Call after world preparation; focused return checks retain continuous state.
+  void stepMovement() {
+    water.step(world, authority.waterRegions);
+    if (enemyId == EnemyId.unocoDemon) {
+      flyingLocomotion.step(
+        world,
+        player: player,
+        groundTopY: level.groundTopY,
+        dtSeconds: movement.dtSeconds,
+        currentTick: tick,
+      );
+    } else {
+      navigation.step(
+        world,
+        player: player,
+        currentTick: tick,
+        waterRegions: authority.waterRegions,
+      );
+      engagement.step(world, player: player, currentTick: tick);
+      groundLocomotion.step(
+        world,
+        player: player,
+        dtSeconds: movement.dtSeconds,
+        currentTick: tick,
+      );
+    }
+    gravity.step(world, movement, physics: level.tuning.physics);
+    authority.step(
+      world,
+      player: player,
+      movement: movement,
+      fixedPointPilotEnabled: level.tuning.physics.fixedPointPilot.enabled,
+      fixedPointSubpixelScale:
+          level.tuning.physics.fixedPointPilot.subpixelScale,
+      currentTick: tick,
+    );
+    water.step(world, authority.waterRegions);
   }
 
   String _diagnostic(String reason) {

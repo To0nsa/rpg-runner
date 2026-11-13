@@ -1,7 +1,8 @@
 # Training Field
 
 Training Field is the third tab in character setup, beside Gear and Skills. All
-three tabs remain visible while testing the selected character and equipped build.
+three tabs remain visible while testing the character and saved build opened in
+the editor. Testing an inactive build leaves the next-run selection unchanged.
 The transparent app bar overlays the game in this tab. Only the resource bars
 and their opponent button use safe-area padding below the tabs. Controls and screen
 feedback use the full page area.
@@ -28,6 +29,7 @@ the build's initial resources and cooldowns, returns to the player start, and
 clears the enemy selection. Leaving the tab
 discards everything; returning creates a fresh field with the current build.
 Training grants no currency, experience, scores, Library discoveries, or rewards.
+Combat and ability haptic feedback matches normal runs.
 
 Gear and Skills retain their selected slot, inspected item or skill, and scroll
 position when switching tabs, including visits to Training Field. This browsing

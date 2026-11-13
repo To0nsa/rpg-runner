@@ -86,6 +86,10 @@ void main() {
         find.byKey(const Key('message-body')),
         'New equipment and a skill are waiting in your inbox.',
       );
+      expect(find.byKey(const Key('message-title-fr')), findsNothing);
+      await tester.tap(find.widgetWithText(Tab, 'Français'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('message-title')), findsNothing);
       await tester.enterText(
         find.byKey(const Key('message-title-fr')),
         'Un cadeau pour ta prochaine course',
@@ -94,6 +98,29 @@ void main() {
         find.byKey(const Key('message-body-fr')),
         'Ton équipement et ta capacité t’attendent dans tes messages.',
       );
+      tester.view.physicalSize = const Size(600, 900);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('message-title-fr')), findsOneWidget);
+      await tester.tap(find.widgetWithText(Tab, 'English'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('message-title')))
+            .controller!
+            .text,
+        'A gift for your next run',
+      );
+      await tester.tap(find.widgetWithText(Tab, 'Français'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('message-title-fr')))
+            .controller!
+            .text,
+        'Un cadeau pour ta prochaine course',
+      );
+      tester.view.physicalSize = const Size(1440, 1000);
+      await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key('gold')), '1000');
       final item = c.catalog.firstWhere((e) => e.itemId == 'waspfang');
       await tester.enterText(
@@ -121,6 +148,12 @@ void main() {
         c.preview!['localization']['translations']['fr']['title'],
         'Un cadeau pour ta prochaine course',
       );
+      final preview = c.preview;
+      await tester.tap(find.widgetWithText(Tab, 'English'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(Tab, 'Français'));
+      await tester.pumpAndSettle();
+      expect(c.preview, same(preview));
       expect(find.byKey(const Key('send')), findsOneWidget);
       await tester.enterText(find.byKey(const Key('catalog-search')), '');
       await tester.pump();
@@ -165,6 +198,20 @@ void main() {
       await tester.tap(find.widgetWithText(Tab, 'Compose'));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('player-uid')), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('message-title-fr')))
+            .enabled,
+        isFalse,
+      );
+      await tester.tap(find.widgetWithText(Tab, 'English'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('message-title')))
+            .enabled,
+        isFalse,
+      );
     },
   );
   testWidgets(

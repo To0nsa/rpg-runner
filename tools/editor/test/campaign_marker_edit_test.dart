@@ -17,8 +17,8 @@ void main() {
     'visualThemeId': 'forest',
     'levelId': 'forest',
     'firstClearXp': 0,
-    'rewardAbilityId': null,
-    'combatAllowed': true,
+    'firstClearGold': 0,
+    'firstClearItems': [],
     'route': [
       for (final id in ['first', 'second'])
         {'id': id, 'levelId': 'forest', 'chunkKey': 'shared'},
@@ -28,15 +28,15 @@ void main() {
     'collectibles': [],
     'requiredRegions': [],
     'requiredEnemies': [
-      {'occurrenceId': 'first', 'markerSalt': 5},
+      {'missionChunkId': 'first', 'markerSalt': 5},
     ],
     'requiredRescues': [
-      {'occurrenceId': 'first', 'encounterId': 'rescue'},
+      {'missionChunkId': 'first', 'encounterId': 'rescue'},
     ],
     'placements': [
       CampaignEnemySource(
         'guard',
-        CampaignPoint(occurrenceId: 'first', x: 150, y: 224),
+        CampaignPoint(missionChunkId: 'first', x: 150, y: 224),
         marker: const SpawnMarker(
           enemyId: EnemyId.grojib,
           x: 150,
@@ -68,13 +68,43 @@ void main() {
     ],
   });
 
+  test('moving and copying a following enemy preserves its return switch', () {
+    final original = fixture();
+    final json = original.toJson();
+    ((json['placements'] as List).first
+            as Map<String, Object?>)['returnWhenPlayerRetreats'] =
+        false;
+    final source = CampaignMissionSource.decode(json);
+    final enemy = source.placements.first as CampaignEnemySource;
+    final moved = moveCampaignPlacement(
+      enemy,
+      CampaignPoint(missionChunkId: 'second', x: 200, y: 224),
+    ) as CampaignEnemySource;
+    expect(moved.returnWhenPlayerRetreats, isFalse);
+    expect(moved.marker.salt, enemy.marker.salt);
+    final copy = CampaignMissionSource.decode(
+      duplicateCampaignMissionChunk(source, 0),
+    );
+    expect(
+      copy.placements.whereType<CampaignEnemySource>().every(
+        (p) => !p.returnWhenPlayerRetreats,
+      ),
+      isTrue,
+    );
+    expect(
+      (original.placements.first as CampaignEnemySource)
+          .returnWhenPlayerRetreats,
+      isTrue,
+    );
+  });
+
   test(
     'moving a local enemy rebinds explicit objectives including edited salt',
     () {
       final source = fixture(), before = campaignMarkerEntries(fixture()).first;
       final value = CampaignEnemySource(
         'guard',
-        CampaignPoint(occurrenceId: 'second', x: 200, y: 224),
+        CampaignPoint(missionChunkId: 'second', x: 200, y: 224),
         marker: const SpawnMarker(
           enemyId: EnemyId.grojib,
           x: 200,
@@ -91,7 +121,7 @@ void main() {
         ),
       );
       expect(moved.requiredEnemies.single, (
-        occurrenceId: 'second',
+        missionChunkId: 'second',
         markerSalt: 9,
       ));
       expect(moved.placements.first.id, 'guard');
@@ -101,7 +131,7 @@ void main() {
       expect(removed.requiredEnemies, isEmpty);
       expect(removed.requiredRescues, source.requiredRescues);
       expect(source.requiredEnemies.single, (
-        occurrenceId: 'first',
+        missionChunkId: 'first',
         markerSalt: 5,
       ));
     },
@@ -112,7 +142,7 @@ void main() {
     final before = campaignMarkerEntries(source).last;
     final moved = moveCampaignPlacement(
       before.placement!,
-      CampaignPoint(occurrenceId: 'second', x: 140, y: 120),
+      CampaignPoint(missionChunkId: 'second', x: 140, y: 120),
     ) as CampaignRescueSource;
     expect(moved.encounter.npcs.single.x, 165);
     expect(moved.encounter.enemies.single.x, 215);
@@ -124,30 +154,39 @@ void main() {
       ),
     );
     expect(changed.requiredRescues.single, (
-      occurrenceId: 'second',
+      missionChunkId: 'second',
       encounterId: 'rescue',
     ));
     final copy = CampaignMissionSource.decode(
-      duplicateCampaignOccurrence(source, 0),
+      duplicateCampaignMissionChunk(source, 0),
     );
-    expect(copy.route.map((o) => o.id), ['first', 'occurrence_1', 'second']);
+    expect(copy.route.map((o) => o.id), ['first', 'mission_chunk_1', 'second']);
     expect(copy.placements.map((p) => p.id).toSet(), hasLength(4));
     final copiedRescue = copy.placements.last as CampaignRescueSource;
     expect(copiedRescue.encounter.id, copiedRescue.id);
     expect(copy.requiredRescues.last, (
-      occurrenceId: 'occurrence_1',
+      missionChunkId: 'mission_chunk_1',
       encounterId: copiedRescue.id,
     ));
     expect(copy.requiredEnemies.last, (
-      occurrenceId: 'occurrence_1',
+      missionChunkId: 'mission_chunk_1',
       markerSalt: 5,
     ));
     expect(source.route, hasLength(2));
     final json = copy.toJson();
     (json['route'] as List).insert(0, (json['route'] as List).removeLast());
     expect(
-      CampaignMissionSource.decode(json).placements.last.occurrenceId,
-      'occurrence_1',
+      CampaignMissionSource.decode(json).placements.last.missionChunkId,
+      'mission_chunk_1',
     );
+    final secondCopy = CampaignMissionSource.decode(
+      duplicateCampaignMissionChunk(copy, 0),
+    );
+    expect(secondCopy.route.map((o) => o.id), [
+      'first',
+      'mission_chunk_2',
+      'mission_chunk_1',
+      'second',
+    ]);
   });
 }

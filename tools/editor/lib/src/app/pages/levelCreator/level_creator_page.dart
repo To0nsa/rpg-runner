@@ -412,7 +412,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     return true;
   }
 
-  Future<void> _requestPlaytest() async {
+  Future<void> _requestPlaytest({bool configure = true}) async {
     if (locksEditorShell) return;
     final reason = _playtestUnavailableReason;
     if (reason != null) {
@@ -433,19 +433,39 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       _showDiagnostics();
       return;
     }
+    final controller = widget.controller;
+    final workspace = controller.workspacePath;
+    final seed = _previewSeed;
+    final content = _content?.document;
+    bool current() =>
+        mounted &&
+        identical(controller, widget.controller) &&
+        workspace == widget.controller.workspacePath &&
+        !controller.isLoading &&
+        identical(controller.document, document) &&
+        _selectedLevelId == levelId &&
+        _previewSeed == seed &&
+        identical(_content?.document, content);
+    if (configure &&
+        !await _playtest.configure(
+          context: context,
+          title: 'Play level',
+          source: document,
+          isSourceCurrent: current,
+        )) {
+      return;
+    }
+    if (!current()) return;
     FocusManager.instance.primaryFocus?.unfocus();
     await _playtest.prepare(
       source: document,
-      isSourceCurrent: () =>
-          mounted &&
-          !widget.controller.isLoading &&
-          identical(widget.controller.document, document),
+      isSourceCurrent: current,
       capture: () => captureLevelPlaytestPreparationInput(
         document: document,
         levelId: levelId,
         workspaceRoot: widget.controller.workspacePath,
-        contentDocument: _content?.document,
-        seed: _previewSeed,
+        contentDocument: content,
+        seed: seed,
       ),
       runner: widget.preparationRunner,
     );
@@ -454,7 +474,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   void _retryPlaytest() {
     _playtest.stop();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(_requestPlaytest());
+      if (mounted) unawaited(_requestPlaytest(configure: false));
     });
   }
 

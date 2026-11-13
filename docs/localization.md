@@ -9,11 +9,12 @@ loading, failure and empty states, not only visible menu labels.
 
 | Content | Authoritative source |
 | --- | --- |
-| App, HUD, controls, Codex prose, achievements, recovery | `lib/ui/l10n/app_en.arb` and sibling translations |
+| App, HUD, controls, Bestiary/location prose, achievements, recovery | `lib/ui/l10n/app_en.arb` and sibling translations |
 | Reusable character/enemy/item/ability names and descriptions | `packages/game_presentation/lib/l10n/game_en.arb` and siblings |
 | Automatic delivered inbox prose | `functions/src/inbox/message_text.ts` |
 | Operator-authored inbox prose | Admin English/French composer or versioned CLI JSON |
 | Player names and custom build names | Player data; never translate |
+| Campaign titles, assignments, Journal entries and tutorial sequences | `assets/authoring/campaign/chapter_defs.json`, edited in Campaign |
 
 From the repository root, with the supported Flutter SDK on PATH:
 

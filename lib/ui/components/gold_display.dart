@@ -2,6 +2,7 @@ import '../l10n/app_localization.dart';
 import '../text/number_format.dart';
 
 import 'package:flutter/material.dart';
+import 'package:game_presentation/gold_coin.dart';
 
 import 'reward_value_paint.dart';
 import '../theme/ui_tokens.dart';
@@ -61,11 +62,7 @@ class GoldDisplay extends StatelessWidget {
           ],
           Text(formatCount(gold, l10n: context.l10n), style: valueStyle),
           SizedBox(width: ui.space.xs),
-          Icon(
-            Icons.monetization_on,
-            color: ui.colors.accentStrong,
-            size: iconSize,
-          ),
+          GoldCoin(size: iconSize),
         ],
       ),
     );

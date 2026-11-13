@@ -1,4 +1,5 @@
 #include "flutter_window.h"
+#include "display_environment.h"
 
 #include <optional>
 
@@ -25,6 +26,8 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  RegisterDisplayEnvironment(flutter_controller_->engine()->messenger(),
+                             flutter_controller_->view()->GetNativeWindow());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {

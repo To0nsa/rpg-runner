@@ -1,3 +1,4 @@
+import 'package:runner_content_pipeline/campaign_tutorial.dart';
 import 'package:runner_core/playtest/playtest_scenario.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 
@@ -20,9 +21,13 @@ export '../game/components/pixel_parallax_backdrop.dart'
 /// Captured appearance shared by whole-Level and focused Chunk hosts.
 final class RunnerPlaytestAppearance {
   RunnerPlaytestAppearance({
+    List<CampaignTutorialSequence> tutorialSequences = const [],
+    Set<TutorialHudElement> initialTutorialHud = allTutorialHud,
     required Map<String, ParallaxTheme> parallaxThemes,
     required Map<String, TerrainMaterialSpec> terrainMaterials,
-  }) : parallaxThemes = Map<String, ParallaxTheme>.unmodifiable({
+  }) : tutorialSequences = List.unmodifiable(tutorialSequences),
+       initialTutorialHud = Set.unmodifiable(initialTutorialHud),
+       parallaxThemes = Map<String, ParallaxTheme>.unmodifiable({
          for (final entry in parallaxThemes.entries)
            entry.key: ParallaxTheme(
              backgroundLayers: List.unmodifiable(entry.value.backgroundLayers),
@@ -33,6 +38,9 @@ final class RunnerPlaytestAppearance {
          terrainMaterials,
        );
 
+  /// Captured mission presentation; restart never consults live editor state.
+  final List<CampaignTutorialSequence> tutorialSequences;
+  final Set<TutorialHudElement> initialTutorialHud;
   final Map<String, ParallaxTheme> parallaxThemes;
   final Map<String, TerrainMaterialSpec> terrainMaterials;
 

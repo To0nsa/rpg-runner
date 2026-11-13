@@ -12,6 +12,7 @@ class CampaignChapterSection extends StatefulWidget {
     required this.onSettings,
     required this.onRewards,
     required this.onAddMission,
+    this.onDeleteMission,
     required this.onSelectMission,
     required this.onReorderMission,
   });
@@ -19,6 +20,7 @@ class CampaignChapterSection extends StatefulWidget {
   final int number;
   final String selectedMissionId;
   final VoidCallback onSettings, onRewards, onAddMission;
+  final VoidCallback? onDeleteMission;
   final ValueChanged<String> onSelectMission;
   final void Function(String, int) onReorderMission;
 
@@ -69,13 +71,11 @@ class _CampaignChapterSectionState extends State<CampaignChapterSection> {
       title: Text('Chapter ${widget.number}'),
       subtitle: Text(chapter.title['en']!),
       tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+      childrenPadding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
       children: [
-        Text(chapter.description['en']!),
-        Text(
-          'Chapter rewards: ${chapter.rewardXp} XP · ${chapter.rewardGold} gold · ${chapter.rewardItems.length} items · ${chapter.rewardCharacterId == null ? 'No character' : 'Willow'}',
-        ),
         Wrap(
           spacing: 8,
+          runSpacing: 8,
           children: [
             OutlinedButton(
               onPressed: widget.onSettings,
@@ -87,6 +87,7 @@ class _CampaignChapterSectionState extends State<CampaignChapterSection> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
         for (var i = 0; i < chapter.missions.length; i++)
           ListTile(
             key: ValueKey('campaign_mission_${chapter.missions[i].id}'),
@@ -126,10 +127,33 @@ class _CampaignChapterSectionState extends State<CampaignChapterSection> {
               ],
             ),
           ),
-        OutlinedButton.icon(
-          onPressed: chapter.missions.length < 16 ? widget.onAddMission : null,
-          icon: const Icon(Icons.add),
-          label: const Text('Add mission'),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: chapter.missions.length < 16
+                  ? widget.onAddMission
+                  : null,
+              icon: const Icon(Icons.add),
+              label: const Text('Add mission'),
+            ),
+            Tooltip(
+              message: chapter.missions.length <= 1
+                  ? 'A chapter needs at least one mission.'
+                  : _containsSelection
+                  ? 'Delete the selected mission'
+                  : 'Select a mission in this chapter first',
+              child: OutlinedButton.icon(
+                onPressed: chapter.missions.length > 1 && _containsSelection
+                    ? widget.onDeleteMission
+                    : null,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Delete mission'),
+              ),
+            ),
+          ],
         ),
       ],
     );

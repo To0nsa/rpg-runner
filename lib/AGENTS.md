@@ -21,7 +21,7 @@ The package must work in two modes:
 - standalone app mode through `lib/main.dart`
 - embedded mode through `lib/runner.dart`, `RunnerGameWidget`, and `createRunnerGameRoute`
 
-Do not treat `lib/main.dart` as a disposable dev-only harness. The current app shell is real product code.
+`lib/main.dart` is a product entrypoint, not a disposable demo.
 
 ## Hard Layer Boundaries
 
@@ -78,7 +78,9 @@ The run route currently flows like this:
 
 1. `AppState` builds run args from selection/meta state.
 2. `UiRouter` creates the run route.
-3. `RunnerGameWidget` owns a `RunnerRunSession`, which constructs Core, controller, input router, Flame game, recorder, and optional ghost.
+3. `RunnerGameWidget` owns `RunnerRunSession`. All modes share
+   `RunnerGameplayRuntime`, `RunnerGameplayBindings` and `RunnerGameplaySurface`;
+   sessions retain their policies, recorder/ghost and result ownership.
    Online readiness requires world and recorder readiness; debug Developer
    Practice requires world readiness only. Pre-start retry recreates the local
    attempt after cleanup.

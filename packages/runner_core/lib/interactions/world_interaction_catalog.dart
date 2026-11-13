@@ -39,7 +39,7 @@ final class WorldInteractionBinding {
     required this.interactionId,
     required this.appearanceId,
     this.placementKey,
-    this.occurrenceId,
+    this.missionChunkId,
     this.surfaceX,
     this.activationWidth,
     this.scaleOverride,
@@ -54,8 +54,8 @@ final class WorldInteractionBinding {
   final String shapeId;
   final String? placementKey;
 
-  /// Restricts a campaign attachment to one stable route occurrence.
-  final String? occurrenceId;
+  /// Restricts a campaign attachment to one stable mission chunk.
+  final String? missionChunkId;
 
   /// Optional chunk-local effect center and contact width, in world units.
   /// Omission retains the full prefab top used by the manual runner bindings.

@@ -5,6 +5,9 @@ import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
+import 'package:runner_core/meta/gear_slot.dart';
+import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
@@ -20,6 +23,133 @@ import 'package:rpg_runner/ui/state/ownership/campaign_progress.dart';
 import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 
 void main() {
+  test(
+    'inactive build edits keep selection and equipped projection intact',
+    () async {
+      final api = _RecordingOwnershipApi()
+        ..progression = ProgressionState.initial.copyWith(
+          playerProgress: const PlayerProgress(
+            totalXp: 5000,
+            acceptedRuns: 0,
+            damageDealt100: 0,
+            damageTaken100: 0,
+          ),
+        );
+      final outbox = InMemoryOwnershipOutboxStore();
+      final state = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: api,
+        ownershipOutboxStore: outbox,
+      );
+      addTearDown(state.dispose);
+      await state.bootstrap();
+      final activeLoadout =
+          ((state.selection.toJson()['buildsByCharacter']
+                      as Map)['eloise']['builds']
+                  as List)
+              .first;
+      final equipped = state.meta
+          .equippedFor(PlayerCharacterId.eloise)
+          .toJson();
+      await state.setBuildName(
+        'Alternate',
+        characterId: PlayerCharacterId.eloise,
+        buildIndex: 1,
+      );
+      await state.setAbilitySlot(
+        characterId: PlayerCharacterId.eloise,
+        buildIndex: 1,
+        slot: AbilitySlot.spell,
+        abilityId: 'eloise.focus',
+      );
+      await state.setProjectileSpell(
+        characterId: PlayerCharacterId.eloise,
+        buildIndex: 1,
+        spellId: ProjectileId.fireBolt,
+      );
+      await state.equipGear(
+        characterId: PlayerCharacterId.eloise,
+        buildIndex: 1,
+        slot: GearSlot.mainWeapon,
+        itemId: WeaponId.cinderedge,
+      );
+      expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
+      expect(
+        state.selection.selectedBuildIndexFor(PlayerCharacterId.eloise),
+        0,
+      );
+      expect(
+        ((state.selection.toJson()['buildsByCharacter']
+                    as Map)['eloise']['builds']
+                as List)
+            .first,
+        activeLoadout,
+      );
+      expect(
+        state.meta.equippedFor(PlayerCharacterId.eloise).toJson(),
+        equipped,
+      );
+      final alternate = state.selection
+          .buildsFor(PlayerCharacterId.eloise)
+          .builds[1];
+      expect(alternate.name, 'Alternate');
+      expect(alternate.loadout.abilitySpellId, 'eloise.focus');
+      expect(alternate.loadout.mainWeaponId, WeaponId.cinderedge);
+      final pending = await outbox.loadAll(
+        ownerUserId: state.authSession.userId,
+      );
+      expect(pending, hasLength(3));
+      expect(
+        pending.map((command) => command.payloadJson['buildIndex']),
+        everyElement(1),
+      );
+    },
+  );
+
+  test('explicit edit addresses cannot bypass build locks', () async {
+    final state = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _RecordingOwnershipApi(),
+    );
+    addTearDown(state.dispose);
+    await state.bootstrap();
+    final before = state.selection.toJson();
+    await expectLater(
+      state.setBuildName(
+        'Locked',
+        characterId: PlayerCharacterId.eloise,
+        buildIndex: 1,
+      ),
+      throwsStateError,
+    );
+    await expectLater(
+      state.setAbilitySlot(
+        characterId: PlayerCharacterId.eloise,
+        buildIndex: 1,
+        slot: AbilitySlot.spell,
+        abilityId: 'eloise.focus',
+      ),
+      throwsStateError,
+    );
+    await expectLater(
+      state.setProjectileSpell(
+        characterId: PlayerCharacterId.eloise,
+        buildIndex: 1,
+        spellId: ProjectileId.fireBolt,
+      ),
+      throwsStateError,
+    );
+    await expectLater(
+      state.equipGear(
+        characterId: PlayerCharacterId.eloise,
+        buildIndex: 1,
+        slot: GearSlot.mainWeapon,
+        itemId: WeaponId.cinderedge,
+      ),
+      throwsStateError,
+    );
+    expect(state.selection.toJson(), before);
+  });
   for (final (xp, available) in [(568, 1), (569, 2), (4023, 2), (4024, 3)]) {
     test('confirmed XP $xp controls build selection', () async {
       final api = _RecordingOwnershipApi()
@@ -279,7 +409,10 @@ void main() {
 
     await appState.setCharacter(PlayerCharacterId.bountyHunter);
 
-    expect(appState.selection.selectedCharacterId, PlayerCharacterId.bountyHunter);
+    expect(
+      appState.selection.selectedCharacterId,
+      PlayerCharacterId.bountyHunter,
+    );
     expect(ownershipApi.setSelectionCalls, 0);
 
     await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);

@@ -2,7 +2,20 @@
 
 Status: Implemented shared tooling host, captured authored Level/Chunk preparation, and both Windows editor Play entry points.
 
-Last updated: September 9, 2026
+Last updated: November 12, 2026
+
+All three Windows Play entry points now use the same pre-launch HUD/control/device
+settings and calibrated physical-size frame. The native monitor adapter and
+machine-local calibration stay in the editor. See [shared runtime and calibration](shared_gameplay_runtime.md)
+for ownership, source fencing, fixed scale, overflow and physical acceptance.
+
+Campaign Play captures ordered tutorial sequences and initial HUD in appearance.
+Its attempt-owned progression is shared with product: first-coin guidance pauses
+at the committed tick, while lifecycle/calibration suspension retains priority.
+A chunk-entry sequence retains its three steps across pause/resume and admits a fresh
+Jump only after obstacle, Jump and resource explanations. It uses the captured
+mission route for triggering and spotlight projection.
+See [Campaign tutorials](campaign_tutorials.md) for the contract.
 
 ## Purpose and boundary
 
@@ -219,15 +232,61 @@ callback.
 
 The host mounts `RunnerDesktopInputAdapter` only around the fitted game
 surface and supplies aim geometry from the current viewport, camera, and
-player position. It mounts no touch overlay. `GameWidget.autofocus` stays off;
+player position. `GameWidget.autofocus` stays off;
 the adapter owns gameplay focus and the host requests it only through the
 documented ready/start/resume paths.
 
-The host always displays `PLAYTEST - NO REWARDS/REPLAY` and the fixed Windows
-gameplay bindings. Ready, pause, failure, game-over, and stopped presentation
-is owned by the host. Editor shortcuts and text-field/dialog interception are
+Ordinary Chunk and Level Play display `PLAYTEST - NO REWARDS/REPLAY` and
+the fixed Windows gameplay bindings. Campaign shows its local-only notice in
+launch setup and Ready, leaving the running surface to the game HUD. Ready, pause,
+failure, game-over, and stopped presentation is owned by the host. Editor
+shortcuts and text-field/dialog interception are
 not part of the host layer; the implemented editor integration calls the
 public controller operations described above.
+
+Campaign's **Play mission** button and F5 open a setup dialog before source
+capture or runtime creation. **Show mobile HUD** defaults on; **Movement controls**
+offers **Arrows** (initial default), **Floating joystick**, and **Fixed joystick**.
+**Display device** defaults to iPhone 12 Pro (844×390 logical pixels, DPR 3).
+`RunnerPlaytestDevicePresets` is the single catalog of selected Chrome DevTools
+landscape dimensions/densities, checked against
+[Chromium's device definitions](https://github.com/ChromeDevTools/devtools-frontend/blob/main/front_end/models/emulation/EmulatedDevices.ts)
+on 2026-11-12. **Custom** accepts integer width/height (240–4096, width ≥ height)
+and finite DPR (1–4); invalid values block Play. `PlaytestDisplaySettings` owns
+that form draft and validation without source or gameplay side effects.
+Cancel discards the draft without entering Play. Accepted choices are passed as
+`RunnerPlaytestPresentation`, retained through Restart and preparation Retry,
+and remembered while the Campaign page remains mounted. There are no running
+HUD/control selectors, authored-content changes or saved game preferences.
+
+Campaign's `RunnerPlaytestDisplayFrame` lays out the **entire** game/HUD/lifecycle
+surface at the selected logical size and supplies a device-scoped `MediaQuery`
+with the selected DPR. One `FittedBox` contains that whole surface inside the
+editor, with unused space outside the simulated display. Editor resize/DPI changes
+only the preview zoom, without relayout at desktop dimensions or a new runtime.
+Pointer events use the same transform, and aim-cancel hitboxes transform both
+corners into global coordinates. HUD text uses the game theme, not editor typography.
+
+Inside the display, Campaign retains the game's `pixelPerfectCover` viewport,
+cropping world overflow at integer simulated physical-pixel scale. One host
+metrics helper serves rendering, desktop aim and HUD indicators; pointer geometry
+reads DPR from the simulated surface context. The outer preview zoom can be
+fractional on the monitor. This is immersive layout/input preview, without
+browser chrome, hardware cutouts, system bars or device performance emulation.
+Chunk and Level retain their unconstrained desktop presentation and
+`pixelPerfectContain`. Campaign's scenario defaults to no loadout override, so
+Core uses the character catalog's starter equipment and enabled slots, including
+Éloïse's shield. Explicit scenario loadout overrides remain authoritative.
+
+The preview composes the real `GameOverlay` with the game theme, campaign
+objectives, resources, score, ability controls, aim cancellation and screen
+feedback. Its `showLifecycleOverlays: false` leaves ready/pause panels to the
+tooling host. Mobile HUD controls are siblings of the desktop pointer adapter,
+so clicking them cannot also attack
+the world. Keyboard input remains available. A cancellation epoch resets pointer
+ownership across pause/resume and teardown. Restart
+recreates HUD signals alongside the rest of the runtime and disposes old signals
+after the widgets unmount. The preview never mounts product settlement UI.
 
 ## Repository asset boundary
 

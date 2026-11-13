@@ -17,6 +17,18 @@ and draft semantics remain editor-owned. Game consumers import
 Firebase, editor routes or Admin state. Core remains pure Dart. New abstractions
 should follow an actual second consumer rather than pre-emptive modularization.
 
+`ToolLanguageTabs` is the shared English/Français authoring strip for Admin
+messages and Campaign text fields. Both language subtrees remain mounted;
+hidden fields are excluded from focus and animation. Callers own the two-tab
+controller, draft values and validation. Admin retains required English fallback,
+optional paired French fields, durable edits and all-language Review. Switching
+languages alone does not invalidate a preview or unlock an attempted delivery.
+
+`GoldCoin` renders the first gameplay coin frame from Core's pickup render
+catalogue at the caller's square icon size. Game balances, currency actions and
+the Campaign editor's gold brush share this renderer and canonical asset; the
+editor supplies `EditorGameAssetBundle` to resolve the game's bundled artwork.
+
 Admin is a member of the root Pub workspace, using its one lockfile. Editor
 remains independently resolved and points to the same shared packages. Art stays
 in canonical `assets/images`: the game bundles it; Admin's contained, read-only

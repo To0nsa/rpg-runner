@@ -1,78 +1,72 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/ui_tokens.dart';
+import '../../../theme/ui_hub_theme.dart';
 
-/// Shared inner content for hub selection cards (level/character/etc.).
-///
-/// Owns typography + spacing contract so individual cards only provide data
-/// (header/title/subtitle) and optional visuals (e.g. character preview).
+/// Consistent selection cues and readable names over the hub's artwork.
 class HubSelectCardBody extends StatelessWidget {
   const HubSelectCardBody({
     super.key,
     required this.label,
     required this.title,
     this.subtitle,
-    this.labelTextAlign = TextAlign.start,
-    this.labelMaxLines = 1,
-    this.titleMaxLines = 1,
-    this.subtitleMaxLines = 1,
-    this.trailing,
+    this.characterPreview,
   });
 
-  final String label;
-  final String title;
-  /// Optional supporting text; omitting it also removes its spacing.
+  final String label, title;
   final String? subtitle;
-  /// Horizontal alignment of the heading across the card's content width.
-  final TextAlign labelTextAlign;
-  final int labelMaxLines;
-  final int titleMaxLines;
-  final int subtitleMaxLines;
-  final Widget? trailing;
+  final Widget? characterPreview;
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
-    final subtitle = this.subtitle;
-    final base = Column(
+    final hub = context.hub;
+    final hasPreview = characterPreview != null;
+    final details = subtitle == null
+        ? null
+        : Text(
+            subtitle!,
+            style: hub.detail,
+            maxLines: hasPreview ? 1 : 2,
+            overflow: TextOverflow.ellipsis,
+          );
+    final text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: Text(
-            label,
-            style: ui.text.cardLabel,
-            textAlign: labelTextAlign,
-            maxLines: labelMaxLines,
-            overflow: TextOverflow.ellipsis,
-          ),
+        Row(
+          children: [
+            Expanded(child: Text(label, style: hub.label)),
+            Icon(Icons.chevron_right, size: 16, color: hub.muted),
+          ],
         ),
-        SizedBox(height: ui.space.xs),
+        if (hasPreview) const SizedBox(height: 4) else const Spacer(),
         Text(
           title,
-          style: ui.text.cardTitle,
-          maxLines: titleMaxLines,
+          style: hub.title,
+          maxLines: MediaQuery.textScalerOf(context).scale(14) > 16.8 ? 3 : 2,
           overflow: TextOverflow.ellipsis,
         ),
-        if (subtitle != null) ...[
-          SizedBox(height: ui.space.xxs),
-          Text(
-            subtitle,
-            style: ui.text.cardSubtitle,
-            maxLines: subtitleMaxLines,
-            overflow: TextOverflow.ellipsis,
-          ),
+        if (details != null) ...[
+          const SizedBox(height: 4),
+          if (hasPreview)
+            FractionallySizedBox(
+              widthFactor: .55,
+              child: Tooltip(message: subtitle!, child: details),
+            )
+          else
+            details,
         ],
       ],
     );
-
-    final t = trailing;
-    if (t == null) return base;
-
+    if (!hasPreview) return text;
     return Stack(
+      clipBehavior: Clip.none,
       children: [
-        base,
-        Positioned(right: 0, bottom: 0, child: t),
+        Positioned(
+          // The preview canvas includes transparent space below the feet.
+          right: -hub.characterPreviewSize * .25,
+          bottom: -hub.characterPreviewSize * .18,
+          child: IgnorePointer(child: characterPreview!),
+        ),
+        text,
       ],
     );
   }

@@ -11,7 +11,8 @@ import 'package:provider/provider.dart';
 import '../../app/ui_routes.dart';
 import '../../components/menu_layout.dart';
 import '../../components/menu_scaffold.dart';
-import '../../components/play_button.dart';
+import '../../levels/level_id_ui.dart';
+import 'components/hub_card_action.dart';
 import 'components/weekly_badge_row.dart';
 import 'components/hub_menu_icon_column.dart';
 import 'components/hub_select_character_card.dart';
@@ -21,6 +22,7 @@ import '../../state/app/app_state.dart';
 import '../../state/ownership/progression_state.dart';
 import '../../state/ownership/selection_state.dart';
 import '../../theme/ui_tokens.dart';
+import '../../theme/ui_world_palette.dart';
 
 class PlayHubPage extends StatefulWidget {
   const PlayHubPage({super.key});
@@ -99,6 +101,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
+    final largeText = MediaQuery.textScalerOf(context).scale(14) > 18.2;
     final appState = context.watch<AppState>();
     final progression = appState.progression;
     final selection = appState.selection;
@@ -116,11 +119,39 @@ class _PlayHubPageState extends State<PlayHubPage> {
 
     return MenuScaffold(
       showAppBar: false,
+      useBodySafeArea: true,
+      background: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/backgrounds/playHub_bgDark.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.bottomCenter,
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  UiWorldPalette.ink900.withValues(alpha: .65),
+                  UiWorldPalette.ink900.withValues(alpha: .35),
+                  UiWorldPalette.ink900.withValues(alpha: .1),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
       child: MenuLayout(
-        maxWidth: double.infinity,
-        horizontalPadding: ui.space.lg,
+        maxWidth: 1100,
+        horizontalPadding: ui.space.md,
+        verticalPadding: ui.space.xs,
+        alignment: const Alignment(0, -.35),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: largeText
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.center,
           children: [
             HubMenuIconColumn(
               onTownPressed: appState.isDeveloperMode
@@ -140,7 +171,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
               onOptionsPressed: () =>
                   Navigator.of(context).pushNamed(UiRoutes.options),
             ),
-            SizedBox(width: ui.space.xs),
+            SizedBox(width: ui.space.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,13 +190,21 @@ class _PlayHubPageState extends State<PlayHubPage> {
                         : appState.displayedPlayerProgress,
                     animateXpFrom: _animateXpFrom,
                   ),
-                  SizedBox(height: ui.space.sm),
+                  SizedBox(height: ui.space.xs),
                   WeeklyBadgeRow(
+                    practiceOnly: appState.isDeveloperMode,
                     title: _weeklyBadgeTitle(
                       progression,
                       appState,
                       context.l10n,
                     ),
+                    levelName:
+                        !appState.isDeveloperMode &&
+                            appState.weeklyFeaturedLevelAvailable
+                        ? appState.weeklyFeaturedLevelId.localizedName(
+                            context.l10n,
+                          )
+                        : null,
                     isWeeklyLoading:
                         _preparingRunStart &&
                         _runStartSource == _RunStartSource.weekly,
@@ -181,12 +220,11 @@ class _PlayHubPageState extends State<PlayHubPage> {
                               Navigator.of(context)
                                   .pushNamed(UiRoutes.leaderboards),
                   ),
-                  SizedBox(height: ui.space.lg),
-                  Row(
-                    spacing: ui.space.md,
-                    children: [
-                      Expanded(
-                        child: HubSelectedLevelCard(
+                  SizedBox(height: ui.space.xs),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cards = <Widget>[
+                        HubSelectedLevelCard(
                           levelId: selection.selectedLevelId,
                           runModeLabel: _runModeLabel(
                             selection.selectedRunMode,
@@ -195,10 +233,18 @@ class _PlayHubPageState extends State<PlayHubPage> {
                           onChange: () =>
                               Navigator.of(context)
                                   .pushNamed(UiRoutes.setupLevel),
+                          playAction: HubCardAction(
+                            key: const ValueKey('hub-runner-play'),
+                            label: context.l10n.hubRunnerPlay,
+                            isLoading:
+                                _preparingRunStart &&
+                                _runStartSource == _RunStartSource.main,
+                            onPressed: _preparingRunStart
+                                ? null
+                                : () => _startRun(),
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: HubSelectCharacterCard(
+                        HubSelectCharacterCard(
                           characterId: selection.selectedCharacterId,
                           buildName: buildDisplayName(
                             selection.buildName,
@@ -211,59 +257,47 @@ class _PlayHubPageState extends State<PlayHubPage> {
                               Navigator.of(context)
                                   .pushNamed(UiRoutes.selectCharacter),
                         ),
-                      ),
-                      Expanded(
-                        child: HubSelectCardFrame(
+                        HubSelectCardFrame(
                           onTap: () =>
                               Navigator.of(context)
                                   .pushNamed(UiRoutes.campaign),
+                          footer: HubCardAction(
+                            key: const ValueKey('hub-campaign-play'),
+                            label: context.l10n.hubCampaignPlay,
+                            isLoading:
+                                _preparingRunStart &&
+                                _runStartSource == _RunStartSource.campaign,
+                            onPressed:
+                                _preparingRunStart || campaignMission == null
+                                ? null
+                                : () => _startRun(
+                                    source: _RunStartSource.campaign,
+                                    campaignMissionId: campaignMission.id,
+                                  ),
+                          ),
                           background: const ValOutpostArtwork(),
                           child: HubSelectCardBody(
-                            label: context.l10n.campaignHeading.toUpperCase(),
+                            label: context.l10n.campaignHeading,
                             title: CampaignCatalog.chapters.first.title(
                               Localizations.localeOf(context).languageCode,
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: ui.space.sm),
-                  Row(
-                    spacing: ui.space.md,
-                    children: [
-                      Expanded(
-                        child: PlayButton(
-                          key: const ValueKey('hub-runner-play'),
-                          fillWidth: true,
-                          isLoading:
-                              _preparingRunStart &&
-                              _runStartSource == _RunStartSource.main,
-                          showLoadingIndicator: false,
-                          onPressed: _preparingRunStart
-                              ? null
-                              : () => _startRun(),
-                        ),
-                      ),
-                      const Spacer(),
-                      Expanded(
-                        child: PlayButton(
-                          key: const ValueKey('hub-campaign-play'),
-                          fillWidth: true,
-                          isLoading:
-                              _preparingRunStart &&
-                              _runStartSource == _RunStartSource.campaign,
-                          showLoadingIndicator: false,
-                          onPressed:
-                              _preparingRunStart || campaignMission == null
-                              ? null
-                              : () => _startRun(
-                                  source: _RunStartSource.campaign,
-                                  campaignMissionId: campaignMission.id,
-                                ),
-                        ),
-                      ),
-                    ],
+                      ];
+                      if (largeText && constraints.maxWidth < 650) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          spacing: ui.space.sm,
+                          children: cards,
+                        );
+                      }
+                      return Row(
+                        spacing: ui.space.sm,
+                        children: [
+                          for (final card in cards) Expanded(child: card),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),

@@ -12,6 +12,7 @@ import '../world_support_view.dart';
 import '../../projectiles/spawn_projectile_item.dart';
 import '../stores/projectile_intent_store.dart';
 import '../world.dart';
+import '../../events/game_event.dart';
 
 /// Executes [ProjectileIntentStore] intents by spawning projectiles.
 ///
@@ -46,7 +47,11 @@ class ProjectileLaunchSystem {
   /// their committed source offsets. Must match the run's selected character.
   final PlayerCharacterDefinition? playerCharacter;
 
-  void step(EcsWorld world, {required int currentTick}) {
+  void step(
+    EcsWorld world, {
+    required int currentTick,
+    void Function(PlayerAttackExecutedEvent)? onPlayerAttack,
+  }) {
     final intents = world.projectileIntent;
     if (intents.denseEntities.isEmpty) return;
 
@@ -173,6 +178,19 @@ class ProjectileLaunchSystem {
             spawned,
             explodeTick: currentTick + (bomb.fuseTicks * tickHz / 60).ceil(),
             radius: bomb.radius,
+          );
+        }
+      }
+      if (onPlayerAttack != null && world.playerInput.has(caster)) {
+        final active = world.activeAbility.tryIndexOf(caster);
+        if (active != null &&
+            world.activeAbility.abilityId[active] == intents.abilityId[ii]) {
+          onPlayerAttack(
+            PlayerAttackExecutedEvent(
+              tick: currentTick,
+              slot: world.activeAbility.slot[active],
+              abilityId: intents.abilityId[ii],
+            ),
           );
         }
       }

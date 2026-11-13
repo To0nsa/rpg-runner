@@ -1,6 +1,7 @@
 import '../stores/hitbox_store.dart';
 import '../stores/lifetime_store.dart';
 import '../world.dart';
+import '../../events/game_event.dart';
 import '../../combat/knockback.dart';
 import '../combat_eligibility.dart';
 
@@ -30,7 +31,11 @@ class MeleeStrikeSystem {
   ///
   /// [currentTick] is required to ensure we only process intents generated for THIS frame,
   /// preserving determinism.
-  void step(EcsWorld world, {required int currentTick}) {
+  void step(
+    EcsWorld world, {
+    required int currentTick,
+    void Function(PlayerAttackExecutedEvent)? onPlayerAttack,
+  }) {
     final intents = world.meleeIntent;
     if (intents.denseEntities.isEmpty) return;
 
@@ -102,6 +107,21 @@ class MeleeStrikeSystem {
           dirY: intents.dirY[ii],
         ),
       );
+      if (onPlayerAttack != null &&
+          world.playerInput.has(strikeer) &&
+          intents.abilityId[ii] != null) {
+        final active = world.activeAbility.tryIndexOf(strikeer);
+        if (active != null &&
+            world.activeAbility.abilityId[active] == intents.abilityId[ii]) {
+          onPlayerAttack(
+            PlayerAttackExecutedEvent(
+              tick: currentTick,
+              slot: world.activeAbility.slot[active],
+              abilityId: intents.abilityId[ii]!,
+            ),
+          );
+        }
+      }
       // Ensure hitbox only hits things once.
       world.hitOnce.add(hitbox);
       // Hitbox is ephemeral.

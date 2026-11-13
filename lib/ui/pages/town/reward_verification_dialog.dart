@@ -1,5 +1,6 @@
 import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:game_presentation/gold_coin.dart';
 
 import '../../components/app_button.dart';
 import '../../components/app_dialog.dart';
@@ -35,11 +36,14 @@ class RewardVerificationDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              ready ? Icons.check_circle_outline : Icons.savings_outlined,
-              color: ui.colors.accentStrong,
-              size: ui.sizes.iconSize.lg,
-            ),
+            if (ready)
+              Icon(
+                Icons.check_circle_outline,
+                color: ui.colors.accentStrong,
+                size: ui.sizes.iconSize.lg,
+              )
+            else
+              GoldCoin(size: ui.sizes.iconSize.lg),
             SizedBox(height: ui.space.sm),
             Text(
               ready

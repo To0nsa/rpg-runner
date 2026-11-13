@@ -211,7 +211,7 @@ order; the contract below records the dependencies that must survive changes.
 | --- | --- | --- |
 | 1 | Stream/cull track, obtain the complete staged candidate, publish terrain, place captured ambient actors/items, activate swept encounter triggers, and prepare motion | Encounter rosters preflight completely before actor creation. An exact prepared selection may replace synchronous construction; consumers never observe mixed terrain/index/surface/graph versions. AI receives validated prior support. |
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
-| 3 | Refresh section guard rosters, select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, knockback, gravity, and collision | All AI consumers share the selected identity; accepted-hit knockback overrides horizontal control before every terrain-owned dynamic actor is integrated exactly once. |
+| 3 | Resolve ordinary Campaign marker activation/return, refresh section guard rosters, select explicit AI targets, then resolve AI, ability activation, jump, movement, mobility, knockback, gravity, and collision | Waiting/returning Campaign actors cannot commit combat; home navigation shares terrain authority. All AI consumers share the selected identity; accepted-hit knockback overrides horizontal control before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
 | 5 | Collect pickups and move existing projectiles | Newly spawned projectiles do not move until a later tick. |
 | 6 | Write enemy intents, execute abilities, resolve combat poses, rebuild broadphase, then position hitboxes | Self abilities apply before combat; damage queries use current visible poses and positions. |
@@ -580,8 +580,13 @@ compatibility `2026.09.2`.
 The 20% reduction to the camera's baseline target changes those same replayed
 outcomes and is released as game compatibility `2026.09.10`.
 
-Top-contact world interactions run after death resolution and before resource
-regeneration. They consume final support and grant player-owned level blessings;
+Top-contact world interactions run after death and Campaign failure resolution,
+before the living-player Campaign objective/exit gate and resource regeneration.
+A selected-shrine goal latches the actual activation on the landing tick; an exit
+covering that top can complete on the same tick. Fatal damage and objective failure
+still win. This local ordering change can add a grant on a simultaneous successful
+Campaign exit/fire contact; include it in the next coordinated gameplay compatibility
+release. No replay command/schema changes are required. They consume final support and grant player-owned level blessings;
 streaming retirement never removes a granted bonus. The blessing shipped in
 `2026.10.4` with equal 0.10/second health, mana, and stamina bonuses; current
 `2026.10.6` source retains those rates. See
@@ -641,6 +646,19 @@ intermediate projections. The full live snapshot retains its existing contract.
 
 Core exposes immutable snapshots through `GameCore.buildSnapshot` and transient
 events through `GameCore.drainEvents`.
+
+`GameCore.campaignCombatOpportunity` resolves a live authored enemy marker and
+projects the equipped blade/body capsule overlap, projectile lifetime reach and
+terrain sightline, player action readiness, and target stationarity. This query
+does not advance simulation or promise a future hit. Dead marker bindings are
+removed before entity recycling. Presentation owns when to show guidance.
+
+`PlayerAttackExecutedEvent` reports the tick, slot and ability when the execution
+system creates a real player melee hitbox or projectile volley. Rejected presses
+and interrupted windups produce no execution event. This feedback is drained
+before the controller's completed-tick notification; consumers reconcile it with
+that tick's snapshot. It changes no commands, combat timing, costs or settlement
+fields. See [Campaign tutorials](campaign_tutorials.md#combat-encounter).
 
 `PlayerHudSnapshot.abilityCostsBySlot` contains resolved commit costs for all
 six action slots at the snapshot tick. It honors payload weapon overrides and

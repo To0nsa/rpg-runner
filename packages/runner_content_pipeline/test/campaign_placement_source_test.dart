@@ -43,15 +43,15 @@ void main() {
     'visualThemeId': 'forest',
     'levelId': 'training_field',
     'firstClearXp': 0,
-    'rewardAbilityId': null,
-    'combatAllowed': true,
+    'firstClearGold': 0,
+    'firstClearItems': [],
     'route': [
       for (final id in ['first', 'second'])
         {'id': id, 'levelId': 'training_field', 'chunkKey': 'training_field_1'},
     ],
-    'start': {'occurrenceId': 'first', 'x': 60, 'y': 224},
+    'start': {'missionChunkId': 'first', 'x': 60, 'y': 224},
     'exit': {
-      'origin': {'occurrenceId': 'second', 'x': 570, 'y': 0},
+      'origin': {'missionChunkId': 'second', 'x': 570, 'y': 0},
       'width': 20,
       'height': 20,
     },
@@ -63,13 +63,13 @@ void main() {
   };
   Map<String, Object?> pickup(
     String id,
-    String occurrence,
+    String missionChunk,
     int x, [
     String? resource,
   ]) => {
     'id': id,
     'kind': resource == null ? 'gold' : 'gem',
-    'position': {'occurrenceId': occurrence, 'x': x, 'y': 208},
+    'position': {'missionChunkId': missionChunk, 'x': x, 'y': 208},
     'resource': ?resource,
   };
   CompiledCampaignMission compile(Map<String, Object?> source) =>
@@ -80,10 +80,53 @@ void main() {
         tileContents: tiles,
       );
 
+  test(
+    'enemy return/follow policy defaults, round-trips and compiles per marker',
+    () {
+      final marker = <String, Object?>{
+        'id': 'local_guard',
+        'kind': 'enemy',
+        'position': {'missionChunkId': 'second', 'x': 300, 'y': 224},
+        'enemyId': 'grojib',
+        'placement': 'ground',
+        'chancePercent': 100,
+        'salt': 42,
+        'required': true,
+      };
+      final defaultSource =
+          decodeCampaignPlacements([marker]).single as CampaignEnemySource;
+      expect(defaultSource.returnWhenPlayerRetreats, isTrue);
+      expect(
+        defaultSource.toJson().containsKey('returnWhenPlayerRetreats'),
+        isFalse,
+      );
+      expect(
+        compile(mission([marker])).definition.persistentPursuitEnemies,
+        isEmpty,
+      );
+      final follows = {...marker, 'returnWhenPlayerRetreats': false};
+      final source =
+          decodeCampaignPlacements([follows]).single as CampaignEnemySource;
+      expect(source.returnWhenPlayerRetreats, isFalse);
+      expect(source.toJson(), follows);
+      expect(compile(mission([follows])).definition.persistentPursuitEnemies, {
+        (missionChunkId: 'second', markerSalt: 42),
+      });
+      for (final invalid in [null, 0, 'false']) {
+        expect(
+          () => decodeCampaignPlacements([
+            {...marker, 'returnWhenPlayerRetreats': invalid},
+          ]),
+          throwsFormatException,
+        );
+      }
+    },
+  );
+
   for (final hz in [30, 120]) {
     for (final character in PlayerCharacterRegistry.playable) {
       test(
-        '${character.id.name} $hz Hz: surface fire activates only on its occurrence and resets',
+        '${character.id.name} $hz Hz: surface fire activates only on its mission chunk and resets',
         () {
           final terrain = compile(mission([])).chunks.single.stagedTerrain;
           final floor = terrain.polygons.firstWhere(
@@ -92,7 +135,7 @@ void main() {
           Map<String, Object?> fire(String id, double x) =>
               CampaignShrineSource(
                 id,
-                CampaignPoint(occurrenceId: 'second', x: x, y: 224),
+                CampaignPoint(missionChunkId: 'second', x: x, y: 224),
                 prefabKey: null,
                 placementKey: null,
                 shapeId: floor.id.shapeId,
@@ -162,7 +205,7 @@ void main() {
             {...fire('broken', 2), 'activationWidth': 24},
             {
               ...fire('broken', 150),
-              'position': {'occurrenceId': 'second', 'x': 150, 'y': 200},
+              'position': {'missionChunkId': 'second', 'x': 150, 'y': 200},
             },
           ]) {
             expect(() => compile(mission([broken])), throwsFormatException);
@@ -246,14 +289,14 @@ void main() {
   }
 
   test(
-    'local enemy changes one occurrence without changing shared terrain',
+    'local enemy changes one mission chunk without changing shared terrain',
     () {
       final before = chunks['training_field_1'];
       final source = mission([
         {
           'id': 'guard',
           'kind': 'enemy',
-          'position': {'occurrenceId': 'second', 'x': 300, 'y': 224},
+          'position': {'missionChunkId': 'second', 'x': 300, 'y': 224},
           'enemyId': 'grojib',
           'placement': 'ground',
           'chancePercent': 100,
@@ -263,23 +306,19 @@ void main() {
       ]);
       final compiled = compile(source);
       expect(
-        compiled.definition.route.occurrences.first.pattern.spawnMarkers,
+        compiled.definition.route.missionChunks.first.pattern.spawnMarkers,
         isEmpty,
       );
       expect(
-        compiled.definition.route.occurrences.last.pattern.spawnMarkers,
+        compiled.definition.route.missionChunks.last.pattern.spawnMarkers,
         hasLength(1),
       );
       expect(compiled.definition.requiredEnemies.single, (
-        occurrenceId: 'second',
+        missionChunkId: 'second',
         markerSalt: 42,
       ));
       expect(chunks['training_field_1'], before);
       expect(compiled.chunks, hasLength(1));
-      expect(
-        () => compile({...source, 'combatAllowed': false}),
-        throwsFormatException,
-      );
     },
   );
 
@@ -309,7 +348,7 @@ void main() {
     );
   });
 
-  test('local traps and rescue rosters reuse shared readiness and occurrence identity', () {
+  test('local traps and rescue rosters reuse shared readiness and mission chunk identity', () {
     final trap = CampaignTrapSource(
       'spikes',
       'second',
@@ -343,14 +382,14 @@ void main() {
     expect(CampaignMissionSource.decode(draft).placements, hasLength(1));
     expect(() => compile(draft), throwsFormatException);
     final compiled = compile(mission([trap.toJson(), rescue().toJson()]));
-    final first = compiled.definition.route.occurrences.first.pattern;
-    final second = compiled.definition.route.occurrences.last.pattern;
+    final first = compiled.definition.route.missionChunks.first.pattern;
+    final second = compiled.definition.route.missionChunks.last.pattern;
     expect(first.traps, isEmpty);
     expect(first.encounters, isEmpty);
     expect(second.traps.single.x, 500);
     expect(second.encounters.single.id, 'rescue');
     expect(compiled.definition.requiredRescues.single, (
-      occurrenceId: 'second',
+      missionChunkId: 'second',
       encounterId: 'rescue',
     ));
     final core = GameCore.campaignPlaytest(
@@ -367,7 +406,7 @@ void main() {
       {
         'id': 'enemy_a',
         'kind': 'enemy',
-        'position': {'occurrenceId': 'second', 'x': 250, 'y': 224},
+        'position': {'missionChunkId': 'second', 'x': 250, 'y': 224},
         'enemyId': 'grojib',
         'placement': 'ground',
         'chancePercent': 100,
@@ -377,7 +416,7 @@ void main() {
       {
         'id': 'enemy_b',
         'kind': 'enemy',
-        'position': {'occurrenceId': 'second', 'x': 350, 'y': 224},
+        'position': {'missionChunkId': 'second', 'x': 350, 'y': 224},
         'enemyId': 'grojib',
         'placement': 'ground',
         'chancePercent': 100,

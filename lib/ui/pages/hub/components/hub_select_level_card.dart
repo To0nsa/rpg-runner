@@ -15,22 +15,23 @@ class HubSelectedLevelCard extends StatelessWidget {
     required this.levelId,
     required this.runModeLabel,
     required this.onChange,
+    required this.playAction,
   });
 
   final LevelId levelId;
   final String runModeLabel;
   final VoidCallback onChange;
+  final Widget playAction;
 
   @override
   Widget build(BuildContext context) {
     return HubSelectCardFrame(
       onTap: onChange,
+      footer: playAction,
       background: LevelCardArtwork(levelId: levelId),
       child: HubSelectCardBody(
-        label: context.l10n.uiLevelSelection,
-        labelTextAlign: TextAlign.center,
-        labelMaxLines: 2,
-        title: levelId.localizedName(context.l10n).toUpperCase(),
+        label: context.l10n.hubRunnerHeading,
+        title: levelId.localizedName(context.l10n),
         subtitle: runModeLabel,
       ),
     );

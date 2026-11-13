@@ -28,6 +28,7 @@ class MapViewport extends StatelessWidget {
     required this.overlayBuilder,
     this.initialFocus = const Offset(.5, .5),
     this.cacheWidth,
+    this.imageProvider,
   }) : assert(aspectRatio > 0);
 
   final String assetPath;
@@ -39,6 +40,10 @@ class MapViewport extends StatelessWidget {
 
   /// Optional image decode width in pixels to bound artwork memory.
   final int? cacheWidth;
+
+  /// Authoring previews may supply unsaved repository artwork while using the
+  /// exact game framing and interaction. Normal game callers use bundled assets.
+  final ImageProvider? imageProvider;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -70,10 +75,13 @@ class MapViewport extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              assetPath,
+            Image(
+              image: ResizeImage.resizeIfNeeded(
+                cacheWidth,
+                null,
+                imageProvider ?? AssetImage(assetPath),
+              ),
               fit: BoxFit.fill,
-              cacheWidth: cacheWidth,
               excludeFromSemantics: true,
               errorBuilder: (_, _, _) =>
                   ColoredBox(color: ui.colors.background),

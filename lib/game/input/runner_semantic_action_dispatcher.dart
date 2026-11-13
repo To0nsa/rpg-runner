@@ -22,9 +22,22 @@ final class RunnerSemanticActionDispatcher {
   RunnerSemanticActionDispatcher({
     required RunnerInputRouter input,
     required RunnerActionInputModeResolver resolveInputMode,
+    bool Function(RunnerGameplayAction action)? isActionAllowed,
   }) : _input = input,
-       _resolveInputMode = resolveInputMode;
+       _resolveInputMode = resolveInputMode,
+       _isActionAllowed = isActionAllowed;
 
+  final bool Function(RunnerGameplayAction action)? _isActionAllowed;
+
+  /// Shared admission boundary for touch, desktop and programmatic actions.
+  bool isAllowed(RunnerGameplayAction action) =>
+      _isActionAllowed?.call(action) ?? true;
+  bool get _canAim => [
+    RunnerGameplayAction.primary,
+    RunnerGameplayAction.secondary,
+    RunnerGameplayAction.projectile,
+    RunnerGameplayAction.mobility,
+  ].any(isAllowed);
   final RunnerInputRouter _input;
   final RunnerActionInputModeResolver _resolveInputMode;
   final Map<RunnerGameplayAction, AbilityInputMode> _activeAbilityModes =
@@ -41,12 +54,14 @@ final class RunnerSemanticActionDispatcher {
   ///
   /// Digital left/right state takes precedence while either direction is held.
   void setMoveAxis(double axis) {
-    _axis = axis;
+    _axis = isAllowed(RunnerGameplayAction.moveLeft) ? axis : 0;
     _syncMoveAxis();
   }
 
   /// Updates the quantized global aim direction used by aimed commits.
-  void setAimDir(double x, double y) => _input.setAimDir(x, y);
+  void setAimDir(double x, double y) {
+    if (_canAim) _input.setAimDir(x, y);
+  }
 
   /// Clears the global aim direction.
   void clearAimDir() => _input.clearAimDir();
@@ -56,6 +71,7 @@ final class RunnerSemanticActionDispatcher {
   /// The current authoritative mode must be [AbilityInputMode.tap]. Held modes
   /// must use [beginAction] and an end, release, or cancel operation.
   void triggerAction(RunnerGameplayAction action) {
+    if (!isAllowed(action)) return;
     _requireAbilityAction(action);
     final mode = _validatedMode(action);
     if (mode != AbilityInputMode.tap) {
@@ -72,6 +88,7 @@ final class RunnerSemanticActionDispatcher {
   /// snapshot their current mode; OS repeat or duplicate pointer-down events
   /// are ignored until the lifecycle ends.
   void beginAction(RunnerGameplayAction action) {
+    if (!isAllowed(action)) return;
     if (_beginMovement(action)) return;
     if (_activeAbilityModes.containsKey(action)) return;
 
@@ -98,6 +115,7 @@ final class RunnerSemanticActionDispatcher {
   /// dispatcher retains that single pending commit so both established touch
   /// callback orders produce the same action lifecycle.
   void commitAction(RunnerGameplayAction action) {
+    if (!isAllowed(action)) return;
     final activeMode = _activeAbilityModes[action];
     final endedMode = activeMode == null
         ? _endedBeforeCommitModes.remove(action)

@@ -30,13 +30,15 @@ import 'campaign_actor_preview.dart';
 import 'campaign_scene_controls.dart';
 
 /// One assembled preview shared by Route and Markers. Editing adds input and
-/// overlays to the same chunk art, viewport and occurrence coordinate mapping.
+/// overlays to the same chunk art, viewport and mission chunk coordinate mapping.
 class CampaignOverview extends StatefulWidget {
   const CampaignOverview({
     super.key,
     required this.mission,
     required this.chunks,
     required this.workspaceRootPath,
+    this.selectedMissionChunkId,
+    this.selectionRevision = 0,
     this.editing,
     this.showControls = false,
     this.visualPreview = false,
@@ -45,6 +47,8 @@ class CampaignOverview extends StatefulWidget {
   final CampaignMissionSource mission;
   final ChunkV2Document chunks;
   final String workspaceRootPath;
+  final String? selectedMissionChunkId;
+  final int selectionRevision;
   final CampaignMarkerEditing? editing;
   final bool showControls, visualPreview;
   final ValueChanged<bool>? onVisualPreviewChanged;
@@ -76,6 +80,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
   void initState() {
     super.initState();
     unawaited(_loadArt());
+    _scheduleRevealSelection();
   }
 
   @override
@@ -85,6 +90,43 @@ class _CampaignOverviewState extends State<CampaignOverview> {
         widget.mission.id != oldWidget.mission.id) {
       _cancel();
     }
+    if (widget.selectedMissionChunkId != oldWidget.selectedMissionChunkId ||
+        widget.selectionRevision != oldWidget.selectionRevision ||
+        widget.mission.route.length != oldWidget.mission.route.length ||
+        widget.mission.route.indexWhere(
+              (o) => o.id == widget.selectedMissionChunkId,
+            ) !=
+            oldWidget.mission.route.indexWhere(
+              (o) => o.id == widget.selectedMissionChunkId,
+            )) {
+      _scheduleRevealSelection();
+    }
+  }
+
+  void _scheduleRevealSelection() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_horizontal.hasClients) return;
+      final index = widget.mission.route.indexWhere(
+        (o) => o.id == widget.selectedMissionChunkId,
+      );
+      if (index < 0) return;
+      final position = _horizontal.position;
+      // The lazy list's complete scroll extent gives the rendered mission chunk
+      // width without requiring the selected off-screen child to be mounted.
+      final width =
+          (position.maxScrollExtent + position.viewportDimension) /
+          widget.mission.route.length;
+      final offset =
+          (index * width + width / 2 - position.viewportDimension / 2).clamp(
+            position.minScrollExtent,
+            position.maxScrollExtent,
+          );
+      _horizontal.animateTo(
+        offset,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Future<void> _loadArt() async {
@@ -135,17 +177,17 @@ class _CampaignOverviewState extends State<CampaignOverview> {
   }) {
     final world = _layoutFor(viewportSize).toWorld(local);
     final worldX = world.dx;
-    final occurrence = (worldX / 600).floor();
-    if (occurrence < 0 ||
-        occurrence >= widget.mission.route.length ||
+    final missionChunk = (worldX / 600).floor();
+    if (missionChunk < 0 ||
+        missionChunk >= widget.mission.route.length ||
         (requireInside && (world.dy < 0 || world.dy > 270))) {
       throw StateError('Place inside the mission route.');
     }
     final step = widget.editing?.snap == true ? 8 : 1;
     return CampaignPoint(
-      occurrenceId: widget.mission.route[occurrence].id,
+      missionChunkId: widget.mission.route[missionChunk].id,
       x: quantizeChunkSceneCoordinate(
-        worldX - occurrence * 600,
+        worldX - missionChunk * 600,
         step: step,
       ).clamp(0, 599).toDouble(),
       y: quantizeChunkSceneCoordinate(
@@ -169,7 +211,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
     for (final entry
         in (widget.editing?.entries ?? campaignMarkerEntries(widget.mission))
             .reversed) {
-      if (entry.position.occurrenceId != point.occurrenceId) continue;
+      if (entry.position.missionChunkId != point.missionChunkId) continue;
       final region = campaignMarkerRegion(entry);
       if ((region?.inflate(7 / scale).contains(pos) ?? false) ||
           (pos - Offset(entry.position.x, entry.position.y)).distance <=
@@ -251,8 +293,8 @@ class _CampaignOverviewState extends State<CampaignOverview> {
       if (before == null) {
         candidate = edit.create(point);
       } else if (_rectangle != null) {
-        if (point.occurrenceId != before.position.occurrenceId) {
-          throw StateError('Resize inside the selected occurrence.');
+        if (point.missionChunkId != before.position.missionChunkId) {
+          throw StateError('Resize inside the selected mission chunk.');
         }
         _rectangle!.update(
           pointer: _pointer!,
@@ -261,7 +303,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
         );
         final bounds = _rectangle!.bounds;
         final origin = CampaignPoint(
-          occurrenceId: point.occurrenceId,
+          missionChunkId: point.missionChunkId,
           x: bounds.left,
           y: bounds.top,
         );
@@ -269,7 +311,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
         final CampaignPlacementSource? placement = switch (p) {
           CampaignTrapSource p => CampaignTrapSource(
             p.id,
-            p.occurrenceId,
+            p.missionChunkId,
             p.trap.copyWith(
               trigger: TrapRect(
                 (bounds.left - p.trap.x).round(),
@@ -281,7 +323,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
           ),
           CampaignRescueSource p => CampaignRescueSource(
             p.id,
-            p.occurrenceId,
+            p.missionChunkId,
             editEncounter(
               p.encounter,
               trigger: EncounterTrigger(
@@ -311,7 +353,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
         candidate = edit.move(
           before,
           CampaignPoint(
-            occurrenceId: point.occurrenceId,
+            missionChunkId: point.missionChunkId,
             x: point.x - _grab.dx,
             y: point.y - _grab.dy,
           ),
@@ -488,24 +530,27 @@ class _CampaignOverviewState extends State<CampaignOverview> {
                         itemExtent: 600 * scale,
                         itemCount: mission.route.length,
                         itemBuilder: (context, index) {
-                          final occurrence = mission.route[index],
-                              chunk = chunks[occurrence.chunkKey];
+                          final missionChunk = mission.route[index],
+                              chunk = chunks[missionChunk.chunkKey];
                           final entries = [
                             for (final e in campaignMarkerEntries(mission))
-                              if (e.position.occurrenceId == occurrence.id &&
+                              if (e.position.missionChunkId ==
+                                      missionChunk.id &&
                                   e.key != edit?.candidate?.key)
                                 e,
-                            if (edit?.candidate?.position.occurrenceId ==
-                                occurrence.id)
+                            if (edit?.candidate?.position.missionChunkId ==
+                                missionChunk.id)
                               edit!.candidate!,
                           ];
                           return CustomPaint(
-                            key: ValueKey('campaign_preview_${occurrence.id}'),
+                            key: ValueKey(
+                              'campaign_preview_${missionChunk.id}',
+                            ),
                             foregroundPainter: widget.visualPreview
                                 ? null
                                 : CampaignMarkerPainter(
                                     entries: campaignMarkerEntries(mission),
-                                    occurrenceId: occurrence.id,
+                                    missionChunkId: missionChunk.id,
                                     scale: scale,
                                     root: widget.workspaceRootPath,
                                     images: _images,
@@ -516,7 +561,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
                             child: chunk == null
                                 ? Center(
                                     child: Text(
-                                      'Missing chunk: ${occurrence.chunkKey}',
+                                      'Missing chunk: ${missionChunk.chunkKey}',
                                     ),
                                   )
                                 : Stack(
@@ -558,7 +603,7 @@ class _CampaignOverviewState extends State<CampaignOverview> {
                       ),
                     ),
                   ),
-                  // A viewport-wide input surface survives lazy occurrence recycling
+                  // A viewport-wide input surface survives lazy mission chunk recycling
                   // and admits navigation over the empty space around a small scene.
                   EditorScenePointerRegion(
                     behavior: HitTestBehavior.translucent,

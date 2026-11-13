@@ -18,14 +18,32 @@ import 'campaign_marker_painter.dart';
 
 /// Reuses existing typed chunk inspectors for enemies, traps and rescue rosters.
 /// Only point pickups and surface-attached fire need new property controls.
-class CampaignMarkerInspector extends StatelessWidget {
+class CampaignMarkerInspector extends StatefulWidget {
   const CampaignMarkerInspector({super.key, required this.editing});
   final CampaignMarkerEditing editing;
+
+  @override
+  State<CampaignMarkerInspector> createState() =>
+      _CampaignMarkerInspectorState();
+}
+
+class _CampaignMarkerInspectorState extends State<CampaignMarkerInspector> {
+  bool _expanded = false;
+  CampaignMarkerEditing get editing => widget.editing;
+
   @override
   Widget build(BuildContext context) {
     final e = editing, entry = editing.selected;
     return ToolSectionCard(
-      title: 'Marker properties',
+      title: 'Selected marker properties',
+      collapsible: true,
+      initiallyExpanded: false,
+      expanded: _expanded,
+      onExpansionChanged: (value) {
+        // Collapsing unmounts the form, so resolve its draft before hiding it.
+        if (!value && !editing.finishDraft()) return;
+        setState(() => _expanded = value);
+      },
       child: entry == null
           ? const Padding(
               padding: EdgeInsets.all(12),
@@ -40,7 +58,8 @@ class CampaignMarkerInspector extends StatelessWidget {
                   campaignMarkerLabel(entry),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                Text('Occurrence: ${entry.position.occurrenceId}'),
+                const SizedBox(height: ToolUiTokens.rowTitleGap),
+                Text('Mission chunk ID: ${entry.position.missionChunkId}'),
                 if (entry.placement case final CampaignEnemySource p)
                   DropdownButtonFormField<String>(
                     key: ValueKey((p.id, p.marker.enemyId)),
@@ -80,6 +99,21 @@ class CampaignMarkerInspector extends StatelessWidget {
                     value: p.required,
                     onChanged: (v) => _required(v),
                   ),
+                if (entry.placement case final CampaignEnemySource p)
+                  SwitchListTile(
+                    key: const ValueKey('campaign_enemy_return_on_retreat'),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Return when player retreats'),
+                    subtitle: Text(
+                      p.returnWhenPlayerRetreats
+                          ? 'Stops pursuing and returns near its marker.'
+                          : 'Keeps following after activation.',
+                    ),
+                    value: p.returnWhenPlayerRetreats,
+                    onChanged: e.gestureActive
+                        ? null
+                        : (v) => _property('returnWhenPlayerRetreats', v),
+                  ),
                 if (entry.placement case final CampaignRescueSource p) ...[
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
@@ -117,7 +151,7 @@ class CampaignMarkerInspector extends StatelessWidget {
                       onTap: () => e.select(entry.key, participant: member.id),
                     ),
                 ],
-                const SizedBox(height: 12),
+                const SizedBox(height: ToolUiTokens.sectionGap),
                 _form(entry),
                 if (e.error != null)
                   Text(
@@ -159,7 +193,7 @@ class CampaignMarkerInspector extends StatelessWidget {
         source: p.trap,
         editController: e.exact,
         onApply: (trap) =>
-            apply(CampaignTrapSource(p.id, p.occurrenceId, trap)),
+            apply(CampaignTrapSource(p.id, p.missionChunkId, trap)),
         onCancel: e.cancel,
         onDuplicate: e.duplicate,
         onDelete: e.delete,
@@ -174,11 +208,11 @@ class CampaignMarkerInspector extends StatelessWidget {
       );
     }
     if (p is CampaignEnemySource) {
-      final occurrence = e.mission.route.firstWhere(
-        (o) => o.id == p.occurrenceId,
+      final missionChunk = e.mission.route.firstWhere(
+        (o) => o.id == p.missionChunkId,
       );
       final chunk = e.document.chunks.chunks.firstWhere(
-        (c) => c.chunkKey == occurrence.chunkKey,
+        (c) => c.chunkKey == missionChunk.chunkKey,
       );
       return ChunkV2MarkerForm(
         key: key,
@@ -201,7 +235,7 @@ class CampaignMarkerInspector extends StatelessWidget {
         onSubmit: (marker) {
           final json = p.toJson()
             ..['position'] = {
-              'occurrenceId': p.occurrenceId,
+              'missionChunkId': p.missionChunkId,
               'x': marker.x,
               'y': marker.y,
             }
@@ -226,7 +260,7 @@ class CampaignMarkerInspector extends StatelessWidget {
         onApply: (group) => apply(
           CampaignRescueSource(
             p.id,
-            p.occurrenceId,
+            p.missionChunkId,
             group,
             required: p.required,
           ),
@@ -260,7 +294,7 @@ class _PointInspectorState extends State<_PointInspector> {
   final _form = GlobalKey<FormState>();
   final _fields = <String, TextEditingController>{};
   late final CampaignMissionSource _expected;
-  late String _occurrence;
+  late String _missionChunk;
   late WorldInteractionAppearanceId _appearance;
   bool _dirty = false;
   bool _resetting = false;
@@ -284,7 +318,7 @@ class _PointInspectorState extends State<_PointInspector> {
   void _reset() {
     _resetting = true;
     final entry = widget.entry, shrine = widget.entry.placement;
-    _occurrence = entry.position.occurrenceId;
+    _missionChunk = entry.position.missionChunkId;
     _appearance = shrine is CampaignShrineSource
         ? shrine.appearance
         : WorldInteractionAppearanceId.emberFlame;
@@ -326,7 +360,7 @@ class _PointInspectorState extends State<_PointInspector> {
       double number(String key) => double.parse(_fields[key]!.text);
       final e = widget.editing, before = widget.entry;
       final point = CampaignPoint(
-        occurrenceId: _occurrence,
+        missionChunkId: _missionChunk,
         x: number('x'),
         y: number('y'),
       );
@@ -352,12 +386,12 @@ class _PointInspectorState extends State<_PointInspector> {
           activationWidth: number('activationWidth'),
           scale: number('scale'),
         );
-        final occurrence = e.mission.route.firstWhere(
-          (o) => o.id == _occurrence,
+        final missionChunk = e.mission.route.firstWhere(
+          (o) => o.id == _missionChunk,
         );
         resolveWorldInteractionSurface(
-          shrine.bindingFor(occurrence.chunkKey),
-          e.compiled[occurrence.chunkKey]!.stagedTerrain,
+          shrine.bindingFor(missionChunk.chunkKey),
+          e.compiled[missionChunk.chunkKey]!.stagedTerrain,
         );
         after = CampaignMarkerEntry(
           before.key,
@@ -383,8 +417,8 @@ class _PointInspectorState extends State<_PointInspector> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DropdownButtonFormField<String>(
-          initialValue: _occurrence,
-          decoration: const InputDecoration(labelText: 'Occurrence'),
+          initialValue: _missionChunk,
+          decoration: const InputDecoration(labelText: 'Mission chunk ID'),
           items: [
             for (final o in widget.editing.mission.route)
               DropdownMenuItem(
@@ -394,14 +428,14 @@ class _PointInspectorState extends State<_PointInspector> {
           ],
           onChanged: (v) {
             if (v != null) {
-              _occurrence = v;
+              _missionChunk = v;
               _changed();
             }
           },
         ),
         for (final field in _fields.entries)
           Padding(
-            padding: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.only(top: ToolUiTokens.sectionGap),
             child: TextFormField(
               key: ValueKey('campaign_marker_${field.key}'),
               controller: field.value,
@@ -421,7 +455,7 @@ class _PointInspectorState extends State<_PointInspector> {
             ),
           ),
         if (widget.entry.placement is CampaignShrineSource) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: ToolUiTokens.sectionGap),
           DropdownButtonFormField<WorldInteractionAppearanceId>(
             initialValue: _appearance,
             decoration: const InputDecoration(labelText: 'Fire appearance'),
@@ -442,6 +476,7 @@ class _PointInspectorState extends State<_PointInspector> {
               }
             },
           ),
+          const SizedBox(height: ToolUiTokens.controlGap),
           const Text(
             'Attaches to the selected flat top. Moving the marker reattaches it; the underlying platform stays unchanged.',
           ),
@@ -451,18 +486,22 @@ class _PointInspectorState extends State<_PointInspector> {
             _error!,
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
-        const SizedBox(height: 12),
+        const SizedBox(height: ToolUiTokens.sectionGap),
         FilledButton(
           key: const ValueKey('campaign_marker_apply'),
           onPressed: _save,
           child: const Text('Update marker'),
         ),
-        OutlinedButton(
-          onPressed: () {
-            _reset();
-            setState(() {});
-          },
-          child: const Text('Discard field edits'),
+        const SizedBox(height: ToolUiTokens.controlGap),
+        Tooltip(
+          message: 'Restore the selected marker values before these field edits. Applied updates stay unchanged.',
+          child: OutlinedButton(
+            onPressed: () {
+              _reset();
+              setState(() {});
+            },
+            child: const Text('Discard field edits'),
+          ),
         ),
       ],
     ),

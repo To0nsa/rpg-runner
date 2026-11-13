@@ -137,13 +137,13 @@ final List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
   ),
   EditorHomeRoute(
     id: levelCreatorRouteId,
-    label: 'Level Creator',
+    label: 'Runner Level',
     pluginId: LevelDomainPlugin.pluginId,
     buildPage: _buildLevelCreatorPage,
   ),
   EditorHomeRoute(
     id: campaignRouteId,
-    label: 'Campaign',
+    label: 'Campaign Level',
     pluginId: CampaignDomainPlugin.pluginId,
     buildPage: ({required key, required controller, required navigation}) =>
         CampaignPage(

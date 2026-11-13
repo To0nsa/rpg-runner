@@ -1,3 +1,5 @@
+import 'support/playtest_display_fixture.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -21,6 +23,7 @@ import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  setUp(installCalibratedDisplayFixture);
   late String root;
   late LevelContentProjection projection;
   setUpAll(() async {
@@ -70,6 +73,7 @@ void main() {
               required assetBundle,
               required appearance,
               required onStop,
+              presentation,
             }) {
               mountedScenario = scenario;
               stop = onStop;
@@ -283,6 +287,7 @@ Future<EditorSessionController> mount(
     required AssetBundle assetBundle,
     required RunnerPlaytestAppearance appearance,
     required VoidCallback onStop,
+    RunnerPlaytestPresentation? presentation,
   })?
   hostBuilder,
 }) async {
@@ -322,6 +327,7 @@ Future<EditorSessionController> mount(
                   required assetBundle,
                   required appearance,
                   required onStop,
+                  presentation,
                 }) => const SizedBox.shrink(),
           ),
         ),
@@ -346,6 +352,7 @@ Future<EditorSessionController> mount(
 Future<void> until(WidgetTester tester, bool Function() done) async {
   for (var index = 0; index < 200; index++) {
     await tester.pump(const Duration(milliseconds: 16));
+    await acceptPlaySetupIfVisible(tester);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 5)),
     );

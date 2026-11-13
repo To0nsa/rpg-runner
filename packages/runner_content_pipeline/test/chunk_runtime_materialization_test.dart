@@ -17,6 +17,7 @@ void main() {
         chunkContents: _chunk,
       );
       expect(result.issues, isEmpty);
+      expect(result.chunk!.pattern.visualSprites.single.prefabKey, 'crate');
       expect(
         result.chunk!.pattern.visualSprites.single.isDecoration,
         kind == 'decoration',
@@ -47,6 +48,7 @@ void main() {
     for (final angle in [22.5, 90.0, 180.0, 359.0]) {
       final rotated = compile(angle);
       final sprite = rotated.pattern.visualSprites.single;
+      expect(sprite.prefabKey, 'crate');
       expect(sprite.rotationDegrees, angle);
       expect(sprite.x, baseline.pattern.visualSprites.single.x);
       expect(sprite.y, baseline.pattern.visualSprites.single.y);

@@ -305,13 +305,14 @@ class ChunkV2OwnerFormState extends State<ChunkV2OwnerForm> {
             key: ValueKey<String>(
               'chunk_v2_owner_assembly_${_levelId}_$_assemblyGroupId',
             ),
+            isExpanded: true,
             initialValue: _assemblyGroupId,
             decoration: const InputDecoration(labelText: 'Chunk theme group'),
             items: groups
                 .map(
                   (groupId) => DropdownMenuItem<String>(
                     value: groupId,
-                    child: Text(groupId),
+                    child: Text(groupId, overflow: TextOverflow.ellipsis),
                   ),
                 )
                 .toList(growable: false),

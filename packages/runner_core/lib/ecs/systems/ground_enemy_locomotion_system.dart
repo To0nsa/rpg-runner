@@ -51,14 +51,18 @@ class GroundEnemyLocomotionSystem {
       if (enemyTi == null) continue;
 
       final grounded = supportView.isGrounded(enemy);
-      final target = combatTarget(world, enemy, player);
+      final returning = world.campaignEnemy.isReturning(enemy);
+      final target = returning ? enemy : combatTarget(world, enemy, player);
       if (target == null) {
         if (grounded) world.transform.velX[enemyTi] = 0;
         _writeLocomotionReferenceSpeed(world, enemy, 0);
         continue;
       }
       final targetTi = world.transform.indexOf(target);
-      final targetX = world.transform.posX[targetTi];
+      final homeIndex = world.campaignEnemy.tryIndexOf(enemy);
+      final targetX = returning
+          ? world.campaignEnemy.homeX[homeIndex!]
+          : world.transform.posX[targetTi];
       if (world.controlLock.isStunned(enemy, currentTick) ||
           world.controlLock.isLocked(enemy, LockFlag.move, currentTick)) {
         world.transform.velX[enemyTi] = 0.0;
@@ -107,9 +111,18 @@ class GroundEnemyLocomotionSystem {
       }
       final meleeState = world.meleeEngagement.state[meleeIndex];
       final lockFacingToTarget =
-          meleeState == MeleeEngagementState.engage ||
-          meleeState == MeleeEngagementState.strike ||
-          meleeState == MeleeEngagementState.recover;
+          !returning &&
+          (meleeState == MeleeEngagementState.engage ||
+              meleeState == MeleeEngagementState.strike ||
+              meleeState == MeleeEngagementState.recover);
+
+      if (returning) {
+        final intent = world.engagementIntent;
+        intent.desiredTargetX[engagementIndex] = targetX;
+        intent.arrivalSlowRadiusX[engagementIndex] = 16;
+        intent.stateSpeedMul[engagementIndex] = 1;
+        intent.speedScale[engagementIndex] = 1;
+      }
 
       if (world.swimState.isSwimming(enemy)) {
         swimToward(
@@ -121,6 +134,10 @@ class GroundEnemyLocomotionSystem {
           targetTi: targetTi,
           currentTick: currentTick,
           dtSeconds: dtSeconds,
+          destinationX: returning ? targetX : null,
+          destinationY: returning
+              ? world.campaignEnemy.homeY[homeIndex!]
+              : null,
         );
         continue;
       }
@@ -187,6 +204,8 @@ class GroundEnemyLocomotionSystem {
     required int targetTi,
     required int currentTick,
     required double dtSeconds,
+    double? destinationX,
+    double? destinationY,
   }) {
     if (world.controlLock.isLocked(enemy, LockFlag.nav, currentTick)) {
       _stopLocomotion(world, enemy, enemyTi, false);
@@ -222,7 +241,8 @@ class GroundEnemyLocomotionSystem {
     );
     _writeLocomotionReferenceSpeed(world, enemy, desired.abs());
     final targetDx =
-        world.transform.posX[targetTi] - world.transform.posX[enemyTi];
+        (destinationX ?? world.transform.posX[targetTi]) -
+        world.transform.posX[enemyTi];
     if (targetDx != 0) {
       setActorFacing(world, enemy, targetDx > 0 ? Facing.right : Facing.left);
     }
@@ -236,17 +256,20 @@ class GroundEnemyLocomotionSystem {
     final surfaceY = world.swimState.surfaceYTicks[swimIndex];
     if (surfaceY == null) return;
     final targetCapsule = capsule.tryIndexOf(target);
-    final targetSwimming = world.swimState.isSwimming(target);
-    final targetY = targetSwimming
-        ? world.transform.posY[targetTi] +
-              (targetCapsule == null
-                  ? 0
-                  : capsule.offsetYTicks[targetCapsule] /
-                        terrainPhysicsTicksPerWorldUnit)
-        : (surfaceY -
-                  capsule.radiusTicks[capsuleIndex] -
-                  capsule.verticalHalfSegmentTicks[capsuleIndex]) /
-              terrainPhysicsTicksPerWorldUnit;
+    final targetSwimming =
+        destinationY == null && world.swimState.isSwimming(target);
+    final targetY =
+        destinationY ??
+        (targetSwimming
+            ? world.transform.posY[targetTi] +
+                  (targetCapsule == null
+                      ? 0
+                      : capsule.offsetYTicks[targetCapsule] /
+                            terrainPhysicsTicksPerWorldUnit)
+            : (surfaceY -
+                      capsule.radiusTicks[capsuleIndex] -
+                      capsule.verticalHalfSegmentTicks[capsuleIndex]) /
+                  terrainPhysicsTicksPerWorldUnit);
     // A submerged target may be below us: stop rising and let buoyancy-controlled
     // sinking close the gap. A land target instead requests a bank-clearing stroke.
     if (targetSwimming &&
@@ -289,6 +312,9 @@ class GroundEnemyLocomotionSystem {
   }) {
     final navIntent = world.navIntent;
     final engagementIntent = world.engagementIntent;
+    final returning = world.campaignEnemy.isReturning(
+      world.enemy.denseEntities[enemyIndex],
+    );
 
     final hasPlan = navIntent.hasPlan[navIntentIndex] && !useEngagementTarget;
     var desiredX = navIntent.desiredX[navIntentIndex];
@@ -309,7 +335,10 @@ class GroundEnemyLocomotionSystem {
     // Traversal plans (especially jump edges) should not inherit melee
     // approach/strike slowdown multipliers, or enemies can under-speed jumps
     // and appear to "jump in place" on ledges.
-    final arrivalSlowRadiusX = hasPlan
+    final arrivalSlowRadiusX =
+        returning && navIntent.canWalkDirectlyToTarget[navIntentIndex]
+        ? 32.0
+        : hasPlan
         ? 0.0
         : engagementIntent.arrivalSlowRadiusX[engagementIndex];
     final stateSpeedMul = hasPlan
@@ -338,6 +367,7 @@ class GroundEnemyLocomotionSystem {
       grounded: grounded,
       dtSeconds: dtSeconds,
       targetX: targetX,
+      stopDistanceX: returning ? 2 : null,
     );
   }
 
@@ -364,6 +394,7 @@ class GroundEnemyLocomotionSystem {
     required bool grounded,
     required double dtSeconds,
     required double targetX,
+    double? stopDistanceX,
   }) {
     jumpNow = jumpNow && _canJump(world, actor);
     final tuning = groundEnemyTuning;
@@ -433,7 +464,7 @@ class GroundEnemyLocomotionSystem {
     } else if (commitMoveDirX != 0) {
       desiredDirX = commitMoveDirX;
       desiredVelX = desiredDirX.toDouble() * baseSpeed;
-    } else if (dx.abs() > tuning.locomotion.stopDistanceX) {
+    } else if (dx.abs() > (stopDistanceX ?? tuning.locomotion.stopDistanceX)) {
       desiredDirX = dx >= 0 ? 1 : -1;
       desiredVelX = desiredDirX.toDouble() * baseSpeed * arrivalScale;
     }

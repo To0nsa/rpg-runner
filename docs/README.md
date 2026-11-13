@@ -1,5 +1,11 @@
 # Documentation
 
+- [Campaign tutorials and progressive HUD](tdd/campaign_tutorials.md): visual spotlight
+  authoring, progressive HUD, movement/coin/jump/water/decoration/gap/platform/blessing lessons in game and editor Play.
+
+- [Shared gameplay runtime and calibrated editor Play](tdd/shared_gameplay_runtime.md):
+  product, Training Field, Chunk, Level and Campaign ownership and preview contracts.
+
 - [Item authoring](tdd/item_authoring.md): editor creation/duplication, immutable
   identities, shared names/art and typed Core/backend generation.
 

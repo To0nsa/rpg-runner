@@ -12,7 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:rpg_runner/ui/app/ui_router.dart';
 import 'package:rpg_runner/ui/components/attention_marker.dart';
-import 'package:rpg_runner/ui/components/gold_coin.dart';
+import 'package:game_presentation/gold_coin.dart';
 import 'package:game_presentation/ui_icon_tile.dart';
 import 'package:rpg_runner/ui/pages/achievements/achievement_claim_action.dart';
 import 'package:rpg_runner/ui/pages/town/town_map.dart';

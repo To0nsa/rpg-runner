@@ -41,9 +41,6 @@ abstract final class CodexCatalog {
       (progress.competitiveBestScores[id.name] ?? 0) >=
           levelScoreRequirements[id]!;
 
-  static String openingTitle(AppLocalizations l10n) => l10n.codexOpeningTitle;
-  static String opening(AppLocalizations l10n) => l10n.codexOpening;
-
   static String enemyLore(EnemyId id, AppLocalizations l10n) => switch (id) {
     EnemyId.grojib => l10n.codexGrojibLore,
     EnemyId.hashash => l10n.codexHashashLore,
@@ -68,6 +65,32 @@ abstract final class CodexCatalog {
     EnemyId.voidcaller => l10n.codexVoidcallerTactics,
     EnemyId.shoggothMinion => l10n.codexShoggothMinionTactics,
     EnemyId.voidTentacle => l10n.codexVoidTentacleTactics,
+  };
+
+  static String enemyRole(EnemyId id, AppLocalizations l10n) => switch (id) {
+    EnemyId.grojib => l10n.codexGrojibRole,
+    EnemyId.hashash => l10n.codexHashashRole,
+    EnemyId.derf => l10n.codexDerfRole,
+    EnemyId.unocoDemon => l10n.codexUnocoRole,
+    EnemyId.bringerOfDeath => l10n.codexBringerRole,
+    EnemyId.voidbornGoddess => l10n.codexGoddessRole,
+    EnemyId.shoggoth => l10n.codexShoggothRole,
+    EnemyId.voidcaller => l10n.codexVoidcallerRole,
+    EnemyId.shoggothMinion => l10n.codexShoggothMinionRole,
+    EnemyId.voidTentacle => l10n.codexVoidTentacleRole,
+  };
+
+  static String enemyAdvice(EnemyId id, AppLocalizations l10n) => switch (id) {
+    EnemyId.grojib => l10n.codexGrojibAdvice,
+    EnemyId.hashash => l10n.codexHashashAdvice,
+    EnemyId.derf => l10n.codexDerfAdvice,
+    EnemyId.unocoDemon => l10n.codexUnocoAdvice,
+    EnemyId.bringerOfDeath => l10n.codexBringerAdvice,
+    EnemyId.voidbornGoddess => l10n.codexGoddessAdvice,
+    EnemyId.shoggoth => l10n.codexShoggothAdvice,
+    EnemyId.voidcaller => l10n.codexVoidcallerAdvice,
+    EnemyId.shoggothMinion => l10n.codexShoggothMinionAdvice,
+    EnemyId.voidTentacle => l10n.codexVoidTentacleAdvice,
   };
 
   /// Includes secondary boss attacks, not just the archetype's primary attack.

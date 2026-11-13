@@ -63,7 +63,7 @@ test("drafts cannot issue and campaign requests require a mission ID", () => {
     ...chapter, missions: chapter.missions.map((mission) => ({ ...mission, available: false })),
   })) };
   assert.throws(() => authorizeCampaignMission(state.progression, "reporting_for_duty", "forest", drafts));
-  const request = { userId: "u", sessionId: "s", clientRequestId: "request", mode: "campaign", levelId: "forest", gameCompatVersion: "2026.11.11" };
+  const request = { userId: "u", sessionId: "s", clientRequestId: "request", mode: "campaign", levelId: "forest", gameCompatVersion: "2026.11.14" };
   assert.throws(() => parseRunSessionCreateRequest(request));
   assert.equal(parseRunSessionCreateRequest({ ...request, missionId: "reporting_for_duty" }).missionId, "reporting_for_duty");
   assert.throws(() => parseRunSessionCreateRequest({ ...request, mode: "practice", missionId: "reporting_for_duty" }));
@@ -157,5 +157,62 @@ test("incomplete chapter grants no completion rewards; invalid rewards and overf
   state.progression.gold = Number.MAX_SAFE_INTEGER;
   const before = structuredClone(state);
   assert.throws(() => completeChapter(state));
+  assert.deepEqual(state, before);
+});
+
+function settleMission(state: ReturnType<typeof starterCanonicalState>, override: Partial<CampaignCatalog["chapters"][number]["missions"][number]> = {}, reason = "missionCompleted") {
+  const mission = { ...catalog.chapters[0]!.missions[0]!, firstClearXp: 75, firstClearGold: 90,
+    firstClearItems: [
+      { kind: "gear" as const, slot: "mainWeapon", itemId: "cinderedge" },
+      { kind: "ability" as const, slot: "jump", itemId: "eloise.double_jump", characterId: "eloise" },
+      { kind: "projectileSpell" as const, slot: "projectile", itemId: "hunterBrushgun", characterId: "bountyHunter" },
+    ], ...override };
+  const current = { ...catalog, chapters: [{ ...catalog.chapters[0]!, missions: [mission], rewardXp: 10, rewardGold: 20 }] };
+  const campaign = authorizeCampaignMission(state.progression, mission.id, mission.levelId, current);
+  return applyCampaignProgress({ canonical: state, catalog: current, nowMs: 1234,
+    session: { mode: "campaign", levelId: mission.levelId, runTicket: { campaign } },
+    validatedRun: { accepted: true, campaign, endedReason: reason, score: 100, tick: 50,
+      runSessionId: "mission_reward", playerRunStats: { schemaVersion: 1 } } });
+}
+
+test("mission rewards and chapter rewards grant atomically once, with explicit skill recipients", () => {
+  const state = starterCanonicalState("main", "mission-player");
+  const selection = structuredClone(state.selection);
+  assert.equal(settleMission(state, {}, "gaveUp").xp, 0);
+  assert.equal(state.progression.gold, 0);
+  assert.equal(settleMission(state).xp, 85);
+  assert.equal(state.progression.gold, 110);
+  assert.deepEqual(state.selection, selection);
+  const inventory = state.meta.inventory as { weapons: string[] };
+  assert.equal(inventory.weapons.filter((id) => id === "cinderedge").length, 1);
+  const ownership = state.meta.abilityOwnershipByCharacter as Record<string, { projectileSpells: string[]; abilitiesBySlot: { jump: string[] } }>;
+  assert.ok(ownership.eloise!.abilitiesBySlot.jump.includes("eloise.double_jump"));
+  assert.ok(ownership.bountyHunter!.projectileSpells.includes("hunterBrushgun"));
+  assert.ok(!ownership.eloise!.projectileSpells.includes("hunterBrushgun"));
+  const receipt = structuredClone((state.progression.campaign as Record<string, Record<string, unknown>>).missions);
+  assert.equal(settleMission(state, { firstClearXp: 500, firstClearGold: 999 }).xp, 0);
+  assert.equal(state.progression.gold, 110);
+  const missions = (state.progression.campaign as Record<string, Record<string, unknown>>).missions;
+  const id = catalog.chapters[0]!.missions[0]!.id;
+  assert.deepEqual((missions![id] as Record<string, unknown>).rewards, (receipt![id] as Record<string, unknown>).rewards);
+});
+
+test("invalid mission rewards and combined wallet overflow fail before mutations", () => {
+  const gear = { kind: "gear" as const, slot: "mainWeapon", itemId: "cinderedge" };
+  for (const override of [
+    { firstClearXp: 100001 }, { firstClearGold: -1 }, { firstClearGold: 1000001 },
+    { firstClearItems: [gear, gear] }, { firstClearItems: Array(9).fill(gear) },
+    { firstClearItems: [{ ...gear, itemId: "invented" }] },
+    { firstClearItems: [{ kind: "ability" as const, slot: "jump", itemId: "eloise.double_jump", characterId: "bountyHunter" }] },
+  ]) {
+    const state = starterCanonicalState("main", "mission-player");
+    const before = structuredClone(state);
+    assert.throws(() => settleMission(state, override));
+    assert.deepEqual(state, before);
+  }
+  const state = starterCanonicalState("main", "mission-player");
+  state.progression.gold = Number.MAX_SAFE_INTEGER - 100;
+  const before = structuredClone(state);
+  assert.throws(() => settleMission(state));
   assert.deepEqual(state, before);
 });

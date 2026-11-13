@@ -12,6 +12,7 @@ class UiSegmentedControlTheme extends ThemeExtension<UiSegmentedControlTheme> {
     required this.foreground,
     required this.selectedForeground,
     required this.border,
+    required this.selectedBorder,
     required this.sizes,
     required this.text,
     this.disabledAlpha = 0.45,
@@ -25,6 +26,7 @@ class UiSegmentedControlTheme extends ThemeExtension<UiSegmentedControlTheme> {
   final Color foreground;
   final Color selectedForeground;
   final Color border;
+  final Color selectedBorder;
 
   final UiSegmentedControlSizes sizes;
   final UiSegmentedControlTextStyles text;
@@ -35,18 +37,27 @@ class UiSegmentedControlTheme extends ThemeExtension<UiSegmentedControlTheme> {
   final bool showSelectedIcon;
 
   static const UiSegmentedControlTheme standard = UiSegmentedControlTheme(
-    background: UiBrandPalette.cardBackground,
-    selectedBackground: UiBrandPalette.wornGoldInsetBorder,
-    foreground: UiBrandPalette.steelBlueForeground,
-    selectedForeground: UiBrandPalette.cardBackground,
-    border: UiBrandPalette.wornGoldInsetBorder,
+    background: UiBrandPalette.steelBlueInsetBottom,
+    selectedBackground: UiBrandPalette.steelBlueInsetTop,
+    foreground: UiBrandPalette.steelBlueMutedText,
+    selectedForeground: UiBrandPalette.steelBlueForeground,
+    border: UiBrandPalette.steelBlueSurfaceTop,
+    selectedBorder: UiBrandPalette.wornGoldOutline,
     sizes: UiSegmentedControlSizes(
-      sm: UiSegmentedControlSizeMetrics(height: 32, paddingHorizontal: 8),
+      sm: UiSegmentedControlSizeMetrics(height: 44, paddingHorizontal: 12),
       md: UiSegmentedControlSizeMetrics(height: 48, paddingHorizontal: 16),
     ),
     text: UiSegmentedControlTextStyles(
-      sm: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-      md: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      sm: TextStyle(
+        fontFamily: 'Inter',
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+      md: TextStyle(
+        fontFamily: 'Inter',
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
     ),
   );
 
@@ -58,9 +69,16 @@ class UiSegmentedControlTheme extends ThemeExtension<UiSegmentedControlTheme> {
 
     return UiSegmentedControlSpec(
       height: metrics.height,
-      padding: EdgeInsets.symmetric(horizontal: metrics.paddingHorizontal),
-      radius: ui.radii.xl,
-      textStyle: text.style(size).copyWith(letterSpacing: 1.2),
+      padding: EdgeInsets.symmetric(
+        horizontal: metrics.paddingHorizontal,
+        vertical: ui.space.xs,
+      ),
+      radius: ui.radii.md,
+      segmentRadius: ui.radii.sm,
+      inset: ui.space.xxs,
+      spacing: ui.space.xxs,
+      borderWidth: 1,
+      textStyle: text.style(size).copyWith(letterSpacing: 0.2),
       showSelectedIcon: showSelectedIcon,
     );
   }
@@ -72,6 +90,7 @@ class UiSegmentedControlTheme extends ThemeExtension<UiSegmentedControlTheme> {
     Color? foreground,
     Color? selectedForeground,
     Color? border,
+    Color? selectedBorder,
     UiSegmentedControlSizes? sizes,
     UiSegmentedControlTextStyles? text,
     double? disabledAlpha,
@@ -85,6 +104,7 @@ class UiSegmentedControlTheme extends ThemeExtension<UiSegmentedControlTheme> {
       foreground: foreground ?? this.foreground,
       selectedForeground: selectedForeground ?? this.selectedForeground,
       border: border ?? this.border,
+      selectedBorder: selectedBorder ?? this.selectedBorder,
       sizes: sizes ?? this.sizes,
       text: text ?? this.text,
       disabledAlpha: disabledAlpha ?? this.disabledAlpha,
@@ -148,6 +168,10 @@ class UiSegmentedControlSpec {
     required this.height,
     required this.padding,
     required this.radius,
+    required this.segmentRadius,
+    required this.inset,
+    required this.spacing,
+    required this.borderWidth,
     required this.textStyle,
     required this.showSelectedIcon,
   });
@@ -155,6 +179,10 @@ class UiSegmentedControlSpec {
   final double height;
   final EdgeInsetsGeometry padding;
   final double radius;
+  final double segmentRadius;
+  final double inset;
+  final double spacing;
+  final double borderWidth;
   final TextStyle textStyle;
   final bool showSelectedIcon;
 }

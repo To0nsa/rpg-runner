@@ -15,6 +15,7 @@ import '../../terrain/water_region.dart';
 import '../entity_id.dart';
 import '../collider_aabb_utils.dart';
 import '../combat_target.dart';
+import '../../snapshots/enums.dart';
 import '../world.dart';
 
 /// Routes polygon-terrain graphs into the existing ground-enemy intent store.
@@ -119,7 +120,8 @@ final class TerrainEnemyNavigationSystem {
           )],
       };
       if (graph == null) continue;
-      final targetId = combatTarget(world, enemy, player);
+      final returning = world.campaignEnemy.isReturning(enemy);
+      final targetId = returning ? enemy : combatTarget(world, enemy, player);
       if (targetId == null ||
           !world.worldContactCapsule.has(targetId) ||
           !world.terrainTraversalProfile.has(targetId) ||
@@ -137,9 +139,16 @@ final class TerrainEnemyNavigationSystem {
             world.transform.posX[world.transform.indexOf(enemy)];
         continue;
       }
-      if (npcIndex != null) {
+      final campaignIndex = world.campaignEnemy.tryIndexOf(enemy);
+      if (npcIndex != null ||
+          (campaignIndex != null &&
+              world.campaignEnemy.returnWhenPlayerRetreats[campaignIndex])) {
         final original = graph;
-        final bounds = world.npc.movementBounds[npcIndex];
+        final bounds = npcIndex != null
+            ? world.npc.movementBounds[npcIndex]
+            : world.actorMotionBounds.bounds[world.actorMotionBounds.indexOf(
+                enemy,
+              )]!;
         graph = _boundedGraphs.putIfAbsent((
           graph.profileKey,
           bounds.minXTicks,
@@ -151,15 +160,27 @@ final class TerrainEnemyNavigationSystem {
         navStore.terrainState[navIndex].invalidateForBundle(bundle.version);
         navStore.targetEntity[navIndex] = targetId;
       }
-      final target = _tickTargets.putIfAbsent(
-        targetId,
-        () => _targetSnapshot(
-          world,
-          targetEntity: targetId,
-          bundle: bundle,
-          isPlayer: targetId == player,
-        ),
-      );
+      final target = returning
+          ? _stationaryTargetSnapshot(
+              world,
+              enemy,
+              bundle.version,
+              bodyX: world.campaignEnemy.homeX[campaignIndex!],
+              bodyY: world.campaignEnemy.homeY[campaignIndex],
+              facingSign:
+                  world.campaignEnemy.homeFacing[campaignIndex] == Facing.left
+                  ? -1
+                  : 1,
+            )
+          : _tickTargets.putIfAbsent(
+              targetId,
+              () => _targetSnapshot(
+                world,
+                targetEntity: targetId,
+                bundle: bundle,
+                isPlayer: targetId == player,
+              ),
+            );
 
       final actor = _actorSnapshot(
         world,
@@ -174,7 +195,9 @@ final class TerrainEnemyNavigationSystem {
         _writeWaterIntent(
           world,
           intentIndex,
-          world.transform.posX[world.transform.indexOf(targetId)],
+          returning
+              ? target.bodyCenter.xTicks / terrainPhysicsTicksPerWorldUnit
+              : world.transform.posX[world.transform.indexOf(targetId)],
         );
         lastNavigatedEnemyCount += 1;
         continue;
@@ -225,7 +248,8 @@ final class TerrainEnemyNavigationSystem {
           intentIndex,
           target.bodyCenter.xTicks / terrainPhysicsTicksPerWorldUnit,
         );
-      } else if (selectionIndex != null &&
+      } else if (!returning &&
+          selectionIndex != null &&
           targetId != player &&
           !intent.hasPlan &&
           actor.grounded &&
@@ -391,13 +415,16 @@ final class TerrainEnemyNavigationSystem {
   TerrainSurfaceNavigationActorSnapshot _stationaryTargetSnapshot(
     EcsWorld world,
     EntityId entity,
-    int bundleVersion,
-  ) {
+    int bundleVersion, {
+    double? bodyX,
+    double? bodyY,
+    int? facingSign,
+  }) {
     final ti = world.transform.indexOf(entity);
     final ci = world.worldContactCapsule.indexOf(entity);
     final bodyCenter = TerrainPoint(
-      physicsCoordinateToTicks(world.transform.posX[ti]),
-      physicsCoordinateToTicks(world.transform.posY[ti]),
+      physicsCoordinateToTicks(bodyX ?? world.transform.posX[ti]),
+      physicsCoordinateToTicks(bodyY ?? world.transform.posY[ti]),
     );
     final capsule = TerrainPlacementCapsule(
       radiusTicks: world.worldContactCapsule.radiusTicks[ci],
@@ -405,7 +432,7 @@ final class TerrainEnemyNavigationSystem {
           world.worldContactCapsule.verticalHalfSegmentTicks[ci],
       resolvedOffsetXTicks:
           world.worldContactCapsule.offsetXTicks[ci] *
-          colliderFacingSign(world, entity),
+          (facingSign ?? colliderFacingSign(world, entity)),
       offsetYTicks: world.worldContactCapsule.offsetYTicks[ci],
     );
     final profile = world

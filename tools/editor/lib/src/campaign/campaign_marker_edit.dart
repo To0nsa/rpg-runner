@@ -47,6 +47,7 @@ CampaignPlacementSource moveCampaignPlacement(
     p.id,
     point,
     required: p.required,
+    returnWhenPlayerRetreats: p.returnWhenPlayerRetreats,
     marker: SpawnMarker(
       enemyId: p.marker.enemyId,
       x: point.x,
@@ -57,12 +58,12 @@ CampaignPlacementSource moveCampaignPlacement(
   ),
   CampaignTrapSource p => CampaignTrapSource(
     p.id,
-    point.occurrenceId,
+    point.missionChunkId,
     p.trap.copyWith(x: point.x.round(), y: point.y.round()),
   ),
   CampaignRescueSource p => CampaignRescueSource(
     p.id,
-    point.occurrenceId,
+    point.missionChunkId,
     translateCampaignRescue(
       p.encounter,
       point.x - p.position.x,
@@ -124,13 +125,13 @@ Map<String, Object?> replaceCampaignMarker(
       json['requiredEnemies'] = [
         for (final target in mission.requiredEnemies)
           {
-            'occurrenceId':
-                target.occurrenceId == old.occurrenceId &&
+            'missionChunkId':
+                target.missionChunkId == old.missionChunkId &&
                     target.markerSalt == old.marker.salt
-                ? p.occurrenceId
-                : target.occurrenceId,
+                ? p.missionChunkId
+                : target.missionChunkId,
             'markerSalt':
-                target.occurrenceId == old.occurrenceId &&
+                target.missionChunkId == old.missionChunkId &&
                     target.markerSalt == old.marker.salt
                 ? p.marker.salt
                 : target.markerSalt,
@@ -141,11 +142,11 @@ Map<String, Object?> replaceCampaignMarker(
       json['requiredRescues'] = [
         for (final target in mission.requiredRescues)
           {
-            'occurrenceId':
-                target.occurrenceId == old.occurrenceId &&
+            'missionChunkId':
+                target.missionChunkId == old.missionChunkId &&
                     target.encounterId == old.encounter.id
-                ? p.occurrenceId
-                : target.occurrenceId,
+                ? p.missionChunkId
+                : target.missionChunkId,
             'encounterId': target.encounterId,
           },
       ];
@@ -185,13 +186,14 @@ Map<String, Object?> removeCampaignMarker(
     if (p is CampaignEnemySource) {
       (json['requiredEnemies'] as List).removeWhere(
         (v) =>
-            v['occurrenceId'] == p.occurrenceId &&
+            v['missionChunkId'] == p.missionChunkId &&
             v['markerSalt'] == p.marker.salt,
       );
     }
     if (p is CampaignRescueSource) {
       (json['requiredRescues'] as List).removeWhere(
-        (v) => v['occurrenceId'] == p.occurrenceId && v['encounterId'] == p.id,
+        (v) =>
+            v['missionChunkId'] == p.missionChunkId && v['encounterId'] == p.id,
       );
     }
   } else {
@@ -223,31 +225,37 @@ int allocateCampaignEnemySalt(
   throw StateError('No enemy marker identities remain.');
 }
 
+/// Allocates the first unused mission_chunk_N for both append and duplicate.
+/// Existing route identities and their references remain unchanged.
+String nextMissionChunkId(CampaignMissionSource mission) {
+  var suffix = 1;
+  while (mission.route.any((o) => o.id == 'mission_chunk_$suffix')) {
+    suffix++;
+  }
+  return 'mission_chunk_$suffix';
+}
+
 /// Ordinary route duplication copies local gameplay with new identities. Start
 /// and exit remain mission singletons; shared chunk sources are never rewritten.
-Map<String, Object?> duplicateCampaignOccurrence(
+Map<String, Object?> duplicateCampaignMissionChunk(
   CampaignMissionSource mission,
   int index,
 ) {
   final original = mission.route[index];
-  var suffix = 1;
-  while (mission.route.any((o) => o.id == 'occurrence_$suffix')) {
-    suffix++;
-  }
-  final occurrence = 'occurrence_$suffix';
+  final missionChunk = nextMissionChunkId(mission);
   final json = mission.toJson();
   (json['route'] as List).insert(index + 1, {
-    'id': occurrence,
+    'id': missionChunk,
     'levelId': original.levelId,
     'chunkKey': original.chunkKey,
   });
   CampaignPoint point(CampaignPoint p) =>
-      CampaignPoint(occurrenceId: occurrence, x: p.x, y: p.y);
+      CampaignPoint(missionChunkId: missionChunk, x: p.x, y: p.y);
   final ids = mission.placements.map((p) => p.id).toSet();
   final rescueIds = <String, String>{};
   final copies = <CampaignPlacementSource>[];
   for (final p in mission.placements.where(
-    (p) => p.occurrenceId == original.id,
+    (p) => p.missionChunkId == original.id,
   )) {
     final id = nextEncounterSourceId(p.id, ids);
     ids.add(id);
@@ -268,14 +276,14 @@ Map<String, Object?> duplicateCampaignOccurrence(
   json['collectibles'] = [
     ...json['collectibles'] as List,
     for (final p in mission.collectibles.where(
-      (p) => p.occurrenceId == original.id,
+      (p) => p.missionChunkId == original.id,
     ))
       campaignPointToJson(point(p)),
   ];
   json['requiredRegions'] = [
     ...json['requiredRegions'] as List,
     for (final r in mission.requiredRegions.where(
-      (r) => r.origin.occurrenceId == original.id,
+      (r) => r.origin.missionChunkId == original.id,
     ))
       campaignRegionToJson(
         CampaignRegion(
@@ -288,17 +296,17 @@ Map<String, Object?> duplicateCampaignOccurrence(
   json['requiredEnemies'] = [
     ...json['requiredEnemies'] as List,
     for (final e in mission.requiredEnemies.where(
-      (e) => e.occurrenceId == original.id,
+      (e) => e.missionChunkId == original.id,
     ))
-      {'occurrenceId': occurrence, 'markerSalt': e.markerSalt},
+      {'missionChunkId': missionChunk, 'markerSalt': e.markerSalt},
   ];
   json['requiredRescues'] = [
     ...json['requiredRescues'] as List,
     for (final e in mission.requiredRescues.where(
-      (e) => e.occurrenceId == original.id,
+      (e) => e.missionChunkId == original.id,
     ))
       {
-        'occurrenceId': occurrence,
+        'missionChunkId': missionChunk,
         'encounterId': rescueIds[e.encounterId] ?? e.encounterId,
       },
   ];

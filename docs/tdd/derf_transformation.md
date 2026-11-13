@@ -4,6 +4,12 @@ Derf retains one `EnemyId.derf` entity, health pool, scoring identity and terrai
 capsule across `caster`, `transforming`, and `twisted` phases in `DerfPhaseStore`.
 Death remains owned by the existing death lifecycle.
 
+Ordinary Campaign markers use the shared [activation policy](campaign_runtime.md#ordinary-enemy-activation-and-pursuit).
+Derf cannot cast while waiting, and engagement (approach or damage)
+starts transformation, including off screen. Transformation still completes once;
+disengagement never restores caster form. Runner and rescue Derfs retain the
+camera-entry trigger described below.
+
 ## Phase authority and ordering
 
 `DerfTransformationSystem` runs after lock refresh before AI, and again after

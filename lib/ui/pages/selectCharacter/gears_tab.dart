@@ -22,6 +22,9 @@ import '../../state/app/app_state.dart';
 import '../../theme/ui_tokens.dart';
 import 'gear/gear_picker_candidates_panel.dart';
 import 'gear/gear_picker_stats_panel.dart';
+import 'save_build_change.dart';
+import '../town/town_equipment_args.dart';
+import '../../state/ownership/progression_state.dart';
 
 /// In-tab gear management surface (no modal dialog).
 ///
@@ -29,9 +32,10 @@ import 'gear/gear_picker_stats_panel.dart';
 /// - left: slot selector + selected-item details
 /// - right: selectable candidates for the active slot
 class GearsTab extends StatefulWidget {
-  const GearsTab({super.key, required this.characterId});
+  const GearsTab({super.key, required this.characterId, this.buildIndex});
 
   final PlayerCharacterId characterId;
+  final int? buildIndex;
 
   @override
   State<GearsTab> createState() => _GearsTabState();
@@ -69,8 +73,16 @@ class _GearsTabState extends State<GearsTab> {
     final ui = context.ui;
     final appState = context.watch<AppState>();
     final meta = appState.meta;
-    final equipped = meta.equippedFor(widget.characterId);
-    final loadout = appState.selection.loadoutFor(widget.characterId);
+    final loadout = appState.selection.loadoutFor(
+      widget.characterId,
+      buildIndex: widget.buildIndex,
+    );
+    final equipped = EquippedGear(
+      mainWeaponId: loadout.mainWeaponId,
+      offhandWeaponId: loadout.offhandWeaponId,
+      spellBookId: loadout.spellBookId,
+      accessoryId: loadout.accessoryId,
+    );
     final slotSpecs = _slotSpecsForMask(loadout.mask);
     final selectedSlot = _selectedSlotForBuild(slotSpecs, equipped);
     final selectedSlotIndex = _indexForSlot(selectedSlot, slotSpecs);
@@ -324,10 +336,14 @@ class _GearsTabState extends State<GearsTab> {
     required Object equippedId,
   }) async {
     if (selectedId == equippedId) return;
-    await appState.equipGear(
-      characterId: widget.characterId,
-      slot: slot,
-      itemId: selectedId,
+    await saveBuildChange(
+      context,
+      () => appState.equipGear(
+        characterId: widget.characterId,
+        buildIndex: widget.buildIndex,
+        slot: slot,
+        itemId: selectedId,
+      ),
     );
   }
 
@@ -343,7 +359,19 @@ class _GearsTabState extends State<GearsTab> {
       ),
     );
     if (confirmed == true && mounted) {
-      await Navigator.of(context).pushNamed(UiRoutes.town);
+      await Navigator.of(context).pushNamed(
+        UiRoutes.townEquipment,
+        arguments: TownEquipmentArgs(
+          characterId: widget.characterId,
+          buildIndex: widget.buildIndex,
+          slot: switch (slot) {
+            GearSlot.mainWeapon => StoreSlot.mainWeapon,
+            GearSlot.offhandWeapon => StoreSlot.offhandWeapon,
+            GearSlot.spellBook => StoreSlot.spellBook,
+            GearSlot.accessory => StoreSlot.accessory,
+          },
+        ),
+      );
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 
 import '../../components/menu_layout.dart';
 import 'build_name_action.dart';
@@ -13,8 +14,16 @@ import 'gears_tab.dart';
 import 'skills_tab.dart';
 import 'training_field_tab.dart';
 
+/// Pins editing to a saved slot without changing the next-run selection.
+class LoadoutSetupArgs {
+  const LoadoutSetupArgs({required this.characterId, required this.buildIndex});
+  final PlayerCharacterId characterId;
+  final int buildIndex;
+}
+
 class LoadoutSetupPage extends StatefulWidget {
-  const LoadoutSetupPage({super.key});
+  const LoadoutSetupPage({super.key, this.args});
+  final LoadoutSetupArgs? args;
 
   @override
   State<LoadoutSetupPage> createState() => _LoadoutSetupPageState();
@@ -23,6 +32,21 @@ class LoadoutSetupPage extends StatefulWidget {
 class _LoadoutSetupPageState extends State<LoadoutSetupPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
+  LoadoutSetupArgs? _target;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final selection = context.read<AppState>().selection;
+    _target ??=
+        widget.args ??
+        LoadoutSetupArgs(
+          characterId: selection.selectedCharacterId,
+          buildIndex: selection.selectedBuildIndexFor(
+            selection.selectedCharacterId,
+          ),
+        );
+  }
 
   @override
   void initState() {
@@ -42,7 +66,17 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final characterId = context.watch<AppState>().selection.selectedCharacterId;
+    final app = context.watch<AppState>();
+    final characterId = _target!.characterId;
+    final buildIndex = _target!.buildIndex;
+    if (!app.isCharacterUnlocked(characterId) ||
+        !app.isBuildUnlocked(buildIndex)) {
+      return MenuScaffold(
+        child: Center(
+          child: Text(context.l10n.uiCouldNotSaveThisSelectionPleaseTryAgain),
+        ),
+      );
+    }
     final selectedDef = PlayerCharacterRegistry.resolve(characterId);
     final trainingActive = _tabs.index == 2;
     // Hidden editors keep the same viewport while training draws under the bar,
@@ -58,7 +92,9 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
       removeBottom: true,
       child: MenuScaffold(
         overlayAppBar: trainingActive,
-        appBarActions: const [BuildNameAction()],
+        appBarActions: [
+          BuildNameAction(characterId: characterId, buildIndex: buildIndex),
+        ],
         appBarTitle: SizedBox(
           height: 44,
           child: TabBar(
@@ -99,13 +135,19 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
         ),
         centerAppBarTitle: true,
         child: IndexedStack(
-          key: ValueKey(characterId),
+          key: ValueKey((characterId, buildIndex)),
           index: _tabs.index,
           sizing: StackFit.expand,
           children: [
             for (final (index, tab) in <(int, Widget)>[
-              (0, GearsTab(characterId: selectedDef.id)),
-              (1, SkillsBar(characterId: selectedDef.id)),
+              (
+                0,
+                GearsTab(characterId: selectedDef.id, buildIndex: buildIndex),
+              ),
+              (
+                1,
+                SkillsBar(characterId: selectedDef.id, buildIndex: buildIndex),
+              ),
             ])
               TickerMode(
                 enabled: _tabs.index == index,
@@ -119,7 +161,7 @@ class _LoadoutSetupPageState extends State<LoadoutSetupPage>
               ),
             // Training owns a disposable session; only the editors are retained.
             if (trainingActive)
-              const TrainingFieldTab()
+              TrainingFieldTab(characterId: characterId, buildIndex: buildIndex)
             else
               const SizedBox.shrink(),
           ],

@@ -78,7 +78,7 @@ part 'controllers/developer_controller.dart';
 part 'controllers/inbox_controller.dart';
 part 'controllers/achievements_controller.dart';
 
-const String _defaultGameCompatVersion = '2026.11.11';
+const String _defaultGameCompatVersion = '2026.11.14';
 
 const LevelId _defaultWeeklyFeaturedLevelId = LevelId.field;
 const int _runTicketPrefetchCacheMaxEntries = 4;
@@ -446,30 +446,42 @@ class AppState extends ChangeNotifier {
   Future<void> setLoadout(EquippedLoadoutDef loadout) =>
       _selectionOwnershipController.setLoadout(loadout);
 
+  /// Edits an unlocked saved build without activating it. A missing index uses
+  /// this character's remembered slot, pinned before asynchronous work.
   Future<void> setAbilitySlot({
     required PlayerCharacterId characterId,
+    int? buildIndex,
     required AbilitySlot slot,
     required AbilityKey abilityId,
   }) => _selectionOwnershipController.setAbilitySlot(
     characterId: characterId,
+    buildIndex: buildIndex,
     slot: slot,
     abilityId: abilityId,
   );
 
+  /// Changes the projectile source in an unlocked saved build without selecting
+  /// it. A missing index uses this character's remembered slot.
   Future<void> setProjectileSpell({
     required PlayerCharacterId characterId,
+    int? buildIndex,
     required ProjectileId spellId,
   }) => _selectionOwnershipController.setProjectileSpell(
     characterId: characterId,
+    buildIndex: buildIndex,
     spellId: spellId,
   );
 
+  /// Equips gear in an unlocked saved build without selecting it. Inactive slot
+  /// edits leave the character's equipped-meta projection unchanged.
   Future<void> equipGear({
     required PlayerCharacterId characterId,
+    int? buildIndex,
     required GearSlot slot,
     required Object itemId,
   }) => _selectionOwnershipController.equipGear(
     characterId: characterId,
+    buildIndex: buildIndex,
     slot: slot,
     itemId: itemId,
   );
@@ -480,8 +492,17 @@ class AppState extends ChangeNotifier {
   Future<void> selectBuild(PlayerCharacterId characterId, int index) =>
       _selectionOwnershipController.selectBuild(characterId, index);
 
-  Future<void> setBuildName(String buildName) =>
-      _selectionOwnershipController.setBuildName(buildName);
+  /// Renames the addressed saved build without activating it. Omitted addresses
+  /// resolve to the current selection before pending edits are flushed.
+  Future<void> setBuildName(
+    String buildName, {
+    PlayerCharacterId? characterId,
+    int? buildIndex,
+  }) => _selectionOwnershipController.setBuildName(
+    buildName,
+    characterId: characterId,
+    buildIndex: buildIndex,
+  );
 
   Future<OwnershipCommandResult> purchaseStoreOffer({
     required String offerId,

@@ -33,9 +33,11 @@ project. Login grants no IAM permissions; the operator needs access separately.
 ## Send and recover
 
 1. Select an environment and verify its displayed project.
-2. Enter one player's UID, English title/body, and optional whole gold amount.
-   For French recipients, fill both optional French fields using **tu**. Leaving
-   both empty retains English fallback. Review all translations before sending.
+2. Enter one player's UID and optional whole gold amount. Use the **English** /
+   **Français** tabs, shared with the editor, to write the title and body one
+   language at a time. English is required; French is optional and uses **tu**.
+   Supply both French fields or leave both empty for English fallback. Switching
+   tabs preserves both drafts; Review shows all translations before sending.
 3. In an enabled environment, choose up to eight existing items/skills. Gear is
    account-wide. Skills/spells require the displayed character target.
 4. Preview, check destination/contents, then send. The player claims all gifts

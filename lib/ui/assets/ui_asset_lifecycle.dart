@@ -13,6 +13,7 @@ import '../../game/components/player/player_animations.dart';
 import '../../game/themes/parallax_theme_registry.dart';
 import 'lru_cache.dart';
 import 'enemy_portrait_loader.dart';
+import '../campaign/campaign_catalog.dart';
 
 class IdleAnimBundle {
   const IdleAnimBundle({
@@ -132,9 +133,7 @@ class UiAssetLifecycle {
         getIdle(characterId),
         precacheParallaxLayers(layers, context),
         _precacheImageOnce(
-          const AssetImage(
-            'assets/images/maps/theodonis_region_unlabelled.png',
-          ),
+          AssetImage(CampaignCatalog.mapAssetPath),
           context,
         ),
       ]);

@@ -696,14 +696,14 @@ void _requireCampaignReferencesRetained(
       ChunkV2FileCodec.decode(text).chunkKey,
   };
   for (final mission in catalog.missions) {
-    for (final occurrence in mission.route) {
-      if (!originalKeys.contains(occurrence.chunkKey)) continue;
-      final chunk = chunks[occurrence.chunkKey];
-      if (chunk == null || chunk.levelId != occurrence.levelId) {
+    for (final missionChunk in mission.route) {
+      if (!originalKeys.contains(missionChunk.chunkKey)) continue;
+      final chunk = chunks[missionChunk.chunkKey];
+      if (chunk == null || chunk.levelId != missionChunk.levelId) {
         throw ChunkV2SaveException(
           code: 'chunk_v2_campaign_reference',
           message:
-              '${occurrence.chunkKey} is used by ${mission.id}. Update its campaign occurrence before moving, renaming or deleting it.',
+              '${missionChunk.chunkKey} is used by ${mission.id}. Update its mission chunk before moving, renaming or deleting it.',
         );
       }
     }

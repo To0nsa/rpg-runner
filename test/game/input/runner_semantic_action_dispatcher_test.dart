@@ -12,6 +12,30 @@ import '../../support/test_level.dart';
 import '../../test_tunings.dart';
 
 void main() {
+  test(
+    'revealing directional mobility alone admits aim without unlocking attacks',
+    () {
+      var mobilityVisible = false;
+      final harness = _InputHarness(
+        modes: {RunnerGameplayAction.mobility: AbilityInputMode.holdAimRelease},
+        isActionAllowed: (action) =>
+            mobilityVisible && action == RunnerGameplayAction.mobility,
+      );
+      addTearDown(harness.controller.dispose);
+      harness.dispatcher.setAimDir(1, 0);
+      expect(harness.advance().aimDirX, isNull);
+      mobilityVisible = true;
+      harness.dispatcher.beginAction(RunnerGameplayAction.mobility);
+      harness.dispatcher.setAimDir(1, 0);
+      harness.dispatcher.releaseAction(RunnerGameplayAction.mobility);
+      harness.dispatcher.triggerAction(RunnerGameplayAction.primary);
+      final frame = harness.advance();
+      expect(frame.aimDirX, greaterThan(0));
+      expect(frame.aimDirY, 0);
+      expect(frame.pressedMask, ReplayCommandFrameV1.pressedDashBit);
+    },
+  );
+
   test('pause cancellation discards queued taps before the next tick', () {
     final harness = _InputHarness();
     for (final action in const [
@@ -359,8 +383,10 @@ void main() {
 }
 
 final class _InputHarness {
-  _InputHarness({Map<RunnerGameplayAction, AbilityInputMode>? modes})
-    : modes = modes ?? <RunnerGameplayAction, AbilityInputMode>{} {
+  _InputHarness({
+    Map<RunnerGameplayAction, AbilityInputMode>? modes,
+    bool Function(RunnerGameplayAction)? isActionAllowed,
+  }) : modes = modes ?? <RunnerGameplayAction, AbilityInputMode>{} {
     final core = GameCore(
       levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
       playerCharacter: testPlayerCharacter,
@@ -370,6 +396,7 @@ final class _InputHarness {
     controller = GameController(core: core);
     dispatcher = RunnerSemanticActionDispatcher(
       input: RunnerInputRouter(controller: controller),
+      isActionAllowed: isActionAllowed,
       resolveInputMode: (action) => this.modes[action] ?? AbilityInputMode.tap,
     );
     controller.addAppliedCommandFrameListener(frames.add);

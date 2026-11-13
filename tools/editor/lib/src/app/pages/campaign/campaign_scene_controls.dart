@@ -99,6 +99,7 @@ class CampaignSceneControls extends StatelessWidget {
               place: CampaignMarkerTool.place,
               move: CampaignMarkerTool.move,
               selected: e.tool,
+              canPlace: e.brush != CampaignMarkerBrush.none,
               onChanged: enabled
                   ? (tool) {
                       if (!e.finishDraft()) return;

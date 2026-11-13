@@ -1,4 +1,5 @@
 import '../contracts/render_anim_set_definition.dart';
+import '../players/player_character_definition.dart';
 import '../snapshots/entity_render_snapshot.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
@@ -32,7 +33,11 @@ RenderAnimSetDefinition _rowFromSheet({
 }
 
 class PickupRenderCatalog {
-  const PickupRenderCatalog();
+  /// Selects pickup art for the viewing character; variants and timing stay shared.
+  const PickupRenderCatalog({this.playerCharacter = PlayerCharacterId.eloise});
+
+  /// Willow's shared mana pickup represents Supplies and uses the gold strip.
+  final PlayerCharacterId playerCharacter;
 
   RenderAnimSetDefinition get(int pickupVariant) {
     switch (pickupVariant) {
@@ -56,7 +61,10 @@ class PickupRenderCatalog {
       case PickupVariant.restorationMana:
         return _rowFromSheet(
           assetPath: 'entities/regenerationItems/gems.png',
-          row: 1,
+          row: switch (playerCharacter) {
+            PlayerCharacterId.eloise => 1,
+            PlayerCharacterId.bountyHunter => 3,
+          },
         );
       case PickupVariant.restorationStamina:
         return _rowFromSheet(

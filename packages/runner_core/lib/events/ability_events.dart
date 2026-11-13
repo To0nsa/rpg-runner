@@ -1,5 +1,18 @@
 part of 'game_event.dart';
 
+/// A real player attack delivery was created after windup. Rejected presses and
+/// interrupted windups emit nothing; fan projectiles emit once per activation.
+final class PlayerAttackExecutedEvent extends GameEvent {
+  const PlayerAttackExecutedEvent({
+    required this.tick,
+    required this.slot,
+    required this.abilityId,
+  });
+  final int tick;
+  final AbilitySlot slot;
+  final AbilityKey abilityId;
+}
+
 /// Why a hold-to-maintain ability ended automatically.
 enum AbilityHoldEndReason {
   /// The authored max hold duration elapsed.

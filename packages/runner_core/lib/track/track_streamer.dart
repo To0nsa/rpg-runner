@@ -33,7 +33,7 @@ class SpawnEnemyRequest {
     required this.fallbackSupportY,
     this.source = EnemySpawnRequestSource.authoredMarker,
     this.placement = SpawnPlacementMode.ground,
-    this.occurrenceId,
+    this.missionChunkId,
     this.markerSalt,
   });
 
@@ -50,7 +50,7 @@ class SpawnEnemyRequest {
 
   /// Authored marker placement intent resolved by world terrain authority.
   final SpawnPlacementMode placement;
-  final String? occurrenceId;
+  final String? missionChunkId;
   final int? markerSalt;
 }
 
@@ -62,7 +62,7 @@ class TrackSpawnedChunk {
     required this.patternName,
     required this.tier,
     this.chunkKey,
-    this.occurrenceId,
+    this.missionChunkId,
   });
 
   /// Sequential chunk number (0 = first chunk).
@@ -81,8 +81,8 @@ class TrackSpawnedChunk {
   /// Stable authored identity key, or null in scheduler-only fixtures.
   final String? chunkKey;
 
-  /// Stable authored route occurrence, absent for procedural streaming.
-  final String? occurrenceId;
+  /// Stable authored mission chunk, absent for procedural streaming.
+  final String? missionChunkId;
 }
 
 /// Immutable selection identity for one currently streamed chunk.
@@ -102,7 +102,7 @@ class ActiveTrackChunkSnapshot {
     this.encounters = const [],
     this.bossArena,
     this.assembly,
-    this.occurrenceId,
+    this.missionChunkId,
   });
 
   /// Deterministic sequential streamed instance index.
@@ -131,8 +131,8 @@ class ActiveTrackChunkSnapshot {
   /// Exact selected Flow occurrence; null for automatic/standalone chunks.
   final ChunkAssemblySelection? assembly;
 
-  /// Stable authored route occurrence, absent for procedural streaming.
-  final String? occurrenceId;
+  /// Stable authored mission chunk, absent for procedural streaming.
+  final String? missionChunkId;
 }
 
 /// Result of a single [TrackStreamer.step] call.
@@ -290,7 +290,7 @@ class TrackStreamer {
           chunkKey: pattern.chunkKey,
           tier: choice.tier,
           assembly: choice.assembly,
-          occurrenceId: choice.occurrenceId,
+          missionChunkId: choice.missionChunkId,
           traps: List.unmodifiable(pattern.traps),
           encounters: List.unmodifiable(pattern.encounters),
           bossArena: pattern.bossArena,
@@ -358,7 +358,7 @@ class TrackStreamer {
             chunkKey: pattern.chunkKey,
             tier: selection.tier,
             assembly: selection.assembly,
-            occurrenceId: selection.occurrenceId,
+            missionChunkId: selection.missionChunkId,
             traps: List<TrapPlacement>.unmodifiable(pattern.traps),
             bossArena: pattern.bossArena,
             encounters: List<EncounterDefinition>.unmodifiable(
@@ -448,7 +448,7 @@ class TrackStreamer {
           chunkKey: pattern.chunkKey,
           tier: selection.tier,
           assembly: selection.assembly,
-          occurrenceId: selection.occurrenceId,
+          missionChunkId: selection.missionChunkId,
           visualSprites: visualSprites,
           pendingHashashSpawns: pendingHashashSpawns,
           traps: List<TrapPlacement>.unmodifiable(pattern.traps),
@@ -465,7 +465,7 @@ class TrackStreamer {
           patternName: pattern.name,
           tier: selection.tier,
           chunkKey: pattern.chunkKey,
-          occurrenceId: selection.occurrenceId,
+          missionChunkId: selection.missionChunkId,
         ),
       );
 
@@ -505,7 +505,7 @@ class TrackStreamer {
             chunkKey: c.chunkKey,
             tier: c.tier,
             assembly: c.assembly,
-            occurrenceId: c.occurrenceId,
+            missionChunkId: c.missionChunkId,
             traps: c.traps,
             encounters: c.encounters,
             bossArena: c.bossArena,
@@ -571,7 +571,7 @@ class TrackStreamer {
           x: x,
           fallbackSupportY: groundTopY,
           placement: m.placement,
-          occurrenceId: _finiteSource?.occurrences[chunkIndex].id,
+          missionChunkId: _finiteSource?.missionChunks[chunkIndex].id,
           markerSalt: _finiteSource == null ? null : m.salt,
         ),
       );
@@ -636,7 +636,7 @@ class _ActiveChunk {
     required this.visualSprites,
     required this.traps,
     required this.encounters,
-    this.occurrenceId,
+    this.missionChunkId,
     this.bossArena,
     this.pendingHashashSpawns = 0,
   });
@@ -656,7 +656,7 @@ class _ActiveChunk {
   /// Stable authored chunk identity, if the fixture provides one.
   final String? chunkKey;
 
-  final String? occurrenceId;
+  final String? missionChunkId;
 
   /// Resolved authored difficulty after any automatic-pool fallback.
   final ChunkPatternTier tier;

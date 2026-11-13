@@ -13,13 +13,18 @@ class DesktopControlsOverlay extends StatelessWidget {
     super.key,
     required this.controller,
     required this.panelKey,
+    this.visibleSlots = const {...AbilitySlot.values},
+    this.blockedSlots = const {},
   });
 
   final GameController controller;
   final GlobalKey panelKey;
+  final Set<AbilitySlot> visibleSlots;
+  final Set<AbilitySlot> blockedSlots;
 
   @override
   Widget build(BuildContext context) {
+    if (visibleSlots.isEmpty) return const SizedBox.shrink();
     final hud = controller.snapshot.hud;
     final ui = context.ui;
     final slots =
@@ -99,7 +104,9 @@ class DesktopControlsOverlay extends StatelessWidget {
                   spacing: ui.space.sm,
                   runSpacing: ui.space.xs,
                   children: [
-                    for (final item in slots)
+                    for (final item in slots.where(
+                      (item) => visibleSlots.contains(item.slot),
+                    ))
                       Builder(
                         builder: (context) {
                           final recast =
@@ -108,7 +115,8 @@ class DesktopControlsOverlay extends StatelessWidget {
                           final remaining = item.cooldown == null
                               ? 0
                               : hud.cooldownTicksLeft[item.cooldown!];
-                          final status = !item.valid
+                          final status =
+                              blockedSlots.contains(item.slot) || !item.valid
                               ? context.l10n.abilityUnavailable
                               : !item.affordable
                               ? context.l10n.abilityLowResource
@@ -120,7 +128,8 @@ class DesktopControlsOverlay extends StatelessWidget {
                                 )
                               : context.l10n.abilityReady;
                           final color =
-                              !item.valid ||
+                              blockedSlots.contains(item.slot) ||
+                                  !item.valid ||
                                   !item.affordable ||
                                   (remaining > 0 && !recast)
                               ? ui.colors.textMuted
@@ -166,7 +175,9 @@ class DesktopControlsOverlay extends StatelessWidget {
                       ),
                   ],
                 ),
-                if (hud.chargeEnabled && hud.chargeActive)
+                if (visibleSlots.contains(AbilitySlot.primary) &&
+                    hud.chargeEnabled &&
+                    hud.chargeActive)
                   Padding(
                     padding: EdgeInsets.only(top: ui.space.xxs),
                     child: Text(
@@ -180,12 +191,14 @@ class DesktopControlsOverlay extends StatelessWidget {
                       style: ui.text.label,
                     ),
                   ),
-                SizedBox(height: ui.space.xxs),
-                Text(
-                  context.l10n.desktopControlsHelp,
-                  textAlign: TextAlign.center,
-                  style: ui.text.body.copyWith(color: ui.colors.textMuted),
-                ),
+                if (visibleSlots.length == AbilitySlot.values.length)
+                  SizedBox(height: ui.space.xxs),
+                if (visibleSlots.length == AbilitySlot.values.length)
+                  Text(
+                    context.l10n.desktopControlsHelp,
+                    textAlign: TextAlign.center,
+                    style: ui.text.body.copyWith(color: ui.colors.textMuted),
+                  ),
               ],
             ),
           ),

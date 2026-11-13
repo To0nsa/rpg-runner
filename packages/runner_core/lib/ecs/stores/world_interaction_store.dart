@@ -55,8 +55,8 @@ final class WorldInteractionStore {
     for (final chunk in selected) {
       for (final binding in bindings) {
         if (chunk.chunkKey != binding.chunkKey ||
-            (binding.occurrenceId != null &&
-                binding.occurrenceId != chunk.occurrenceId)) {
+            (binding.missionChunkId != null &&
+                binding.missionChunkId != chunk.missionChunkId)) {
           continue;
         }
         if (catalog == null) {

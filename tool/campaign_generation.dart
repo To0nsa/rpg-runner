@@ -24,6 +24,15 @@ List<GeneratedArtifact> buildCampaignArtifacts(
   final catalog = CampaignCatalogSource.decode(
     inputs.readString(campaignSourcePath),
   );
+  final mapBytes = inputs.readBytes(catalog.map.assetPath);
+  final map = image.findDecoderForData(mapBytes)?.startDecode(mapBytes);
+  if (map == null ||
+      map.width != catalog.map.width ||
+      map.height != catalog.map.height) {
+    throw const FormatException(
+      'Campaign map is invalid or its dimensions changed; reselect it in Campaign settings.',
+    );
+  }
   final chunkTexts = <String, String>{};
   for (final path in inputs.files.keys.where(
     (p) => p.startsWith('$_chunksDirectoryPath/') && p.endsWith('.json'),
@@ -71,12 +80,16 @@ List<GeneratedArtifact> buildCampaignArtifacts(
   final projection = {
     'contentDigest': digest,
     'rewardPolicyVersion': 1,
+    'title': catalog.title,
+    'map': catalog.map.toJson(),
+    if (catalog.journal != null) 'journal': catalog.journal!.toJson(),
     'chapters': [
       for (final chapter in catalog.chapters)
         {
           'id': chapter.id,
           'title': chapter.title,
           'description': chapter.description,
+          if (chapter.journal != null) 'journal': chapter.journal!.toJson(),
           'mapX': chapter.mapX,
           'mapY': chapter.mapY,
           'rewardCharacterId': chapter.rewardCharacterId,
@@ -93,9 +106,21 @@ List<GeneratedArtifact> buildCampaignArtifacts(
                 'available': mission.includeInBuild,
                 'title': mission.title,
                 'description': mission.description,
+                if (mission.includeInBuild && mission.journal != null)
+                  'journal': mission.journal!.toJson(),
                 'levelId': mission.levelId,
+                'initialTutorialHud': mission.initialTutorialHud
+                    .map((e) => e.name)
+                    .toList(),
+                if (mission.tutorialSequences.isNotEmpty)
+                  'tutorialSequences': mission.tutorialSequences
+                      .map((t) => t.toJson())
+                      .toList(),
                 'firstClearXp': mission.firstClearXp,
-                'rewardAbilityId': mission.rewardAbilityId,
+                'firstClearGold': mission.firstClearGold,
+                'firstClearItems': mission.firstClearItems
+                    .map((item) => item.toJson())
+                    .toList(),
               },
           ],
         },
@@ -109,10 +134,10 @@ List<GeneratedArtifact> buildCampaignArtifacts(
   };
   final ordered = chunks.values.toList()
     ..sort((a, b) => a.pattern.chunkKey!.compareTo(b.pattern.chunkKey!));
-  final occurrences = included
-      .expand((m) => m.definition.route.occurrences)
+  final missionChunks = included
+      .expand((m) => m.definition.route.missionChunks)
       .toList();
-  final patterns = occurrences.map((o) => o.pattern).toList();
+  final patterns = missionChunks.map((o) => o.pattern).toList();
   final hasLocalActors = included.any(
     (m) => m.source.placements.any(
       (p) =>
@@ -175,7 +200,7 @@ List<GeneratedArtifact> buildCampaignArtifacts(
     }
     if (hasLocalActors) {
       _writePatternList(buffer, '_campaignPatterns', [
-        for (final o in occurrences)
+        for (final o in missionChunks)
           _ChunkExportData(
             path: campaignSourcePath,
             levelId: o.sourceLevelId,
@@ -195,10 +220,10 @@ List<GeneratedArtifact> buildCampaignArtifacts(
       'final campaignMissions = Map<String, CampaignMissionDefinition>.unmodifiable({',
     );
   String point(CampaignPoint p) =>
-      "CampaignPoint(occurrenceId: '${_escape(p.occurrenceId)}', x: ${p.x}, y: ${p.y})";
+      "CampaignPoint(missionChunkId: '${_escape(p.missionChunkId)}', x: ${p.x}, y: ${p.y})";
   String region(CampaignRegion r) =>
       'CampaignRegion(origin: ${point(r.origin)}, width: ${r.width}, height: ${r.height})';
-  var occurrenceIndex = 0;
+  var missionChunkIndex = 0;
   for (final mission in included) {
     final m = mission.source;
     final definition = mission.definition;
@@ -206,17 +231,15 @@ List<GeneratedArtifact> buildCampaignArtifacts(
       ..writeln(
         "'${m.id}': CampaignMissionDefinition(id: '${m.id}', visualThemeId: '${m.visualThemeId}',",
       )
-      ..writeln(
-        'terrainChunks: stagedAuthoredTerrain.chunks, combatAllowed: ${m.combatAllowed},',
-      )
+      ..writeln('terrainChunks: stagedAuthoredTerrain.chunks,')
       ..writeln('route: FiniteChunkPatternSource([');
     for (final o in m.route) {
       final index = ordered.indexWhere((c) => c.pattern.chunkKey == o.chunkKey);
       final pattern = hasLocalActors
-          ? '_campaignPatterns[${occurrenceIndex++}]'
+          ? '_campaignPatterns[${missionChunkIndex++}]'
           : '_chunks[$index]';
       buffer.writeln(
-        "FiniteChunkOccurrence(id: '${o.id}', sourceLevelId: '${o.levelId}', pattern: $pattern, tier: ChunkPatternTier.${ordered[index].stagedTerrain.difficulty}),",
+        "FiniteMissionChunk(id: '${o.id}', sourceLevelId: '${o.levelId}', pattern: $pattern, tier: ChunkPatternTier.${ordered[index].stagedTerrain.difficulty}),",
       );
     }
     buffer
@@ -238,7 +261,7 @@ List<GeneratedArtifact> buildCampaignArtifacts(
           'WorldInteractionBinding('
           'key: ${nullableString(binding.key)}, chunkKey: ${nullableString(binding.chunkKey)}, '
           'prefabKey: ${nullableString(binding.prefabKey)}, placementKey: ${nullableString(binding.placementKey)}, '
-          'shapeId: ${nullableString(binding.shapeId)}, occurrenceId: ${nullableString(binding.occurrenceId)}, '
+          'shapeId: ${nullableString(binding.shapeId)}, missionChunkId: ${nullableString(binding.missionChunkId)}, '
           'surfaceX: ${binding.surfaceX}, activationWidth: ${binding.activationWidth}, scaleOverride: ${binding.scaleOverride}, '
           'interactionId: WorldInteractionId.${binding.interactionId.name}, '
           'appearanceId: WorldInteractionAppearanceId.${binding.appearanceId.name}, zIndex: ${binding.zIndex}),',
@@ -246,15 +269,25 @@ List<GeneratedArtifact> buildCampaignArtifacts(
       }
       buffer.writeln('],');
     }
+    final shrine = definition.requiredBlessingShrine;
+    if (shrine != null) {
+      buffer.writeln(
+        "requiredBlessingShrine: (missionChunkId: '${shrine.missionChunkId}', bindingKey: '${shrine.bindingKey}'),",
+      );
+    }
     buffer
+      ..writeln('requiresFirstCoin: ${m.requiresFirstCoin},')
+      ..writeln(
+        "persistentPursuitEnemies: [${definition.persistentPursuitEnemies.map((e) => "(missionChunkId: '${e.missionChunkId}', markerSalt: ${e.markerSalt})").join(',')}],",
+      )
       ..writeln(
         'requiredRegions: [${m.requiredRegions.map(region).join(',')}],',
       )
       ..writeln(
-        "requiredEnemies: [${definition.requiredEnemies.map((e) => "(occurrenceId: '${e.occurrenceId}', markerSalt: ${e.markerSalt})").join(',')}],",
+        "requiredEnemies: [${definition.requiredEnemies.map((e) => "(missionChunkId: '${e.missionChunkId}', markerSalt: ${e.markerSalt})").join(',')}],",
       )
       ..writeln(
-        "requiredRescues: [${definition.requiredRescues.map((e) => "(occurrenceId: '${e.occurrenceId}', encounterId: '${e.encounterId}')").join(',')}],",
+        "requiredRescues: [${definition.requiredRescues.map((e) => "(missionChunkId: '${e.missionChunkId}', encounterId: '${e.encounterId}')").join(',')}],",
       )
       ..writeln('),');
   }

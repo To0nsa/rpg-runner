@@ -10,6 +10,73 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get tutorialNext => 'Suivant';
+
+  @override
+  String tutorialStepProgress({required int step, required int total}) {
+    return 'Étape $step/$total';
+  }
+
+  @override
+  String get characterTrainingTab => 'Entraînement';
+
+  @override
+  String get characterSelected => 'Sélectionné';
+
+  @override
+  String characterSelect({required String name}) {
+    return 'Choisir $name';
+  }
+
+  @override
+  String get characterActiveBuild => 'Active';
+
+  @override
+  String get characterUseBuild => 'Utiliser cette configuration';
+
+  @override
+  String characterSelectBuildSemantics({
+    required String build,
+    required String character,
+  }) {
+    return 'Utiliser $build avec $character';
+  }
+
+  @override
+  String characterEditBuildSemantics({
+    required String build,
+    required String character,
+  }) {
+    return 'Modifier $build pour $character';
+  }
+
+  @override
+  String characterBuildUnlockLevel({required int level}) {
+    return 'Se débloque au niveau $level';
+  }
+
+  @override
+  String get characterNextRun => 'Sélection pour la prochaine partie';
+
+  @override
+  String characterBuildSummary({
+    required String character,
+    required String build,
+  }) {
+    return '$character · $build';
+  }
+
+  @override
+  String get characterRenameBuild => 'Renommer';
+
+  @override
+  String get characterBuildSaved => 'Enregistré';
+
+  @override
+  String get characterBuildSaveFailed =>
+      'Impossible d’enregistrer tes modifications. Réessaie.';
+
+  @override
   String get appTitle => 'Lothringen: The Long Run';
 
   @override
@@ -2214,13 +2281,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get codexOpeningTitle => 'Les routes de Lothringen';
-
-  @override
-  String get codexOpening =>
-      'Théodonis se dresse derrière de vieux remparts, entourée de terres agricoles et de forêts. La cité a survécu aux guerres, aux raids et aux maladies ; sa stabilité apparente repose sur des institutions qui ont traversé bien des crises.\n\nIl y a longtemps, Éloïse a fondé La Main pour affronter une menace cachée. Après sa disparition, l’ordre a poursuivi son œuvre dans le secret. Plus récemment, un incident à la Villa Twinsen a laissé des questions sans réponse.\n\nSur les routes de Lothringen, Neyla mène une troupe itinérante d’artistes. Ils donnent des spectacles dans les communautés qu’ils visitent et apportent leur aide en chemin. Leur voyage les conduit désormais vers Théodonis.';
-
-  @override
   String get codexGrojibLore =>
       'Grojib réduit la distance sans hésiter. Un voyageur qui tient sa position après le premier coup risque de voir une nouvelle frappe déjà en route.';
 
@@ -2262,11 +2322,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get codexGrojibTactics =>
-      'Un poursuivant terrestre dont la seconde frappe de mêlée peut étourdir. Garde de la place pour éviter ce deuxième coup.';
+      'Un poursuivant terrestre dont la seconde frappe de mêlée peut étourdir.';
 
   @override
   String get codexHashashTactics =>
-      'Un assassin mobile qui tend des embuscades en se téléportant. Surveille son retour avant de t’engager.';
+      'Un assassin mobile qui tend des embuscades en se téléportant.';
 
   @override
   String get codexDerfTactics =>
@@ -2274,35 +2334,34 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get codexUnocoTactics =>
-      'Un lanceur de sorts volant qui peut aussi frapper de près. Reste en mouvement pendant qu’il vise son projectile.';
+      'Un lanceur de sorts volant qui peut aussi frapper de près.';
 
   @override
   String get codexBringerTactics =>
-      'Un combattant à la faux qui fait jaillir des piliers de ténèbres. Observe sa préparation et quitte les zones marquées au sol.';
+      'Un combattant à la faux qui fait jaillir des piliers de ténèbres.';
 
   @override
   String get codexGoddessTactics =>
-      'Combine des coups de griffe, des orbes sombres et des éruptions au sol. Repositionne-toi quand l’arène devient dangereuse.';
+      'Combine des coups de griffe, des orbes sombres et des éruptions au sol.';
 
   @override
   String get codexShoggothTactics =>
-      'Utilise des tentacules, des orbes sombres et des créatures invoquées. Gère les petites menaces tout en surveillant le boss.';
+      'Utilise des tentacules, des orbes sombres et des créatures invoquées.';
 
   @override
   String get codexVoidcallerTactics =>
-      'Utilise des rayons verticaux et diagonaux, des griffes de feu et des tentacules invoqués. Garde une issue lorsque les attaques se chevauchent.';
+      'Utilise des rayons verticaux et diagonaux, des griffes de feu et des tentacules invoqués.';
 
   @override
   String get codexShoggothMinionTactics =>
-      'Un petit attaquant terrestre invoqué par Shoggoth. Évite de te laisser encercler pendant les attaques du boss.';
+      'Un petit attaquant terrestre invoqué par Shoggoth.';
 
   @override
-  String get codexVoidTentacleTactics =>
-      'Une menace de mêlée invoquée. Sors de portée de son fouet avant de te retourner pour l’attaquer.';
+  String get codexVoidTentacleTactics => 'Une menace de mêlée invoquée.';
 
   @override
   String get codexForestLore =>
-      'L’Avant-poste du Val se dresse au bord de la route qui traverse la forêt des Hiboux moyen-ducs. Ses soldats patrouillent sur le chemin boisé, s’entraînent à affronter les dangers de la forêt et rapportent les avertissements à Théodonis. Les voyageurs peuvent se reposer sous leur garde avant de poursuivre leur route.';
+      'À l’écart de Théodonis, dans une partie plus sombre de la forêt des Moyen-Ducs, l’avant-poste du Val rassemble une demi-douzaine de grandes tentes au sein d’un camp bien organisé et protégé. En temps calme, il maintient une présence sur la route et prépare les soldats aux rigueurs du combat et de la survie en forêt.\n\nLe capitaine Théo y commande vingt-quatre gardes forestiers d’élite, tandis qu’Hanna, médecin de terrain, soigne les blessés. Leur mission est de contenir l’expansion d’une tribu de gobelours qui a franchi la Vosga et de sécuriser les abords de la route. Les tensions reviennent par vagues : le poste doit les contenir avant qu’elles n’atteignent Théodonis.\n\nLe Val est aussi un relais vers la cité. Son capitaine peut y faire transmettre un message, et le camp offre un refuge aux voyageurs en difficulté : un repas chaud, une place propre où dormir, et quelques heures sous la garde des soldats. Au-delà des tentes, la forêt reste dangereuse.';
 
   @override
   String get codexFieldLore =>
@@ -2316,9 +2375,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get levelDeprecatedName => 'Nouveau niveau';
-
-  @override
-  String get libraryBrand => 'Les Soleils d’or • Lothringen';
 
   @override
   String get townName => 'Théodonis';
@@ -3014,13 +3070,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get developerIdentity => 'Développeur';
 
   @override
-  String get townEquipment => 'Équipement';
+  String get townEquipment => 'Boutique d’équipement';
 
   @override
   String get townTraining => 'Salle d’entraînement';
 
   @override
-  String get townEquipmentMarker => 'Repère du marchand d’équipement';
+  String get townEquipmentMarker => 'Repère de la boutique d’équipement';
 
   @override
   String get townTrainingMarker => 'Repère de la salle d’entraînement';
@@ -3040,6 +3096,49 @@ class AppLocalizationsFr extends AppLocalizations {
   String get townUnownedOnly => 'À débloquer';
 
   @override
+  String townBuyAmount({required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return 'Acheter $goldString';
+  }
+
+  @override
+  String townBuyGoldLabel({required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return 'Acheter pour $goldString pièces d’or';
+  }
+
+  @override
+  String townLearnAmount({required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return 'Apprendre $goldString';
+  }
+
+  @override
+  String townLearnGoldLabel({required int gold}) {
+    final intl.NumberFormat goldNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String goldString = goldNumberFormat.format(gold);
+
+    return 'Apprendre pour $goldString pièces d’or';
+  }
+
+  @override
+  String get pickerEquipped => 'Équipé';
+
+  @override
   String get townOwned => 'Possédé';
 
   @override
@@ -3049,20 +3148,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get townLearn => 'Apprendre';
 
   @override
-  String get townSharedAccessory => 'Utilisable par les deux · Un seul achat';
-
-  @override
   String get townCatalogueUnavailable =>
       'Le catalogue est indisponible. Retourne en ville et reconnecte-toi pour le charger.';
 
   @override
   String get townNoMatchingEntries =>
       'Aucune entrée ne correspond à ces filtres.';
-
-  @override
-  String townCompareWith({required String item, required String build}) {
-    return 'Comparaison avec $item · $build';
-  }
 
   @override
   String townCategory({
@@ -3183,4 +3274,121 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get campaignChapterRewardsGranted => 'Récompenses du chapitre reçues.';
+
+  @override
+  String campaignCollectCoin({required int collected}) {
+    return 'Ramasse une pièce $collected/1';
+  }
+
+  @override
+  String get codexCombatAdvice => 'Conseil de combat';
+
+  @override
+  String get codexInnateDefences => 'Défenses innées';
+
+  @override
+  String get codexBoss => 'Boss';
+
+  @override
+  String get codexNoInnateModifiers => 'Aucune';
+
+  @override
+  String codexAttackDetails({required String category, required String types}) {
+    return '$category · Dégâts : $types';
+  }
+
+  @override
+  String get codexGrojibRole => 'Poursuivant terrestre';
+
+  @override
+  String get codexGrojibAdvice =>
+      'Garde de la place pour éviter ce deuxième coup.';
+
+  @override
+  String get codexHashashRole => 'Assassin téléporteur';
+
+  @override
+  String get codexHashashAdvice => 'Surveille son retour avant de t’engager.';
+
+  @override
+  String get codexDerfRole => 'Lanceur de sorts métamorphe';
+
+  @override
+  String get codexDerfAdvice =>
+      'Garde tes distances avec son tentacule allongé.';
+
+  @override
+  String get codexUnocoRole => 'Lanceur de sorts volant';
+
+  @override
+  String get codexUnocoAdvice =>
+      'Reste en mouvement pendant qu’il vise son projectile.';
+
+  @override
+  String get codexBringerRole => 'Combattant à la faux';
+
+  @override
+  String get codexBringerAdvice =>
+      'Observe sa préparation et quitte les zones marquées au sol.';
+
+  @override
+  String get codexGoddessRole => 'Combattante aux griffes et aux orbes';
+
+  @override
+  String get codexGoddessAdvice =>
+      'Repositionne-toi quand l’arène devient dangereuse.';
+
+  @override
+  String get codexShoggothRole => 'Invocateur à tentacules';
+
+  @override
+  String get codexShoggothAdvice =>
+      'Gère les petites menaces tout en surveillant le boss.';
+
+  @override
+  String get codexVoidcallerRole => 'Lanceur de rayons';
+
+  @override
+  String get codexVoidcallerAdvice =>
+      'Garde une issue lorsque les attaques se chevauchent.';
+
+  @override
+  String get codexShoggothMinionRole => 'Attaquant terrestre invoqué';
+
+  @override
+  String get codexShoggothMinionAdvice =>
+      'Évite de te laisser encercler pendant les attaques du boss.';
+
+  @override
+  String get codexVoidTentacleRole => 'Attaquant de mêlée invoqué';
+
+  @override
+  String get hubRunnerHeading => 'Runner';
+
+  @override
+  String get hubRunnerPlay => 'Jouer au Runner';
+
+  @override
+  String get hubCampaignPlay => 'Jouer la campagne';
+
+  @override
+  String get hubChangeBuild => 'Changer de configuration';
+
+  @override
+  String get hubLocalPractice => 'Entraînement local';
+
+  @override
+  String get hubWeeklyPlay => 'Jouer';
+
+  @override
+  String get codexVoidTentacleAdvice =>
+      'Sors de portée de son fouet avant de te retourner pour l’attaquer.';
+
+  @override
+  String campaignReceiveBlessing({required int received}) {
+    return 'Recevoir une bénédiction $received/1';
+  }
+
+  @override
+  String get journalEmpty => 'Aucune entrée dans le journal pour le moment.';
 }

@@ -1,9 +1,9 @@
 # Gameplay Input Architecture
 
-Status: Implemented shared touch/desktop input in the product game and the
-Windows Chunk and Level Creator playtest hosts.
+Status: Implemented shared touch/desktop input in product gameplay, the in-game
+Training Field and Windows Chunk, Level and Campaign Play.
 
-Last updated: October 21, 2026
+Last updated: November 12, 2026
 
 ## Purpose
 
@@ -43,12 +43,39 @@ and macOS (including their browsers) to desktop; Android, iOS and Fuchsia use
 touch. `RunnerGameWidget` and `createRunnerGameRoute` accept explicit overrides.
 Touch movement preferences remain independent from this host choice.
 `RunnerPlaytestHost` also mounts the desktop adapter in the standalone editor's
-Windows Chunk and Level Creators through the narrow
-`package:rpg_runner/playtest.dart` tooling entrypoint. Both entry points share
-the host lifecycle and input handling; their focused Chunk and seeded Level
+Windows Chunk Creator, Level Creator and Campaign editor through the narrow
+`package:rpg_runner/playtest.dart` tooling entrypoint. All three share
+the host lifecycle and input handling; their focused Chunk, seeded Level and finite mission
 scenarios follow the [authored Play contracts](editor_chunk_playtest_host.md).
 
 ## Semantic action contract
+
+Campaign's [tutorial progression](campaign_tutorials.md) admits a fresh movement
+press while ready/paused. The host starts synchronously before device input
+retains the pointer/key, preserving the gesture. Its visual spotlight never
+forwards input or expands the actual control hitbox.
+
+The attempt-owned tutorial controller reveals HUD features cumulatively and gates
+hidden semantic actions across all devices. A first-coin lesson interrupts after
+the pickup's committed tick, cancels all input and admits only fresh movement after
+host readiness/pause checks. The three-step chunk lesson admits Next twice while
+paused, then a fresh Jump through the same action-aware host gate. The original
+press is dispatched normally after admission, preserving Core stamina and replay
+semantics. Repeat/held keys and other actions cannot accept it. Suspend/resume
+retains the step and does not complete the lesson.
+
+`RunnerGameplayBindings` owns each attempt's semantic dispatcher, optional desktop
+controller, aim cancellation, movement epoch, impact signals and feedback
+subscriptions. Product, Training and editor hosts all use it. Runtime aim models
+are borrowed. Charge cancellation retains movement; full cancellation additionally
+invalidates touch pointers. Damage/timeout, terrain-failure cancellation and
+stationary-pointer aim updates have one implementation. Bindings stop before the
+runtime and dispose their view signals after unmount.
+
+`RunnerGameplaySurface` owns viewport and desktop pointer geometry, with the HUD
+as a sibling of world input. Hosts supply overlays and choose start/resume policy.
+Editor physical scaling applies outside this entire surface, preserving the same
+game/HUD coordinate system. See [shared runtime](shared_gameplay_runtime.md).
 
 `RunnerGameplayAction` contains only gameplay intent: left, right, jump,
 primary, secondary, projectile, spell, and mobility. Pause, start, restart,
@@ -276,7 +303,7 @@ stop, app deactivation, control-scheme changes, and runtime disposal.
 Semantic `cancelAll` always sets movement to zero, clears aim, attempts to
 release primary/secondary/projectile/mobility, and pumps the neutral continuous
 state. It does this even if adapter bookkeeping is already empty. Aim-preview
-models remain presentation state: `RunnerGameWidget` ends them beside semantic
+models remain presentation state: `RunnerGameplayBindings` ends them beside semantic
 cancellation, and a desktop host supplies `onCancelPresentation`.
 
 ## Mouse aim conversion

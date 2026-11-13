@@ -7,6 +7,7 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_authoring_work
 import 'package:runner_editor/src/app/pages/home/editor_home_page.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_zoom_controls.dart';
+import 'package:runner_editor/src/app/pages/shared/playtest_launch_dialog.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
@@ -145,6 +146,10 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.f5);
       await tester.pump();
       await tester.pump();
+      expect(_playtestHandler(tester).locksEditorShell, isTrue);
+      expect(find.byType(PlaytestLaunchDialog), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
       expect(_playtestHandler(tester).locksEditorShell, isFalse);
       expect(find.byType(ChunkAuthoringWorkspace), findsOneWidget);
     },

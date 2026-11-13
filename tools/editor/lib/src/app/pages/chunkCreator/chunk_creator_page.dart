@@ -232,7 +232,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     );
   }
 
-  Future<void> _requestPlay() async {
+  Future<void> _requestPlay({bool configure = true}) async {
     if (locksEditorShell || _finalizingForPlay) return;
     if (!_platformSupportsPlaytest ||
         (_workspaceKey.currentState?.hasActiveOperation ?? true)) {
@@ -273,11 +273,29 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       return;
     }
 
+    bool current() =>
+        mounted &&
+        identical(requestedController, widget.controller) &&
+        requestedWorkspace == widget.controller.workspacePath &&
+        identical(widget.controller.document, document) &&
+        listEquals(
+          _workspaceKey.currentState?.playtestReadiness.chunkKeys,
+          chunkKeys,
+        );
+    if (configure &&
+        !await _playtest.configure(
+          context: context,
+          title: 'Test chunk',
+          source: document,
+          isSourceCurrent: current,
+        )) {
+      return;
+    }
+    if (!current()) return;
     FocusManager.instance.primaryFocus?.unfocus();
     await _playtest.prepare(
       source: document,
-      isSourceCurrent: () =>
-          mounted && identical(widget.controller.document, document),
+      isSourceCurrent: current,
       capture: () => captureChunkPlaytestPreparationInput(
         document: document,
         selectedChunkKeys: chunkKeys,
@@ -290,7 +308,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   void _retryPreparation() {
     _playtest.stop();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(_requestPlay());
+      if (mounted) unawaited(_requestPlay(configure: false));
     });
   }
 

@@ -63,17 +63,36 @@ nesting; all shared byte, node, key, string and array ceilings remain unchanged.
 
 ## Menus and schema boundary
 
-The chooser keeps two cards in one viewport. Art/name occupy the left column;
-three build buttons occupy the right. Unlocked buttons show the saved name;
-locked buttons show a centered lock icon and required level together inside the
-button instead of the name. Card taps select in place, unlocked build buttons
-save and open the builder, and locked buttons consume taps. The selected
-character retains the level-selector scrim behavior. The builder is pushed above
-the chooser, so both the app-bar and system Back return to character selection;
-Back from the chooser returns to the hub. The builder's rename button shows only
-an edit icon when the name matches the selected slot's default, or only the
-custom name otherwise. Rename has Save/Cancel, keyboard submission,
-validation, a busy state and retryable errors.
+The chooser keeps two cards in one landscape viewport and stacks them on narrow
+portrait screens. Character art/name occupy the left column; three build rows
+occupy the right. Available characters remain undimmed. Gold framing identifies the selected character;
+only its active build has a checked selector and Active build label. There are
+no role subtitles, build-list heading, repeated slot/last-used subtitles,
+Select/Selected/locked-name footer controls, or next-run summary. Card heights
+retain the previous footer allowance. Edit controls show only the pencil icon,
+with full character/build tooltips and accessible action labels.
+Locked rows state their required account level and cannot select or edit.
+
+Character taps select the remembered build. Build-row taps select that character
+and slot in place after saving; their separate Edit actions open the builder
+without changing either character's remembered slot or the next-run selection.
+Selection errors retain the canonical choice and expose a retryable message.
+
+`LoadoutSetupArgs` pins the editor's character/index for its route lifetime.
+Legacy route entries without arguments pin the current selection on entry.
+Gear, ability, projectile and rename commands accept an optional explicit index;
+omitting it retains the remembered-slot behavior. Locked indices are rejected
+before optimistic mutations. Editing inactive gear does not change the
+character's equipped-meta projection. The existing addressed wire commands and
+selection schema are unchanged. Build activation stays on the chooser through
+the existing flush-before-selection boundary.
+
+The editor retains its original centered Gear/Skills/Training Field tabs and
+rename presentation: the localized default name beside a pencil, or the custom
+name as the rename control. Rename still addresses the edited build and has Save/Cancel, keyboard submission,
+validation, a busy state and retryable errors. Gear/Skills failures offer a retry
+that flushes the original addressed edit. Both app-bar and system Back return to the chooser;
+Back from the chooser returns to the hub.
 
 Gear and Skills keep their widget subtrees mounted while switching builder
 tabs, retaining the selected slot, inspected item/ability and scroll positions.
@@ -82,8 +101,9 @@ ability slots. Inspecting abilities and switching builder tabs preserve manual
 scrolling.
 Hidden editors disable tickers and focus and keep their viewport size when the
 app bar overlays Training Field. This browsing state lasts only for the builder
-route and selected character; it is not persisted in the saved build. Training
-Field mounts only while selected and creates a fresh session on every return.
+route and edited character/build; it is not persisted in the saved build. Training
+Field mounts only while selected, tests the addressed editor build without
+activating it, and creates a fresh session on every return.
 
 The builder does not shrink behind the modal keyboard. On short landscape
 viewports the input and actions share a row so the editable name remains visible.

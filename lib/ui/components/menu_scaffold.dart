@@ -22,6 +22,7 @@ class MenuScaffold extends StatelessWidget {
     this.showAppBar = true,
     this.useBodySafeArea = false,
     this.overlayAppBar = false,
+    this.automaticallyImplyLeading = true,
   });
 
   /// The main content of the page.
@@ -58,6 +59,9 @@ class MenuScaffold extends StatelessWidget {
   /// inset its interactive HUD using the body's safe-area padding.
   final bool overlayAppBar;
 
+  /// Embedded previews can retain menu framing without a navigation action.
+  final bool automaticallyImplyLeading;
+
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
@@ -68,6 +72,7 @@ class MenuScaffold extends StatelessWidget {
 
     final scaffoldAppBar = showAppBar
         ? AppBar(
+            automaticallyImplyLeading: automaticallyImplyLeading,
             title: resolvedTitle,
             actions: appBarActions,
             backgroundColor: Colors.transparent,

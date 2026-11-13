@@ -11,6 +11,10 @@ this package. Public operations accept explicit source identities and source
 text, return typed products and canonical issues, and do not mutate caller or
 repository state.
 
+`campaign_tutorial.dart` is the narrow pure-Dart authored presentation contract
+shared by source decoding, editor and game UI. Keep its immutable values and
+strict decoding free of repository I/O and simulation state; Core never imports it.
+
 The package may depend on `runner_core`; `runner_core` must never depend on this
 package. Preserve deterministic ordering, exact signatures, strict Prefab-v3
 and Chunk-v2 validation, and generated-byte parity when changing the pipeline.

@@ -56,6 +56,17 @@ import 'state/ownership/selection_state.dart';
 /// to the visible game area; these indicators do not intercept controls.
 /// Text inherits the host's locale through RunnerLocalizations delegates. The
 /// host owns language persistence; changing language does not require a new route.
+/// Shared runtime and input wiring also serve Training and editor Play. This
+/// route keeps product readiness/replay policy and the actual device MediaQuery;
+/// editor calibration and simulated dimensions do not affect embedded runs.
+/// Authored Campaign movement introductions remain paused after readiness until
+/// a movement press starts the run; that same gesture continues into gameplay.
+/// Campaign initial HUD and lesson reveals gate actions across input devices.
+/// Objectives and first-coin lessons pause after a short practice walk and pickup,
+/// respectively, and resume on fresh movement;
+/// a chunk-entry obstacle sequence advances two informational pages with Next,
+/// then reveals resources and resumes on a fresh Jump, dispatching that real press;
+/// host lifecycle/exit guards retain priority. Progress resets with the attempt.
 Route<void> createRunnerGameRoute({
   required String runSessionId,
   required int runId,

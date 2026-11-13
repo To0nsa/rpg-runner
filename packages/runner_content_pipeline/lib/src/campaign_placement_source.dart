@@ -17,7 +17,7 @@ sealed class CampaignPlacementSource {
 
   final String id;
   CampaignPoint get position;
-  String get occurrenceId => position.occurrenceId;
+  String get missionChunkId => position.missionChunkId;
   Map<String, Object?> toJson();
 }
 
@@ -42,10 +42,12 @@ final class CampaignEnemySource extends CampaignPlacementSource {
     this.position, {
     required this.marker,
     required this.required,
+    this.returnWhenPlayerRetreats = true,
   });
   @override
   final CampaignPoint position;
   final SpawnMarker marker;
+  final bool returnWhenPlayerRetreats;
   final bool required;
   @override
   Map<String, Object?> toJson() => {
@@ -56,18 +58,19 @@ final class CampaignEnemySource extends CampaignPlacementSource {
     'placement': marker.placement.name,
     'chancePercent': marker.chancePercent,
     'salt': marker.salt,
+    if (!returnWhenPlayerRetreats) 'returnWhenPlayerRetreats': false,
     'required': required,
   };
 }
 
 final class CampaignTrapSource extends CampaignPlacementSource {
-  const CampaignTrapSource(super.id, this.occurrenceId, this.trap);
+  const CampaignTrapSource(super.id, this.missionChunkId, this.trap);
   @override
-  final String occurrenceId;
+  final String missionChunkId;
   final TrapPlacement trap;
   @override
   CampaignPoint get position => CampaignPoint(
-    occurrenceId: occurrenceId,
+    missionChunkId: missionChunkId,
     x: trap.x.toDouble(),
     y: trap.y.toDouble(),
   );
@@ -75,7 +78,7 @@ final class CampaignTrapSource extends CampaignPlacementSource {
   Map<String, Object?> toJson() => {
     'id': id,
     'kind': 'trap',
-    'occurrenceId': occurrenceId,
+    'missionChunkId': missionChunkId,
     'trap': trap.toJson(),
   };
 }
@@ -83,17 +86,17 @@ final class CampaignTrapSource extends CampaignPlacementSource {
 final class CampaignRescueSource extends CampaignPlacementSource {
   const CampaignRescueSource(
     super.id,
-    this.occurrenceId,
+    this.missionChunkId,
     this.encounter, {
     required this.required,
   });
   @override
-  final String occurrenceId;
+  final String missionChunkId;
   final EncounterDefinition encounter;
   final bool required;
   @override
   CampaignPoint get position => CampaignPoint(
-    occurrenceId: occurrenceId,
+    missionChunkId: missionChunkId,
     x: encounter.trigger.x,
     y: encounter.trigger.y,
   );
@@ -101,7 +104,7 @@ final class CampaignRescueSource extends CampaignPlacementSource {
   Map<String, Object?> toJson() => {
     'id': id,
     'kind': 'rescue',
-    'occurrenceId': occurrenceId,
+    'missionChunkId': missionChunkId,
     'encounter': encounterDefinitionsToJson([encounter]).single,
     'required': required,
   };
@@ -133,7 +136,7 @@ final class CampaignShrineSource extends CampaignPlacementSource {
         prefabKey: prefabKey,
         placementKey: placementKey,
         shapeId: shapeId,
-        occurrenceId: occurrenceId,
+        missionChunkId: missionChunkId,
         surfaceX: position.x,
         activationWidth: activationWidth,
         scaleOverride: scale,
@@ -180,10 +183,12 @@ List<CampaignPlacementSource> decodeCampaignPlacements(Object? raw) {
           'placement',
           'chancePercent',
           'salt',
+          if (value.containsKey('returnWhenPlayerRetreats'))
+            'returnWhenPlayerRetreats',
           'required',
         },
-        'trap' => {'occurrenceId', 'trap'},
-        'rescue' => {'occurrenceId', 'encounter', 'required'},
+        'trap' => {'missionChunkId', 'trap'},
+        'rescue' => {'missionChunkId', 'encounter', 'required'},
         'shrine' => {
           'position',
           'prefabKey',
@@ -254,11 +259,15 @@ List<CampaignPlacementSource> decodeCampaignPlacements(Object? raw) {
               salt: _integer(value['salt'], 0, 2147483647),
             ),
             required: _bool(value['required']),
+            returnWhenPlayerRetreats:
+                value.containsKey('returnWhenPlayerRetreats')
+                ? _bool(value['returnWhenPlayerRetreats'])
+                : true,
           );
         case 'trap':
           return CampaignTrapSource(
             id,
-            _occurrenceId(value['occurrenceId']),
+            _missionChunkId(value['missionChunkId']),
             decodeTrapPlacements(
               [value['trap']],
               sourcePath: id,
@@ -280,7 +289,7 @@ List<CampaignPlacementSource> decodeCampaignPlacements(Object? raw) {
           }
           return CampaignRescueSource(
             id,
-            _occurrenceId(value['occurrenceId']),
+            _missionChunkId(value['missionChunkId']),
             encounter,
             required: _bool(value['required']),
           );
@@ -300,8 +309,9 @@ String _id(Object? value) {
   return value;
 }
 
-String _occurrenceId(Object? value) =>
-    campaignPointFromJson({'occurrenceId': value, 'x': 0, 'y': 0}).occurrenceId;
+String _missionChunkId(Object? value) =>
+    campaignPointFromJson({'missionChunkId': value, 'x': 0, 'y': 0})
+        .missionChunkId;
 
 T _enum<T extends Enum>(Object? value, List<T> values) => values.firstWhere(
   (item) => item.name == value,

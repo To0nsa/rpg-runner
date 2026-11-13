@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'gold_coin.dart';
+import 'package:game_presentation/gold_coin.dart';
 
 export '../theme/ui_button_theme.dart' show AppButtonSize, AppButtonVariant;
 
@@ -18,6 +18,20 @@ class AppButton extends StatefulWidget {
     this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.md,
   }) : _goldCoin = false,
+       _cardFooter = false,
+       semanticLabel = null;
+
+  /// Fills a card's width with square top corners and rounded bottom corners.
+  /// Labels wrap at the available width; the card owns the surrounding clip.
+  const AppButton.cardFooter({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.variant = AppButtonVariant.primary,
+    this.size = AppButtonSize.lg,
+  }) : icon = null,
+       _goldCoin = false,
+       _cardFooter = true,
        semanticLabel = null;
 
   /// Currency action with gameplay coin artwork after the complete localized
@@ -30,6 +44,7 @@ class AppButton extends StatefulWidget {
     this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.md,
   }) : icon = null,
+       _cardFooter = false,
        _goldCoin = true;
 
   final String label;
@@ -37,6 +52,7 @@ class AppButton extends StatefulWidget {
   /// Optional leading icon, styled with the same foreground as the label.
   final IconData? icon;
   final bool _goldCoin;
+  final bool _cardFooter;
   final String? semanticLabel;
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
@@ -106,6 +122,20 @@ class _AppButtonState extends State<AppButton> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget._cardFooter) {
+      return LayoutBuilder(
+        builder: (context, constraints) => _buildButton(
+          context,
+          footerWidth: constraints.hasBoundedWidth
+              ? constraints.maxWidth
+              : null,
+        ),
+      );
+    }
+    return _buildButton(context);
+  }
+
+  Widget _buildButton(BuildContext context, {double? footerWidth}) {
     final ui = context.ui;
     final buttons = context.buttons;
 
@@ -118,14 +148,15 @@ class _AppButtonState extends State<AppButton> {
     final enabled = widget.onPressed != null;
 
     // 2) Build geometry for the beveled frame and inset panel.
-    final outerRadius = BorderRadius.circular(ui.radii.sm);
+    final footer = widget._cardFooter;
+    BorderRadius radius(double value) => footer
+        ? BorderRadius.vertical(bottom: Radius.circular(value))
+        : BorderRadius.circular(value);
+    final cornerRadius = footer ? ui.radii.md : ui.radii.sm;
+    final outerRadius = radius(cornerRadius);
     final bevelInset = math.max(1.0, ui.sizes.borderWidth);
-    final innerRadius = BorderRadius.circular(
-      math.max(0.0, ui.radii.sm - bevelInset),
-    );
-    final contentRadius = BorderRadius.circular(
-      math.max(0.0, ui.radii.sm - bevelInset - 1),
-    );
+    final innerRadius = radius(math.max(0.0, cornerRadius - bevelInset));
+    final contentRadius = radius(math.max(0.0, cornerRadius - bevelInset - 1));
 
     final outerTop = _resolveSurfaceColor(
       base: spec.surfaceTop,
@@ -184,8 +215,8 @@ class _AppButtonState extends State<AppButton> {
     );
     final label = Text(
       widget.label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+      maxLines: footer ? null : 1,
+      overflow: footer ? TextOverflow.clip : TextOverflow.ellipsis,
       textAlign: TextAlign.center,
       textWidthBasis: TextWidthBasis.parent,
       style: textStyle,
@@ -209,13 +240,23 @@ class _AppButtonState extends State<AppButton> {
         ? 0.0
         : (textStyle.fontSize ?? 16) + ui.space.xs;
     final frameInset = (bevelInset + ui.sizes.borderWidth + 1) * 2;
-    final width = math.max(
-      spec.width,
-      measure.width.ceilToDouble() +
-          iconWidth +
-          spec.padding.horizontal +
-          frameInset,
-    );
+    if (footerWidth != null) {
+      measure.layout(
+        maxWidth: math.max(
+          1,
+          footerWidth - spec.padding.horizontal - frameInset,
+        ),
+      );
+    }
+    final width =
+        footerWidth ??
+        math.max(
+          spec.width,
+          measure.width.ceilToDouble() +
+              iconWidth +
+              spec.padding.horizontal +
+              frameInset,
+        );
     final height = math.max(
       spec.height,
       math.max(measure.height.ceilToDouble(), widget._goldCoin ? coinSize : 0) +
@@ -224,8 +265,9 @@ class _AppButtonState extends State<AppButton> {
     );
     measure.dispose();
     // 3) Nudge on press for physical button feedback.
-    final pressedOffsetY = enabled && _pressed ? 1.5 : 0.0;
-    final pressedOffsetX = enabled && _pressed ? 0.5 : 0.0;
+    // Attached footers shade on press without shifting away from their card.
+    final pressedOffsetY = enabled && _pressed && !footer ? 1.5 : 0.0;
+    final pressedOffsetX = enabled && _pressed && !footer ? 0.5 : 0.0;
     final shadowColor = enabled
         ? spec.shadow
         : spec.shadow.withValues(alpha: buttons.disabledBackgroundAlpha);

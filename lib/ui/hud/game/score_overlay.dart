@@ -15,6 +15,29 @@ class ScoreOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => RunStatsPanel(
+        distanceMeters: distanceUnitsToMeters(controller.snapshot.distance),
+        collectibles: controller.snapshot.hud.collectibles,
+        padding: padding,
+      ),
+    );
+  }
+}
+
+/// Shared counter presentation; the authoring canvas supplies example values.
+class RunStatsPanel extends StatelessWidget {
+  const RunStatsPanel({
+    super.key,
+    required this.distanceMeters,
+    required this.collectibles,
+    this.padding,
+  });
+  final int distanceMeters, collectibles;
+  final EdgeInsets? padding;
+  @override
+  Widget build(BuildContext context) {
     final ui = context.ui;
     final resolvedPadding =
         padding ??
@@ -28,38 +51,29 @@ class ScoreOverlay extends StatelessWidget {
       color: context.hudTheme.foreground,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final distanceMeters = distanceUnitsToMeters(
-          controller.snapshot.distance,
-        );
-        final collectibles = controller.snapshot.hud.collectibles;
-        return IgnorePointer(
-          child: RepaintBoundary(
-            child: HudPanel(
-              padding: resolvedPadding,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    context.l10n.scoreDistance(meters: distanceMeters),
-                    textAlign: TextAlign.center,
-                    style: labelStyle,
-                  ),
-                  SizedBox(height: ui.space.xxs / 2),
-                  Text(
-                    context.l10n.scoreCollectibles(count: collectibles),
-                    textAlign: TextAlign.center,
-                    style: labelStyle,
-                  ),
-                ],
+    return IgnorePointer(
+      child: RepaintBoundary(
+        child: HudPanel(
+          padding: resolvedPadding,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                context.l10n.scoreDistance(meters: distanceMeters),
+                textAlign: TextAlign.center,
+                style: labelStyle,
               ),
-            ),
+              SizedBox(height: ui.space.xxs / 2),
+              Text(
+                context.l10n.scoreCollectibles(count: collectibles),
+                textAlign: TextAlign.center,
+                style: labelStyle,
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

@@ -10,7 +10,8 @@ export interface CampaignMission {
   readonly available: boolean;
   readonly levelId: string;
   readonly firstClearXp: number;
-  readonly rewardAbilityId: string | null;
+  readonly firstClearGold: number;
+  readonly firstClearItems: readonly CatalogReward[];
 }
 export interface CampaignChapter {
   readonly id: string;
@@ -115,33 +116,44 @@ export function applyCampaignProgress(args: {
   // later additions. It is committed atomically with ownership, XP and wallet.
   const grantChapter = completed && chapters[chapter.id] === undefined &&
     chapter.missions.every((entry) => object(missions[entry.id])?.cleared === true);
-  let chapterXp = 0;
-  if (grantChapter) {
-    chapterXp = safeInteger(chapter.rewardXp);
-    const gold = safeInteger(chapter.rewardGold);
-    if (chapterXp > 100000 || gold > 1000000 || !Array.isArray(chapter.rewardItems) || chapter.rewardItems.length > 8) fail("Invalid chapter rewards.");
-    let items: CatalogReward[];
-    try { items = chapter.rewardItems.map(parseCatalogReward); }
-    catch { fail("Invalid chapter catalog reward."); }
-    if (new Set(items.map((item) => JSON.stringify(item))).size !== items.length) fail("Duplicate chapter reward.");
-    const nextGold = safeInteger(safeInteger(args.canonical.progression.gold) + gold);
-    for (const item of items) {
+  // Validate both grants and the combined wallet amount before mutating ownership.
+  const missionRewards = firstClear
+    ? parseRewards(mission.firstClearXp, mission.firstClearGold, mission.firstClearItems) : undefined;
+  const chapterRewards = grantChapter
+    ? parseRewards(chapter.rewardXp, chapter.rewardGold, chapter.rewardItems) : undefined;
+  const xp = safeInteger((missionRewards?.xp ?? 0) + (chapterRewards?.xp ?? 0));
+  const nextGold = safeInteger(safeInteger(args.canonical.progression.gold) +
+    (missionRewards?.gold ?? 0) + (chapterRewards?.gold ?? 0));
+  for (const rewards of [missionRewards, chapterRewards]) {
+    if (!rewards) continue;
+    for (const item of rewards.items) {
       grantCatalogOwnership({ meta: args.canonical.meta,
         selectedCharacterId: item.characterId ?? "eloise", offer: catalogDefinition(item) });
     }
-    args.canonical.progression.gold = nextGold;
-    chapters[chapter.id] = { grantedAtMs: safeInteger(args.nowMs), xp: chapterXp, gold,
-      items: items.map((item) => ({ ...item })), characterId: chapter.rewardCharacterId };
+  }
+  args.canonical.progression.gold = nextGold;
+  if (missionRewards) {
+    (missions[mission.id] as JsonObject).rewards = {
+      grantedAtMs: safeInteger(args.nowMs), ...missionRewards,
+      items: missionRewards.items.map((item) => ({ ...item })),
+    };
+  }
+  if (chapterRewards) {
+    chapters[chapter.id] = { grantedAtMs: safeInteger(args.nowMs), ...chapterRewards,
+      items: chapterRewards.items.map((item) => ({ ...item })), characterId: chapter.rewardCharacterId };
   }
   args.canonical.progression.campaign = { schemaVersion: 1, missions, chapters };
-  if (firstClear && mission.rewardAbilityId) {
-    const ownership = object(args.canonical.meta.abilityOwnershipByCharacter);
-    const eloise = object(ownership?.eloise);
-    const slots = object(eloise?.abilitiesBySlot);
-    if (!slots || !Array.isArray(slots.jump)) fail("Missing canonical jump ownership.");
-    if (!slots.jump.includes(mission.rewardAbilityId)) slots.jump.push(mission.rewardAbilityId);
-  }
-  return { changed: true, xp: safeInteger((firstClear ? safeInteger(mission.firstClearXp) : 0) + chapterXp) };
+  return { changed: true, xp };
+}
+
+function parseRewards(xpValue: unknown, goldValue: unknown, itemValues: readonly CatalogReward[]) {
+  const xp = safeInteger(xpValue), gold = safeInteger(goldValue);
+  if (xp > 100000 || gold > 1000000 || !Array.isArray(itemValues) || itemValues.length > 8) fail("Invalid campaign rewards.");
+  let items: CatalogReward[];
+  try { items = itemValues.map(parseCatalogReward); }
+  catch { fail("Invalid campaign catalog reward."); }
+  if (new Set(items.map((item) => JSON.stringify(item))).size !== items.length) fail("Duplicate campaign reward.");
+  return { xp, gold, items };
 }
 
 function object(value: unknown): JsonObject | undefined {

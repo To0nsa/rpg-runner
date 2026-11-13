@@ -1,3 +1,4 @@
+import 'package:replay_validator/src/replay_simulation.dart';
 import 'package:runner_core/campaign/campaign_registry.dart';
 import 'package:run_protocol/campaign_binding.dart';
 
@@ -104,6 +105,218 @@ void main() {
       },
     );
   }
+
+  test(
+    'Reporting coin objective survives authoritative worker replay',
+    () async {
+      const id = 'reporting_for_duty';
+      final binding = CampaignBinding(
+        missionId: id,
+        contentDigest: campaignContentDigest,
+      );
+      final app = GameCore.campaign(
+        missionId: id,
+        contentDigest: campaignContentDigest,
+        playerCharacter: PlayerCharacterRegistry.eloise,
+        seed: 42,
+        tickHz: 60,
+        equippedLoadout: const EquippedLoadoutDef(
+          mask: 0,
+          projectileSlotSpellId: ProjectileId.iceBolt,
+        ),
+      );
+      final frames = <ReplayCommandFrameV1>[];
+      // Real authored spawn-to-coin path, finite horizon; tutorials add no replay commands.
+      for (
+        var budget = 0;
+        budget < 300 && app.collectibles == 0 && !app.gameOver;
+        budget++
+      ) {
+        await app.prepareNextTick();
+        frames.add(ReplayCommandFrameV1(tick: app.tick + 1, moveAxis: 1));
+        app.applyCommands([MoveAxisCommand(tick: app.tick + 1, axis: 1)]);
+        app.stepOneTick();
+      }
+      expect(app.collectibles, 1);
+      expect(app.buildSnapshot().campaign!.firstCoinCollected, isTrue);
+      expect(app.buildSnapshot().campaign!.completed, 1);
+      app.giveUp();
+      final ended = app.drainEvents().whereType<RunEndedEvent>().single;
+      final replay = ReplayBlobV1.withComputedDigest(
+        runSessionId: 'reporting_coin',
+        tickHz: 60,
+        seed: 42,
+        levelId: 'forest',
+        playerCharacterId: 'eloise',
+        loadoutSnapshot: _defaultLoadoutSnapshot(),
+        totalTicks: app.tick,
+        commandStream: frames,
+        campaign: binding,
+      );
+      final bytes = utf8.encode(jsonEncode(replay.toJson()));
+      final repo = _FakeRunSessionRepository(
+        leaseResult: RunSessionLeaseAcquireResult(
+          status: RunSessionLeaseStatus.acquired,
+          session: _session(
+            runSessionId: replay.runSessionId,
+            mode: RunMode.campaign,
+            campaign: binding,
+            seed: 42,
+            tickHz: 60,
+            levelId: 'forest',
+            digest: replay.canonicalSha256,
+            contentLengthBytes: bytes.length,
+            validationAttempt: 1,
+          ),
+        ),
+      );
+      final worker = DeterministicValidatorWorker(
+        replayLoader: _FakeReplayLoader(
+          bytesByRunSession: {replay.runSessionId: bytes},
+        ),
+        boardRepository: const _FakeBoardRepository(),
+        runSessionRepository: repo,
+        metrics: _FakeValidatorMetrics(),
+        clockMs: () => 10000,
+      );
+      expect(
+        (await worker.validateRunSession(runSessionId: replay.runSessionId))
+            .status,
+        ValidationDispatchStatus.accepted,
+      );
+      final result = repo.acceptedSettlementHandoffs.single;
+      expect(result.campaign, binding);
+      expect(
+        (result.tick, result.endedReason, result.goldEarned),
+        (ended.tick, ended.reason.name, ended.goldEarned),
+      );
+      expect(result.stats['collectibles'], 1);
+    },
+  );
+
+  // Produced by the continuous UI controller test with the same environment path.
+  // The fixture is source-bound and never replaces a current traversal with teleportation.
+  test('Reporting blessing controller recording survives authoritative worker replay', () async {
+    final data = jsonDecode(
+      File(Platform.environment['REPORTING_BLESSING_REPLAY_PATH']!)
+          .readAsStringSync(),
+    ) as Map<String, dynamic>;
+    expect(data['contentDigest'], campaignContentDigest);
+    final frames = (data['commandStream'] as List)
+        .map(ReplayCommandFrameV1.fromJson)
+        .toList();
+    final c = PlayerCharacterRegistry.eloise.catalog;
+    final loadout = Map<String, Object?>.of(_defaultLoadoutSnapshot())
+      ..addAll({
+        'mask': c.loadoutSlotMask,
+        'mainWeaponId': c.weaponId.name,
+        'offhandWeaponId': c.offhandWeaponId.name,
+        'spellBookId': c.spellBookId.name,
+        'projectileSlotSpellId': c.projectileSlotSpellId.name,
+        'abilityPrimaryId': c.abilityPrimaryId,
+        'abilitySecondaryId': c.abilitySecondaryId,
+        'abilityProjectileId': c.abilityProjectileId,
+        'abilitySpellId': c.abilitySpellId,
+        'abilityMobilityId': c.abilityMobilityId,
+        'abilityJumpId': c.abilityJumpId,
+      });
+    final app = GameCore.campaign(
+      missionId: 'reporting_for_duty',
+      contentDigest: campaignContentDigest,
+      playerCharacter: PlayerCharacterRegistry.eloise,
+      seed: 42,
+      tickHz: 60,
+      equippedLoadout: EquippedLoadoutDef(
+        mask: c.loadoutSlotMask,
+        mainWeaponId: c.weaponId,
+        offhandWeaponId: c.offhandWeaponId,
+        spellBookId: c.spellBookId,
+        projectileSlotSpellId: c.projectileSlotSpellId,
+        abilityPrimaryId: c.abilityPrimaryId,
+        abilitySecondaryId: c.abilitySecondaryId,
+        abilityProjectileId: c.abilityProjectileId,
+        abilitySpellId: c.abilitySpellId,
+        abilityMobilityId: c.abilityMobilityId,
+        abilityJumpId: c.abilityJumpId,
+      ),
+    );
+    final simulation = runReplaySimulation(
+      core: app,
+      totalTicks: data['totalTicks'] as int,
+      commandStream: frames,
+    );
+    expect(simulation.runEnded, isNull);
+    final snapshot = app.buildSnapshot();
+    expect(snapshot.campaign!.completed, 2);
+    expect(snapshot.campaign!.blessingReceived, isTrue);
+    expect(snapshot.hud.blessings, hasLength(1));
+    expect(
+      [
+        snapshot.playerEntity!.pos.x,
+        snapshot.playerEntity!.pos.y,
+        snapshot.hud.hp,
+        snapshot.hud.mana,
+        snapshot.hud.stamina,
+      ],
+      [data['x'], data['y'], data['hp'], data['mana'], data['stamina']],
+    );
+    app.giveUp();
+    final ended = app.drainEvents().whereType<RunEndedEvent>().single;
+    final binding = CampaignBinding(
+      missionId: 'reporting_for_duty',
+      contentDigest: campaignContentDigest,
+    );
+    final replay = ReplayBlobV1.withComputedDigest(
+      runSessionId: 'reporting_blessing',
+      tickHz: 60,
+      seed: 42,
+      levelId: 'forest',
+      playerCharacterId: 'eloise',
+      loadoutSnapshot: loadout,
+      totalTicks: app.tick,
+      commandStream: frames,
+      campaign: binding,
+    );
+    final bytes = utf8.encode(jsonEncode(replay.toJson()));
+    final repo = _FakeRunSessionRepository(
+      leaseResult: RunSessionLeaseAcquireResult(
+        status: RunSessionLeaseStatus.acquired,
+        session: _session(
+          runSessionId: replay.runSessionId,
+          mode: RunMode.campaign,
+          campaign: binding,
+          seed: 42,
+          tickHz: 60,
+          levelId: 'forest',
+          digest: replay.canonicalSha256,
+          contentLengthBytes: bytes.length,
+          validationAttempt: 1,
+          loadoutSnapshot: loadout,
+        ),
+      ),
+    );
+    final worker = DeterministicValidatorWorker(
+      replayLoader: _FakeReplayLoader(
+        bytesByRunSession: {replay.runSessionId: bytes},
+      ),
+      boardRepository: const _FakeBoardRepository(),
+      runSessionRepository: repo,
+      metrics: _FakeValidatorMetrics(),
+      clockMs: () => 10000,
+    );
+    expect(
+      (await worker.validateRunSession(runSessionId: replay.runSessionId))
+          .status,
+      ValidationDispatchStatus.accepted,
+    );
+    final result = repo.acceptedSettlementHandoffs.single;
+    expect(
+      (result.tick, result.endedReason, result.goldEarned),
+      (ended.tick, ended.reason.name, ended.goldEarned),
+    );
+    expect(result.campaign, binding);
+    expect(result.stats['collectibles'], data['collectibles']);
+  }, skip: Platform.environment['REPORTING_BLESSING_REPLAY_PATH'] == null);
 
   test('compiled campaign app outcome matches ticket replay worker', () async {
     final id = Platform.environment['CAMPAIGN_REPLAY_FIXTURE']!;
@@ -632,7 +845,7 @@ void main() {
         contentLengthBytes: replayBytes.length,
         validationAttempt: 1,
         tickHz: replayBlob.tickHz,
-        gameCompatVersion: '2026.11.11',
+        gameCompatVersion: '2026.11.14',
       );
       final repo = _FakeRunSessionRepository(
         leaseResult: RunSessionLeaseAcquireResult(
@@ -1910,8 +2123,9 @@ ValidatorRunSession _session({
   int? boardClosesAtMs,
   String? storageGeneration = '123',
   String? ticketRunSessionId,
+  String levelId = 'field',
   String playerCharacterId = 'eloise',
-  String gameCompatVersion = '2026.11.11',
+  String gameCompatVersion = '2026.11.14',
 
   String? rulesetVersion,
   String? scoreVersion,
@@ -1928,7 +2142,7 @@ ValidatorRunSession _session({
   final boardKey = mode.requiresBoard
       ? BoardKey(
           mode: mode,
-          levelId: 'field',
+          levelId: levelId,
           windowId: '2026-07',
           rulesetVersion: rulesetVersion ?? 'rules-v2',
           scoreVersion: scoreVersion ?? 'score-v4',
@@ -1956,7 +2170,7 @@ ValidatorRunSession _session({
       boardClosesAtMs: mode.requiresBoard
           ? boardClosesAtMs ?? issuedAtMs + 1
           : null,
-      levelId: 'field',
+      levelId: levelId,
       playerCharacterId: playerCharacterId,
       loadoutSnapshot: loadoutSnapshot ?? _defaultLoadoutSnapshot(),
       loadoutDigest:

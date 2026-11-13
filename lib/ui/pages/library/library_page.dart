@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:runner_core/levels/level_id.dart';
 
 import '../../codex/codex_catalog.dart';
+import '../../campaign/campaign_catalog.dart';
 import '../../components/enemy_portrait.dart';
 import '../../components/menu_scaffold.dart';
 import '../../components/menu_icon_column.dart';
@@ -20,6 +21,7 @@ import '../../state/presentation/library_progress_tracker.dart';
 import '../../theme/ui_tokens.dart';
 import 'codex_entry_page.dart';
 import 'codex_widgets.dart';
+import 'campaign_journal_view.dart';
 import 'location_map.dart';
 
 /// Reads settled account progress; browsing never grants discoveries locally.
@@ -85,10 +87,9 @@ class _LibraryPageState extends State<LibraryPage> {
               SafeArea(
                 child: Padding(
                   padding: readingPadding,
-                  child: CodexReadingView(
-                    title: CodexCatalog.openingTitle(context.l10n),
-                    subtitle: context.l10n.libraryBrand,
-                    paragraphs: [CodexCatalog.opening(context.l10n)],
+                  child: CampaignJournalView(
+                    journal: CampaignCatalog.journal,
+                    isCleared: progress.campaign.isCleared,
                   ),
                 ),
               ),

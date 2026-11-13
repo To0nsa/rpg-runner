@@ -191,8 +191,13 @@ final class _AppStateDeveloperController extends _AppStateController {
     return _save(_selection);
   }
 
-  Future<void> setLoadout(PlayerCharacterId id, EquippedLoadoutDef loadout) =>
-      setSelection(_selection.withLoadoutFor(id, loadout));
+  Future<void> setLoadout(
+    PlayerCharacterId id,
+    EquippedLoadoutDef loadout, {
+    int? buildIndex,
+  }) => setSelection(
+    _selection.withLoadoutFor(id, loadout, buildIndex: buildIndex),
+  );
 
   Future<void> _save(SelectionState selection) {
     final pending = _pendingSave.then((_) => _store.saveSelection(selection));

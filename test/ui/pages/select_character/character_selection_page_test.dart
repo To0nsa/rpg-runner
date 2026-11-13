@@ -28,7 +28,7 @@ void main() {
     const Size(800, 360),
     const Size(568, 320),
   ]) {
-    testWidgets('cards select in place and open remembered builds at $size', (
+    testWidgets('selection and independent build editing at $size', (
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({});
@@ -84,12 +84,29 @@ void main() {
             initialRoute: UiRoutes.selectCharacter,
             routes: {
               UiRoutes.selectCharacter: (_) => const CharacterSelectionPage(),
-              UiRoutes.setupLoadout: (_) => const LoadoutSetupPage(),
+              UiRoutes.setupLoadout: (context) => LoadoutSetupPage(
+                args:
+                    ModalRoute.of(context)!.settings.arguments
+                        as LoadoutSetupArgs?,
+              ),
             },
           ),
         ),
       );
       await tester.pump();
+      final semantics = tester.ensureSemantics();
+      try {
+        expect(
+          find.bySemanticsLabel('Use Build 1 with Willow'),
+          findsOneWidget,
+        );
+        expect(
+          find.bySemanticsLabel('Edit Build 1 for Willow'),
+          findsOneWidget,
+        );
+      } finally {
+        semantics.dispose();
+      }
       final willowCard = find.byKey(
         const ValueKey('character-card-bountyHunter'),
       );
@@ -106,9 +123,10 @@ void main() {
       expect(find.text('Build 2'), findsNothing);
       expect(find.text('Build 3'), findsNothing);
       expect(find.text('Change build'), findsNothing);
-      expect(find.text('Level 5'), findsNWidgets(2));
-      expect(find.text('Level 12'), findsNWidgets(2));
-      for (final element in find.textContaining('Level ').evaluate()) {
+      expect(find.text('Unlocks at level 5'), findsNWidgets(2));
+      expect(find.text('Unlocks at level 12'), findsNWidgets(2));
+      for (final element
+          in find.textContaining('Unlocks at level ').evaluate()) {
         final paragraph = element.renderObject! as RenderParagraph;
         expect(paragraph.didExceedMaxLines, isFalse);
       }
@@ -120,9 +138,24 @@ void main() {
       );
       expect(find.textContaining('Sword · Shield'), findsNothing);
       expect(find.textContaining('Pick a gun'), findsNothing);
-      expect(find.byType(Scrollable), findsNothing);
+      expect(find.text('Last used'), findsNothing);
+      expect(find.text('SAVED BUILDS'), findsNothing);
+      expect(find.text('Steel & spellcraft'), findsNothing);
+      expect(find.text('Bounty hunter'), findsNothing);
+      expect(find.text('Active build'), findsOneWidget);
+      expect(find.text('Selected'), findsNothing);
+      expect(find.text('Select Willow'), findsNothing);
+      expect(find.text('Edit'), findsNothing);
+      expect(find.text('Selected for next run'), findsNothing);
+      final expectedHeight = {
+        const Size(1200, 720): 360.0,
+        const Size(800, 450): 318.0,
+        const Size(800, 360): 228.0,
+        const Size(568, 320): 216.0,
+      }[size]!;
       for (final card in [willowCard, eloiseCard]) {
         final rect = tester.getRect(card);
+        expect(rect.height, expectedHeight);
         expect(rect.left, greaterThanOrEqualTo(0));
         expect(rect.top, greaterThanOrEqualTo(kToolbarHeight));
         expect(rect.right, lessThanOrEqualTo(size.width));
@@ -132,7 +165,7 @@ void main() {
       expect(buildEloise.hitTestable(), findsOneWidget);
       expect(
         find.byKey(const ValueKey('character-unselected-bountyHunter')),
-        findsOneWidget,
+        findsNothing,
       );
       if (Platform.environment['BOUNTY_HUNTER_CAPTURE'] == 'true') {
         await tester.runAsync(
@@ -154,7 +187,9 @@ void main() {
           image.dispose();
         });
       }
-      await tester.tap(find.text('Willow'));
+      await tester.tap(
+        find.byKey(const ValueKey('select-character-bountyHunter')),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
       expect(
@@ -169,18 +204,18 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('character-unselected-eloise')),
-        findsOneWidget,
+        findsNothing,
       );
       await tester.tap(find.text(eloiseName));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
       expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
       expect(find.byType(CharacterSelectionPage), findsOneWidget);
-      // A build button also selects its own card before opening the builder.
+      // Build selection stays on the chooser; editing preserves the chosen pair.
       await tester.tap(buildWillow);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
-      expect(find.byType(LoadoutSetupPage), findsOneWidget);
+      expect(find.byType(LoadoutSetupPage), findsNothing);
       expect(
         state.selection.selectedCharacterId,
         PlayerCharacterId.bountyHunter,
@@ -195,6 +230,18 @@ void main() {
         (state.selection.toJson()['buildsByCharacter'] as Map)['eloise'],
         eloise,
       );
+      await tester.tap(buildEloise);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.tap(find.byTooltip('Edit Build 1 for Willow'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.byType(LoadoutSetupPage), findsOneWidget);
+      expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
+      expect(find.text('Willow · Build 1'), findsNothing);
+      expect(find.text('Rename'), findsNothing);
+      expect(find.text('Use this build'), findsNothing);
+      expect(tester.getSize(find.byType(TabBar)).height, 44);
       expect(tester.takeException(), isNull);
       expect(find.byIcon(Icons.swap_horiz), findsNothing);
       await _capture(tester, boundary, size, 'builder');
@@ -254,7 +301,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
       await tester.pump(const Duration(milliseconds: 350));
       expect(find.byType(Dialog), findsNothing);
-      expect(state.selection.buildName, 'Willow crossbow practice kit');
+      expect(state.selection.buildName, 'Build 1');
+      expect(
+        state.selection
+            .buildsFor(PlayerCharacterId.bountyHunter)
+            .builds[0]
+            .name,
+        'Willow crossbow practice kit',
+      );
       expect(find.text('Willow crossbow practice kit'), findsOneWidget);
       await tester.pageBack();
       await tester.pump();
@@ -266,15 +320,28 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('build-eloise-1')));
       await tester.pump();
       expect(find.byType(CharacterSelectionPage), findsOneWidget);
+      expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
+      await tester.tap(find.text('Willow crossbow practice kit'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
       expect(
         state.selection.selectedCharacterId,
         PlayerCharacterId.bountyHunter,
       );
-      await tester.tap(buildEloise);
+      expect(find.byType(LoadoutSetupPage), findsNothing);
+      await tester.tap(find.byTooltip('Edit Build 1 for $eloiseName'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
-      expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
-      expect(state.selection.buildName, 'Build 1');
+      expect(
+        state.selection.selectedCharacterId,
+        PlayerCharacterId.bountyHunter,
+      );
+      expect(find.text('Use this build'), findsNothing);
+      expect(
+        state.selection.selectedCharacterId,
+        PlayerCharacterId.bountyHunter,
+      );
+      expect(state.selection.buildName, 'Willow crossbow practice kit');
       expect(
         state.selection
             .loadoutFor(PlayerCharacterId.bountyHunter)
@@ -286,6 +353,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(CharacterSelectionPage), findsOneWidget);
       expect(find.byType(LoadoutSetupPage), findsNothing);
+      expect(
+        state.selection.selectedCharacterId,
+        PlayerCharacterId.bountyHunter,
+      );
+      await tester.tap(buildEloise);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
       expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
 
       await tester.pageBack();

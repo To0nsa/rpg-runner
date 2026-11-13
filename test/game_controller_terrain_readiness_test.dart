@@ -11,12 +11,64 @@ import 'package:runner_core/tuning/camera_tuning.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:rpg_runner/game/game_controller.dart';
+import 'package:rpg_runner/game/input/aim_preview.dart';
+import 'package:rpg_runner/game/input/runner_gameplay_action.dart';
+import 'package:rpg_runner/game/input/runner_input_router.dart';
+import 'package:rpg_runner/ui/input/runner_gameplay_bindings.dart';
 import 'package:rpg_runner/game/replay/replay_command_codec.dart';
 
 import 'game/replay/support/ghost_replay_fixture.dart';
 import 'support/test_level.dart';
 
 void main() {
+  test(
+    'shared binding cancels queued input on terrain failure before retry',
+    () async {
+      final f = _Fixture();
+      addTearDown(f.dispose);
+      final projectile = AimPreviewModel();
+      final melee = AimPreviewModel();
+      final binding = RunnerGameplayBindings(
+        controller: f.controller,
+        input: RunnerInputRouter(controller: f.controller),
+        projectilePreview: projectile,
+        meleePreview: melee,
+      );
+      addTearDown(() {
+        binding.dispose();
+        projectile.dispose();
+        melee.dispose();
+      });
+      f.advanceUntilWait();
+      final work = await f.worker.next();
+      binding.actions.setMoveAxis(1);
+      binding.actions.triggerAction(RunnerGameplayAction.jump);
+      binding.actions.beginAction(RunnerGameplayAction.projectile);
+      binding.actions.pumpHeldInputs();
+      final epoch = binding.movementEpoch;
+      final tick = f.controller.tick;
+      work.completer.completeError(StateError('worker unavailable'));
+      await _turn();
+      expect(f.controller.terrainReadiness, TerrainReadiness.failed);
+      expect(binding.movementEpoch, epoch + 1);
+      binding.actions.endAction(RunnerGameplayAction.projectile);
+      binding.actions.commitAction(RunnerGameplayAction.projectile);
+      f.controller.retryTerrainPreparation();
+      f.controller.advanceFrame(1 / 60);
+      f.controller.advanceFrame(1 / 60);
+      await (await f.worker.next()).complete();
+      await _turn();
+      f.controller.advanceFrame(1);
+      binding.actions.pumpHeldInputs();
+      f.controller.advanceFrame(1 / 60);
+      expect(f.controller.tick, tick + 1);
+      expect(f.frames.last.moveAxis, isNull);
+      expect(f.frames.last.pressedMask, 0);
+      expect(f.frames.last.abilitySlotHeldValueMask, 0);
+      f.compareWithOffline();
+    },
+  );
+
   test('cold live miss holds world, inputs and recorder; resumes exact offline tick', () async {
     final f = _Fixture();
     addTearDown(f.dispose);

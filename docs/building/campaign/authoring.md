@@ -7,7 +7,7 @@ The [single checklist](implementation.md) records local evidence and remaining
 production-layout/device acceptance; this document is not a second task ledger.
 The November 11 [visual marker follow-up](implementation.md#m2-follow-up-visual-marker-authoring)
 supersedes the chunk-variant-only placement guidance below with implemented typed,
-occurrence-local gameplay placements edited directly in Campaign. Base terrain
+mission chunk-local gameplay placements edited directly in Campaign. Base terrain
 remains shared chunk content. Follow that checklist for the new scope; the
 remaining proposal below records the original platform design.
 
@@ -19,7 +19,7 @@ decision. Keep ordinary chunks in their existing source domain and reusable
 atlases/parallax in their canonical asset directories.
 
 A mission source describes stable identity/revision/status/build inclusion,
-localized text identities, source/theme references, ordered route occurrences,
+localized text identities, source/theme references, ordered route mission chunks,
 player start, bounds, objectives/exit, gameplay rules, and versioned score/reward
 policy references. Chapter sources own mission order/prerequisites and map anchor
 metadata. Keep account progress and editor viewport/selection preferences out of
@@ -34,7 +34,7 @@ Generated output never becomes an input to source authoring.
 
 ## Chunk reuse
 
-Each ordered occurrence contains its own stable ID and an explicit source-owner/
+Each ordered mission chunk contains its own stable ID and an explicit source-owner/
 chunk-key reference. Its position in the list determines placement at the supported
 chunk width; no arbitrary rotation/scaling or freeform scene transform is needed
 for the first delivery. Validate compatible dimensions, world references, terrain
@@ -50,9 +50,9 @@ The workspace distinguishes three actions:
 
 | Action | Meaning |
 | --- | --- |
-| Insert or duplicate occurrence | Reuse the same source at another route position with a fresh instance ID |
+| Insert or duplicate mission chunk | Reuse the same source at another route position with a fresh instance ID |
 | Edit shared source | Open Chunk Creator; changes affect every referencing mission and existing runner pool |
-| Create variant or convert mode | Copy through the chunk domain into a new identity/usage, then point the destination occurrence or pool at it |
+| Create variant or convert mode | Copy through the chunk domain into a new identity/usage, then point the destination mission chunk or pool at it |
 
 Show source identity and where-used impact before editing shared content. A new
 variant must not accidentally enter a runner's automatic pool; M0 must define
@@ -62,7 +62,7 @@ usage rules. Source deletion/rekey checks include campaign references and offer
 explicit repair rather than silently substituting another chunk.
 
 Keep geometric edits in Chunk Creator. Mission sources place mission-owned start,
-exit, and objective regions and can refer to a specific occurrence's source
+exit, and objective regions and can refer to a specific mission chunk's source
 encounter/marker. Avoid an unrestricted nested override system. If ordinary combat
 placements differ, create a variant until a repeated, concrete need justifies a
 typed override. The user removes unwanted encounters from the copied chunks
@@ -74,7 +74,7 @@ in later missions rather than silently changing them.
 ## Bidirectional chunk converter
 
 Provide **Copy to Campaign** and **Copy to Runner** from a source chunk or a
-selected mission occurrence. Conversion duplicates a chunk layout into an
+selected mission chunk. Conversion duplicates a chunk layout into an
 independent editable source record; it does not convert a whole mission into an
 endless level. Preserve the original chunk and route, allocate a new owner-scoped
 identity/revision, and show the source/destination plus a conversion report before
@@ -103,7 +103,7 @@ These edits affect the duplicate only. Validate the finished mission's absence o
 combat content and inspect any remaining hazards before accepting it as the
 introductory route; copying alone does not satisfy that content requirement.
 
-Campaign objectives live on the mission/occurrence. Copying a campaign chunk to
+Campaign objectives live on the mission/mission chunk. Copying a campaign chunk to
 runner must leave the original mission and its references untouched, and must not
 pretend that its exit condition can run in runner mode. Report any unrepresentable
 or mode-specific metadata; resolve or block it rather than silently discarding
@@ -128,14 +128,14 @@ The workspace provides:
 
 - Chapter/mission library with draft, included, and readiness states.
 - Chunk library filtered by source owner, group, difficulty, and compatibility.
-- Ordered route strip with insert, move, duplicate occurrence, and remove actions.
+- Ordered route strip with insert, move, duplicate mission chunk, and remove actions.
 - Copy to Campaign / Copy to Runner with destination settings, compatibility checks,
   conversion report, and new-draft navigation.
 - Continuous assembled preview with seams, bounds, source names, and instance IDs.
-- Context inspector for mission details, occurrence source, start, exit, objectives,
+- Context inspector for mission details, mission chunk source, start, exit, objectives,
   scoring/reward policy, and chapter prerequisites.
 - Geometry/placement overlays and diagnostics that select the offending source,
-  occurrence, objective, or seam.
+  mission chunk, objective, or seam.
 - Whole-mission Play from the authored player start, and optional focused source
   Play clearly identified as a different diagnostic scope.
 
@@ -148,13 +148,13 @@ localization file is a hand-edited authoring surface.
 
 Semantic commands own insert/reorder/relink, marker placement, objective edits,
 and metadata changes. Undo/redo preserves stable identities and obeys existing
-revision rules. Removing an occurrence with referenced objectives must identify
+revision rules. Removing a mission chunk with referenced objectives must identify
 and resolve those dependencies; reordering must not bind them by their old index.
 
 Use existing transactional Save, source/dependency drift guards, and history
 reconciliation. Valid but incomplete design can be saved as a draft. Malformed
 source blocks Save; missing runtime readiness blocks Play and included Build.
-Switching to Chunk Creator and returning restores the mission/occurrence context,
+Switching to Chunk Creator and returning restores the mission/mission chunk context,
 refreshes dependent content, and invalidates stale previews/play captures. Editing
 a source while a mission playtest runs cannot mutate that captured attempt.
 
@@ -165,7 +165,7 @@ and successfully testing an unsaved draft does not prove generated freshness.
 ## Compiler and Build admission
 
 Validate unique IDs, strict schema/numeric bounds, source provenance, reference
-existence/status, occurrence uniqueness, and chapter prerequisite cycles. Check
+existence/status, mission chunk uniqueness, and chapter prerequisite cycles. Check
 an eligible initial mission, supported placement dimensions, start support,
 bounds, exit support, objective target types, and terminal conditions that are
 structurally satisfiable. Reject random route selection and recursive expansion.

@@ -83,7 +83,9 @@ class RunnerFlameGame extends FlameGame {
        _combatFeedbackTuning = combatFeedbackTuning,
        _projectileRenderRegistry = ProjectileRenderRegistry(),
        _spellImpactRenderRegistry = SpellImpactRenderRegistry(),
-       _pickupRenderRegistry = PickupRenderRegistry(),
+       _pickupRenderRegistry = PickupRenderRegistry(
+         playerCharacter: controller.playerCharacter.id,
+       ),
        super(
          camera: CameraComponent.withFixedResolution(
            width: virtualWidth.toDouble(),
@@ -172,6 +174,8 @@ class RunnerFlameGame extends FlameGame {
   }
 
   bool _removed = false;
+  bool _renderResourcesReleased = false;
+  bool _notifiersDisposed = false;
 
   /// The selected player character definition for this run (render-only usage).
   final PlayerCharacterDefinition playerCharacter;
@@ -605,21 +609,41 @@ class RunnerFlameGame extends FlameGame {
 
   @override
   void onRemove() {
+    _releaseRenderResources();
+    super.onRemove();
+  }
+
+  void _releaseRenderResources() {
+    if (_renderResourcesReleased) return;
+    _renderResourcesReleased = true;
     cancelPreparation();
     _ghostLayer.detachListeners();
     _ghostLayer.clearViews();
     controller.removeEventListener(_eventFeedback.handleGameEvent);
     _playerAnimations.clear();
     images.clearCache();
-    super.onRemove();
   }
 
   @override
   void onDispose() {
+    if (_notifiersDisposed) return;
+    _notifiersDisposed = true;
     _removed = true;
+    _releaseRenderResources();
     offscreenIndicators.dispose();
     loadState.dispose();
     super.onDispose();
+  }
+
+  /// Completes cleanup for an attempt that never reached a GameWidget, or whose
+  /// widget has already unmounted. Never invoke this on a live widget's game.
+  void disposeAfterUnmount() {
+    if (_notifiersDisposed) return;
+    if (isAttached) {
+      throw StateError('Unmount the game view before disposing its runtime.');
+    }
+    _releaseRenderResources();
+    onDispose();
   }
 
   void _setLoadState(RunLoadPhase phase, double progress) {

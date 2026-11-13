@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -11,11 +12,18 @@ import 'package:rpg_runner/ui/theme/ui_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:runner_core/meta/meta_service.dart';
+import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/submission_status.dart';
 import 'package:rpg_runner/ui/components/app_button.dart';
 import 'package:rpg_runner/ui/components/gold_display.dart';
 import 'package:rpg_runner/ui/pages/town/town_store_page.dart';
+import 'package:rpg_runner/ui/pages/town/town_catalog.dart';
+import 'package:rpg_runner/ui/pages/town/town_equipment_args.dart';
+import 'package:rpg_runner/ui/components/item_picker_tile.dart';
+import 'package:rpg_runner/ui/components/app_segmented_control.dart';
+import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
+import 'package:rpg_runner/ui/state/ownership/campaign_progress.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
@@ -28,7 +36,7 @@ import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
   testWidgets(
-    'full catalogue supports category browsing and service switching',
+    'equipment workspace browses categories and training has its own entrance',
     (tester) async {
       if (const bool.fromEnvironment('CAPTURE_TOWN_SERVICES')) {
         await tester.runAsync(() async {
@@ -44,7 +52,7 @@ void main() {
           }
         });
       }
-      tester.view.physicalSize = const Size(1000, 720);
+      tester.view.physicalSize = const Size(844, 390);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       final json = jsonDecode(
@@ -52,6 +60,7 @@ void main() {
       ) as Map<String, dynamic>;
       final api = _ScriptedOwnershipApi(
         canonical: _canonicalWithStore(
+          willowUnlocked: true,
           gold: 450,
           activeOffers: TownStoreState.fromJson(json).catalogOffers,
         ),
@@ -64,14 +73,19 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('catalogue-slot-accessory')));
       await tester.pumpAndSettle();
       expect(find.text('Waspfang'), findsNothing);
-      expect(find.text('Usable by both · One purchase'), findsWidgets);
-      await tester.tap(find.byKey(const ValueKey('service-training')));
+      expect(find.text('Usable by both · One purchase'), findsNothing);
+      await tester.pumpWidget(
+        _TestApp(appState: app, service: TownService.training),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('catalogue-character-bountyHunter')),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('catalogue-slot-mobility')));
+      await tester.pumpAndSettle();
       await _capture(tester, 'training');
-      expect(find.text('Learn'), findsWidgets);
+      expect(find.widgetWithText(AppButton, 'Learn 150'), findsOneWidget);
       expect(app.selection.selectedCharacterId, PlayerCharacterId.eloise);
     },
   );
@@ -107,7 +121,9 @@ void main() {
           ),
           findsOneWidget,
         );
-        await tester.tap(find.text(action == 'purchase' ? 'Buy' : 'Refresh'));
+        await tester.tap(
+          find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+        );
         await tester.pumpAndSettle();
         expect(find.text('Your rewards are on their way'), findsOneWidget);
         expect(ownership.purchaseStoreOfferCalls, 0);
@@ -130,7 +146,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Your gold is ready'), findsNothing);
         if (action == 'purchase') {
-          await tester.tap(find.text('Buy'));
+          await tester.tap(
+            find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+          );
         } else {
           await tester.tap(find.text('Refresh'));
           await tester.pumpAndSettle();
@@ -167,7 +185,9 @@ void main() {
         provisionalSummary: {'goldEarned': 80, 'score': 1000},
       );
       await tester.pumpWidget(_TestApp(appState: app));
-      await tester.tap(find.text('Buy'));
+      await tester.tap(
+        find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+      );
       await tester.pumpAndSettle();
       expect(ownership.purchaseStoreOfferCalls, 1);
       expect(find.text('Your rewards are on their way'), findsNothing);
@@ -176,7 +196,7 @@ void main() {
     },
   );
 
-  testWidgets('Town page renders active offers in a single list', (
+  testWidgets('Equipment shows one selected purchase beside the item grid', (
     tester,
   ) async {
     final appState = await _bootstrappedAppState(
@@ -190,7 +210,14 @@ void main() {
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
-    expect(find.text('Equipment'), findsNWidgets(2));
+    expect(find.text('Equipment store'), findsOneWidget);
+    expect(find.byKey(const ValueKey('service-training')), findsNothing);
+    expect(
+      find.text(
+        'Choose equipment for your next build. Every item is always available.',
+      ),
+      findsNothing,
+    );
     expect(find.text('Current Gold'), findsNothing);
     expect(
       find.descendant(
@@ -200,8 +227,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Refresh'), findsNothing);
-    expect(find.text('Waspfang'), findsOneWidget);
-    expect(find.text('150'), findsOneWidget);
+    expect(find.text('Waspfang'), findsNWidgets(2));
+    expect(find.widgetWithText(AppButton, 'Buy 150'), findsOneWidget);
     expect(find.textContaining('is sold out'), findsNothing);
   });
 
@@ -259,41 +286,58 @@ void main() {
     },
   );
 
-  testWidgets('Town store offer expands to show item details', (tester) async {
-    final appState = await _bootstrappedAppState(
-      ownershipApi: _ScriptedOwnershipApi(
-        canonical: _canonicalWithStore(
-          gold: 300,
-          activeOffers: <StoreOfferState>[_swordOffer()],
-        ),
-      ),
-    );
+  testWidgets(
+    'Equipment shows only selected item details and centers its purchase action',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        final appState = await _bootstrappedAppState(
+          ownershipApi: _ScriptedOwnershipApi(
+            canonical: _canonicalWithStore(
+              gold: 300,
+              activeOffers: <StoreOfferState>[_swordOffer()],
+            ),
+          ),
+        );
 
-    await tester.pumpWidget(_TestApp(appState: appState));
+        await tester.pumpWidget(_TestApp(appState: appState));
 
-    expect(
-      find.text('Bleed pressure sword with lower upfront power.'),
-      findsNothing,
-    );
-
-    await tester.tap(find.text('Waspfang'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Bleed pressure sword with lower upfront power.'),
-      findsOneWidget,
-    );
-    expect(find.text('On Hit'), findsWidgets);
-    expect(find.textContaining('Compared with Plainsteel'), findsOneWidget);
-
-    await tester.tap(find.text('Waspfang'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Bleed pressure sword with lower upfront power.'),
-      findsNothing,
-    );
-  });
+        expect(
+          find.text('Bleed pressure sword with lower upfront power.'),
+          findsOneWidget,
+        );
+        expect(find.text('On Hit'), findsOneWidget);
+        expect(find.text('Item'), findsNothing);
+        expect(find.text('Change'), findsNothing);
+        expect(find.text('Show owned'), findsNothing);
+        expect(find.textContaining('Compared with'), findsNothing);
+        final purchase = tester.getRect(
+          find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+        );
+        final section = tester.getRect(
+          find.byKey(const ValueKey('equipment-purchase-section')),
+        );
+        expect(purchase.center.dx, closeTo(section.center.dx, 0.1));
+        final itemSemantics = tester
+            .getSemantics(
+              find.byKey(const ValueKey('offer-gear:mainWeapon:waspfang')),
+            )
+            .getSemanticsData();
+        expect(itemSemantics.hasAction(ui.SemanticsAction.tap), isTrue);
+        expect(itemSemantics.label, 'Waspfang');
+        await tester.tap(
+          find.byKey(const ValueKey('offer-gear:mainWeapon:waspfang')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Bleed pressure sword with lower upfront power.'),
+          findsOneWidget,
+        );
+      } finally {
+        semantics.dispose();
+      }
+    },
+  );
 
   testWidgets('Town purchase uses direct buy interaction', (tester) async {
     final ownershipApi = _ScriptedOwnershipApi(
@@ -306,12 +350,78 @@ void main() {
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
-    await tester.tap(find.text('Buy'));
+    await tester.tap(
+      find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+    );
     await tester.pumpAndSettle();
 
     expect(ownershipApi.purchaseStoreOfferCalls, 1);
     expect(find.text('Purchased Waspfang.'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('offer-gear:mainWeapon:waspfang')),
+      findsNothing,
+    );
+    expect(find.text('Owned'), findsNothing);
+    expect(find.text('No entries match these filters.'), findsOneWidget);
+    expect(find.byType(AppButton), findsNothing);
+    expect(
+      appState.selection.loadoutFor(PlayerCharacterId.eloise).mainWeaponId,
+      WeaponId.plainsteel,
+    );
+    expect(appState.selection.selectedCharacterId, PlayerCharacterId.eloise);
   });
+
+  testWidgets(
+    'a purchased item disappears and the next available item is selected',
+    (tester) async {
+      final nextOffer = _swordOffer().copyWith(
+        offerId: 'gear:mainWeapon:cinderedge',
+        itemId: 'cinderedge',
+      );
+      final api = _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          gold: 500,
+          activeOffers: [_swordOffer(), nextOffer],
+        ),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: api);
+      addTearDown(app.dispose);
+      await tester.pumpWidget(_TestApp(appState: app));
+      await tester.tap(
+        find.byKey(const ValueKey('offer-gear:mainWeapon:waspfang')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('offer-gear:mainWeapon:waspfang')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+        findsNothing,
+      );
+      expect(
+        tester
+            .widget<ItemPickerTile>(
+              find.byKey(const ValueKey('offer-gear:mainWeapon:cinderedge')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(
+        find.byKey(const ValueKey('buy-gear:mainWeapon:cinderedge')),
+        findsOneWidget,
+      );
+      expect(api.purchaseStoreOfferCalls, 1);
+      expect(
+        app.selection.loadoutFor(PlayerCharacterId.eloise).mainWeaponId,
+        WeaponId.plainsteel,
+      );
+    },
+  );
 
   testWidgets('Town blocks purchase when player lacks offer gold cost', (
     tester,
@@ -326,8 +436,10 @@ void main() {
 
     await tester.pumpWidget(_TestApp(appState: appState));
 
-    expect(find.text('150'), findsOneWidget);
-    await tester.tap(find.text('Buy'));
+    expect(find.widgetWithText(AppButton, 'Buy 150'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+    );
     await tester.pumpAndSettle();
     expect(ownershipApi.purchaseStoreOfferCalls, 0);
   });
@@ -337,6 +449,7 @@ void main() {
   ) async {
     final api = _ScriptedOwnershipApi(
       canonical: _canonicalWithStore(
+        willowUnlocked: true,
         gold: 500,
         activeOffers: [_swordOffer(), _willowAbility()],
       ),
@@ -344,50 +457,638 @@ void main() {
     final app = await _bootstrappedAppState(ownershipApi: api);
     addTearDown(app.dispose);
     await tester.pumpWidget(_TestApp(appState: app));
-    await tester.tap(find.byKey(const ValueKey('service-training')));
+    await tester.pumpWidget(
+      _TestApp(appState: app, service: TownService.training),
+    );
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('catalogue-character-bountyHunter')),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Blink Dash'), findsOneWidget);
+    expect(find.byKey(const ValueKey('service-equipment')), findsNothing);
+    expect(
+      find.text('Learn permanent techniques for the character you choose.'),
+      findsNothing,
+    );
+    expect(find.text('Blink Dash'), findsNWidgets(2));
     expect(find.text('Waspfang'), findsNothing);
-    await tester.ensureVisible(find.text('Learn'));
-    await tester.tap(find.text('Learn'));
+    await tester.ensureVisible(find.text('Learn 150'));
+    await tester.tap(find.text('Learn 150'));
     await tester.pumpAndSettle();
     expect(api.lastPurchase?.characterId, PlayerCharacterId.bountyHunter);
     expect(app.selection.selectedCharacterId, PlayerCharacterId.eloise);
+    expect(find.byType(AppButton), findsNothing);
+    expect(find.text('Learned'), findsOneWidget);
+    expect(
+      tester
+          .widget<ItemPickerTile>(
+            find.byKey(
+              const ValueKey('offer-ability:mobility:bounty_hunter.blink_dash'),
+            ),
+          )
+          .statusLabel,
+      'Learned',
+    );
   });
 
-  testWidgets(
-    'owned shared accessories stay inspectable without another purchase',
-    (tester) async {
+  testWidgets('Training categories keep learned techniques inspectable', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    try {
       final api = _ScriptedOwnershipApi(
         canonical: _canonicalWithStore(
           gold: 500,
-          activeOffers: [_sharedAccessory()],
+          activeOffers: [
+            _eloiseTechnique(StoreSlot.mobility, 'eloise.dash'),
+            _eloiseTechnique(StoreSlot.mobility, 'eloise.double_dash'),
+            _eloiseTechnique(StoreSlot.jump, 'eloise.double_jump'),
+          ],
         ),
       );
       final app = await _bootstrappedAppState(ownershipApi: api);
       addTearDown(app.dispose);
-      await tester.pumpWidget(_TestApp(appState: app));
-      expect(find.text('Owned'), findsOneWidget);
-      expect(find.text('Usable by both · One purchase'), findsOneWidget);
-      expect(find.text('Buy'), findsNothing);
+      final selection = app.selection;
+      await tester.pumpWidget(
+        _TestApp(appState: app, service: TownService.training),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('training-split')), findsOneWidget);
+      expect(find.byType(FilterChip), findsNothing);
+      expect(find.text('Not yet unlocked'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('catalogue-slot-mobility')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('offer-ability:jump:eloise.double_jump')),
+        findsNothing,
+      );
+      final dash = find.byKey(
+        const ValueKey('offer-ability:mobility:eloise.dash'),
+      );
+      expect(tester.getSemantics(dash).getSemanticsData().value, 'Learned');
+      await tester.tap(dash);
+      await tester.pumpAndSettle();
+      expect(find.text('Learned'), findsOneWidget);
+      expect(find.byType(AppButton), findsNothing);
+      expect(find.textContaining('Cooldown'), findsOneWidget);
+      await _capture(tester, 'training-learned');
+      final learned = find.byKey(
+        const ValueKey('offer-ability:mobility:eloise.double_dash'),
+      );
+      await tester.tap(learned);
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(AppButton, 'Learn 150'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('buy-ability:mobility:eloise.double_dash')),
+      );
+      await tester.pumpAndSettle();
+      expect(dash, findsOneWidget);
+      expect(tester.widget<ItemPickerTile>(learned).selected, isTrue);
+      expect(tester.widget<ItemPickerTile>(learned).statusLabel, 'Learned');
+      expect(find.text('Learned'), findsOneWidget);
+      expect(find.byType(AppButton), findsNothing);
+      expect(app.selection, same(selection));
+      expect(api.purchaseStoreOfferCalls, 1);
+      await tester.tap(find.byKey(const ValueKey('catalogue-slot-all')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('offer-ability:jump:eloise.double_jump')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
+    }
+  });
+
+  testWidgets('learning locks browsing and uses the selected server price', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    final api = _ScriptedOwnershipApi(
+      canonical: _canonicalWithStore(
+        gold: 500,
+        willowUnlocked: true,
+        activeOffers: [
+          _eloiseTechnique(
+            StoreSlot.mobility,
+            'eloise.double_dash',
+          ).copyWith(priceGold: 225),
+          _eloiseTechnique(StoreSlot.mobility, 'eloise.roll'),
+        ],
+      ),
+    )..purchaseGate = gate;
+    final app = await _bootstrappedAppState(ownershipApi: api);
+    addTearDown(app.dispose);
+    await tester.pumpWidget(
+      _TestApp(appState: app, service: TownService.training),
+    );
+    await tester.pumpAndSettle();
+    final buy = find.byKey(
+      const ValueKey('buy-ability:mobility:eloise.double_dash'),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('offer-ability:mobility:eloise.double_dash')),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<AppButton>(buy).semanticLabel, 'Learn for 225 gold');
+    await tester.tap(buy);
+    await tester.pump();
+    expect(api.purchaseStoreOfferCalls, 1);
+    expect(tester.widget<AppButton>(buy).onPressed, isNull);
+    expect(
+      tester
+          .widget<AppSegmentedControl<PlayerCharacterId>>(
+            find.byKey(const ValueKey('catalogue-character-picker')),
+          )
+          .enabled,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<ItemPickerTile>(
+            find.byKey(const ValueKey('catalogue-slot-primary')),
+          )
+          .onTap,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<ItemPickerTile>(
+            find.byKey(const ValueKey('offer-ability:mobility:eloise.roll')),
+          )
+          .onTap,
+      isNull,
+    );
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(api.lastPurchase?.characterId, PlayerCharacterId.eloise);
+    expect(app.progression.gold, 275);
+    expect(find.text('Learned'), findsOneWidget);
+  });
+
+  testWidgets('owned shared accessories are hidden for both characters', (
+    tester,
+  ) async {
+    final api = _ScriptedOwnershipApi(
+      canonical: _canonicalWithStore(
+        willowUnlocked: true,
+        gold: 500,
+        activeOffers: [_sharedAccessory()],
+      ),
+    );
+    final app = await _bootstrappedAppState(ownershipApi: api);
+    addTearDown(app.dispose);
+    await tester.pumpWidget(_TestApp(appState: app));
+    await tester.tap(find.byKey(const ValueKey('catalogue-slot-accessory')));
+    await tester.pumpAndSettle();
+    expect(find.text('Show owned'), findsNothing);
+    expect(find.text('Owned'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('offer-gear:accessory:strengthBelt')),
+      findsNothing,
+    );
+    expect(find.text('No entries match these filters.'), findsOneWidget);
+    expect(find.byType(AppButton), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey('catalogue-character-bountyHunter')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Owned'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('offer-gear:accessory:strengthBelt')),
+      findsNothing,
+    );
+    expect(find.text('No entries match these filters.'), findsOneWidget);
+    expect(api.purchaseStoreOfferCalls, 0);
+    expect(api.refreshStoreCalls, 0);
+  });
+
+  testWidgets(
+    'equipment preserves ranged category when browsing another character',
+    (tester) async {
+      tester.view.physicalSize = const Size(640, 360);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final json = jsonDecode(
+        File('functions/test/fixtures/town_catalogue.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final api = _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          willowUnlocked: true,
+          gold: 500,
+          activeOffers: TownStoreState.fromJson(json).catalogOffers,
+        ),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: api);
+      addTearDown(app.dispose);
+      await tester.pumpWidget(
+        _TestApp(
+          appState: app,
+          equipmentArgs: const TownEquipmentArgs(
+            characterId: PlayerCharacterId.bountyHunter,
+            slot: StoreSlot.projectile,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Ranged weapons'), findsOneWidget);
+      final shotgun = find.byKey(
+        const ValueKey('offer-projectileSpell:projectile:hunterRoadsidePistol'),
+      );
+      final grid = find.byKey(
+        const ValueKey('equipment-grid-bountyHunter-projectile'),
+      );
+      await tester.scrollUntilVisible(
+        shotgun,
+        120,
+        scrollable: find.descendant(
+          of: grid,
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(shotgun);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey('buy-projectileSpell:projectile:hunterRoadsidePistol'),
+        ),
+        findsOneWidget,
+      );
+      await _capture(tester, 'equipment-willow-ranged');
+      expect(find.textContaining('Compared with'), findsNothing);
+      await tester.tap(
+        find.byKey(const ValueKey('catalogue-character-eloise')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Ranged spells'), findsOneWidget);
+      expect(shotgun, findsNothing);
+      expect(app.selection.selectedCharacterId, PlayerCharacterId.eloise);
+      expect(api.purchaseStoreOfferCalls, 0);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('equipment uses the selected server price', (tester) async {
+    final api = _ScriptedOwnershipApi(
+      canonical: _canonicalWithStore(
+        gold: 500,
+        activeOffers: [_swordOffer().copyWith(priceGold: 225)],
+      ),
+    );
+    final app = await _bootstrappedAppState(ownershipApi: api);
+    addTearDown(app.dispose);
+    await tester.pumpWidget(_TestApp(appState: app));
+    expect(find.widgetWithText(AppButton, 'Buy 225'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+    );
+    await tester.pumpAndSettle();
+    expect(app.progression.gold, 275);
+    expect(find.text('Owned'), findsNothing);
+    expect(find.byType(AppButton), findsNothing);
+  });
+
+  testWidgets('a purchase pins its recipient and blocks repeated actions', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    final api = _ScriptedOwnershipApi(
+      canonical: _canonicalWithStore(gold: 500, activeOffers: [_swordOffer()]),
+    )..purchaseGate = gate;
+    final app = await _bootstrappedAppState(ownershipApi: api);
+    addTearDown(app.dispose);
+    await tester.pumpWidget(_TestApp(appState: app));
+    await tester.tap(
+      find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+    );
+    await tester.pump();
+    expect(api.purchaseStoreOfferCalls, 1);
+    expect(
+      tester
+          .widget<AppSegmentedControl<PlayerCharacterId>>(
+            find.byKey(const ValueKey('catalogue-character-picker')),
+          )
+          .enabled,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<ItemPickerTile>(
+            find.byKey(const ValueKey('catalogue-slot-accessory')),
+          )
+          .onTap,
+      isNull,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('buy-gear:mainWeapon:waspfang')),
+    );
+    expect(api.purchaseStoreOfferCalls, 1);
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(api.lastPurchase?.characterId, PlayerCharacterId.eloise);
+    expect(find.text('Owned'), findsNothing);
+    expect(find.byType(AppButton), findsNothing);
+    expect(
+      app.selection.loadoutFor(PlayerCharacterId.eloise).mainWeaponId,
+      WeaponId.plainsteel,
+    );
+  });
+
+  testWidgets(
+    'builder entry preserves browsing without showing a build comparison',
+    (tester) async {
+      final canonical = _canonicalWithStore(
+        willowUnlocked: true,
+        gold: 500,
+        activeOffers: [_sharedAccessory()],
+      );
+      final namedBuild = canonical.selection.withBuildNameFor(
+        PlayerCharacterId.bountyHunter,
+        0,
+        'Town comparison',
+      );
+      final api = _ScriptedOwnershipApi(
+        canonical: canonical.copyWith(selection: namedBuild),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: api);
+      addTearDown(app.dispose);
+      final before = app.selection;
+      await tester.pumpWidget(
+        _TestApp(
+          appState: app,
+          equipmentArgs: const TownEquipmentArgs(
+            characterId: PlayerCharacterId.bountyHunter,
+            slot: StoreSlot.accessory,
+            buildIndex: 0,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Willow'), findsOneWidget);
+      expect(find.textContaining('Town comparison'), findsNothing);
+      expect(
+        tester
+            .widget<ItemPickerTile>(
+              find.byKey(const ValueKey('catalogue-slot-accessory')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(app.selection, same(before));
+      expect(api.purchaseStoreOfferCalls, 0);
+    },
+  );
+
+  for (final service in TownService.values) {
+    testWidgets(
+      '${service.name} locks Willow until Campaign makes her available',
+      (tester) async {
+        final api = _ScriptedOwnershipApi(
+          canonical: _canonicalWithStore(
+            gold: 500,
+            activeOffers: [_swordOffer(), _willowEquipment(), _willowAbility()],
+          ),
+        );
+        final app = await _bootstrappedAppState(ownershipApi: api);
+        addTearDown(app.dispose);
+        expect(
+          app.isCharacterUnlocked(PlayerCharacterId.bountyHunter),
+          isFalse,
+        );
+        await tester.pumpWidget(_TestApp(appState: app, service: service));
+        await tester.pumpAndSettle();
+        expect(find.byType(PopupMenuButton<PlayerCharacterId>), findsNothing);
+        final control = tester.widget<AppSegmentedControl<PlayerCharacterId>>(
+          find.byType(AppSegmentedControl<PlayerCharacterId>),
+        );
+        expect(
+          control.isValueEnabled!(PlayerCharacterId.bountyHunter),
+          isFalse,
+        );
+        expect(control.selected, PlayerCharacterId.eloise);
+        expect(
+          find.byTooltip('Complete the Val Outpost chapter to unlock Willow'),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('catalogue-character-bountyHunter')),
+        );
+        tester
+            .widget<AppSegmentedControl<PlayerCharacterId>>(
+              find.byKey(const ValueKey('catalogue-character-picker')),
+            )
+            .onChanged(PlayerCharacterId.bountyHunter);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(
+            const ValueKey(
+              'offer-projectileSpell:projectile:hunterRoadsidePistol',
+            ),
+          ),
+          findsNothing,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('offer-ability:mobility:bounty_hunter.blink_dash'),
+          ),
+          findsNothing,
+        );
+        expect(api.purchaseStoreOfferCalls, 0);
+        expect(app.selection.selectedCharacterId, PlayerCharacterId.eloise);
+        await _capture(tester, 'locked-${service.name}');
+      },
+    );
+  }
+
+  testWidgets(
+    'a direct Equipment entry cannot open the locked Willow catalogue',
+    (tester) async {
+      final api = _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          gold: 500,
+          activeOffers: [_willowEquipment()],
+        ),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: api);
+      addTearDown(app.dispose);
+      await tester.pumpWidget(
+        _TestApp(
+          appState: app,
+          equipmentArgs: const TownEquipmentArgs(
+            characterId: PlayerCharacterId.bountyHunter,
+            slot: StoreSlot.projectile,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<AppSegmentedControl<PlayerCharacterId>>(
+              find.byType(AppSegmentedControl<PlayerCharacterId>),
+            )
+            .selected,
+        PlayerCharacterId.eloise,
+      );
+      expect(find.byType(AppButton), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey(
+            'offer-projectileSpell:projectile:hunterRoadsidePistol',
+          ),
+        ),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'Campaign availability updates the Willow selector and gates stale purchases',
+    (tester) async {
+      final api = _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          gold: 500,
+          activeOffers: [_willowEquipment()],
+        ),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: api);
+      addTearDown(app.dispose);
+      await tester.pumpWidget(
+        _TestApp(
+          appState: app,
+          equipmentArgs: const TownEquipmentArgs(
+            characterId: PlayerCharacterId.eloise,
+            slot: StoreSlot.projectile,
+          ),
+        ),
+      );
+      api._canonical = api._canonical.copyWith(
+        revision: 1,
+        progression: api._canonical.progression.copyWith(
+          campaign: _willowUnlockedProgress(),
+        ),
+      );
+      await app.bootstrap(force: true);
+      await tester.pumpAndSettle();
+      expect(app.isCharacterUnlocked(PlayerCharacterId.bountyHunter), isTrue);
       await tester.tap(
         find.byKey(const ValueKey('catalogue-character-bountyHunter')),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Owned'), findsOneWidget);
-      await tester.tap(find.text('Not yet unlocked'));
+      final staleBuy = tester
+          .widget<AppButton>(
+            find.byKey(
+              const ValueKey(
+                'buy-projectileSpell:projectile:hunterRoadsidePistol',
+              ),
+            ),
+          )
+          .onPressed!;
+      api._canonical = api._canonical.copyWith(
+        revision: 2,
+        progression: api._canonical.progression.copyWith(
+          campaign: CampaignProgress.empty,
+        ),
+      );
+      await app.bootstrap(force: true);
       await tester.pumpAndSettle();
-      expect(find.text('No entries match these filters.'), findsOneWidget);
+      staleBuy();
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<AppSegmentedControl<PlayerCharacterId>>(
+              find.byType(AppSegmentedControl<PlayerCharacterId>),
+            )
+            .selected,
+        PlayerCharacterId.eloise,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('buy-projectileSpell:projectile:hunterRoadsidePistol'),
+        ),
+        findsNothing,
+      );
       expect(api.purchaseStoreOfferCalls, 0);
-      expect(api.refreshStoreCalls, 0);
     },
   );
 
-  for (final size in [const Size(360, 640), const Size(640, 360)]) {
+  testWidgets('legacy catalogue guidance cannot expose a purchase action', (
+    tester,
+  ) async {
+    final canonical = _canonicalWithStore(
+      gold: 500,
+      activeOffers: [_swordOffer()],
+    );
+    final api = _ScriptedOwnershipApi(
+      canonical: canonical.copyWith(
+        progression: canonical.progression.copyWith(
+          store: canonical.progression.store.copyWith(schemaVersion: 1),
+        ),
+      ),
+    );
+    final app = await _bootstrappedAppState(ownershipApi: api);
+    addTearDown(app.dispose);
+    await tester.pumpWidget(_TestApp(appState: app));
+    expect(
+      find.textContaining('The catalogue is unavailable.'),
+      findsOneWidget,
+    );
+    expect(find.byType(AppButton), findsNothing);
+  });
+
+  for (final size in [const Size(320, 640), const Size(640, 360)]) {
+    testWidgets('French Training supports large text at $size', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final api = _ScriptedOwnershipApi(
+        canonical: _canonicalWithStore(
+          gold: 500,
+          activeOffers: [
+            _eloiseTechnique(StoreSlot.mobility, 'eloise.dash'),
+            _eloiseTechnique(StoreSlot.mobility, 'eloise.double_dash'),
+            _eloiseTechnique(StoreSlot.jump, 'eloise.double_jump'),
+          ],
+        ),
+      );
+      final app = await _bootstrappedAppState(ownershipApi: api);
+      addTearDown(app.dispose);
+      await tester.pumpWidget(
+        _TestApp(
+          appState: app,
+          service: TownService.training,
+          locale: const Locale('fr'),
+          textScale: 1.8,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('training-stacked')), findsOneWidget);
+      final offer = find.byKey(
+        const ValueKey('offer-ability:mobility:eloise.double_dash'),
+      );
+      await tester.ensureVisible(offer);
+      await tester.tap(offer);
+      await tester.pumpAndSettle();
+      final buy = find.byKey(
+        const ValueKey('buy-ability:mobility:eloise.double_dash'),
+      );
+      await tester.ensureVisible(buy);
+      await tester.pumpAndSettle();
+      expect(tester.widget<AppButton>(buy).label, 'Apprendre 150');
+      expect(
+        tester.widget<AppButton>(buy).semanticLabel,
+        'Apprendre pour 150 pièces d’or',
+      );
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'training-fr-${size.width.toInt()}');
+      await tester.tap(buy);
+      await tester.pumpAndSettle();
+      expect(api.purchaseStoreOfferCalls, 1);
+      expect(find.text('Apprise'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('French catalogue supports large text at $size', (
       tester,
     ) async {
@@ -407,11 +1108,15 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await tester.scrollUntilVisible(
+      await tester.ensureVisible(find.byType(AppButton));
+      await tester.pumpAndSettle();
+      await _capture(tester, 'equipment-fr-${size.width.toInt()}');
+      await tester.ensureVisible(
         find.byKey(const ValueKey('offer-gear:mainWeapon:waspfang')),
-        200,
       );
-      await tester.tap(find.text('Croc de guêpe'));
+      await tester.tap(
+        find.byKey(const ValueKey('offer-gear:mainWeapon:waspfang')),
+      );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
@@ -426,6 +1131,16 @@ StoreOfferState _willowAbility() => const StoreOfferState(
   itemId: 'bounty_hunter.blink_dash',
   priceGold: 150,
   characterIds: [PlayerCharacterId.bountyHunter],
+);
+
+StoreOfferState _eloiseTechnique(StoreSlot slot, String id) => StoreOfferState(
+  offerId: 'ability:${slot.name}:$id',
+  bucket: StoreBucket.ability,
+  domain: StoreDomain.ability,
+  slot: slot,
+  itemId: id,
+  priceGold: 150,
+  characterIds: const [PlayerCharacterId.eloise],
 );
 
 StoreOfferState _sharedAccessory() => const StoreOfferState(
@@ -462,9 +1177,34 @@ StoreOfferState _swordOffer() {
   );
 }
 
+CampaignProgress _willowUnlockedProgress() => CampaignProgress.fromJson({
+  'schemaVersion': 1,
+  'missions': {
+    for (final chapter in CampaignCatalog.chapters)
+      if (chapter.rewardCharacter == PlayerCharacterId.bountyHunter)
+        for (final mission in chapter.missions)
+          mission.id: {
+            'cleared': true,
+            'attempts': 1,
+            'bests': <String, Object?>{},
+          },
+  },
+});
+
+StoreOfferState _willowEquipment() => const StoreOfferState(
+  offerId: 'projectileSpell:projectile:hunterRoadsidePistol',
+  bucket: StoreBucket.projectileSpell,
+  domain: StoreDomain.projectileSpell,
+  slot: StoreSlot.projectile,
+  itemId: 'hunterRoadsidePistol',
+  priceGold: 150,
+  characterIds: [PlayerCharacterId.bountyHunter],
+);
+
 OwnershipCanonicalState _canonicalWithStore({
   required int gold,
   required List<StoreOfferState> activeOffers,
+  bool willowUnlocked = false,
 }) {
   return OwnershipCanonicalState(
     profileId: 'town_profile',
@@ -472,6 +1212,9 @@ OwnershipCanonicalState _canonicalWithStore({
     selection: SelectionState.defaults,
     meta: const MetaService().createNew(),
     progression: ProgressionState(
+      campaign: willowUnlocked
+          ? _willowUnlockedProgress()
+          : CampaignProgress.empty,
       gold: gold,
       store: TownStoreState(
         schemaVersion: 2,
@@ -490,7 +1233,11 @@ class _TestApp extends StatelessWidget {
     required this.appState,
     this.locale = const Locale('en'),
     this.textScale = 1,
+    this.service = TownService.equipment,
+    this.equipmentArgs,
   });
+  final TownService service;
+  final TownEquipmentArgs? equipmentArgs;
   final Locale locale;
   final double textScale;
 
@@ -512,7 +1259,11 @@ class _TestApp extends StatelessWidget {
                 .copyWith(textScaler: TextScaler.linear(textScale)),
             child: child!,
           ),
-          home: const TownStorePage(),
+          home: TownStorePage(
+            key: ValueKey(service),
+            initialService: service,
+            equipmentArgs: equipmentArgs,
+          ),
         ),
       ),
     );
@@ -561,6 +1312,7 @@ class _ScriptedOwnershipApi extends LoadoutOwnershipApi {
   PurchaseStoreOfferCommand? lastPurchase;
   int purchaseStoreOfferCalls = 0;
   int refreshStoreCalls = 0;
+  Completer<void>? purchaseGate;
 
   @override
   Future<OwnershipCanonicalState> loadCanonicalState({
@@ -607,12 +1359,29 @@ class _ScriptedOwnershipApi extends LoadoutOwnershipApi {
   ) async {
     lastPurchase = command;
     purchaseStoreOfferCalls += 1;
+    await purchaseGate?.future;
     final offer = _canonical.progression.store.activeOffers
         .where((value) => value.offerId == command.offerId)
         .first;
     final nextOffers = _canonical.progression.store.activeOffers
         .where((value) => value.offerId != command.offerId)
         .toList(growable: false);
+    var meta = _canonical.meta;
+    if (offer.domain == StoreDomain.ability) {
+      final recipient =
+          command.characterId ?? _canonical.selection.selectedCharacterId;
+      final ownership = meta.abilityOwnershipFor(recipient);
+      final slot = AbilitySlot.values.byName(offer.slot.name);
+      meta = meta.setAbilityOwnershipFor(
+        recipient,
+        ownership.copyWith(
+          learnedAbilityIdsBySlot: {
+            ...ownership.learnedAbilityIdsBySlot,
+            slot: {...ownership.learnedAbilityIdsForSlot(slot), offer.itemId},
+          },
+        ),
+      );
+    }
     _canonical = _canonical.copyWith(
       revision: _canonical.revision + 1,
       meta:
@@ -625,7 +1394,7 @@ class _ScriptedOwnershipApi extends LoadoutOwnershipApi {
                 },
               ),
             )
-          : _canonical.meta,
+          : meta,
       progression: _canonical.progression.copyWith(
         gold: _canonical.progression.gold - offer.priceGold,
         store: _canonical.progression.store.copyWith(activeOffers: nextOffers),
@@ -732,8 +1501,9 @@ Future<void> _capture(WidgetTester tester, String name) async {
     );
     final image = await boundary.toImage();
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-    await Directory('.tmp/town-services/previews').create(recursive: true);
-    await File('.tmp/town-services/previews/$name.png')
+    await Directory('.tmp/design-proposals/equipment-implementation')
+        .create(recursive: true);
+    await File('.tmp/design-proposals/equipment-implementation/$name.png')
         .writeAsBytes(bytes!.buffer.asUint8List());
     image.dispose();
   });

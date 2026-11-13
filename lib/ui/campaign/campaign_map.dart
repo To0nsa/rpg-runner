@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../components/map_callout.dart';
+import '../components/map_location_layer.dart';
 import '../components/map_label_button.dart';
 import '../components/map_viewport.dart';
-import '../theme/ui_tokens.dart';
 import 'campaign_catalog.dart';
 
 const campaignRegionalMapAsset =
@@ -18,28 +17,26 @@ class CampaignRegionalMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MapViewport(
-    assetPath: campaignRegionalMapAsset,
-    aspectRatio: 1361 / 1156,
+    assetPath: CampaignCatalog.mapAssetPath,
+    aspectRatio: CampaignCatalog.mapAspectRatio,
     overlayBuilder: (context, viewport, scene, visibleMap) {
       final language = Localizations.localeOf(context).languageCode;
       return [
-        for (final chapter in CampaignCatalog.chapters)
-          MapCallout(
-            anchor: Offset(
-              scene.width * chapter.mapX,
-              scene.height * chapter.mapY,
-            ),
-            labelCenter: Offset(
-              scene.width * chapter.mapX,
-              scene.height * chapter.mapY - context.ui.sizes.tapTarget,
-            ),
-            visibleMap: visibleMap,
-            child: MapLabelButton(
-              label: chapter.title(language),
-              icon: Icons.flag_outlined,
-              onPressed: () => onChapterPressed(chapter),
-            ),
-          ),
+        MapLocationLayer(
+          anchors: [
+            for (final chapter in CampaignCatalog.chapters)
+              Offset(scene.width * chapter.mapX, scene.height * chapter.mapY),
+          ],
+          visibleMap: visibleMap,
+          children: [
+            for (final chapter in CampaignCatalog.chapters)
+              MapLabelButton(
+                label: chapter.title(language),
+                icon: Icons.flag_outlined,
+                onPressed: () => onChapterPressed(chapter),
+              ),
+          ],
+        ),
       ];
     },
   );

@@ -1,6 +1,7 @@
 import 'package:rpg_runner/ui/l10n/app_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:runner_core/players/player_character_definition.dart';
 
 import '../../components/app_button.dart';
 import '../../components/app_dialog.dart';
@@ -11,30 +12,46 @@ import '../../theme/ui_tokens.dart';
 import '../../theme/ui_inline_edit_text_theme.dart';
 
 class BuildNameAction extends StatelessWidget {
-  const BuildNameAction({super.key});
+  const BuildNameAction({super.key, this.characterId, this.buildIndex});
+  final PlayerCharacterId? characterId;
+  final int? buildIndex;
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final selection = state.selection;
-    final buildIndex = selection.selectedBuildIndexFor(
-      selection.selectedCharacterId,
-    );
+    final target = characterId ?? selection.selectedCharacterId;
+    final index = buildIndex ?? selection.selectedBuildIndexFor(target);
+    final name = selection.buildsFor(target).builds[index].name;
     void rename() => showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _BuildNameDialog(state: state),
+      builder: (_) => _BuildNameDialog(
+        state: state,
+        characterId: target,
+        buildIndex: index,
+      ),
     );
 
-    if (selection.buildName == SelectionState.defaultBuildName(buildIndex)) {
-      return AppInlineIconButton(
-        icon: Icons.edit_outlined,
-        tooltip: context.l10n.uiRenameBuild,
-        onPressed: rename,
+    final ui = context.ui;
+    if (name == SelectionState.defaultBuildName(index)) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: ui.space.xs,
+        children: [
+          Text(
+            context.l10n.defaultBuildName(number: index + 1),
+            style: ui.text.label.copyWith(color: ui.colors.textPrimary),
+          ),
+          AppInlineIconButton(
+            icon: Icons.edit_outlined,
+            tooltip: context.l10n.uiRenameBuild,
+            onPressed: rename,
+          ),
+        ],
       );
     }
 
-    final ui = context.ui;
     return Tooltip(
       message: context.l10n.uiRenameBuild,
       child: ConstrainedBox(
@@ -49,11 +66,7 @@ class BuildNameAction extends StatelessWidget {
             minimumSize: Size(ui.sizes.tapTarget, ui.sizes.tapTarget),
             padding: EdgeInsets.symmetric(horizontal: ui.space.xs),
           ),
-          child: Text(
-            selection.buildName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
       ),
     );
@@ -61,8 +74,14 @@ class BuildNameAction extends StatelessWidget {
 }
 
 class _BuildNameDialog extends StatefulWidget {
-  const _BuildNameDialog({required this.state});
+  const _BuildNameDialog({
+    required this.state,
+    required this.characterId,
+    required this.buildIndex,
+  });
   final AppState state;
+  final PlayerCharacterId characterId;
+  final int buildIndex;
   @override
   State<_BuildNameDialog> createState() => _BuildNameDialogState();
 }
@@ -70,14 +89,16 @@ class _BuildNameDialog extends StatefulWidget {
 class _BuildNameDialogState extends State<_BuildNameDialog> {
   late final _controller = TextEditingController(
     text:
-        widget.state.selection.buildName ==
-            SelectionState.defaultBuildName(
-              widget.state.selection.selectedBuildIndexFor(
-                widget.state.selection.selectedCharacterId,
-              ),
-            )
+        widget.state.selection
+                .buildsFor(widget.characterId)
+                .builds[widget.buildIndex]
+                .name ==
+            SelectionState.defaultBuildName(widget.buildIndex)
         ? ''
-        : widget.state.selection.buildName,
+        : widget.state.selection
+              .buildsFor(widget.characterId)
+              .builds[widget.buildIndex]
+              .name,
   );
   bool _saving = false;
   String Function(AppLocalizations)? _error;
@@ -99,7 +120,11 @@ class _BuildNameDialogState extends State<_BuildNameDialog> {
       _error = null;
     });
     try {
-      await widget.state.setBuildName(_controller.text);
+      await widget.state.setBuildName(
+        _controller.text,
+        characterId: widget.characterId,
+        buildIndex: widget.buildIndex,
+      );
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       if (mounted) {
@@ -131,13 +156,7 @@ class _BuildNameDialogState extends State<_BuildNameDialog> {
       onSubmitted: (_) => _save(),
       decoration: field.fieldDecoration.copyWith(
         labelText: context.l10n.uiBuildName,
-        hintText: context.l10n.defaultBuildName(
-          number:
-              widget.state.selection.selectedBuildIndexFor(
-                widget.state.selection.selectedCharacterId,
-              ) +
-              1,
-        ),
+        hintText: context.l10n.defaultBuildName(number: widget.buildIndex + 1),
         errorText: _error?.call(context.l10n),
         labelStyle: ui.text.body.copyWith(color: ui.colors.textMuted),
         counterStyle: ui.text.body.copyWith(

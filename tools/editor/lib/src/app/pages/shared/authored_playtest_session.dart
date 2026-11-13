@@ -5,6 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:rpg_runner/playtest.dart';
 
 import '../../../playtest/authored_playtest_preparation.dart';
+import '../../../playtest/playtest_device_screen.dart';
+import 'playtest_launch_dialog.dart';
+import 'calibrated_playtest_preview.dart';
+import 'display_calibration_dialog.dart';
 
 /// One captured authored scenario; pages still own field acceptance and source
 /// selection. Generation checks span both asynchronous capture and compilation.
@@ -16,6 +20,7 @@ typedef AuthoredPlaytestHostBuilder = Widget Function({
   required AssetBundle assetBundle,
   required RunnerPlaytestAppearance appearance,
   required VoidCallback onStop,
+  RunnerPlaytestPresentation? presentation,
 });
 
 class AuthoredPlaytestSession extends ChangeNotifier {
@@ -27,12 +32,61 @@ class AuthoredPlaytestSession extends ChangeNotifier {
   PlaytestPreparationResult? _result;
   List<PlaytestPreparationIssue> _issues = const [];
   final Set<RunnerPlaytestController> _retiredControllers = {};
+  DialogRoute<EditorPlaytestSettings>? _setupRoute;
+  DisplayCalibrationFlow? _setupCalibration;
+  EditorPlaytestSettings _settings = EditorPlaytestSettings.initial;
+  EditorPlaytestSettings get settings => _settings;
 
   AuthoredPlaytestMode get mode => _mode;
-  bool get locksEditor => _mode != AuthoredPlaytestMode.edit;
+  bool get locksEditor =>
+      _setupRoute != null || _mode != AuthoredPlaytestMode.edit;
   PlaytestPreparationResult? get result => _result;
   List<PlaytestPreparationIssue> get issues => _issues;
   RunnerPlaytestController? get controller => _controller;
+
+  /// Settings admission shares the capture generation. Pages capture controller,
+  /// workspace, document and target in isSourceCurrent before awaiting the modal.
+  Future<bool> configure({
+    required BuildContext context,
+    required String title,
+    required Object source,
+    required bool Function() isSourceCurrent,
+  }) async {
+    if (_disposed || locksEditor) return false;
+    final generation = ++_generation;
+    _capturedSource = source;
+    final calibration = DisplayCalibrationFlow();
+    _setupCalibration = calibration;
+    final route = DialogRoute<EditorPlaytestSettings>(
+      context: context,
+      builder: (_) => PlaytestLaunchDialog(
+        title: title,
+        initial: _settings,
+        calibration: calibration,
+      ),
+    );
+    _setupRoute = route;
+    notifyListeners();
+    try {
+      final result = await Navigator.of(
+        context,
+        rootNavigator: true,
+      ).push(route);
+      if (_disposed ||
+          generation != _generation ||
+          !isSourceCurrent() ||
+          result == null) {
+        return false;
+      }
+      _settings = result;
+      return true;
+    } finally {
+      calibration.dispose();
+      if (identical(_setupCalibration, calibration)) _setupCalibration = null;
+      if (identical(_setupRoute, route)) _setupRoute = null;
+      if (!_disposed) notifyListeners();
+    }
+  }
 
   Future<void> prepare({
     required Object source,
@@ -46,12 +100,20 @@ class AuthoredPlaytestSession extends ChangeNotifier {
     _issues = const [];
     _result = null;
     _setMode(AuthoredPlaytestMode.preparing);
-    bool accepts() =>
-        !_disposed &&
-        generation == _generation &&
-        _mode == AuthoredPlaytestMode.preparing &&
-        identical(_capturedSource, source) &&
-        isSourceCurrent();
+    bool accepts() {
+      if (_disposed ||
+          generation != _generation ||
+          _mode != AuthoredPlaytestMode.preparing ||
+          !identical(_capturedSource, source)) {
+        return false;
+      }
+      if (!isSourceCurrent()) {
+        _returnToEdit();
+        return false;
+      }
+      return true;
+    }
+
     late final PlaytestPreparationResult prepared;
     try {
       final input = await capture();
@@ -117,6 +179,7 @@ class AuthoredPlaytestSession extends ChangeNotifier {
   /// F5 in Edit is admitted by the page, which can first validate local input.
   bool handleShortcut(LogicalKeyboardKey key) {
     if (!locksEditor) return false;
+    if (_setupRoute != null && key == LogicalKeyboardKey.f5) return true;
     if (key == LogicalKeyboardKey.f5 || key == LogicalKeyboardKey.escape) {
       return stop();
     }
@@ -143,6 +206,7 @@ class AuthoredPlaytestSession extends ChangeNotifier {
 
   void _returnToEdit() {
     _generation++;
+    _dismissSetup();
     final current = _controller;
     _controller = null;
     _capturedSource = null;
@@ -150,6 +214,20 @@ class AuthoredPlaytestSession extends ChangeNotifier {
     _issues = const [];
     _setMode(AuthoredPlaytestMode.edit);
     if (current != null) _retire(current);
+  }
+
+  void _dismissSetup() {
+    _setupCalibration?.dispose();
+    _setupCalibration = null;
+    final route = _setupRoute;
+    _setupRoute = null;
+    // Source notifications can arrive during build; remove only our own route.
+    if (route != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (route.isActive) route.navigator?.removeRoute(route);
+      });
+      WidgetsBinding.instance.scheduleFrame();
+    }
   }
 
   void _setMode(AuthoredPlaytestMode value) {
@@ -171,6 +249,7 @@ class AuthoredPlaytestSession extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _generation++;
+    _dismissSetup();
     final current = _controller;
     _controller = null;
     if (current != null) _retire(current);
@@ -184,7 +263,11 @@ Widget buildDefaultAuthoredPlaytestHost({
   required AssetBundle assetBundle,
   required RunnerPlaytestAppearance appearance,
   required VoidCallback onStop,
+  RunnerPlaytestPresentation? presentation,
 }) => RunnerPlaytestHost(
+  showIdentityBanner: false,
+  presentation:
+      presentation ?? EditorPlaytestSettings.initial.innerPresentation,
   scenario: scenario,
   controller: controller,
   assetBundle: assetBundle,
@@ -212,6 +295,9 @@ class AuthoredPlaytestOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (session.mode == AuthoredPlaytestMode.edit) {
+      return const SizedBox.shrink();
+    }
     final result = session.result;
     final controller = session.controller;
     if (session.mode == AuthoredPlaytestMode.playing &&
@@ -219,19 +305,21 @@ class AuthoredPlaytestOverlay extends StatelessWidget {
         controller != null) {
       return Column(
         children: [
-          Material(
-            color: Theme.of(context).colorScheme.surfaceContainer,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Text(
-                result.scenario is CampaignPlaytestScenario
-                    ? 'Play mission — exact authored route · Free movement in both directions · Local rewards only.'
-                    : result.scenario is ChunkPlaytestScenario
-                    ? 'Test chunk — focused loop · Authored markers without the level enemy-free opening.'
-                    : 'Play level — seeded run · Actual difficulty, sections, and enemy-free opening.',
+          if (result.scenario is! CampaignPlaytestScenario)
+            Material(
+              color: Theme.of(context).colorScheme.surfaceContainer,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                child: Text(
+                  result.scenario is ChunkPlaytestScenario
+                      ? 'Test chunk — focused loop · Authored markers without the level enemy-free opening.'
+                      : 'Play level — seeded run · Actual difficulty, sections, and enemy-free opening.',
+                ),
               ),
             ),
-          ),
           if (result.warnings.isNotEmpty)
             Material(
               color: Theme.of(context).colorScheme.secondaryContainer,
@@ -241,12 +329,17 @@ class AuthoredPlaytestOverlay extends StatelessWidget {
               ),
             ),
           Expanded(
-            child: hostBuilder(
-              scenario: result.scenario!,
+            child: CalibratedPlaytestPreview(
+              settings: session.settings,
               controller: controller,
-              assetBundle: result.assetBundle!,
-              appearance: result.appearance!,
-              onStop: () => session.runtimeStopped(controller),
+              child: hostBuilder(
+                scenario: result.scenario!,
+                controller: controller,
+                assetBundle: result.assetBundle!,
+                appearance: result.appearance!,
+                presentation: session.settings.innerPresentation,
+                onStop: () => session.runtimeStopped(controller),
+              ),
             ),
           ),
         ],

@@ -18,6 +18,7 @@ class MoveJoystick extends StatefulWidget {
     required this.tuning,
     required this.style,
     this.floating = true,
+    this.onEngage,
     this.restingPadding = EdgeInsets.zero,
   });
 
@@ -30,6 +31,9 @@ class MoveJoystick extends StatefulWidget {
   /// Whether the base starts under the touch and follows overdrag. When false,
   /// it stays at rest and touch-down immediately resolves relative to its center.
   final bool floating;
+
+  /// Admits the initial touch before joystick capture, including a neutral touch.
+  final bool Function()? onEngage;
 
   /// Insets from the activation area's left/bottom edges for the idle base.
   final EdgeInsets restingPadding;
@@ -118,6 +122,7 @@ class _MoveJoystickState extends State<MoveJoystick> {
             behavior: HitTestBehavior.opaque,
             onPointerDown: (event) {
               if (!mounted || _pointer != null) return;
+              if (widget.onEngage?.call() == false) return;
               _pointer = event.pointer;
               if (widget.floating) {
                 setState(

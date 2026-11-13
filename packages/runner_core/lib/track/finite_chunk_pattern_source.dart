@@ -1,10 +1,10 @@
 import 'chunk_pattern.dart';
 import 'chunk_pattern_source.dart';
 
-/// One authored occurrence, independent from the identity of its source chunk.
-/// Reusing a chunk requires a new occurrence ID, not a new chunk definition.
-final class FiniteChunkOccurrence {
-  FiniteChunkOccurrence({
+/// One authored mission chunk, independent from the identity of its source chunk.
+/// Reusing a chunk requires a new mission chunk ID, not a new chunk definition.
+final class FiniteMissionChunk {
+  FiniteMissionChunk({
     required this.id,
     required this.sourceLevelId,
     required ChunkPattern pattern,
@@ -30,28 +30,30 @@ final class FiniteChunkOccurrence {
 /// Exact finite selection: no seed choice, difficulty fallback or repeating tail.
 ///
 /// This captures scheduler metadata, not terrain admission. Its caller must
-/// validate each occurrence's owner, compiled terrain and actual adjacent seams
+/// validate each mission chunk's owner, compiled terrain and actual adjacent seams
 /// before constructing a playable mission. Runner pool membership is unchanged.
 final class FiniteChunkPatternSource extends ChunkPatternSource {
-  FiniteChunkPatternSource(Iterable<FiniteChunkOccurrence> occurrences)
-    : occurrences = List.unmodifiable(occurrences) {
-    if (this.occurrences.isEmpty) {
-      throw ArgumentError('A finite route requires at least one occurrence.');
+  FiniteChunkPatternSource(Iterable<FiniteMissionChunk> missionChunks)
+    : missionChunks = List.unmodifiable(missionChunks) {
+    if (this.missionChunks.isEmpty) {
+      throw ArgumentError(
+        'A finite route requires at least one mission chunk.',
+      );
     }
     final ids = <String>{};
-    for (final occurrence in this.occurrences) {
-      if (!ids.add(occurrence.id)) {
+    for (final missionChunk in this.missionChunks) {
+      if (!ids.add(missionChunk.id)) {
         throw ArgumentError.value(
-          occurrence.id,
-          'occurrences',
-          'Occurrence IDs must be unique within the route.',
+          missionChunk.id,
+          'missionChunks',
+          'Mission chunk IDs must be unique within the route.',
         );
       }
     }
   }
 
-  final List<FiniteChunkOccurrence> occurrences;
-  int get length => occurrences.length;
+  final List<FiniteMissionChunk> missionChunks;
+  int get length => missionChunks.length;
 
   @override
   ChunkPatternSelection selectionFor({
@@ -59,12 +61,12 @@ final class FiniteChunkPatternSource extends ChunkPatternSource {
     required int chunkIndex,
     required ChunkPatternTier tier,
   }) {
-    RangeError.checkValidIndex(chunkIndex, occurrences, 'chunkIndex');
-    final occurrence = occurrences[chunkIndex];
+    RangeError.checkValidIndex(chunkIndex, missionChunks, 'chunkIndex');
+    final missionChunk = missionChunks[chunkIndex];
     return ChunkPatternSelection(
-      pattern: occurrence.pattern,
-      tier: occurrence.tier,
-      occurrenceId: occurrence.id,
+      pattern: missionChunk.pattern,
+      tier: missionChunk.tier,
+      missionChunkId: missionChunk.id,
     );
   }
 }

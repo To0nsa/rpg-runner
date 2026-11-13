@@ -1,3 +1,12 @@
+import 'package:rpg_runner/ui/controls/action_button.dart';
+import 'package:run_protocol/run_mode.dart';
+import 'package:run_protocol/campaign_binding.dart';
+import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
+import 'package:rpg_runner/ui/tutorial/campaign_tutorial_overlay.dart';
+
+import 'package:rpg_runner/ui/hud/game/game_overlay.dart';
+import 'package:rpg_runner/ui/hud/game/score_overlay.dart';
+
 import 'dart:async';
 import 'dart:ui' as ui;
 
@@ -22,6 +31,177 @@ import 'package:rpg_runner/ui/controls/move_buttons.dart';
 import 'package:rpg_runner/ui/controls/movement_control_mode.dart';
 
 void main() {
+  testWidgets(
+    'Campaign movement introduction waits for recorder and preserves first hold through pause',
+    (tester) async {
+      final recorder = _Recorder();
+      final readyRecorder = Completer<RunRecorder>();
+      late RunnerRunSession session;
+      await tester.pumpWidget(
+        _app(
+          (descriptor) => session = RunnerRunSession(
+            descriptor: descriptor,
+            createRecorder: (_) => readyRecorder.future,
+          ),
+          campaign: true,
+        ),
+      );
+      await _until(
+        tester,
+        () => session.game.loadState.value.phase == RunLoadPhase.worldReady,
+      );
+      expect(session.controller.snapshot.tick, 0);
+      expect(find.byType(CampaignTutorialOverlay), findsNothing);
+      readyRecorder.complete(recorder);
+      await _until(tester, () => session.isReady);
+      expect(find.byType(CampaignTutorialOverlay), findsOneWidget);
+      expect(find.text('Tap to start'), findsNothing);
+      final bounds = tester.getRect(find.byType(MoveButtons));
+      final right = bounds.centerRight - const Offset(8, 0);
+      _background(tester);
+      final blocked = await tester.startGesture(right);
+      await blocked.up();
+      expect(session.controller.snapshot.tick, 0);
+      _resume(tester);
+      await tester.pump();
+      final held = await tester.startGesture(right);
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(find.text('Moving around'), findsNothing);
+      expect(find.text('Your first objective'), findsNothing);
+      expect(session.controller.snapshot.paused, isFalse);
+      expect(recorder.frames.last.moveAxis, 1);
+      await _until(
+        tester,
+        () => find.text('Your first objective').evaluate().isNotEmpty,
+      );
+      expect(find.text('Your first objective'), findsOneWidget);
+      expect(session.controller.snapshot.paused, isTrue);
+      expect(recorder.frames.last.moveAxis, 1);
+      final tick = session.controller.tick;
+      final frames = recorder.frames.length;
+      _background(tester);
+      _resume(tester);
+      await tester.pump();
+      await held.moveBy(const Offset(-2, 0));
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(find.text('Your first objective'), findsOneWidget);
+      expect(session.controller.tick, tick);
+      expect(recorder.frames.length, frames);
+      await held.up();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+  );
+
+  testWidgets(
+    'Campaign coin pause survives manual resume and background with recorded input',
+    (tester) async {
+      final recorder = _Recorder();
+      late RunnerRunSession session;
+      await tester.pumpWidget(
+        _app(
+          (descriptor) => session = RunnerRunSession(
+            descriptor: descriptor,
+            createRecorder: (_) async => recorder,
+          ),
+          campaign: true,
+        ),
+      );
+      await _until(tester, () => session.isReady);
+      expect(find.byType(ScoreOverlay), findsNothing);
+      final right =
+          tester.getRect(find.byType(MoveButtons)).centerRight -
+          const Offset(8, 0);
+      var held = await tester.startGesture(right);
+      await _until(
+        tester,
+        () => find.text('Your first objective').evaluate().isNotEmpty,
+      );
+      expect(session.controller.snapshot.paused, isTrue);
+      expect(session.controller.snapshot.hud.collectibles, 0);
+      await held.up();
+      held = await tester.startGesture(right);
+      await _until(
+        tester,
+        () => session.controller.snapshot.hud.collectibles == 1,
+      );
+      expect(session.controller.snapshot.paused, isTrue);
+      expect(find.text('Your first coin'), findsOneWidget);
+      expect(find.byType(ScoreOverlay), findsOneWidget);
+      final tick = session.controller.tick;
+      final frames = recorder.frames.length;
+      await held.moveBy(const Offset(-2, 0));
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(session.controller.tick, tick);
+      tester.widget<GameOverlay>(find.byType(GameOverlay)).onTogglePause();
+      await tester.pump();
+      expect(find.byType(CampaignTutorialOverlay), findsNothing);
+      tester.widget<GameOverlay>(find.byType(GameOverlay)).onTogglePause();
+      await tester.pump();
+      tester.widget<GameOverlay>(find.byType(GameOverlay)).onExit!();
+      await tester.pump();
+      await tester.tap(find.text('Resume'));
+      await tester.pump();
+      expect(find.text('Your first coin'), findsOneWidget);
+      expect(session.controller.snapshot.paused, isTrue);
+      _background(tester);
+      _resume(tester);
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(find.text('Your first coin'), findsOneWidget);
+      expect(session.controller.tick, tick);
+      expect(recorder.frames.length, frames);
+      await held.up();
+      final fresh = await tester.startGesture(right);
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(session.controller.snapshot.paused, isFalse);
+      expect(find.byType(CampaignTutorialOverlay), findsNothing);
+      expect(recorder.frames.last.moveAxis, 1);
+      expect(
+        recorder.frames.every(
+          (f) => f.pressedMask == 0 && f.abilitySlotHeldValueMask == 0,
+        ),
+        isTrue,
+      );
+      await _until(
+        tester,
+        () => find.text('Obstacles ahead').evaluate().isNotEmpty,
+      );
+      final obstacleTick = session.controller.tick;
+      final stamina = session.controller.snapshot.hud.stamina;
+      await tester.tap(find.text('Next'));
+      await tester.pump();
+      expect(find.text('Step 2/3'), findsOneWidget);
+      _background(tester);
+      _resume(tester);
+      await tester.pump();
+      expect(find.text('Step 2/3'), findsOneWidget);
+      await tester.tap(find.text('Next'));
+      await tester.pump();
+      expect(find.text('Watch your stamina'), findsOneWidget);
+      expect(session.controller.tick, obstacleTick);
+      final frameCountBeforeJump = recorder.frames.length;
+      await tester.tap(
+        find.byWidgetPredicate(
+          (widget) => widget is ActionButton && widget.label == 'Jump',
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 40));
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(session.controller.snapshot.paused, isFalse);
+      expect(session.controller.snapshot.hud.stamina, lessThan(stamina));
+      expect(session.controller.snapshot.playerEntity!.vel!.y, lessThan(0));
+      expect(
+        recorder.frames
+            .skip(frameCountBeforeJump)
+            .where((frame) => frame.pressedMask != 0),
+        hasLength(1),
+      );
+      await fresh.up();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+  );
+
   for (final mode in MovementControlMode.values) {
     testWidgets(
       '$mode records digital movement and clears touch across frameless resume',
@@ -371,6 +551,7 @@ void main() {
 Widget _app(
   RunnerRunSession Function(RunStartDescriptor) create, {
   bool isDeveloperPractice = false,
+  bool campaign = false,
   MovementControlMode movementControlMode = MovementControlMode.arrows,
 }) => MaterialApp(
   theme: ThemeData(useMaterial3: true, extensions: [UiTokens.standard]),
@@ -379,7 +560,16 @@ Widget _app(
       runSessionId: 'startup-widget-test',
       runId: 1,
       seed: 42,
-      levelId: LevelId.field,
+      levelId: campaign
+          ? CampaignCatalog.mission('reporting_for_duty')!.levelId
+          : LevelId.field,
+      runMode: campaign ? RunMode.campaign : RunMode.practice,
+      campaign: campaign
+          ? CampaignBinding(
+              missionId: 'reporting_for_duty',
+              contentDigest: CampaignCatalog.contentDigest,
+            )
+          : null,
       sessionFactory: create,
       isDeveloperPractice: isDeveloperPractice,
       movementControlMode: movementControlMode,

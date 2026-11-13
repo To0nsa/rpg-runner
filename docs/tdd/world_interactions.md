@@ -36,13 +36,13 @@ Run the normal generator after changing geometry and run the binding tests
 after changing either geometry or manual bindings.
 
 Campaign Markers can attach ember/blue blessing fire to an existing prefab or
-direct terrain top. Mission-local records carry exact support lineage, occurrence,
+direct terrain top. Mission-local records carry exact support lineage, mission chunk ID,
 center, activation width and scale. `resolveWorldInteractionSurface` is shared
 by placement preview, compilation and runtime registration. It rejects missing,
 ambiguous, noncollidable or nonflat support and activation intervals outside the
 top; it never adds or moves terrain. Stored height is checked during campaign
 compilation to expose support drift. Campaign combines these bindings with the
-manual catalog, filters local bindings by stable occurrence ID and retains each
+manual catalog, filters local bindings by `missionChunkId` and retains each
 fire's activation state for the whole resident mission. See
 [campaign source and lifecycle](campaign_runtime.md).
 
@@ -54,8 +54,10 @@ index plus binding key, so repeated templates produce independent occurrences.
 Active view records retire with chunks; activation ticks are retained for the
 attempt to prevent duplicate grants on reentry.
 
-`WorldInteractionSystem` runs after final movement and death resolution, before
-resource regeneration. A living player's final support must have the current
+`WorldInteractionSystem` runs after final movement, death and Campaign failure
+resolution, before the living-player objective/exit gate and resource regeneration.
+Campaign can require one exact authored shrine; its objective observes this
+activation in the same tick, independently of tutorial visibility. A living player's final support must have the current
 geometry version and tick, an upward normal, the selected prefab/shape lineage,
 and a contact point on the bound top interval. Airborne contacts, sides,
 underneath contacts, other actors, and stale support cannot activate it. Camera

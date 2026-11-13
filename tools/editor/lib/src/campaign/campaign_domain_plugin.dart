@@ -75,11 +75,18 @@ final class CampaignDomainPlugin
   static const replaceMission = 'campaign_replace_mission';
   static const reorderMission = 'campaign_reorder_mission';
 
+  /// Replaces campaign presentation without changing chapter/mission identities.
+  static const editCampaign = 'campaign_edit_settings';
+
   /// Accepts title/description/mapX/mapY in details; selects a fresh draft mission.
   static const createChapter = 'campaign_create_chapter';
 
   /// Appends an excluded draft to chapter id, inheriting only its last mission's region/theme.
   static const addMission = 'campaign_add_mission';
+
+  /// Deletes a confirmed mission and reserves its identity; requires the exact
+  /// expected mission and name and leaves at least one mission in its chapter.
+  static const deleteMission = 'campaign_delete_mission';
 
   /// Replaces metadata in details only when expectedChapter still matches.
   static const editChapter = 'campaign_edit_chapter';
@@ -172,6 +179,24 @@ final class CampaignDomainPlugin
           : doc.withCatalog(doc.catalog, selection: id);
     }
     final json = doc.catalog.toJson();
+    if (command.kind == editCampaign) {
+      final expected = command.payload['expectedSettings'];
+      final current = doc.catalog.settingsToJson();
+      if (jsonEncode(expected) != jsonEncode(current)) {
+        throw StateError('Campaign settings changed; reload this form.');
+      }
+      final settings = command.payload['settings'] as Map;
+      json['title'] = settings['title'];
+      json['map'] = settings['map'];
+      json.remove('journal');
+      if (settings.containsKey('journal')) {
+        json['journal'] = settings['journal'];
+      }
+      final next = CampaignCatalogSource.decode(jsonEncode(json));
+      return next.encode() == doc.catalog.encode()
+          ? doc
+          : doc.withCatalog(next);
+    }
     final chapters = json['chapters'] as List;
     final id = command.payload['id'];
     if (command.kind == createChapter) {
@@ -186,6 +211,7 @@ final class CampaignDomainPlugin
         'id': chapterId,
         for (final key in ['title', 'description', 'mapX', 'mapY'])
           key: details[key],
+        if (details.containsKey('journal')) 'journal': details['journal'],
         'rewardCharacterId': null,
         'missions': [mission.toJson()],
       });
@@ -208,6 +234,10 @@ final class CampaignDomainPlugin
         final details = command.payload['details'] as Map;
         for (final key in ['title', 'description', 'mapX', 'mapY']) {
           chapter[key] = details[key];
+        }
+        chapter.remove('journal');
+        if (details.containsKey('journal')) {
+          chapter['journal'] = details['journal'];
         }
         final next = CampaignCatalogSource.decode(jsonEncode(json));
         return next.encode() == doc.catalog.encode()
@@ -268,6 +298,28 @@ final class CampaignDomainPlugin
       if (next.id != old.id) throw ArgumentError('Mission IDs are stable.');
       if (jsonEncode(next.toJson()) == jsonEncode(old.toJson())) return doc;
       missions[index] = next.toJson()..['revision'] = old.revision + 1;
+    } else if (command.kind == deleteMission) {
+      final mission = CampaignMissionSource.decode(missions[index]);
+      if (jsonEncode(command.payload['expectedMission']) !=
+              jsonEncode(mission.toJson()) ||
+          command.payload['confirmedName'] != mission.title['en']) {
+        throw StateError('Mission changed; confirm its current name again.');
+      }
+      if (missions.length <= 1) {
+        throw StateError('A chapter needs at least one mission.');
+      }
+      missions.removeAt(index);
+      json['retiredMissionIds'] = {
+        ...doc.catalog.retiredMissionIds,
+        mission.id,
+      }.toList()..sort();
+      return doc.withCatalog(
+        CampaignCatalogSource.decode(jsonEncode(json)),
+        selection: doc.selectedMissionId == mission.id
+            ? (missions[index.clamp(0, missions.length - 1)] as Map)['id']
+                  as String
+            : doc.selectedMissionId,
+      );
     } else if (command.kind == reorderMission) {
       final target = command.payload['targetIndex'] as int;
       if (target < 0 || target >= missions.length) {
@@ -373,17 +425,28 @@ final class CampaignDomainPlugin
     final now = current as CampaignDocument;
     final old = historical as CampaignDocument;
     final persisted = CampaignCatalogSource.decode(now.baseline);
-    // Persisted identities may already own account progress. Undo may remove
-    // unsaved drafts, but cannot delete or recycle a saved chapter or mission.
+    // Save seals creation identities. Explicit deletion histories reserve their
+    // IDs, so Undo/Redo can restore/remove the same mission without recycling it.
     if (persisted.chapters.any(
           (c) => !old.catalog.chapters.any((o) => o.id == c.id),
         ) ||
         persisted.missions.any(
-          (m) => !old.catalog.missions.any((o) => o.id == m.id),
+          (m) =>
+              !old.catalog.missions.any((o) => o.id == m.id) &&
+              !old.catalog.retiredMissionIds.contains(m.id),
         )) {
       return null;
     }
     final json = old.catalog.toJson()..['revision'] = now.catalog.revision;
+    final active = old.catalog.missions.map((m) => m.id).toSet();
+    final retired = {
+      ...now.catalog.retiredMissionIds,
+      ...persisted.retiredMissionIds,
+      ...old.catalog.retiredMissionIds,
+    }..removeAll(active);
+    if (retired.isNotEmpty) {
+      json['retiredMissionIds'] = retired.toList()..sort();
+    }
     for (final chapter in json['chapters'] as List) {
       for (final mission in chapter['missions'] as List) {
         final existing = now.catalog.missions
@@ -420,7 +483,10 @@ CampaignMissionSource _draftMission(
 ) => CampaignMissionSource.decode({
   'id': _allocateId(
     '${chapterId.length > 40 ? chapterId.substring(0, 40) : chapterId}_mission_$number',
-    document.catalog.missions.map((m) => m.id).toSet(),
+    {
+      ...document.catalog.missions.map((m) => m.id),
+      ...document.catalog.retiredMissionIds,
+    },
   ),
   'revision': 1,
   'includeInBuild': false,
@@ -432,8 +498,8 @@ CampaignMissionSource _draftMission(
   'levelId': template.levelId,
   'visualThemeId': template.visualThemeId,
   'firstClearXp': 0,
-  'rewardAbilityId': null,
-  'combatAllowed': true,
+  'firstClearGold': 0,
+  'firstClearItems': <Object?>[],
   'route': [],
   'start': null,
   'exit': null,

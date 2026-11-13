@@ -12,10 +12,15 @@ StagedTerrainCatalog levelTraversalFinishCatalog() => StagedTerrainChunkCatalog(
   chunks: [
     _chunk('finish_clear', blocked: false),
     _chunk('finish_blocked', blocked: true),
+    _chunk('finish_jump', blocked: false, lowObstacle: true),
   ],
 );
 
-StagedTerrainChunkData _chunk(String key, {required bool blocked}) {
+StagedTerrainChunkData _chunk(
+  String key, {
+  required bool blocked,
+  bool lowObstacle = false,
+}) {
   final geometry = const TerrainCompiler().compile([
     TerrainPolygonInput.fromWorld(
       sourcePath: 'test/finish/$key',
@@ -27,6 +32,7 @@ StagedTerrainChunkData _chunk(String key, {required bool blocked}) {
       vertices: [
         (0, 222),
         if (blocked) ...[(500, 222), (500, 0), (520, 0), (520, 222)],
+        if (lowObstacle) ...[(420, 222), (420, 190), (452, 190), (452, 222)],
         (600, 222),
         (600, 270),
         (0, 270),

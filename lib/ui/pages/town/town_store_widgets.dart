@@ -11,11 +11,8 @@ import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:runner_core/spellBook/spell_book_id.dart';
 import 'package:runner_core/weapons/weapon_id.dart';
 
-import '../../components/app_button.dart';
-
 import 'package:game_presentation/game_icon.dart';
 
-import '../../components/gold_display.dart';
 import '../../state/ownership/progression_state.dart';
 import '../../text/ability_tooltip_builder.dart';
 import '../../text/ability_tooltip_context_helper.dart';
@@ -30,202 +27,36 @@ import '../selectCharacter/gear/gear_stats_presenter.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 
-/// Compact catalogue entry with expandable authoritative details and build comparison.
-class TownOfferCard extends StatelessWidget {
-  const TownOfferCard({
-    super.key,
-    required this.offer,
-    required this.owned,
-    required this.expanded,
-    required this.currentGold,
-    required this.purchaseInFlight,
-    required this.selectedLoadout,
-    required this.buildName,
-    required this.characterId,
-    required this.onToggleExpanded,
-    required this.onConfirmPurchase,
-  });
-  final StoreOfferState offer;
-  final bool owned, expanded, purchaseInFlight;
-  final int currentGold;
-  final EquippedLoadoutDef selectedLoadout;
-  final String buildName;
-  final PlayerCharacterId characterId;
-  final VoidCallback onToggleExpanded;
-  final ValueChanged<StoreOfferState> onConfirmPurchase;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = context.ui;
-    final training = offer.domain == StoreDomain.ability;
-    final name = townStoreOfferDisplayName(offer, strings: context.gameL10n);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: ui.colors.cardBackground,
-        borderRadius: BorderRadius.circular(ui.radii.md),
-        border: Border.all(
-          color: expanded ? ui.colors.accentStrong : ui.colors.outline,
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(ui.space.sm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Semantics(
-              button: true,
-              expanded: expanded,
-              child: InkWell(
-                onTap: onToggleExpanded,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: ui.space.xs),
-                  child: Row(
-                    children: [
-                      _OfferIcon(offer: offer),
-                      SizedBox(width: ui.space.sm),
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: ui.text.body.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        expanded ? Icons.expand_less : Icons.expand_more,
-                        color: ui.colors.textMuted,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            if (offer.slot == StoreSlot.accessory)
-              Padding(
-                padding: EdgeInsets.only(bottom: ui.space.xs),
-                child: Text(
-                  context.l10n.townSharedAccessory,
-                  style: ui.text.body.copyWith(color: ui.colors.textMuted),
-                ),
-              ),
-            Wrap(
-              alignment: WrapAlignment.end,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: ui.space.sm,
-              runSpacing: ui.space.xs,
-              children: [
-                if (owned)
-                  Text(
-                    training
-                        ? context.l10n.townLearned
-                        : context.l10n.townOwned,
-                    style: ui.text.body.copyWith(color: ui.colors.success),
-                  )
-                else ...[
-                  GoldDisplay(
-                    gold: offer.priceGold,
-                    variant: GoldDisplayVariant.headline,
-                  ),
-                  AppButton(
-                    key: ValueKey('buy-${offer.offerId}'),
-                    label: purchaseInFlight
-                        ? context.l10n.uiBuying
-                        : (training
-                              ? context.l10n.townLearn
-                              : context.l10n.uiBuy),
-                    size: AppButtonSize.xxs,
-                    onPressed:
-                        currentGold >= offer.priceGold && !purchaseInFlight
-                        ? () => onConfirmPurchase(offer)
-                        : null,
-                  ),
-                ],
-              ],
-            ),
-            if (expanded)
-              Padding(
-                padding: EdgeInsets.only(top: ui.space.sm),
-                child: _TownOfferDetails(
-                  offer: offer,
-                  selectedProjectileSourceSpellId:
-                      selectedLoadout.projectileSlotSpellId,
-                  selectedLoadout: selectedLoadout,
-                  buildName: buildName,
-                  characterId: characterId,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 const ProjectileCatalog _projectileCatalog = ProjectileCatalog();
 
-class _TownOfferDetails extends StatelessWidget {
-  const _TownOfferDetails({
+/// Core-backed stats and effects of the selected item or technique.
+class TownOfferDetails extends StatelessWidget {
+  const TownOfferDetails({
+    super.key,
     required this.offer,
-    required this.selectedProjectileSourceSpellId,
     required this.selectedLoadout,
-    required this.buildName,
     required this.characterId,
   });
 
   final StoreOfferState offer;
-  final ProjectileId? selectedProjectileSourceSpellId;
   final EquippedLoadoutDef selectedLoadout;
-  final String buildName;
   final PlayerCharacterId characterId;
 
   @override
   Widget build(BuildContext context) {
-    final ui = context.ui;
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(ui.space.sm),
-      decoration: BoxDecoration(
-        color: ui.colors.background.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(ui.radii.sm),
-        border: Border.all(color: ui.colors.outline.withValues(alpha: 0.3)),
+    return switch (offer.domain) {
+      StoreDomain.gear => _GearOfferDetails(
+        offer: offer,
+        manaPresentation: characterId == PlayerCharacterId.bountyHunter
+            ? ManaPresentation.supplies
+            : ManaPresentation.mana,
       ),
-      child: switch (offer.domain) {
-        StoreDomain.gear => _GearOfferDetails(
-          offer: offer,
-          selectedLoadout: selectedLoadout,
-          buildName: buildName,
-          manaPresentation: characterId == PlayerCharacterId.bountyHunter
-              ? ManaPresentation.supplies
-              : ManaPresentation.mana,
-        ),
-        StoreDomain.projectileSpell => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _ProjectileOfferDetails(offer: offer),
-            SizedBox(height: ui.space.sm),
-            Text(
-              context.l10n.townCompareWith(
-                item: projectileDisplayName(
-                  selectedLoadout.projectileSlotSpellId,
-                  strings: context.gameL10n,
-                ),
-                build: buildName,
-              ),
-              style: ui.text.body,
-            ),
-            _ProjectileOfferDetails(
-              offer: offer.copyWith(
-                itemId: selectedLoadout.projectileSlotSpellId.name,
-              ),
-            ),
-          ],
-        ),
-        StoreDomain.ability => _AbilityOfferDetails(
-          offer: offer,
-          selectedProjectileSourceSpellId: selectedProjectileSourceSpellId,
-        ),
-      },
-    );
+      StoreDomain.projectileSpell => _ProjectileOfferDetails(offer: offer),
+      StoreDomain.ability => _AbilityOfferDetails(
+        offer: offer,
+        selectedProjectileSourceSpellId: selectedLoadout.projectileSlotSpellId,
+      ),
+    };
   }
 }
 
@@ -233,13 +64,9 @@ class _GearOfferDetails extends StatelessWidget {
   const _GearOfferDetails({
     required this.offer,
     required this.manaPresentation,
-    required this.selectedLoadout,
-    required this.buildName,
   });
 
   final ManaPresentation manaPresentation;
-  final EquippedLoadoutDef selectedLoadout;
-  final String buildName;
 
   final StoreOfferState offer;
 
@@ -261,48 +88,10 @@ class _GearOfferDetails extends StatelessWidget {
       strings: context.gameL10n,
       l10n: context.l10n,
     );
-    final equipped = switch (gearSlot) {
-      GearSlot.mainWeapon => selectedLoadout.mainWeaponId,
-      GearSlot.offhandWeapon => selectedLoadout.offhandWeaponId,
-      GearSlot.spellBook => selectedLoadout.spellBookId,
-      GearSlot.accessory => selectedLoadout.accessoryId,
-    };
-    final comparisons = gearCompareStats(
-      gearSlot,
-      equipped: equipped,
-      candidate: typedId,
-      manaPresentation: manaPresentation,
-      strings: context.gameL10n,
-      l10n: context.l10n,
-    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          context.l10n.townCompareWith(
-            item: gearDisplayNameForSlot(
-              gearSlot,
-              equipped,
-              strings: context.gameL10n,
-            ),
-            build: buildName,
-          ),
-          style: ui.text.body,
-        ),
-        SizedBox(height: ui.space.xs),
-        if (comparisons.isEmpty)
-          Text(
-            gearCompareEmptyText(
-              selectedId: typedId,
-              equippedForCompare: equipped,
-              l10n: context.l10n,
-            ),
-            style: ui.text.body.copyWith(color: ui.colors.textMuted),
-          )
-        else
-          for (final line in comparisons) _GearStatLineRow(line: line),
-        SizedBox(height: ui.space.sm),
         Text(
           gearDescriptionForSlot(
             gearSlot,
@@ -312,18 +101,11 @@ class _GearOfferDetails extends StatelessWidget {
           ),
           style: ui.text.body.copyWith(color: ui.colors.textMuted),
         ),
-        SizedBox(height: ui.space.xs),
+        SizedBox(height: ui.space.sm),
         if (statLines.isEmpty)
-          Text(
-            context.l10n.uiNoNonZeroStatBonuses,
-            style: ui.text.body.copyWith(color: ui.colors.textMuted),
-          )
+          Text(context.l10n.uiNoNonZeroStatBonuses, style: ui.text.body)
         else
-          for (var index = 0; index < statLines.length; index++)
-            Padding(
-              padding: EdgeInsets.only(top: index == 0 ? 0 : 4),
-              child: _GearStatLineRow(line: statLines[index]),
-            ),
+          _GearStats(stats: statLines),
       ],
     );
   }
@@ -485,54 +267,99 @@ class _AbilityOfferDetails extends StatelessWidget {
   }
 }
 
-class _GearStatLineRow extends StatelessWidget {
-  const _GearStatLineRow({required this.line});
-
-  final GearStatLine line;
+class _GearStats extends StatelessWidget {
+  const _GearStats({required this.stats});
+  final List<GearStatLine> stats;
 
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final valueColor = switch (line.tone) {
-      GearStatLineTone.neutral => ui.colors.textPrimary,
-      GearStatLineTone.positive => ui.colors.success,
-      GearStatLineTone.negative => ui.colors.danger,
-      GearStatLineTone.accent => ui.colors.valueHighlight,
-    };
-    final labelStyle = ui.text.body.copyWith(color: ui.colors.textMuted);
-    final valueStyle = ui.text.body.copyWith(
-      color: valueColor,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow =
+            constraints.maxWidth / MediaQuery.textScalerOf(context).scale(1) <
+            280;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final line in stats)
+              Padding(
+                padding: EdgeInsets.only(bottom: ui.space.xs),
+                child:
+                    narrow ||
+                        line.semanticValue != null ||
+                        line.highlights.isNotEmpty
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            line.label,
+                            style: ui.text.body.copyWith(
+                              color: ui.colors.textMuted,
+                            ),
+                          ),
+                          _GearStatValue(
+                            line: line,
+                            textAlign: TextAlign.start,
+                          ),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              line.label,
+                              style: ui.text.body.copyWith(
+                                color: ui.colors.textMuted,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: ui.space.xs),
+                          Expanded(child: _GearStatValue(line: line)),
+                        ],
+                      ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _GearStatValue extends StatelessWidget {
+  const _GearStatValue({required this.line, this.textAlign = TextAlign.right});
+  final GearStatLine line;
+  final TextAlign textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = context.ui;
+    final value = line;
+    final color = _semanticToneColor(ui, value.tone);
+    final style = ui.text.body.copyWith(
+      color: color,
       fontWeight: FontWeight.w600,
     );
-    final semanticValue =
-        line.semanticValue ??
-        (line.highlights.isEmpty
+    final semantic =
+        value.semanticValue ??
+        (value.highlights.isEmpty
             ? null
-            : UiSemanticText.single(line.value, highlights: line.highlights));
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 4, child: Text(line.label, style: labelStyle)),
-        SizedBox(width: ui.space.xs),
-        Expanded(
-          flex: 5,
-          child: semanticValue == null
-              ? Text(line.value, style: valueStyle, textAlign: TextAlign.right)
-              : UiSemanticRichText(
-                  semanticText: semanticValue,
-                  normalStyleForTone: (_) => valueStyle,
-                  highlightStyleForTone: (tone) => ui.text.body.copyWith(
-                    color: _semanticToneColor(ui, tone),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  mapHighlightTone: line.forcePositiveHighlightTones
-                      ? (_) => UiSemanticTone.positive
-                      : null,
-                  textAlign: TextAlign.right,
-                ),
-        ),
-      ],
+            : UiSemanticText.single(value.value, highlights: value.highlights));
+    if (semantic == null) {
+      return Text(value.value, style: style, textAlign: textAlign);
+    }
+    return UiSemanticRichText(
+      semanticText: semantic,
+      normalStyleForTone: (_) => style,
+      highlightStyleForTone: (tone) => ui.text.body.copyWith(
+        color: _semanticToneColor(ui, tone),
+        fontWeight: FontWeight.w600,
+      ),
+      mapHighlightTone: value.forcePositiveHighlightTones
+          ? (_) => UiSemanticTone.positive
+          : null,
+      textAlign: textAlign,
     );
   }
 }
@@ -624,8 +451,9 @@ class _AbilityBadge extends StatelessWidget {
   }
 }
 
-class _OfferIcon extends StatelessWidget {
-  const _OfferIcon({required this.offer});
+/// Uses the shared catalog artwork for gear, ranged sources and techniques.
+class TownOfferIcon extends StatelessWidget {
+  const TownOfferIcon({super.key, required this.offer});
 
   final StoreOfferState offer;
 

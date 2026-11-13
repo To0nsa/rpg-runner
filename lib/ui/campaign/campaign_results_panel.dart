@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:game_presentation/game_localization.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 
@@ -65,7 +66,17 @@ class _CampaignResultsPanelState extends State<CampaignResultsPanel> {
     }
     final progress = state.progression.campaign;
     final best = progress.bestScore(missionId);
-    final ability = mission.rewardAbilityId;
+    // Keep the existing Double Jump shortcut when that exact catalog reward exists.
+    final ability = mission.firstClearItems
+        .where(
+          (gift) =>
+              gift.item.kind == 'ability' &&
+              gift.item.itemId == 'eloise.double_jump' &&
+              gift.characterId == 'eloise',
+        )
+        .firstOrNull
+        ?.item
+        .itemId;
     final owned =
         ability != null &&
         state.meta
@@ -87,8 +98,10 @@ class _CampaignResultsPanelState extends State<CampaignResultsPanel> {
           Text(mission.title(language), style: context.ui.text.title),
           const SizedBox(height: 12),
           Text(context.l10n.campaignFirstClearXp(xp: mission.firstClearXp)),
-          if (mission.rewardAbilityId != null)
-            Text(context.l10n.campaignDoubleJumpReward),
+          if (mission.firstClearGold > 0)
+            Text(context.l10n.goldAmount(gold: mission.firstClearGold)),
+          for (final gift in mission.firstClearItems)
+            Text(gift.label(context.gameL10n)),
           const SizedBox(height: 12),
           Text(
             state.isDeveloperMode

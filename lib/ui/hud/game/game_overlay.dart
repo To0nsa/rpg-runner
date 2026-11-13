@@ -1,3 +1,10 @@
+import '../../tutorial/campaign_tutorial_geometry.dart';
+import '../../tutorial/campaign_tutorial_practice_hint.dart';
+import '../../tutorial/campaign_tutorial_controller.dart';
+
+import 'package:runner_content_pipeline/campaign_tutorial.dart';
+
+import '../../tutorial/campaign_tutorial_overlay.dart';
 import '../../campaign/campaign_hud.dart';
 
 import 'package:flutter/foundation.dart';
@@ -52,11 +59,14 @@ class GameOverlay extends StatefulWidget {
     required this.onExitConfirmExit,
     this.movementControlMode = MovementControlMode.arrows,
     this.movementInputEpoch = 0,
+    this.tutorial,
+    this.onTutorialAction,
     this.controlScheme = RunnerControlScheme.touch,
     this.indicatorFrames,
     this.viewportMetrics,
     this.trainingField = false,
     this.resourcesTrailing,
+    this.showLifecycleOverlays = true,
   });
 
   final GameController controller;
@@ -64,9 +74,29 @@ class GameOverlay extends StatefulWidget {
   /// Training shares the controls/resources but has no runner HUD or menus.
   final bool trainingField;
   final Widget? resourcesTrailing;
+
+  /// Tooling hosts can retain their own ready/pause panels around the real HUD.
+  final bool showLifecycleOverlays;
   final RunnerControlScheme controlScheme;
   final MovementControlMode movementControlMode;
   final int movementInputEpoch;
+  final CampaignTutorialController? tutorial;
+  final bool Function(RunnerGameplayAction action)? onTutorialAction;
+  bool get tutorialActive =>
+      tutorial?.showing == true &&
+      uiState.runLoaded &&
+      !uiState.gameOver &&
+      !exitConfirmOpen;
+  bool _shows(TutorialHudElement element) =>
+      tutorial?.isVisible(element) ?? true;
+  Set<AbilitySlot> get _visibleSlots => {
+    if (_shows(TutorialHudElement.jump)) AbilitySlot.jump,
+    if (_shows(TutorialHudElement.primary)) AbilitySlot.primary,
+    if (_shows(TutorialHudElement.secondary)) AbilitySlot.secondary,
+    if (_shows(TutorialHudElement.projectile)) AbilitySlot.projectile,
+    if (_shows(TutorialHudElement.spell)) AbilitySlot.spell,
+    if (_shows(TutorialHudElement.mobility)) AbilitySlot.mobility,
+  };
   final ValueListenable<OffscreenIndicatorFrame?>? indicatorFrames;
   final ViewportMetrics? viewportMetrics;
   final RunnerSemanticActionDispatcher input;
@@ -93,6 +123,16 @@ class GameOverlay extends StatefulWidget {
     GlobalKey hudRowKey,
     GlobalKey bossPanelKey,
     GlobalKey desktopBarKey,
+    GlobalKey movementKey,
+    GlobalKey statsKey,
+    GlobalKey objectivesKey,
+    GlobalKey jumpKey,
+    GlobalKey mobilityKey,
+    GlobalKey projectileKey,
+    GlobalKey primaryKey,
+    GlobalKey resourcesKey,
+    GlobalKey blessingResourcesKey,
+    GlobalKey surfaceKey,
   ) {
     final hud = controller.snapshot.hud;
     final desktop = controlScheme == RunnerControlScheme.desktop;
@@ -120,9 +160,11 @@ class GameOverlay extends StatefulWidget {
     };
 
     return Stack(
+      key: surfaceKey,
       fit: StackFit.expand,
       children: [
-        if (uiState.isRunning &&
+        if (_shows(TutorialHudElement.objectives) &&
+            uiState.isRunning &&
             indicatorFrames != null &&
             viewportMetrics != null)
           OffscreenIndicatorOverlay(
@@ -142,26 +184,62 @@ class GameOverlay extends StatefulWidget {
             child: DesktopControlsOverlay(
               controller: controller,
               panelKey: desktopBarKey,
+              blockedSlots: {
+                if (tutorial?.projectileLocked == true) AbilitySlot.projectile,
+              },
+              visibleSlots: _visibleSlots,
             ),
           )
         else
           IgnorePointer(
             ignoring:
-                !uiState.isRunning ||
+                (!uiState.isRunning && !tutorialActive) ||
                 controller.terrainReadiness == TerrainReadiness.failed,
             child: RunnerControlsOverlay(
               secondaryAbilityId: hud.abilitySecondaryId,
               spellAbilityId: hud.abilitySpellId,
               movementInputEpoch: movementInputEpoch,
+              movementTargetKey: movementKey,
+              actionsEnabled:
+                  uiState.isRunning ||
+                  (tutorialActive && tutorial!.expectsAction),
+              jumpTargetKey: jumpKey,
+              mobilityTargetKey: mobilityKey,
+              attackTargetKeys: {
+                AbilitySlot.projectile: projectileKey,
+                AbilitySlot.primary: primaryKey,
+              },
+              blockedSlots: {
+                if (tutorial?.projectileLocked == true) AbilitySlot.projectile,
+              },
+              visibleSlots: _visibleSlots,
+              onMovementEngage: tutorialActive
+                  ? () =>
+                        onTutorialAction?.call(
+                          RunnerGameplayAction.moveRight,
+                        ) ??
+                        false
+                  : null,
               movementControlMode: movementControlMode,
               movementEnabled:
-                  uiState.isRunning &&
+                  (uiState.isRunning || tutorialActive) &&
                   controller.terrainReadiness != TerrainReadiness.failed,
               onMoveAxis: input.setMoveAxis,
-              onJumpPressed: () =>
-                  input.triggerAction(RunnerGameplayAction.jump),
-              onMobilityPressed: () =>
-                  input.triggerAction(RunnerGameplayAction.mobility),
+              onJumpPressed: () {
+                if (tutorialActive &&
+                    onTutorialAction?.call(RunnerGameplayAction.jump) != true) {
+                  return;
+                }
+                input.triggerAction(RunnerGameplayAction.jump);
+              },
+              onMobilityPressed: () {
+                if (tutorialActive &&
+                    onTutorialAction?.call(RunnerGameplayAction.mobility) !=
+                        true) {
+                  return;
+                }
+                input.triggerAction(RunnerGameplayAction.mobility);
+              },
               onMobilityCommitted: () =>
                   input.commitAction(RunnerGameplayAction.mobility),
               onMobilityHoldStart: () =>
@@ -180,8 +258,14 @@ class GameOverlay extends StatefulWidget {
                   input.triggerAction(RunnerGameplayAction.spell),
               onProjectileCommitted: () =>
                   input.commitAction(RunnerGameplayAction.projectile),
-              onProjectilePressed: () =>
-                  input.triggerAction(RunnerGameplayAction.projectile),
+              onProjectilePressed: () {
+                if (tutorialActive &&
+                    onTutorialAction?.call(RunnerGameplayAction.projectile) !=
+                        true) {
+                  return;
+                }
+                input.triggerAction(RunnerGameplayAction.projectile);
+              },
               onProjectileHoldStart: () =>
                   input.beginAction(RunnerGameplayAction.projectile),
               onProjectileHoldEnd: () =>
@@ -199,8 +283,14 @@ class GameOverlay extends StatefulWidget {
                   hud.cooldownTicksTotal[CooldownGroup.projectile],
               onMeleeCommitted: () =>
                   input.commitAction(RunnerGameplayAction.primary),
-              onMeleePressed: () =>
-                  input.triggerAction(RunnerGameplayAction.primary),
+              onMeleePressed: () {
+                if (tutorialActive &&
+                    onTutorialAction?.call(RunnerGameplayAction.primary) !=
+                        true) {
+                  return;
+                }
+                input.triggerAction(RunnerGameplayAction.primary);
+              },
               onMeleeHoldStart: () =>
                   input.beginAction(RunnerGameplayAction.primary),
               onMeleeHoldEnd: () =>
@@ -277,16 +367,16 @@ class GameOverlay extends StatefulWidget {
               hasProjectileSlot: hasProjectileSlot,
             ),
           ),
-        if (!trainingField)
+        if (!trainingField && showLifecycleOverlays)
           PauseOverlay(
-            visible: uiState.showPauseOverlay,
+            visible: uiState.showPauseOverlay && !tutorialActive,
             exitConfirmOpen: exitConfirmOpen,
             onResume: onExitConfirmResume,
             onExit: onExitConfirmExit,
           ),
-        if (!trainingField)
+        if (!trainingField && showLifecycleOverlays)
           ReadyOverlay(
-            visible: uiState.showReadyOverlay,
+            visible: uiState.showReadyOverlay && !tutorialActive,
             onTap: onStart,
             desktop: desktop,
           ),
@@ -308,35 +398,66 @@ class GameOverlay extends StatefulWidget {
             child: Padding(
               padding: const EdgeInsets.all(8),
               child: LayoutBuilder(
-                builder: (context, constraints) => Row(
+                builder: (context, constraints) => Stack(
                   key: hudRowKey,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TopLeftHudOverlay(
-                      controller: controller,
-                      active: uiState.isRunning,
-                      compact: constraints.maxWidth < 584,
-                      warningSignal: warnings,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_shows(TutorialHudElement.resources))
+                          TopLeftHudOverlay(
+                            resourcesTargetKey: resourcesKey,
+                            blessingResourcesTargetKey: blessingResourcesKey,
+                            showBlessings: _shows(TutorialHudElement.blessings),
+                            controller: controller,
+                            active: uiState.isRunning,
+                            compact: constraints.maxWidth < 584,
+                            warningSignal: warnings,
+                          ),
+                        if (_shows(TutorialHudElement.resources))
+                          ?resourcesTrailing,
+                        if (!trainingField)
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              heightFactor: 1,
+                              child:
+                                  !_shows(TutorialHudElement.objectives) ||
+                                      controller.snapshot.campaign != null
+                                  ? const SizedBox.shrink()
+                                  : SurvivalTimerOverlay(
+                                      controller: controller,
+                                    ),
+                            ),
+                          ),
+                        if (!trainingField)
+                          TopRightHudOverlay(
+                            showStart: !tutorialActive,
+                            showStats: _shows(TutorialHudElement.runStats),
+                            statsTargetKey: statsKey,
+                            tutorialPaused: tutorialActive,
+                            controller: controller,
+                            uiState: uiState,
+                            onStart: tutorialActive ? () {} : onStart,
+                            onTogglePause: onTogglePause,
+                            showExitButton: showExitButton,
+                            onExit: onExit,
+                          ),
+                      ],
                     ),
-                    ?resourcesTrailing,
-                    if (!trainingField)
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          heightFactor: 1,
-                          child: controller.snapshot.campaign != null
-                              ? CampaignHud(controller: controller)
-                              : SurvivalTimerOverlay(controller: controller),
+                    // Centre on the display, independently of either side's HUD.
+                    if (!trainingField &&
+                        _shows(TutorialHudElement.objectives) &&
+                        controller.snapshot.campaign != null)
+                      Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: 1,
+                        child: CampaignHud(
+                          showBlessingObjective:
+                              tutorial?.showBlessingObjective ?? true,
+                          key: objectivesKey,
+                          controller: controller,
                         ),
-                      ),
-                    if (!trainingField)
-                      TopRightHudOverlay(
-                        controller: controller,
-                        uiState: uiState,
-                        onStart: onStart,
-                        onTogglePause: onTogglePause,
-                        showExitButton: showExitButton,
-                        onExit: onExit,
                       ),
                   ],
                 ),
@@ -344,9 +465,9 @@ class GameOverlay extends StatefulWidget {
             ),
           ),
         ),
-        if (!trainingField)
+        if (!trainingField && _shows(TutorialHudElement.objectives))
           BossArenaHud(controller: controller, panelKey: bossPanelKey),
-        if (!desktop)
+        if (!desktop && _visibleSlots.isNotEmpty)
           AimCancelButtonOverlay(
             projectileAimPreview: projectileAimPreview,
             meleeAimPreview: meleeAimPreview,
@@ -358,7 +479,52 @@ class GameOverlay extends StatefulWidget {
             triggerSignal: playerImpactFeedbackSignal,
           ),
         ),
-        if (!trainingField) BossEntranceBorderOverlay(controller: controller),
+        if (!trainingField && _shows(TutorialHudElement.objectives))
+          BossEntranceBorderOverlay(controller: controller),
+        if (uiState.isRunning)
+          CampaignTutorialPracticeHint(text: tutorial?.combatPracticeHint),
+        if (tutorialActive)
+          CampaignTutorialOverlay(
+            tutorial: tutorial!.active!,
+            control: desktop
+                ? TutorialMovementControl.keyboard
+                : tutorialMovementControl(movementControlMode),
+            step: tutorial!.step,
+            onNext: tutorial!.hasNextStep ? tutorial!.nextStep : null,
+            worldTarget:
+                tutorial!.worldTargetBounds != null && viewportMetrics != null
+                ? () {
+                    final world = tutorial!.worldTargetBounds;
+                    return world == null
+                        ? null
+                        : campaignTutorialWorldTarget(
+                            world,
+                            controller.snapshot.camera,
+                            viewportMetrics!,
+                          );
+                  }
+                : null,
+            targetKey: switch (tutorial!.target!) {
+              CampaignTutorialTarget.movement => movementKey,
+              CampaignTutorialTarget.objectives => objectivesKey,
+              CampaignTutorialTarget.runStats => statsKey,
+              CampaignTutorialTarget.jump => desktop ? null : jumpKey,
+              CampaignTutorialTarget.mobility => desktop ? null : mobilityKey,
+              CampaignTutorialTarget.projectile =>
+                desktop ? null : projectileKey,
+              CampaignTutorialTarget.primary => desktop ? null : primaryKey,
+              CampaignTutorialTarget.resources => resourcesKey,
+              CampaignTutorialTarget.blessingResources => blessingResourcesKey,
+              CampaignTutorialTarget.enemy ||
+              CampaignTutorialTarget.shrine ||
+              CampaignTutorialTarget.obstacle ||
+              CampaignTutorialTarget.gap ||
+              CampaignTutorialTarget.platform ||
+              CampaignTutorialTarget.decoration ||
+              CampaignTutorialTarget.water => null,
+            },
+            surfaceKey: surfaceKey,
+          ),
       ],
     );
   }
@@ -366,6 +532,16 @@ class GameOverlay extends StatefulWidget {
 
 class _GameOverlayState extends State<GameOverlay> {
   final _hudRowKey = GlobalKey();
+  final _movementKey = GlobalKey();
+  final _statsKey = GlobalKey();
+  final _objectivesKey = GlobalKey();
+  final _jumpKey = GlobalKey();
+  final _mobilityKey = GlobalKey();
+  final _projectileKey = GlobalKey();
+  final _primaryKey = GlobalKey();
+  final _resourcesKey = GlobalKey();
+  final _blessingResourcesKey = GlobalKey();
+  final _surfaceKey = GlobalKey();
   final _bossPanelKey = GlobalKey();
   final _desktopBarKey = GlobalKey();
   final _warnings = ValueNotifier<ControlResourceUsage>(
@@ -385,5 +561,15 @@ class _GameOverlayState extends State<GameOverlay> {
     _hudRowKey,
     _bossPanelKey,
     _desktopBarKey,
+    _movementKey,
+    _statsKey,
+    _objectivesKey,
+    _jumpKey,
+    _mobilityKey,
+    _projectileKey,
+    _primaryKey,
+    _resourcesKey,
+    _blessingResourcesKey,
+    _surfaceKey,
   );
 }

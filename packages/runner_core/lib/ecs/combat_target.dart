@@ -4,6 +4,7 @@ import 'world.dart';
 
 /// Identity selected once before AI; consumers never choose replacements.
 EntityId? combatTarget(EcsWorld world, EntityId actor, EntityId player) {
+  if (!world.campaignEnemy.canFight(actor)) return null;
   final index = world.aiTarget.tryIndexOf(actor);
   final target = index == null ? player : world.aiTarget.selected[index];
   return target != null && isLivingCombatActor(world, target) ? target : null;

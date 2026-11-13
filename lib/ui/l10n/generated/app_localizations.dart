@@ -98,6 +98,105 @@ abstract class AppLocalizations {
     Locale('fr'),
   ];
 
+  /// Advance a paused tutorial to its next informational step.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get tutorialNext;
+
+  /// Current page of one tutorial sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step}/{total}'**
+  String tutorialStepProgress({required int step, required int total});
+
+  /// Compact label for the Training Field editor tab; its accessible label retains the full name.
+  ///
+  /// In en, this message translates to:
+  /// **'Training'**
+  String get characterTrainingTab;
+
+  /// Badge on the currently selected character.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected'**
+  String get characterSelected;
+
+  /// Selects a character with its remembered build.
+  ///
+  /// In en, this message translates to:
+  /// **'Select {name}'**
+  String characterSelect({required String name});
+
+  /// The build selected for the next run.
+  ///
+  /// In en, this message translates to:
+  /// **'Active build'**
+  String get characterActiveBuild;
+
+  /// Activates the build being edited and its character.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this build'**
+  String get characterUseBuild;
+
+  /// Accessible build selection action.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {build} with {character}'**
+  String characterSelectBuildSemantics({
+    required String build,
+    required String character,
+  });
+
+  /// Opens a build without activating it.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {build} for {character}'**
+  String characterEditBuildSemantics({
+    required String build,
+    required String character,
+  });
+
+  /// Account level required to unlock a build slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocks at level {level}'**
+  String characterBuildUnlockLevel({required int level});
+
+  /// Heading for the current character and build summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected for next run'**
+  String get characterNextRun;
+
+  /// Character and build identity in the summary and editor. Preserve player-authored build names.
+  ///
+  /// In en, this message translates to:
+  /// **'{character} · {build}'**
+  String characterBuildSummary({
+    required String character,
+    required String build,
+  });
+
+  /// Compact visible build rename action.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get characterRenameBuild;
+
+  /// Build changes have finished saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get characterBuildSaved;
+
+  /// Build save failure; queued changes can be retried.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save your changes. Please retry.'**
+  String get characterBuildSaveFailed;
+
   /// Application title. The product name is not translated.
   ///
   /// In en, this message translates to:
@@ -3187,18 +3286,6 @@ abstract class AppLocalizations {
   /// **'{current} / {target}'**
   String progressQuantities({required String current, required String target});
 
-  /// Codex world-reference prose: codexOpeningTitle. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
-  ///
-  /// In en, this message translates to:
-  /// **'The roads of Lothringen'**
-  String get codexOpeningTitle;
-
-  /// Codex world-reference prose: codexOpening. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
-  ///
-  /// In en, this message translates to:
-  /// **'Théodonis stands behind old walls, surrounded by farmland and forests. The city has survived wars, raids and disease, and its apparent stability rests on institutions that have weathered many crises.\n\nLong ago, Éloïse founded La Main to confront a hidden threat. After her disappearance, the order continued its work in secret. More recently, an incident at the Villa Twinsen left questions unanswered.\n\nOn the roads of Lothringen, Neyla leads a traveling company of performers. They bring shows to the communities they visit and offer help along the way. Their journey now leads toward Théodonis.'**
-  String get codexOpening;
-
   /// Codex world-reference prose: codexGrojibLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
@@ -3262,13 +3349,13 @@ abstract class AppLocalizations {
   /// Codex world-reference prose: codexGrojibTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
-  /// **'A ground pursuer with a follow-up melee strike that can stun on hit. Leave room for the second swing.'**
+  /// **'A ground pursuer with a follow-up melee strike that can stun on hit.'**
   String get codexGrojibTactics;
 
   /// Codex world-reference prose: codexHashashTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
-  /// **'A mobile assassin with a teleporting ambush. Watch for its return before committing.'**
+  /// **'A mobile assassin with a teleporting ambush.'**
   String get codexHashashTactics;
 
   /// Codex world-reference prose: codexDerfTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
@@ -3280,49 +3367,49 @@ abstract class AppLocalizations {
   /// Codex world-reference prose: codexUnocoTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
-  /// **'A flying caster that can also strike at close range. Keep moving while its projectile is aimed.'**
+  /// **'A flying caster that can also strike at close range.'**
   String get codexUnocoTactics;
 
   /// Codex world-reference prose: codexBringerTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
-  /// **'A scythe fighter with dark pillars. Read the wind-up and move clear of the marked ground.'**
+  /// **'A scythe fighter with dark pillars.'**
   String get codexBringerTactics;
 
   /// Codex world-reference prose: codexGoddessTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
-  /// **'Combines claw attacks, dark orbs and ground eruptions. Reposition when the arena is threatened.'**
+  /// **'Combines claw attacks, dark orbs and ground eruptions.'**
   String get codexGoddessTactics;
 
   /// Codex world-reference prose: codexShoggothTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
-  /// **'Uses tentacles, dark orbs and summoned creatures. Manage the smaller threats while watching the boss.'**
+  /// **'Uses tentacles, dark orbs and summoned creatures.'**
   String get codexShoggothTactics;
 
   /// Codex world-reference prose: codexVoidcallerTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
-  /// **'Uses vertical and diagonal beams, fire claws and tentacle summons. Keep a route out of overlapping attacks.'**
+  /// **'Uses vertical and diagonal beams, fire claws and tentacle summons.'**
   String get codexVoidcallerTactics;
 
   /// Codex world-reference prose: codexShoggothMinionTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
-  /// **'A small ground attacker summoned by Shoggoth. Avoid being crowded while the boss attacks.'**
+  /// **'A small ground attacker summoned by Shoggoth.'**
   String get codexShoggothMinionTactics;
 
   /// Codex world-reference prose: codexVoidTentacleTactics. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
   ///
   /// In en, this message translates to:
-  /// **'A summoned melee threat. Move beyond its lash before turning to attack it.'**
+  /// **'A summoned melee threat.'**
   String get codexVoidTentacleTactics;
 
-  /// Codex world-reference prose: codexForestLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
+  /// Library > Locations > Val Outpost: three spoiler-free paragraphs grounded in the Guide du maitre de jeu (Val Outpost and Théo’s squad) and Les Soleils d’or, chapter 3 (Le feu de joie). Preserve Théo, Hanna, Théodonis, Vosga and the twenty-four forest guards; bugbears are gobelours in French. Long-Eared Owls’ Forest is the English name for the Forêt des Moyen-Ducs. Keep the paragraph breaks and do not reveal the caravan attack or its outcome.
   ///
   /// In en, this message translates to:
-  /// **'Val Outpost stands beside the road through the Long-Eared Owls’ Forest. Its soldiers patrol the wooded route, train for the forest’s hazards, and carry warnings of danger back to Théodonis. Travelers can rest under their guard before continuing their journey.'**
+  /// **'Set apart from Théodonis in a darker stretch of the Long-Eared Owls’ Forest, Val Outpost consists of half a dozen large tents in a well-organized, guarded camp. In quieter times, it maintains a presence on the road and prepares soldiers for combat and survival in the forest.\n\nCaptain Théo commands twenty-four elite forest guards here, while Hanna, their field medic, tends the wounded. Their orders are to contain a bugbear tribe’s expansion across the Vosga and secure the approaches to the road. Tensions return in waves, and the outpost must absorb them before they reach Théodonis.\n\nVal also serves as a link to the city. Its captain can have messages relayed to Théodonis, and the camp offers refuge to travelers in distress: a hot meal, a clean place to sleep, and a few hours under the soldiers’ guard. Beyond the tents, the forest remains dangerous.'**
   String get codexForestLore;
 
   /// Codex world-reference prose: codexFieldLore. Preserve canonical names and meaning; do not invent lore. Instructions use tu in French.
@@ -3348,12 +3435,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New Level'**
   String get levelDeprecatedName;
-
-  /// Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.
-  ///
-  /// In en, this message translates to:
-  /// **'Les Soleils d’or • Lothringen'**
-  String get libraryBrand;
 
   /// Library, level or catalog presentation. Stable IDs and discovery rules are never translated. Named proper nouns retain their canonical spellings.
   ///
@@ -4072,7 +4153,7 @@ abstract class AppLocalizations {
   /// Town equipment merchant title and navigation.
   ///
   /// In en, this message translates to:
-  /// **'Equipment'**
+  /// **'Equipment store'**
   String get townEquipment;
 
   /// Town service for learning permanent abilities; distinct from Training Field practice.
@@ -4084,7 +4165,7 @@ abstract class AppLocalizations {
   /// Accessible equipment building marker.
   ///
   /// In en, this message translates to:
-  /// **'Equipment merchant marker'**
+  /// **'Equipment store marker'**
   String get townEquipmentMarker;
 
   /// Accessible training building marker.
@@ -4117,6 +4198,36 @@ abstract class AppLocalizations {
   /// **'Not yet unlocked'**
   String get townUnownedOnly;
 
+  /// Equipment purchase button, followed by coin artwork. Price comes from the server offer.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy {gold}'**
+  String townBuyAmount({required int gold});
+
+  /// Accessible equipment purchase action including the currency represented visually by coin artwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for {gold} gold'**
+  String townBuyGoldLabel({required int gold});
+
+  /// Training Hall learn button, followed by coin artwork. Price comes from the server offer.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn {gold}'**
+  String townLearnAmount({required int gold});
+
+  /// Accessible Training Hall purchase action including the currency represented visually by coin artwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn for {gold} gold'**
+  String townLearnGoldLabel({required int gold});
+
+  /// Accessible check-mark state for an equipped item in the character builder's gear picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Equipped'**
+  String get pickerEquipped;
+
   /// Equipment already owned; replaces purchase control.
   ///
   /// In en, this message translates to:
@@ -4135,12 +4246,6 @@ abstract class AppLocalizations {
   /// **'Learn'**
   String get townLearn;
 
-  /// Accessories are account-wide; no second purchase for the other character.
-  ///
-  /// In en, this message translates to:
-  /// **'Usable by both · One purchase'**
-  String get townSharedAccessory;
-
   /// Retained schema-1 snapshot cannot safely support explicit-character catalogue purchases.
   ///
   /// In en, this message translates to:
@@ -4152,12 +4257,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No entries match these filters.'**
   String get townNoMatchingEntries;
-
-  /// Expanded equipment comparison; item is currently equipped name, build is selected saved build name for browsed character.
-  ///
-  /// In en, this message translates to:
-  /// **'Compared with {item} · {build}'**
-  String townCompareWith({required String item, required String build});
 
   /// Catalogue category. character is eloise or bountyHunter; service is equipment or training; slot is the stable StoreSlot name.
   ///
@@ -4300,6 +4399,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chapter rewards received.'**
   String get campaignChapterRewardsGranted;
+
+  /// Coin objective progress; collected is 0 or 1.
+  ///
+  /// In en, this message translates to:
+  /// **'Collect a coin {collected}/1'**
+  String campaignCollectCoin({required int collected});
+
+  /// Heading for one concise tactical recommendation in a discovered Bestiary entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Combat advice'**
+  String get codexCombatAdvice;
+
+  /// Heading grouping an enemy’s innate damage resistances and weaknesses. Values come from Core.
+  ///
+  /// In en, this message translates to:
+  /// **'Innate defences'**
+  String get codexInnateDefences;
+
+  /// Short classification above a discovered boss’s name in its Bestiary entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Boss'**
+  String get codexBoss;
+
+  /// Empty value under either Resistances or Weaknesses. French agrees with the feminine plural category, using Aucune.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get codexNoInnateModifiers;
+
+  /// Bestiary attack metadata, below its separate ability name. Category is localized; types includes localized damage types and mixed-damage percentages. Example: melee · Physical damage.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} · {types} damage'**
+  String codexAttackDetails({required String category, required String types});
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Ground pursuer'**
+  String get codexGrojibRole;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave room for the second swing.'**
+  String get codexGrojibAdvice;
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Teleporting assassin'**
+  String get codexHashashRole;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch for its return before committing.'**
+  String get codexHashashAdvice;
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Transforming caster'**
+  String get codexDerfRole;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow for the reach of its extended tentacle.'**
+  String get codexDerfAdvice;
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Flying caster'**
+  String get codexUnocoRole;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep moving while its projectile is aimed.'**
+  String get codexUnocoAdvice;
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Scythe fighter'**
+  String get codexBringerRole;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the wind-up and move clear of the marked ground.'**
+  String get codexBringerAdvice;
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Claw and orb fighter'**
+  String get codexGoddessRole;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Reposition when the arena is threatened.'**
+  String get codexGoddessAdvice;
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Tentacled summoner'**
+  String get codexShoggothRole;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage the smaller threats while watching the boss.'**
+  String get codexShoggothAdvice;
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Beam caster'**
+  String get codexVoidcallerRole;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep a route out of overlapping attacks.'**
+  String get codexVoidcallerAdvice;
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Summoned ground attacker'**
+  String get codexShoggothMinionRole;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Avoid being crowded while the boss attacks.'**
+  String get codexShoggothMinionAdvice;
+
+  /// Short descriptive combat role beneath the enemy name. Derived from its existing behaviour; no new lore.
+  ///
+  /// In en, this message translates to:
+  /// **'Summoned melee attacker'**
+  String get codexVoidTentacleRole;
+
+  /// Short heading on the main menu card for the endless Runner mode. Runner is the mode name.
+  ///
+  /// In en, this message translates to:
+  /// **'Runner'**
+  String get hubRunnerHeading;
+
+  /// Main menu card footer: immediately launch the selected Runner level and mode. Keep concise; may wrap on compact screens.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Runner'**
+  String get hubRunnerPlay;
+
+  /// Main menu card footer: launch the last available unlocked campaign mission, including replay. Does not always continue unfinished progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Campaign'**
+  String get hubCampaignPlay;
+
+  /// Quiet main menu character-card footer; opens character and saved build selection, without launching gameplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Change build'**
+  String get hubChangeBuild;
+
+  /// Compact main menu status in Developer Practice; local runs without online services. The Developer profile name remains visible above.
+  ///
+  /// In en, this message translates to:
+  /// **'Local practice'**
+  String get hubLocalPractice;
+
+  /// Compact text action beside the Weekly Runner title on the main menu. Launches Weekly immediately.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get hubWeeklyPlay;
+
+  /// Concise Bestiary combat recommendation, separated from behaviour. Preserve tactical meaning; address the player as tu in French.
+  ///
+  /// In en, this message translates to:
+  /// **'Move beyond its lash before turning to attack it.'**
+  String get codexVoidTentacleAdvice;
+
+  /// Required campaign shrine objective progress. Received is 0 before the selected basin activates and 1 afterwards.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive a blessing {received}/1'**
+  String campaignReceiveBlessing({required int received});
+
+  /// Library Journal empty state when no authored opening or unlocked story entries exist.
+  ///
+  /// In en, this message translates to:
+  /// **'No journal entries yet.'**
+  String get journalEmpty;
 }
 
 class _AppLocalizationsDelegate

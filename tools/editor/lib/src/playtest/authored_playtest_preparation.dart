@@ -8,7 +8,6 @@ import 'dart:isolate';
 import 'package:meta/meta.dart';
 import 'package:rpg_runner/playtest.dart';
 import 'package:runner_content_pipeline/runner_content_pipeline.dart';
-import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_assembly.dart';
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_identity.dart';
@@ -498,7 +497,7 @@ Future<PlaytestPreparationResult> preparePlaytestInBackground(
             ),
           };
     final patterns = scenario is CampaignPlaytestScenario
-        ? scenario.mission.route.occurrences.map((o) => o.pattern).toList()
+        ? scenario.mission.route.missionChunks.map((o) => o.pattern).toList()
         : [
             ...base!.earlyPatterns,
             ...base.easyPatterns,
@@ -731,10 +730,11 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
         : selectedChunks == null
         ? LevelPlaytestScenario(
             levelDefinition: level,
-            terrainChunks: runtimeChunks.map((c) => c.stagedTerrain),
+            // Source validation above includes Campaign and inactive drafts;
+            // the runtime catalog must match this runner's admitted pool.
+            terrainChunks: active.map((c) => c.stagedTerrain),
             seed: input.seed,
             playerCharacter: PlayerCharacterRegistry.eloise,
-            equippedLoadout: const EquippedLoadoutDef(),
           )
         : ChunkPlaytestScenario.filteredPool(
             levelDefinition: focusedLevel!,
@@ -743,7 +743,6 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
             visualThemeId: sourceLevel.visualThemeId,
             seed: input.seed,
             playerCharacter: PlayerCharacterRegistry.eloise,
-            equippedLoadout: const EquippedLoadoutDef(),
           );
     final appearanceChunks = campaign?.chunks ?? selectedChunks ?? active;
     final referencedMaterials = <String>{
@@ -764,6 +763,9 @@ PlaytestPreparationResult preparePlaytest(PlaytestPreparationInput input) {
     final specs = terrainMaterialSpecsFromCatalog(materials);
     final theme = input.theme;
     final appearance = RunnerPlaytestAppearance(
+      tutorialSequences: input.campaignMission?.tutorialSequences ?? const [],
+      initialTutorialHud:
+          input.campaignMission?.initialTutorialHud ?? allTutorialHud,
       parallaxThemes: {
         theme.parallaxThemeId: ParallaxTheme(
           backgroundLayers: [

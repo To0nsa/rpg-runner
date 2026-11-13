@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'ui_bestiary_theme.dart';
 import 'ui_button_theme.dart';
 import 'ui_hub_theme.dart';
 import 'ui_hud_theme.dart';
@@ -47,6 +48,7 @@ ThemeData createUiTheme() => ThemeData(
   useMaterial3: true,
   extensions: [
     UiTokens.standard,
+    UiBestiaryTheme.standard,
     UiHubTheme.standard,
     UiHudTheme.standard,
     UiButtonTheme.standard,

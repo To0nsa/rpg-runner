@@ -1,6 +1,13 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:run_protocol/submission_status.dart';
 
@@ -9,12 +16,18 @@ import 'package:rpg_runner/ui/campaign/campaign_catalog.dart';
 import 'package:rpg_runner/ui/components/app_button.dart';
 import 'package:rpg_runner/ui/components/gold_display.dart';
 import 'package:rpg_runner/ui/components/player_level_bar.dart';
+import 'package:rpg_runner/ui/components/progress_meter.dart';
+import 'package:rpg_runner/ui/levels/level_id_ui.dart';
 import 'package:rpg_runner/ui/pages/hub/components/hub_top_row.dart';
 import 'package:rpg_runner/ui/pages/hub/components/hub_select_card_frame.dart';
+import 'package:rpg_runner/ui/pages/hub/components/hub_card_action.dart';
+import 'package:rpg_runner/ui/pages/hub/components/hub_select_card_body.dart';
+import 'package:rpg_runner/ui/pages/hub/components/weekly_badge_row.dart';
 import 'package:rpg_runner/ui/pages/hub/play_hub_page.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
+import 'package:rpg_runner/ui/state/developer/developer_profile_store.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/ownership/campaign_progress.dart';
 import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
@@ -24,67 +37,363 @@ import 'package:rpg_runner/ui/state/run/run_session_api.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
-import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
-import 'package:rpg_runner/ui/theme/ui_tokens.dart';
+import 'package:rpg_runner/ui/theme/ui_theme.dart';
 import 'package:rpg_runner/ui/l10n/app_localization.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('dev.fluttercommunity.plus/charging'),
+          (_) async => null,
+        );
+  });
+  setUpAll(() async {
+    for (final (family, path) in [
+      ('CrimsonText', 'assets/fonts/Crimson_Text/CrimsonText-Regular.ttf'),
+      ('Inter', 'assets/fonts/Inter/static/Inter_24pt-Regular.ttf'),
+      ('MaterialIcons', 'fonts/MaterialIcons-Regular.otf'),
+    ]) {
+      await (FontLoader(family)..addFont(rootBundle.load(path))).load();
+    }
+  });
+
   for (final size in [const Size(568, 320), const Size(1280, 720)]) {
     for (final language in ['en', 'fr']) {
-      testWidgets('hub play buttons match their cards at $size in $language', (
-        tester,
-      ) async {
-        tester.view.physicalSize = size;
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.reset);
-        final app = AppState(
-          authApi: _StaticAuthApi(),
-          loadoutOwnershipApi: _NoopOwnershipApi(
-            gold: 0,
-            weekly: WeeklyProgressState.initial.copyWith(
-              currentWindowId: '2026-W05',
-            ),
-          ),
-        );
-        addTearDown(app.dispose);
-        await app.bootstrap(force: true);
-        await tester.pumpWidget(
-          _TestApp(appState: app, locale: Locale(language)),
-        );
-        await tester.pump();
-        expect(
-          find.text(
-            language == 'en'
-                ? 'WEEKLY RUNNER - W05'
-                : 'RUNNER HEBDOMADAIRE - W05',
-          ),
-          findsOneWidget,
-        );
-        final cards = find.byType(HubSelectCardFrame);
-        expect(cards, findsNWidgets(3));
-        for (final (key, index) in [
-          ('hub-runner-play', 0),
-          ('hub-campaign-play', 2),
-        ]) {
-          final card = tester.getRect(cards.at(index));
-          final button = tester.getRect(
-            find.descendant(
-              of: find.byKey(ValueKey(key)),
-              matching: find.byType(AppButton),
+      testWidgets(
+        'hub play footers fit inside their cards at $size in $language',
+        (tester) async {
+          tester.view.physicalSize = size;
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final app = AppState(
+            authApi: _StaticAuthApi(),
+            loadoutOwnershipApi: _NoopOwnershipApi(
+              gold: 0,
+              weekly: WeeklyProgressState.initial.copyWith(
+                currentWindowId: '2026-W05',
+              ),
             ),
           );
-          expect(button.left, closeTo(card.left, .01));
-          expect(button.width, closeTo(card.width, .01));
+          addTearDown(app.dispose);
+          await app.bootstrap(force: true);
+          final assets = UiAssetLifecycle();
+          addTearDown(assets.dispose);
+          await tester.runAsync(
+            () => assets.getIdle(app.selection.selectedCharacterId),
+          );
+          await tester.pumpWidget(
+            _TestApp(appState: app, locale: Locale(language), assets: assets),
+          );
+          await tester.pump();
           expect(
-            button.top - card.bottom,
-            closeTo(UiTokens.standard.space.sm, .01),
+            find.text(
+              language == 'en'
+                  ? 'WEEKLY RUNNER - W05'
+                  : 'RUNNER HEBDOMADAIRE - W05',
+            ),
+            findsOneWidget,
           );
-        }
-        expect(tester.takeException(), isNull);
-        await tester.pumpWidget(const SizedBox.shrink());
-      });
+          final cards = find.byType(HubSelectCardFrame);
+          expect(cards, findsNWidgets(3));
+          expect(
+            tester.getSize(find.byType(WeeklyBadgeRow)).height,
+            lessThanOrEqualTo(56),
+          );
+          expect(
+            find.descendant(
+              of: find.byType(WeeklyBadgeRow),
+              matching: find.text(
+                app.weeklyFeaturedLevelId.localizedName(
+                  appStringsFor(Locale(language)),
+                ),
+              ),
+            ),
+            findsOneWidget,
+          );
+          for (final footer in find.byType(HubCardAction).evaluate()) {
+            expect(
+              find.descendant(
+                of: find.byWidget(footer.widget),
+                matching: find.byType(Icon),
+              ),
+              findsNothing,
+            );
+          }
+          for (final (key, index) in [
+            ('hub-runner-play', 0),
+            ('hub-campaign-play', 2),
+          ]) {
+            final card = tester.getRect(cards.at(index));
+            final action = find.byKey(ValueKey(key));
+            final button = tester.getRect(action);
+            expect(
+              find.descendant(of: cards.at(index), matching: action),
+              findsOneWidget,
+            );
+            expect(button.left, closeTo(card.left, .01));
+            expect(button.width, closeTo(card.width, .01));
+            expect(button.bottom, closeTo(card.bottom, .01));
+            expect(button.height, greaterThanOrEqualTo(48));
+            expect(button.bottom, lessThanOrEqualTo(size.height));
+            expect(action.hitTestable(), findsOneWidget);
+          }
+          await _capture(tester, '${size.width.toInt()}-$language');
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox.shrink());
+        },
+      );
     }
   }
+
+  for (final textScale in [1.6, 2.0]) {
+    testWidgets('French text at $textScale keeps all card actions reachable', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(568, 320);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final app = AppState(
+        authApi: _StaticAuthApi(),
+        loadoutOwnershipApi: _NoopOwnershipApi(gold: 0),
+      );
+      addTearDown(app.dispose);
+      await app.bootstrap(force: true);
+      await tester.pumpWidget(
+        _TestApp(
+          appState: app,
+          locale: const Locale('fr'),
+          textScale: textScale,
+        ),
+      );
+      await tester.pump();
+      expect(
+        find
+            .byTooltip(appStringsFor(const Locale('fr')).uiOptions)
+            .hitTestable(),
+        findsOneWidget,
+      );
+      for (final key in ['weekly-play', 'weekly-leaderboard']) {
+        final action = find.byKey(ValueKey(key));
+        expect(action.hitTestable(), findsOneWidget);
+        expect(tester.getSize(action).height, greaterThanOrEqualTo(48));
+      }
+      await _capture(tester, '568-fr-$textScale-top');
+      final runnerCard = tester.getRect(find.byType(HubSelectCardFrame).first);
+      final characterCard = tester.getRect(
+        find.byType(HubSelectCardFrame).at(1),
+      );
+      expect(characterCard.top, greaterThan(runnerCard.bottom));
+      for (final action in find.byType(HubCardAction).evaluate()) {
+        final finder = find.byWidget(action.widget);
+        await tester.ensureVisible(finder);
+        await tester.pump();
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.descendant(of: finder, matching: find.byType(Text)),
+        );
+        expect(paragraph.didExceedMaxLines, isFalse);
+        expect(finder.hitTestable(), findsOneWidget);
+        expect(tester.getSize(finder).height, greaterThanOrEqualTo(48));
+        expect(tester.getRect(finder).top, greaterThanOrEqualTo(0));
+        expect(tester.getRect(finder).bottom, lessThanOrEqualTo(320));
+      }
+      await _capture(tester, '568-fr-$textScale');
+      final lastButton = tester.getRect(
+        find.byKey(const ValueKey('hub-campaign-play')),
+      );
+      expect(lastButton.bottom, lessThanOrEqualTo(320));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
+  testWidgets('card selection and Play have independent navigation targets', (
+    tester,
+  ) async {
+    final app = AppState(
+      authApi: _StaticAuthApi(),
+      loadoutOwnershipApi: _NoopOwnershipApi(gold: 0),
+    );
+    addTearDown(app.dispose);
+    final observer = _RecordingNavigatorObserver();
+    await app.bootstrap(force: true);
+    await tester.pumpWidget(_RoutedTestApp(appState: app, observer: observer));
+    await tester.pump();
+    for (final (index, route) in [
+      (0, UiRoutes.setupLevel),
+      (1, UiRoutes.selectCharacter),
+      (2, UiRoutes.campaign),
+    ]) {
+      await tester.tap(
+        find
+            .ancestor(
+              of: find.byType(HubSelectCardBody).at(index),
+              matching: find.byType(InkWell),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      expect(observer.pushedRouteNames.last, route);
+      Navigator.of(tester.element(find.text('Selection Placeholder'))).pop();
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.byKey(const ValueKey('hub-runner-play')));
+    await tester.pump();
+    expect(observer.pushedRouteNames.last, UiRoutes.runBootstrap);
+  });
+
+  testWidgets(
+    'local practice has a compact status without disabled weekly actions',
+    (tester) async {
+      tester.view.physicalSize = const Size(568, 320);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      SharedPreferences.setMockInitialValues({});
+      final app = AppState.developer(store: SharedPrefsDeveloperProfileStore());
+      addTearDown(app.dispose);
+      await app.bootstrap();
+      final assets = UiAssetLifecycle();
+      addTearDown(assets.dispose);
+      await tester.runAsync(
+        () => assets.getIdle(app.selection.selectedCharacterId),
+      );
+      await tester.pumpWidget(_TestApp(appState: app, assets: assets));
+      await tester.pump();
+      expect(find.text('Local practice'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(WeeklyBadgeRow),
+          matching: find.byType(InkWell),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('hub-runner-play')).hitTestable(),
+        findsOneWidget,
+      );
+      await _capture(tester, '568-practice');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'compact weekly actions retain full touch targets and semantics',
+    (tester) async {
+      var playCount = 0;
+      var leaderboardCount = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: createUiTheme(),
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 468,
+                child: WeeklyBadgeRow(
+                  title: 'Weekly Runner',
+                  levelName: 'Field',
+                  isWeeklyLoading: false,
+                  onWeeklyPressed: () => playCount++,
+                  onWeeklyLeaderboardPressed: () => leaderboardCount++,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      final play = find.byKey(const ValueKey('weekly-play'));
+      final leaderboard = find.byKey(const ValueKey('weekly-leaderboard'));
+      expect(
+        tester.getSize(find.byType(WeeklyBadgeRow)).height,
+        lessThanOrEqualTo(56),
+      );
+      for (final button in [play, leaderboard]) {
+        final size = tester.getSize(button);
+        expect(size.width, inInclusiveRange(48, 95));
+        expect(size.height, greaterThanOrEqualTo(48));
+        final fill = find.descendant(
+          of: button,
+          matching: find.byType(ProgressMeter),
+        );
+        expect(tester.getSize(fill).height, lessThan(size.height));
+        final data = tester.getSemantics(button).getSemanticsData();
+        expect(data.flagsCollection.isButton, isTrue);
+        expect(data.flagsCollection.isEnabled, ui.Tristate.isTrue);
+        expect(data.hasAction(ui.SemanticsAction.tap), isTrue);
+      }
+      // The area above the compact fill is still part of the touch target.
+      await tester.tapAt(tester.getTopLeft(play) + const Offset(24, 2));
+      await tester.pump();
+      await tester.tap(leaderboard);
+      await tester.pump();
+      expect(playCount, 1);
+      expect(leaderboardCount, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('weekly loading and unavailable actions cannot be activated', (
+    tester,
+  ) async {
+    var playCount = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: createUiTheme(),
+        home: Scaffold(
+          body: WeeklyBadgeRow(
+            title: 'Weekly Runner',
+            isWeeklyLoading: true,
+            onWeeklyPressed: () => playCount++,
+            onWeeklyLeaderboardPressed: null,
+          ),
+        ),
+      ),
+    );
+    for (final key in ['weekly-play', 'weekly-leaderboard']) {
+      final action = find.byKey(ValueKey(key));
+      await tester.tap(action);
+      final data = tester.getSemantics(action).getSemanticsData();
+      expect(data.flagsCollection.isEnabled, ui.Tristate.isFalse);
+      expect(data.hasAction(ui.SemanticsAction.tap), isFalse);
+    }
+    expect(playCount, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('weekly level name is independent of the Runner selection', (
+    tester,
+  ) async {
+    final app = AppState(
+      authApi: _StaticAuthApi(),
+      loadoutOwnershipApi: _NoopOwnershipApi(
+        gold: 0,
+        selection: SelectionState.defaults.copyWith(
+          selectedLevelId: LevelId.forest,
+        ),
+      ),
+    );
+    addTearDown(app.dispose);
+    await app.bootstrap(force: true);
+    await tester.pumpWidget(_TestApp(appState: app));
+    await tester.pump();
+    expect(app.selection.selectedLevelId, LevelId.forest);
+    expect(app.weeklyFeaturedLevelId, isNot(app.selection.selectedLevelId));
+    final weekly = find.byType(WeeklyBadgeRow);
+    expect(
+      find.descendant(
+        of: weekly,
+        matching: find.text(
+          app.weeklyFeaturedLevelId.localizedName(
+            appStringsFor(const Locale('en')),
+          ),
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   for (final cleared in [false, true]) {
     testWidgets(
@@ -383,7 +692,7 @@ void main() {
     expect(find.text('LEVEL 2  ·  10 / 124 XP'), findsOneWidget);
   });
 
-  testWidgets('hub keeps gold and status at the far right on wide screens', (
+  testWidgets('wide hub bounds content and keeps status at its right edge', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1600, 900);
@@ -417,7 +726,10 @@ void main() {
       ),
     );
     final bar = tester.getRect(find.byType(PlayerLevelBar));
-    expect(row.right, greaterThan(1500));
+    final cards = tester.getRect(find.byType(HubSelectCardFrame).last);
+    expect(row.width, lessThanOrEqualTo(1100));
+    expect(row.right, closeTo(cards.right, .01));
+    expect(row.right, lessThan(1500));
     expect((row.right - time.right).abs(), lessThan(1));
     expect(bar.right, lessThan(time.left));
     expect(tester.takeException(), isNull);
@@ -462,27 +774,42 @@ void main() {
 }
 
 class _TestApp extends StatelessWidget {
-  const _TestApp({required this.appState, this.locale = const Locale('en')});
+  const _TestApp({
+    required this.appState,
+    this.locale = const Locale('en'),
+    this.textScale = 1,
+    this.assets,
+  });
 
   final AppState appState;
   final Locale locale;
+  final double textScale;
+  final UiAssetLifecycle? assets;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AppState>.value(value: appState),
-        Provider<UiAssetLifecycle>(create: (_) => UiAssetLifecycle()),
+        if (assets != null)
+          Provider<UiAssetLifecycle>.value(value: assets!)
+        else
+          Provider<UiAssetLifecycle>(create: (_) => UiAssetLifecycle()),
       ],
       child: MaterialApp(
         locale: locale,
         localizationsDelegates: RunnerLocalizations.delegates,
         supportedLocales: RunnerLocalizations.supportedLocales,
-        theme: ThemeData(
-          useMaterial3: true,
-          extensions: [UiTokens.standard, UiButtonTheme.standard],
+        theme: createUiTheme(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
         ),
-        home: const PlayHubPage(),
+        home: const RepaintBoundary(
+          key: ValueKey('hub-capture'),
+          child: PlayHubPage(),
+        ),
       ),
     );
   }
@@ -502,13 +829,21 @@ class _RoutedTestApp extends StatelessWidget {
         Provider<UiAssetLifecycle>(create: (_) => UiAssetLifecycle()),
       ],
       child: MaterialApp(
-        theme: ThemeData(
-          useMaterial3: true,
-          extensions: [UiTokens.standard, UiButtonTheme.standard],
-        ),
+        theme: createUiTheme(),
         navigatorObservers: [observer],
         home: const PlayHubPage(),
         onGenerateRoute: (settings) {
+          if ([
+            UiRoutes.setupLevel,
+            UiRoutes.selectCharacter,
+            UiRoutes.campaign,
+          ].contains(settings.name)) {
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) =>
+                  const Scaffold(body: Text('Selection Placeholder')),
+            );
+          }
           if (settings.name == UiRoutes.runBootstrap) {
             return MaterialPageRoute<void>(
               settings: settings,
@@ -522,6 +857,28 @@ class _RoutedTestApp extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _capture(WidgetTester tester, String name) async {
+  if (!const bool.fromEnvironment('CAPTURE_HUB')) return;
+  // Preview animations never settle. Allow asset I/O between bounded frames.
+  for (var frame = 0; frame < 4; frame++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 150)),
+    );
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  await tester.runAsync(() async {
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(const ValueKey('hub-capture')),
+    );
+    final image = await boundary.toImage();
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    await Directory('.tmp/hub-refresh-20261113').create(recursive: true);
+    await File('.tmp/hub-refresh-20261113/hub-$name.png')
+        .writeAsBytes(bytes!.buffer.asUint8List());
+    image.dispose();
+  });
 }
 
 class _RecordingNavigatorObserver extends NavigatorObserver {
@@ -578,6 +935,7 @@ class _NoopOwnershipApi extends LoadoutOwnershipApi {
     this.playerProgress,
     this.weekly,
     this.campaign,
+    this.selection,
   });
 
   int gold;
@@ -586,11 +944,12 @@ class _NoopOwnershipApi extends LoadoutOwnershipApi {
   PlayerProgress? playerProgress;
   final WeeklyProgressState? weekly;
   final CampaignProgress? campaign;
+  final SelectionState? selection;
 
   OwnershipCanonicalState get _canonical => OwnershipCanonicalState(
     profileId: 'profile_hub',
     revision: revision,
-    selection: SelectionState.defaults,
+    selection: selection ?? SelectionState.defaults,
     meta: const MetaService().createNew(),
     progression: ProgressionState.initial.copyWith(
       gold: gold,

@@ -22,6 +22,59 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../test_support/app_startup_fakes.dart';
 
 void main() {
+  test('editing an inactive character persists without selecting it', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = SharedPrefsDeveloperProfileStore();
+    final state = AppState.developer(store: store);
+    addTearDown(state.dispose);
+    await state.bootstrap();
+    final eloise =
+        (state.selection.toJson()['buildsByCharacter'] as Map)['eloise'];
+    await state.setBuildName(
+      'Willow scout',
+      characterId: PlayerCharacterId.bountyHunter,
+      buildIndex: 0,
+    );
+    await state.setProjectileSpell(
+      characterId: PlayerCharacterId.bountyHunter,
+      buildIndex: 0,
+      spellId: ProjectileId.hunterCrossbow,
+    );
+    await state.setAbilitySlot(
+      characterId: PlayerCharacterId.bountyHunter,
+      buildIndex: 0,
+      slot: AbilitySlot.primary,
+      abilityId: 'bounty_hunter.twin_cut',
+    );
+    expect(state.selection.selectedCharacterId, PlayerCharacterId.eloise);
+    expect(
+      (state.selection.toJson()['buildsByCharacter'] as Map)['eloise'],
+      eloise,
+    );
+    final restored = AppState.developer(store: store);
+    addTearDown(restored.dispose);
+    await restored.bootstrap();
+    expect(restored.selection.selectedCharacterId, PlayerCharacterId.eloise);
+    expect(
+      restored.selection
+          .buildsFor(PlayerCharacterId.bountyHunter)
+          .builds[0]
+          .name,
+      'Willow scout',
+    );
+    expect(
+      restored.selection
+          .loadoutFor(PlayerCharacterId.bountyHunter)
+          .projectileSlotSpellId,
+      ProjectileId.hunterCrossbow,
+    );
+    expect(
+      restored.selection
+          .loadoutFor(PlayerCharacterId.bountyHunter)
+          .abilityPrimaryId,
+      'bounty_hunter.twin_cut',
+    );
+  });
   test('Developer Practice restores build 1 and keeps level locks on every character', () async {
     SharedPreferences.setMockInitialValues({});
     final store = SharedPrefsDeveloperProfileStore();

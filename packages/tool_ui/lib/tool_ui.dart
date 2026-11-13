@@ -9,4 +9,5 @@ export 'src/tool_list_card.dart';
 export 'src/tool_visual_catalog.dart';
 export 'src/tool_three_panel_layout.dart';
 export 'src/tool_preview_workspace.dart';
+export 'src/tool_language_tabs.dart';
 export 'src/tool_theme.dart';

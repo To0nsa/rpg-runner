@@ -20,17 +20,20 @@ class AdminPage extends StatefulWidget {
   State<AdminPage> createState() => _AdminPageState();
 }
 
-class _AdminPageState extends State<AdminPage> {
+class _AdminPageState extends State<AdminPage>
+    with SingleTickerProviderStateMixin {
   final _uid = TextEditingController(), _title = TextEditingController();
   final _body = TextEditingController(), _gold = TextEditingController();
   final _frenchTitle = TextEditingController(),
       _frenchBody = TextEditingController();
   final _panels = ToolThreePanelController();
+  late final TabController _languageTabs;
   AdminController get c => widget.controller;
 
   @override
   void initState() {
     super.initState();
+    _languageTabs = TabController(length: 2, vsync: this);
     c.addListener(_changed);
     _changed();
   }
@@ -68,6 +71,7 @@ class _AdminPageState extends State<AdminPage> {
       controller.dispose();
     }
     _panels.dispose();
+    _languageTabs.dispose();
     super.dispose();
   }
 
@@ -290,58 +294,69 @@ class _AdminPageState extends State<AdminPage> {
           onChanged: (value) => c.edit(c.draft.copyWith(uid: value)),
         ),
         const SizedBox(height: 12),
-        TextField(
-          key: const Key('message-title'),
-          controller: _title,
-          enabled: c.canEdit,
-          maxLength: 120,
-          decoration: const InputDecoration(
-            labelText: 'Message title (English)',
-            border: OutlineInputBorder(),
+        ToolLanguageTabs(
+          controller: _languageTabs,
+          english: Column(
+            children: [
+              TextField(
+                key: const Key('message-title'),
+                controller: _title,
+                enabled: c.canEdit,
+                maxLength: 120,
+                decoration: const InputDecoration(
+                  labelText: 'Message title (English)',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => c.edit(c.draft.copyWith(title: value)),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('message-body'),
+                controller: _body,
+                enabled: c.canEdit,
+                maxLength: 2000,
+                minLines: 5,
+                maxLines: 10,
+                decoration: const InputDecoration(
+                  labelText: 'Message body (English)',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => c.edit(c.draft.copyWith(body: value)),
+              ),
+            ],
           ),
-          onChanged: (value) => c.edit(c.draft.copyWith(title: value)),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          key: const Key('message-body'),
-          controller: _body,
-          enabled: c.canEdit,
-          maxLength: 2000,
-          minLines: 5,
-          maxLines: 10,
-          decoration: const InputDecoration(
-            labelText: 'Message body (English)',
-            alignLabelWithHint: true,
-            border: OutlineInputBorder(),
+          french: Column(
+            children: [
+              TextField(
+                key: const Key('message-title-fr'),
+                controller: _frenchTitle,
+                enabled: c.canEdit,
+                maxLength: 120,
+                decoration: const InputDecoration(
+                  labelText: 'French title (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (_) => _editFrench(),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('message-body-fr'),
+                controller: _frenchBody,
+                enabled: c.canEdit,
+                maxLength: 2000,
+                minLines: 3,
+                maxLines: 10,
+                decoration: const InputDecoration(
+                  labelText: 'French body (tu)',
+                  helperText: 'Supply both French fields, or leave both empty for English fallback.',
+                  helperMaxLines: 3,
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (_) => _editFrench(),
+              ),
+            ],
           ),
-          onChanged: (value) => c.edit(c.draft.copyWith(body: value)),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          key: const Key('message-title-fr'),
-          controller: _frenchTitle,
-          enabled: c.canEdit,
-          maxLength: 120,
-          decoration: const InputDecoration(
-            labelText: 'French title (optional)',
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (_) => _editFrench(),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          key: const Key('message-body-fr'),
-          controller: _frenchBody,
-          enabled: c.canEdit,
-          maxLength: 2000,
-          minLines: 3,
-          maxLines: 10,
-          decoration: const InputDecoration(
-            labelText: 'French body (tu)',
-            helperText: 'Supply both French fields, or leave both empty for English fallback.',
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (_) => _editFrench(),
         ),
         const SizedBox(height: 12),
         TextField(

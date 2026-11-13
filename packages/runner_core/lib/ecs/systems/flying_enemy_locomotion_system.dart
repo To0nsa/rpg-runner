@@ -39,7 +39,8 @@ class FlyingEnemyLocomotionSystem {
       if (world.deathState.has(enemy)) continue;
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
-      final target = combatTarget(world, enemy, player);
+      final returning = world.campaignEnemy.isReturning(enemy);
+      final target = returning ? enemy : combatTarget(world, enemy, player);
       if (target == null) {
         world.transform.velX[enemyTi] = 0;
         world.transform.velY[enemyTi] = 0;
@@ -96,6 +97,11 @@ class FlyingEnemyLocomotionSystem {
 
       final ex = world.transform.posX[enemyTi];
       final ey = world.transform.posY[enemyTi];
+      if (returning) {
+        final home = world.campaignEnemy.indexOf(enemy);
+        targetCenterX = world.campaignEnemy.homeX[home];
+        targetCenterY = world.campaignEnemy.homeY[home];
+      }
       _steerFlyingEnemy(
         world,
         enemyIndex: enemyIndex,
@@ -108,6 +114,7 @@ class FlyingEnemyLocomotionSystem {
         ey: ey,
         groundTopY: groundTopY,
         dtSeconds: dtSeconds,
+        returning: returning,
       );
     }
   }
@@ -124,6 +131,7 @@ class FlyingEnemyLocomotionSystem {
     required double ey,
     required double groundTopY,
     required double dtSeconds,
+    bool returning = false,
   }) {
     final tuning = unocoDemonTuning;
     final steering = world.flyingEnemySteering;
@@ -190,6 +198,7 @@ class FlyingEnemyLocomotionSystem {
         ? _FlyingLocomotionMode.approachStrike
         : _FlyingLocomotionMode.hover;
 
+    if (returning) desiredRange = 0;
     final dx = targetCenterX - ex;
     final distX = dx.abs();
     var targetX = ex;
@@ -199,7 +208,9 @@ class FlyingEnemyLocomotionSystem {
       targetX = targetCenterX - dirToTargetX * desiredRange;
     }
 
-    final slack = locomotionMode == _FlyingLocomotionMode.approachStrike
+    final slack = returning
+        ? 2.0
+        : locomotionMode == _FlyingLocomotionMode.approachStrike
         ? _approachStrikeSlackX
         : tuning.base.unocoDemonHoldSlack;
     var desiredVelX = 0.0;
@@ -234,7 +245,9 @@ class FlyingEnemyLocomotionSystem {
         : groundTopY;
     steering.effectiveFlightReferenceY[steeringIndex] = flightReferenceY;
     late final double targetY;
-    if (locomotionMode == _FlyingLocomotionMode.hover) {
+    if (returning) {
+      targetY = targetCenterY;
+    } else if (locomotionMode == _FlyingLocomotionMode.hover) {
       if (flightTargetHoldLeftS > 0.0) {
         flightTargetHoldLeftS -= dtSeconds;
       } else {
@@ -257,8 +270,9 @@ class FlyingEnemyLocomotionSystem {
       -tuning.base.unocoDemonMaxSpeedY,
       tuning.base.unocoDemonMaxSpeedY,
     );
-    final verticalDeadzone =
-        locomotionMode == _FlyingLocomotionMode.approachStrike
+    final verticalDeadzone = returning
+        ? 2.0
+        : locomotionMode == _FlyingLocomotionMode.approachStrike
         ? _approachStrikeDeadzoneY
         : tuning.base.unocoDemonVerticalDeadzone;
     if (deltaY.abs() <= verticalDeadzone) {

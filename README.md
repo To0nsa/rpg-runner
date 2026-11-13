@@ -33,6 +33,10 @@ dev, staging and production apps. Its final candidate and Play release are pendi
 
 ## Current Scope (Implemented)
 
+- [Campaign tutorials and progressive HUD](docs/tdd/campaign_tutorials.md), authored in
+  the editor's Tutorial sequences tab with adjustable control/world spotlights,
+  water approach guidance, a first-swim hint, decorations, the first dry gap, platforms, a basin blessing objective, a Dash introduction, and projectile-to-sword combat practice.
+
 - [System inbox](docs/gdd/messages.md) with information messages, manually
   claimed 25-gold gifts for new levels and a reusable menu attention marker.
 - [Targeted message delivery](docs/tdd/system_inbox.md#operator-delivery) for
@@ -50,8 +54,11 @@ dev, staging and production apps. Its final candidate and Play release are pendi
 - Animated, authorable water regions with deterministic player and ground-enemy swimming;
   see the [pool authoring guide](docs/gdd/swimming.md)
 - 2 playable characters: Éloïse and [Willow](docs/gdd/combat/abilities/willow.md), with three independent named builds each (unlocked at levels 1/5/12), a character-selection screen, 24 Willow abilities, eight ranged weapons, regenerating Supplies and arcing bomb throws costing 6 Supplies.
+- Character and build selection stay in the chooser. Separate Edit actions and
+  Training Field test saved builds without changing the next-run selection.
 - Character-builder Gear and Skills tabs retain browsing state across tab switches;
   [Training Field](docs/gdd/training_field.md) starts fresh on every visit.
+- The character builder shows the default build name beside its rename pencil.
 - Pose-aligned combat capsules, shared fixed-tick animation clocks, and exact
   [combat debug geometry](docs/tdd/combat_pose_geometry.md)
 - Authored abilities (mobility, melee, ranged, defense, utility)
@@ -74,7 +81,7 @@ dev, staging and production apps. Its final candidate and Play release are pendi
 - Reusable world interactions with a Forest regeneration shrine, persistent fire,
   and level-duration resource bonuses; [manual configuration](docs/tdd/world_interactions.md)
 - Gear/loadout setup flow before runs
-- Théodonis Town map with [Equipment and Training](docs/gdd/town_services.md) and [Library/Codex](docs/gdd/codex.md): enemy
+- Théodonis Town map with [Equipment store and Training Hall](docs/gdd/town_services.md) and [Library/Codex](docs/gdd/codex.md): enemy
   discoveries after 10 kills (5 for bosses), level lore at 10,000 Competitive
   points per level, and Éloïse's opening journal; progress is replay-validated
   and saved to the account

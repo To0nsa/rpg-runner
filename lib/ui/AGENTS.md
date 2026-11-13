@@ -129,7 +129,7 @@ Rules:
 
 The run route is a UI-owned assembly of lower layers:
 
-- `RunnerRunSession` owns controller, input router, Flame game, aim previews, recorder, and ghost lifecycle
+- `RunnerRunSession`: runtime, recorder, ghost and finalization (`docs/tdd/shared_gameplay_runtime.md`).
 - `RunnerGameWidget` owns the session, overlays, input/lifecycle policy, and submission UI
 - Online Start requires both world and recorder readiness; developer Practice
   requires world readiness only. Required load failures offer retry and exit.

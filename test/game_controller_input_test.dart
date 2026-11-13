@@ -16,6 +16,33 @@ import 'test_tunings.dart';
 
 void main() {
   test(
+    'committed tick observers can detach or retire a controller mid-frame',
+    () async {
+      final core = GameCore(
+        levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+        playerCharacter: testPlayerCharacter,
+        seed: 42,
+      );
+      await core.prepareNextTick();
+      final controller = GameController(core: core);
+      var notifications = 0;
+      void removedObserver() => notifications++;
+      controller.addCompletedTickListener(() {
+        expect(controller.snapshot.tick, 1);
+        controller.removeCompletedTickListener(removedObserver);
+        controller.dispose();
+      });
+      controller.addCompletedTickListener(removedObserver);
+      controller.addListener(() => notifications++);
+      controller.advanceFrame(.1);
+      expect(controller.tick, 1);
+      expect(notifications, 0);
+      controller.advanceFrame(.1);
+      expect(controller.tick, 1);
+    },
+  );
+
+  test(
     'Core events reach each subscriber once and retain the terminal result',
     () async {
       final level = testFieldLevel(tuning: noAutoscrollTuning);

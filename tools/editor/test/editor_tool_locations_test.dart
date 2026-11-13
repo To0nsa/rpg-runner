@@ -147,7 +147,7 @@ void main() {
         find.byKey(const ValueKey('parallax_layer_entry_summit_2')),
       );
       await _drain(tester);
-      await _route(tester, 'LEVEL CREATOR');
+      await _route(tester, 'RUNNER LEVEL');
       await tester.tap(find.byKey(const ValueKey('level_library_summit')));
       await _drain(tester);
       await tester.tap(find.text('Appearance').first);
@@ -175,7 +175,7 @@ void main() {
       );
       expect(parallax.levelId, 'summit');
       expect(parallax.layerKey, 'summit_2');
-      await _route(tester, 'LEVEL CREATOR');
+      await _route(tester, 'RUNNER LEVEL');
       final level = _location<LevelCreatorReturnContext>(
         tester,
         LevelCreatorPage,

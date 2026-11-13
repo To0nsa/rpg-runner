@@ -9,7 +9,7 @@ import '../stores/enemies/derf_phase_store.dart';
 import '../world.dart';
 import 'ability_interrupt.dart';
 
-/// Awakens Derf once his body enters the authoritative Core camera rectangle.
+/// Awakens Derf on campaign engagement, or camera entry outside Campaign.
 ///
 /// Runs after lock refresh before AI and again after camera movement so the
 /// first visible snapshot already transforms. One-tick locks expire naturally
@@ -60,16 +60,19 @@ class DerfTransformationSystem {
           colliderIndex: ci,
         );
         final y = colliderCenterY(world, transformIndex: ti, colliderIndex: ci);
-        if (aabbOverlapsMinMax(
-          aMinX: x - world.colliderAabb.halfX[ci],
-          aMaxX: x + world.colliderAabb.halfX[ci],
-          aMinY: y - world.colliderAabb.halfY[ci],
-          aMaxY: y + world.colliderAabb.halfY[ci],
-          bMinX: cameraLeft,
-          bMaxX: cameraRight,
-          bMinY: cameraTop,
-          bMaxY: cameraBottom,
-        )) {
+        final campaign = world.campaignEnemy.has(entity);
+        if (campaign
+            ? world.campaignEnemy.canFight(entity)
+            : aabbOverlapsMinMax(
+                aMinX: x - world.colliderAabb.halfX[ci],
+                aMaxX: x + world.colliderAabb.halfX[ci],
+                aMinY: y - world.colliderAabb.halfY[ci],
+                aMaxY: y + world.colliderAabb.halfY[ci],
+                bMinX: cameraLeft,
+                bMaxX: cameraRight,
+                bMinY: cameraTop,
+                bMaxY: cameraBottom,
+              )) {
           phases.phase[i] = DerfPhase.transforming;
           phases.transformationStartTick[i] = currentTick;
           AbilityInterrupt.clearActiveAndTransient(

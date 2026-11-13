@@ -1,5 +1,12 @@
 # Training Field contract
 
+Training uses the [shared runtime, input binding and surface](shared_gameplay_runtime.md).
+Its auto-start, tab lifetime, opponent picker and reset policies remain local to
+TrainingFieldSession/TrainingFieldTab; editor device calibration is not inherited.
+The builder supplies its pinned character and build index to TrainingFieldTab.
+Session creation and reset resolve that addressed loadout without selecting it;
+direct tab entries without an address retain the current-selection fallback.
+
 Training is a disposable local session outside registered run levels. It has no
 ticket, recorder, reward handoff, replay submission, or persisted session state.
 Normal run construction and protocol identities remain unchanged.
@@ -50,6 +57,9 @@ Combat death keeps the existing Core animation-only freeze, and Reset appears
 only when Core publishes `gameOver` after the complete strip. Core captures the
 player's grounded state before death cleanup releases terrain support, so Willow's
 grounded death cannot switch to her shorter airborne strip during the freeze.
+
+`TrainingFieldTab` supplies `UiHapticsService` to `RunnerGameplayBindings`, so
+combat, charge-tier and ability-end cues use the same haptics mapping as normal runs.
 
 `TrainingOpponentDialog` uses the shared `AppDialog` shell with scrollable content
 and fixed title/actions. Its `EnemyPortrait` component is shared with the Library

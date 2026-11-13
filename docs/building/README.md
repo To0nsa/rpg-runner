@@ -1,9 +1,63 @@
 # Current Implementation Plans
 
+- [November 14 dev release](dev_release_2026_11_14.md): commit the current game
+  worktree, execute the coordinated dev deployment and build its matching Android
+  APK. Preparation and live verification are in progress.
+
+- [Completed Campaign combat introduction](../archive/2026-11-14/building/campaign_combat_tutorial.md):
+  projectile practice, temporary input lock, sword introduction at Core-owned melee
+  reach, viewport-aware spotlights and a rebuilt Windows editor.
+
+- [Completed Campaign dash introduction](../archive/2026-11-13/building/campaign_dash_tutorial.md):
+  grounded lesson after the eighth-chunk pool, editable trigger/control spotlight,
+  75 focused tests and a rebuilt Windows editor.
+
+- [Completed Campaign blessing objective and introduction](../archive/2026-11-13/building/campaign_blessing_tutorial.md):
+  selected-shrine objective, shared three-page authoring, 598 passing tests, visual
+  checks and a rebuilt Windows editor.
+
+- [Completed Campaign platform introduction](../archive/2026-11-13/building/campaign_platform_tutorial.md):
+  shared authoring, real one-way targets, continuous traversal through all three
+  platforms, 48 targeted tests and a rebuilt Windows editor.
+
+- [Completed Campaign gap introduction](../archive/2026-11-13/building/campaign_gap_tutorial.md):
+  terrain-bound guidance, shared authoring, 44 targeted checks and a rebuilt Windows editor.
+
+- [Completed Campaign decoration introduction](../archive/2026-11-13/building/campaign_decoration_tutorial.md):
+  grounded guidance after the pool, real prefab spotlight, shared input and editable
+  bilingual card. Focused checks pass and the Windows editor is rebuilt.
+
+- [Completed Campaign water introduction](../archive/2026-11-13/building/campaign_water_tutorial.md):
+  water approach guidance and an optional first-swim hint, shared by product and
+  editor Play. Focused checks pass and the Windows editor is rebuilt.
+
+- [Completed Campaign obstacle and jump tutorial](../archive/2026-11-13/building/campaign_jump_tutorial.md):
+  one three-step sequence at the second chunk, with progressive Jump/resources,
+  editor authoring, passing checks and the rebuilt Windows editor.
+
+- [Completed Campaign objectives introduction](../archive/2026-11-13/building/campaign_objective_tutorial.md):
+  real first-coin objective and an intermediate tutorial lesson. Core, replay,
+  input/editor checks and the Windows release editor build pass locally.
+
+- [Completed Campaign progressive HUD and first coin](../archive/2026-11-13/building/campaign_coin_tutorial.md):
+  movement-only start, first-coin explanation, cumulative HUD reveals and shared
+  input gating. Focused checks and the Windows editor build pass locally.
+
+- [Completed Campaign movement introduction](../archive/2026-11-13/building/campaign_movement_tutorial.md):
+  editable control spotlights, localized cards and same-gesture startup in product
+  and editor Play. Focused checks and the Windows editor build pass locally.
+
+- [Shared gameplay runtime and editor Play](shared_gameplay_runtime.md): implementation
+  started November 12. Product, Training Field and all three editor Play modes
+  share runtime/input/view mechanics while retaining their own policies. Includes
+  common launch settings and physically calibrated device previews. Runtime,
+  surface and launch migrations, targeted native tests and the Windows release
+  build are complete. Web verification and physical acceptance remain open.
+
 - [Campaign and Val Outpost](campaign/README.md): finite missions, bidirectional
   movement, chunk conversion, campaign menus and verified progression are
   implemented locally, including [visual marker authoring](campaign/implementation.md#m2-follow-up-visual-marker-authoring)
-  with Chunk Creator-style tools and occurrence-local enemies, traps, rescues,
+  with Chunk Creator-style tools and mission chunk-local enemies, traps, rescues,
   coins, restoration gems and blessing shrines. Production layouts, device
   acceptance and authorized release remain open in the same checklist.
 

@@ -91,7 +91,12 @@ class _AimCancelButtonOverlayState extends State<AimCancelButtonOverlay> {
     if (ro is! RenderBox || !ro.hasSize) return;
 
     final topLeft = ro.localToGlobal(Offset.zero);
-    final rect = topLeft & ro.size;
+    // Both corners must pass through the ancestor transform: an editor device
+    // preview scales the complete HUD, including this screen-space hit target.
+    final rect = Rect.fromPoints(
+      topLeft,
+      ro.localToGlobal(ro.size.bottomRight(Offset.zero)),
+    );
 
     if (widget.hitboxRect.value != rect) {
       widget.hitboxRect.value = rect;

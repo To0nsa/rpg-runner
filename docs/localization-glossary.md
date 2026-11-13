@@ -11,6 +11,7 @@ Keep the grounded Lothringen tone; avoid modern slang in lore.
 | Éloïse, Willow, Théodonis, Val | Unchanged | Canonical names and accents |
 | Les Soleils d’or | Les Soleils d’or | Canonical proper name |
 | Val Outpost | Avant-poste du Val | Location title |
+| Long-Eared Owls’ Forest | Forêt des Moyen-Ducs | Canonical forest name; keep Moyen-Ducs in French |
 | Léonards’ farm | Ferme des Léonards | Location title |
 | Health | Santé | Resource/stat |
 | Mana | Mana | Spellcaster resource |
@@ -31,7 +32,7 @@ Keep the grounded Lothringen tone; avoid modern slang in lore.
 | Claimed | Récupéré | Reward state; agree with the surrounding noun when needed |
 | Retry | Réessayer | Button; « Réessaie » in an instruction |
 | Library / Store | Bibliothèque / Boutique | Town buildings |
-| Equipment / Training Hall | Équipement / Salle d’entraînement | Permanent purchase services |
+| Equipment store / Training Hall | Boutique d’équipement / Salle d’entraînement | Permanent purchase services |
 | Training Field | Terrain d’entraînement | Local build-testing surface |
 | Level | Niveau | Account progression; location names are separate |
 | Unoco Demon | Démon Unoco | Canonical enemy label |

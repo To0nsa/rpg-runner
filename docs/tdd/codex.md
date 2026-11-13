@@ -102,12 +102,19 @@ Routes:
 - `/meta/town/equipment` and `/meta/town/training`: [permanent purchase catalogues](town_catalogue.md).
 - `/meta/town/store`: retained alias opening Equipment.
 - `/meta/town/hall-of-honour`: [achievements and direct gold claims](achievements.md).
-- `/meta/town/library`: Bestiary, Locations and opening Journal sections on a
+- `/meta/town/library`: Bestiary, Locations and Campaign Journal sections on a
   left-side icon rail.
 - Enemy entry routes are pushed within Library. The Locations map opens modal
   details using the same `CodexLevelDetails` as the level entry route. Both
   recheck current account progress on rebuild, hiding lore again if the account
   is replaced.
+
+Journal now renders accumulated authored Campaign content, rather than a fixed
+opening resource. `CampaignJournalView` resolves the current locale and canonical
+`progression.campaign.isCleared` through the shared Journal visibility policy.
+It needs no additional persistence or discovery threshold. See
+[Campaign Journal content and visibility](campaign_runtime.md#campaign-journal-content-and-visibility)
+for source ownership, publication gating, preview and account behavior.
 
 Locked Bestiary rows conceal names; their idle portraits appear after the first
 defeat. Each `CodexEntryTile` owns a presentation-only
@@ -148,6 +155,18 @@ tooltip-labelled icons. Returning from Store
 or Library returns to the map.
 
 ## Portraits and nested summons
+
+Unlocked enemy routes mount `BestiaryEntryView`; the route retains the live
+account gate and parent-boss resolution. The view owns one scroll surface and
+reuses static `EnemyPortrait` widgets for the main creature and nested summons.
+`UiBestiaryTheme` scopes the world palette and derives its Crimson Text styles
+from `UiTokens`: 24px creature titles, 14px headings/body/italic field notes and
+12px details. Entries use 8px outer and 12px panel padding, with 80px creature
+portraits and 64px summon portraits. Parent width and inherited text scaling
+determine the header/column layout; combat columns need 480px at normal scale,
+so landscape phones can use both columns while enlarged text stacks them.
+Ability rows and damage modifiers still read Core definitions directly; the
+localized role, advice and behaviour resources remain presentation-only.
 
 `UiAssetLifecycle` owns at most one cropped static portrait for each enemy ID.
 Loads are deduplicated and initiated by the portrait widget’s lifecycle, not
@@ -195,19 +214,23 @@ initial service callouts and the reset control clear of the toolbar and system
 insets without insetting the artwork. Decode width is capped at 2048 pixels to
 bound display memory.
 
-Service anchors use image coordinates: Equipment `(0.35, 0.49)` in the market
-streets, Library `(0.47, 0.405)` at the northeastern courtyard complex,
-Training Hall `(0.465, 0.60)` at the long southeastern building, and Hall of
-Honour `(0.395, 0.708)` at the southern courtyard.
+Service anchors use image coordinates: Equipment store `(0.337, 0.63)` at the
+southwestern building, Library `(0.47, 0.405)` at the northeastern courtyard
+complex, Training Hall `(0.395, 0.708)` at the southern courtyard, and Hall of
+Honour `(0.482, 0.48)` at the small building beside the eastern wall.
 Separate callout lines connect to those anchors and transform with the image.
-`MapCallout` lays out each label before painting its leader. The line finishes
-horizontally at the nearer side of the measured label, leaving the button's
-transparent padding as a small visual gap. Pins above/below a label route around
-its bounds instead of crossing the icon/text. Labels are clamped to the initial
-visible map area; the same geometry handles font loading and enlarged text.
-Portrait labels occupy four lanes around the central pins; landscape uses two
-columns with bounded widths. Labels and pins receive taps, with label controls
-above pin hit areas; the surrounding map remains draggable.
+`MapCallout` places Town labels around the wall perimeter: Equipment store to
+the west, Library to the north, Hall of Honour to the east and Training Hall
+to the southeast (south in portrait). Narrow layouts pair Equipment store and
+Library above the northern wall, keeping connectors clear of their text
+and enlarged labels off the building pins.
+Labels are measured and clamped to the initial visible map area, including
+toolbar/system insets. The current Town layout enables `MapCallout.straightLeader`,
+which joins a building pin to the measured label boundary with one segment.
+Connector shape is a layout preference: routed leaders remain valid when they
+improve readability, avoid overlaps or fit the available space. Labels and pins
+receive taps, with label controls above pin hit areas; the surrounding map
+remains draggable.
 Compact transparent text buttons use Mist/Ink palette tokens and retain
 minimum touch targets. Pinch zoom remains; only a reset button is shown.
 No bottom instructions or plus/minus controls consume map space.

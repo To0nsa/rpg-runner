@@ -37,7 +37,7 @@ animation or feedback message. Restarting or starting another run clears it.
 
 The explicitly registered Forest and Field placements retain this behavior.
 Campaign's **Markers → Blessing fire** also attaches it to an existing shrine or
-platform top in one mission occurrence. Choose ember or blue fire, then point at
+platform top in one mission chunk. Choose ember or blue fire, then point at
 the flat top; the preview shows the fire and its contact width. This places only
 the effect. The shared platform stays unchanged, and other uses of it remain
 ordinary geometry unless separately attached. Moving the fire reattaches it to

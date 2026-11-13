@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:image/image.dart' as image;
 import 'package:runner_core/campaign/campaign_mission_definition.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 
@@ -858,6 +859,9 @@ void _writePatternList(
         ..writeln('        width: ${sprite.width},')
         ..writeln('        height: ${sprite.height},')
         ..writeln('        zIndex: ${sprite.zIndex},');
+      if (sprite.prefabKey != null) {
+        buffer.writeln("        prefabKey: '${_escape(sprite.prefabKey!)}',");
+      }
       if (sprite.isDecoration) {
         buffer.writeln('        isDecoration: true,');
       }

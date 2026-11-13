@@ -59,7 +59,7 @@ Rect? campaignMarkerRegion(CampaignMarkerEntry entry) {
 class CampaignMarkerPainter extends CustomPainter {
   CampaignMarkerPainter({
     required this.entries,
-    required this.occurrenceId,
+    required this.missionChunkId,
     required this.scale,
     required this.root,
     required this.images,
@@ -68,7 +68,7 @@ class CampaignMarkerPainter extends CustomPainter {
     this.showGrid = false,
   });
   final List<CampaignMarkerEntry> entries;
-  final String occurrenceId, root;
+  final String missionChunkId, root;
   final double scale;
   final EditorUiImageCache images;
   final String? selectedKey;
@@ -99,14 +99,14 @@ class CampaignMarkerPainter extends CustomPainter {
         ..strokeWidth = 1 / scale,
     );
     for (final entry in entries) {
-      if (entry.position.occurrenceId != occurrenceId ||
+      if (entry.position.missionChunkId != missionChunkId ||
           entry.key == candidate?.key) {
         continue;
       }
       _marker(canvas, entry, entry.key == selectedKey, false);
     }
     final preview = candidate;
-    if (preview != null && preview.position.occurrenceId == occurrenceId) {
+    if (preview != null && preview.position.missionChunkId == missionChunkId) {
       _marker(canvas, preview, true, true);
     }
     canvas.restore();

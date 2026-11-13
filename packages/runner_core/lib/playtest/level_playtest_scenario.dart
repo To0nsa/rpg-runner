@@ -27,7 +27,7 @@ final class LevelPlaytestScenario implements PlaytestScenario {
     required int seed,
     int tickHz = defaultTickHz,
     required PlayerCharacterDefinition playerCharacter,
-    required EquippedLoadoutDef equippedLoadout,
+    EquippedLoadoutDef? equippedLoadout,
   }) {
     if (seed <= 0 || tickHz <= 0) {
       throw ArgumentError('Playtest seed and tickHz must be positive.');
@@ -132,7 +132,9 @@ final class LevelPlaytestScenario implements PlaytestScenario {
   final int tickHz;
   @override
   final PlayerCharacterDefinition playerCharacter;
-  final EquippedLoadoutDef equippedLoadout;
+
+  /// Null uses the character catalog starter equipment; explicit overrides are exact.
+  final EquippedLoadoutDef? equippedLoadout;
 
   /// Returns fresh scheduler state with the captured level's original rules.
   LevelDefinition buildRuntimeLevelDefinition() => levelDefinition.copyWith();

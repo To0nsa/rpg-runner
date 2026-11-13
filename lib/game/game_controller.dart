@@ -19,6 +19,8 @@ import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
+import 'package:runner_core/snapshots/combat_opportunity_snapshot.dart';
+import 'package:runner_core/campaign/campaign_mission_definition.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
 import 'package:run_protocol/replay_blob.dart';
 
@@ -174,6 +176,11 @@ class GameController extends ChangeNotifier {
 
   EnemyCatalog get enemyCatalog => _core.enemyCatalog;
 
+  /// Read-only Core geometry for an authored Campaign marker.
+  CombatOpportunitySnapshot? campaignCombatOpportunity(
+    CampaignEnemyTarget target,
+  ) => _core.campaignCombatOpportunity(target);
+
   /// Latest snapshot produced by the core.
   GameStateSnapshot get snapshot => _curr;
 
@@ -228,6 +235,19 @@ class GameController extends ChangeNotifier {
     _eventListeners.remove(listener);
   }
 
+  final _completedTickListeners = <VoidCallback>[];
+
+  /// Observes a committed snapshot before the next fixed tick. A host may pause
+  /// here; it must not advance recursively. Stop/dispose removes subscriptions.
+  void addCompletedTickListener(VoidCallback listener) {
+    if (!_completedTickListeners.contains(listener)) {
+      _completedTickListeners.add(listener);
+    }
+  }
+
+  void removeCompletedTickListener(VoidCallback listener) =>
+      _completedTickListeners.remove(listener);
+
   void addAppliedCommandFrameListener(AppliedCommandFrameListener listener) {
     if (_appliedFrameListeners.contains(listener)) return;
     _appliedFrameListeners.add(listener);
@@ -278,6 +298,7 @@ class GameController extends ChangeNotifier {
   @override
   void dispose() {
     _isShutdown = true;
+    _completedTickListeners.clear();
     _core.stopTerrainPreparation();
     super.dispose();
   }
@@ -345,6 +366,11 @@ class GameController extends ChangeNotifier {
       _curr = _core.buildSnapshot();
       _accumulatorSeconds -= dtTick;
       didStep = true;
+      for (final listener in List<VoidCallback>.of(_completedTickListeners)) {
+        if (_isShutdown) break;
+        if (_completedTickListeners.contains(listener)) listener();
+      }
+      if (_isShutdown) return;
 
       // If the core became paused during the tick (e.g. game over), stop consuming
       // accumulator to avoid an infinite loop.

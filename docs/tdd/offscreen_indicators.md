@@ -21,7 +21,7 @@ preparation cancellation fences subsequent frame updates.
 
 ## Visibility and distance
 
-`RunnerGameWidget` computes `ViewportMetrics` once for both `GameViewport` and
+`RunnerGameplaySurface` computes `ViewportMetrics` once for both `GameViewport` and
 the HUD. `IndicatorViewport` intersects the fitted view with host bounds, then
 maps that visible rectangle back through `WorldViewTransform`. Cover cropping,
 contain letterboxing, non-centered alignment and DPI therefore use the actual

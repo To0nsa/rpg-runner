@@ -8,6 +8,58 @@ and [game behavior](../../gdd/campaign.md) describe the delivered systems.
 
 ## Scope and decisions
 
+### Ordinary enemy activation (November 13)
+
+Authorized scope: ordinary Campaign enemy markers wait at their resolved homes,
+activate on approach or positive damage, and optionally return when the player
+retreats. A per-marker editor switch chooses return (default) or persistent pursuit.
+Rescue participants and bosses retain their existing lifecycles. Preserve the
+existing uncommitted campaign, tutorial, Journal, UI and generated-content work.
+
+- [x] Add lifecycle state, deterministic activation/damage gates and terrain-based
+      return motion, preserving actor identity, damage and death.
+- [x] Carry the return/follow switch through strict source, editor history,
+      captured Play and generated runtime catalogs.
+- [x] Verify waiting, both approach directions, damage wake, return/follow,
+      ground/flying movement, lifecycle cleanup and unchanged Runner/rescue paths.
+- [x] Validate generated freshness, focused editor/pipeline/Core/replay checks,
+      traversal controls and update implemented gameplay/technical documentation.
+
+Implemented locally; [validation and inherited failures](../../verification/campaign-enemy-activation-2026-11-13.md)
+record 525 Core integration passes, 86 traversal passes, 48 validator passes,
+the source/editor/generated-policy checks and two unchanged pre-existing combat
+test failures. The Windows editor was subsequently rebuilt at the user's request;
+the linked evidence records the successful build. No release is implied.
+
+### Campaign Journal (November 13)
+
+Authorized scope: author an English/French campaign opening, chapter introductions,
+and mission-completion updates in Campaign; preview the accumulated Journal after
+any selected mission; show it in Library from confirmed mission clears.
+Preserve the existing working tree, stable mission IDs and settlement authority.
+
+- [x] Add strict optional bilingual Journal content to source and generated metadata.
+- [x] Add guarded editor forms and a read-only accumulated Journal preview.
+- [x] Render confirmed story progress in Library; replays cannot duplicate entries.
+- [x] Author the post–Le feu de joie opening and conservative Val mission updates.
+- [x] Preserve the complete initial Val Outpost location description before the
+      investigation setup and mission updates in both languages.
+- [x] Order the authored entries as Val Outpost, After Le feu de joie, then
+      mission outcomes in the preview and Library.
+- [x] Validate source/export/history, generated parity, editor forms and Library
+      progress/locale/account/compact-layout behavior; update implemented docs.
+
+The opening introduces Val Outpost. After Le feu de joie follows it: the tabletop
+survivors are in Théodonis, Éloïse is called to Val, and the new cultists appear
+different from the undead goddess’s followers. Their timing is suspicious;
+a connection remains unproven.
+Only Reporting for Duty is currently included; later mission entries stay hidden.
+
+Focused tests, source comparisons and build evidence are recorded in
+[Journal verification](../../verification/campaign-journal-2026-11-13.md).
+All 43 focused tests, root/editor analysis, localization enforcement, generated
+freshness and backend compilation passed. The Windows release editor was rebuilt.
+
 The user authorized full implementation, editable drafts for missions 2–4 and
 Willow locked for all accounts with no legacy exception. Initial work began from
 clean planning commits c45d796f/c95dff1d/1ee69a66; finite primitives were committed
@@ -24,25 +76,29 @@ attempt. Double Jump is Éloïse's existing skill; Willow unlocks on four clears
 
 - [x] Trace forward-camera assumptions and mode/outcome consumers; retain
   runner behavior through separate finite-route and camera policies.
-- [x] Settle schema-1 chapter/mission/occurrence identity, usage, source ownership,
+- [x] Settle schema-1 chapter/mission/mission chunk identity, usage, source ownership,
   exact seams, guaranteed targets, content digest and reward policy 1.
-- [x] Keep finite terrain and source actors resident, instantiate each occurrence
+- [x] Keep finite terrain and source actors resident, instantiate each mission chunk
   once, retain state offscreen and allow continuous travel both directions.
 - [x] Add bounds, objective/exit success, failure/death precedence, finite camera,
   local authored Play and objective HUD; exclude survival-time score.
 - [x] Carry campaign binding through ticket, recorder, replay, worker and result;
   production Core resolves compiled content, authored Play uses captured input.
-- [x] Demonstrate outward/return traversal across three occurrences for both
+- [x] Demonstrate outward/return traversal across three mission chunks for both
   characters with actual inputs, combat and consumed pickups. Prove generated
-  production-worker parity at 30/120 Hz with two repeated source occurrences.
+  production-worker parity at 30/120 Hz with two repeated source mission chunks.
 - [x] Run full Core package and replay-worker suites and the strict native replay
   benchmark; record local evidence separately from deployment/device acceptance.
 - [ ] Measure startup/resident memory/frame cost on the target device after real
-  routes exist. The 16-occurrence cap is an admission guard, not a measured budget.
+  routes exist. The 16-mission chunk cap is an admission guard, not a measured budget.
 
 ## M2: mission authoring
 
-- [x] Campaign library, exact route/occurrence ordering, duplicate/remove,
+- [x] Add one campaign's bilingual name and native map-file selection, image
+  dimensions/preview, Undo/Save and generated game metadata. Keep multi-campaign
+  creation/selection outside this change; organize supplied map files under
+  `assets/images/maps/` with portable names.
+- [x] Campaign library, exact route/mission chunk ordering, duplicate/remove,
   continuous preview, typed markers, bilingual settings and inclusion controls.
 - [x] Mission ability and chapter character reward selectors, including None,
   Cancel, stale-form rejection and Save/reopen/Undo coverage.
@@ -50,7 +106,7 @@ attempt. Double Jump is Éloïse's existing skill; Willow unlocks on four clears
   drafts, with stable identity, selection and creation history coverage.
 - [x] Align Campaign with Level Creator's responsive library/preview/settings
   layout; share preview sizing, chunk cards and visual rendering. Preserve tab,
-  search and occurrence selection across panels, resizing and guarded return.
+  search and mission chunk selection across panels, resizing and guarded return.
 - [x] Semantic edits, revision/history, transactional Save, Undo after Save,
   dependency drift, shared-source navigation and captured F5 Play.
 - [x] Bidirectional independent chunk mode copies accept a custom name and keep
@@ -70,7 +126,7 @@ attempt. Double Jump is Éloïse's existing skill; Willow unlocks on four clears
 Confirmed November 11: Campaign's Markers tab should offer Chunk Creator-style
 tools for direct placement of enemies, traps, rescue encounters, gold coins,
 restoration gems and blessing shrines, alongside start, exit and objectives.
-New placements belong to a particular mission occurrence, so repeated uses of a
+New placements belong to a particular mission chunk, so repeated uses of a
 chunk can have different gameplay content without editing the shared source.
 The implementation reuses Chunk inspectors, scene controls, actor previews and
 Core pickup/interaction behavior. The user explicitly chose attaching blessing
@@ -93,11 +149,11 @@ or policy projections change; reward mechanics are outside this follow-up.
 - Before this follow-up, Campaign listed serialized values in a placement dialog.
   Its source stores gold points and objective references; enemies, traps and
   rescues come from chunk sources. Campaign disables procedural pickup spawning.
-- The compiler and generator deduplicate chunks by source key. Occurrence-local
+- The compiler and generator deduplicate chunks by source key. Mission chunk-local
   content must survive compilation and generation instead of being collapsed
   back into one shared pattern or terrain record.
 - Restoration gems reuse existing health/mana/stamina pickup types and tuning.
-  Shrine fire reuses the existing top-contact, once-per-occurrence activation and
+  Shrine fire reuses the existing top-contact, once-per-mission chunk activation and
   nonstacking regeneration blessing; placing artwork alone is insufficient.
 - Keep the assembled route visible while editing. Provide a labeled palette,
   Select/Place/Move tools, a placement preview, snapping, duplicate/delete, and
@@ -105,33 +161,33 @@ or policy projections change; reward mechanics are outside this follow-up.
   cancellation and Undo/Redo behavior. Precise coordinates remain editable.
 - Show existing chunk-owned gameplay as inherited content with an explicit
   shared-source edit action. Preserve it; do not silently remove it, duplicate it
-  into mission data, or make an occurrence edit change every use of the chunk.
+  into mission data, or make a mission chunk edit change every use of the chunk.
 - Base terrain stays in Chunk Creator. Blessing fire attaches to an existing
   collidable flat top through shared Core support validation; it adds no geometry.
 
-### V1: occurrence placement contract and compilation
+### V1: mission chunk placement contract and compilation
 
 - [x] Define typed mission placement records with stable placement IDs,
-  occurrence-local coordinates and catalog references. Reuse Core enemy, trap,
+  mission chunk-local coordinates and catalog references. Reuse Core enemy, trap,
   rescue, pickup and interaction definitions; do not introduce parallel mechanics.
   Start/exit stay singletons. Specify bounds, capacities, absent/null behavior,
   canonical ordering, and identity rules for move, duplicate and route reorder.
 - [x] Specify how inherited chunk content and local placements compose, with
   disjoint runtime identities and no duplicate registration. Compile distinct
-  occurrence content using the existing terrain/placement authority; preserve
-  source provenance separately from any compiled occurrence key. Include shrine
+  mission chunk content using the existing terrain/placement authority; preserve
+  source provenance separately from any compiled mission chunk key. Include shrine
   support references and binding in this contract and captured dependencies.
 - [x] Bind required enemy/rescue objectives to stable placements, retaining
   existing source targets. Duplicate receives fresh IDs and remapped internal
-  references; moving between occurrences preserves or rebinds references in one
+  references; moving between mission chunks preserves or rebinds references in one
   transaction. Referenced deletion must explicitly resolve dependencies.
 - [x] Choose a compatible additive source change or an explicit versioned
   migration before changing strict schema 1. Preserve existing missions and user
   edits; never migrate implicitly during load. Update decoder, Core values,
   compiler, generator and their consumers together before calling this milestone
   complete. All gameplay inputs enter the content digest.
-- [x] Prove two occurrences of the same chunk can compile different content,
-  including a shrine in only one occurrence, with unchanged source chunk bytes.
+- [x] Prove two mission chunks of the same chunk can compile different content,
+  including a shrine in only one mission chunk, with unchanged source chunk bytes.
   Check malformed catalogs, duplicate identities, broken references, and
   saveable incomplete drafts versus blocked Play/Build readiness.
 
@@ -147,7 +203,7 @@ or policy projections change; reward mechanics are outside this follow-up.
   activation surface and blessing binding. Reuse top-contact validation, offscreen
   persistence, nonstacking grants and restart reset. Include required assets in
   preview/captured Play; reject invalid bindings rather than granting on proximity.
-- [x] Carry occurrence content through authored Play and generated production
+- [x] Carry mission chunk content through authored Play and generated production
   missions using the same compiler. Update snapshots/rendering only where needed;
   regenerate affected outputs and verify trusted worker replay/content-digest
   parity. Assess gameplay compatibility changes without deploying anything.
@@ -157,14 +213,14 @@ or policy projections change; reward mechanics are outside this follow-up.
 - [x] Replace the raw marker list/dialog workflow with the palette, editable route
   canvas and contextual inspector. Offer enemies, traps, rescues, coins, three
   restoration gem types, shrine presets, start, exit and visit regions. Show
-  sprites/icons, object extents, selected occurrence and actionable validation.
+  sprites/icons, object extents, selected mission chunk and actionable validation.
 - [x] Reuse Chunk Creator catalogs, shared scene input/view transforms and
   rectangle gestures; extract only genuinely reusable behavior. Keep campaign
   commands in its domain and bounded presentation beside its route. Remove
   replaced UI paths rather than maintaining two competing placement workflows.
 - [x] Support click-to-place, repeated placement, selection, drag-to-move,
   duplicate/delete, Escape cancellation and supported region/trigger resizing.
-  Resolve the occurrence under the pointer, handle boundary crossings explicitly,
+  Resolve the mission chunk under the pointer, handle boundary crossings explicitly,
   and commit one semantic history entry per completed gesture.
 - [x] Expose type-specific properties: enemy type/placement and required status;
   trap type/trigger; rescue participants/region and required status; gem resource;
@@ -179,7 +235,7 @@ or policy projections change; reward mechanics are outside this follow-up.
 
 Requested November 12, 2026: give Markers the main canvas, move its library and
 properties into one sidebar, share the scene tools, and include Visual preview
-and Actor terrain. Campaign commands and occurrence ownership remain the source
+and Actor terrain. Campaign commands and mission chunk ownership remain the source
 boundary. Existing ghost-test and plan changes were present at task start and
 were committed independently during this work; they are not part of this slice.
 
@@ -246,7 +302,7 @@ change over `c6421041` and the concurrent unrelated worktree changes:
 | Command/check | Result |
 | --- | --- |
 | `flutter test test/editor_scene_viewport_test.dart test/chunk_polygon_authoring_controller_test.dart test/campaign_authoring_test.dart --reporter expanded` | 62 passed |
-| `flutter test test/chunk_authoring_workspace_test.dart test/campaign_authoring_test.dart --name 'shared viewport\|blessing fire feedback\|route preview fills\|Connections opens\|direct marker\|direct prefab move\|chunk scene shows its tile grid\|wide chunk workspace\|chunk creation scene and sidebar remain usable' --reporter expanded` | Both added Campaign cases passed (empty-margin navigation/placement and pan across 16 occurrences); Chunk target failed to compile due to a missing import in its new test |
+| `flutter test test/chunk_authoring_workspace_test.dart test/campaign_authoring_test.dart --name 'shared viewport\|blessing fire feedback\|route preview fills\|Connections opens\|direct marker\|direct prefab move\|chunk scene shows its tile grid\|wide chunk workspace\|chunk creation scene and sidebar remain usable' --reporter expanded` | Both added Campaign cases passed (empty-margin navigation/placement and pan across 16 mission chunks); Chunk target failed to compile due to a missing import in its new test |
 | `flutter test test/chunk_authoring_workspace_test.dart --name 'shared viewport\|Connections opens\|direct marker\|direct prefab move\|chunk scene shows its tile grid\|wide chunk workspace\|chunk creation scene and sidebar remain usable' --reporter expanded` | 8 passed after correcting the test import |
 | `dart analyze lib/src/app/pages/shared/editor_scene_viewport.dart lib/src/app/pages/campaign/campaign_overview.dart lib/src/app/pages/campaign/campaign_scene_controls.dart lib/src/app/pages/chunkCreator/v2/chunk_authoring_workspace.dart lib/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart test/editor_scene_viewport_test.dart test/campaign_authoring_test.dart test/chunk_authoring_workspace_test.dart` | No issues after the import correction |
 | Task diff whitespace check | Passed |
@@ -262,8 +318,8 @@ gameplay gates remain open.
 
 - [x] From Markers, create and adjust every requested object type without editing
   JSON or opening Chunk Creator for ordinary placement. Verify a repeated chunk
-  can contain different objects in each occurrence and another mission is unchanged.
-- [x] Automated coverage for create/move/duplicate/delete, cross-occurrence
+  can contain different objects in each mission chunk and another mission is unchanged.
+- [x] Automated coverage for create/move/duplicate/delete, cross-mission chunk
   movement, route reorder/duplicate/remove, required-target edits, stale revision
   rejection, Undo/Redo, Save/reopen, source drift and narrow panels.
 - [ ] Native-editor usability pass for pan/zoom, selection and gestures on the
@@ -274,7 +330,7 @@ gameplay gates remain open.
   twice. Test invalid shrine contacts, independent shrine instances, restart and
   both playable characters. Follow the traversal workflow for composed geometry.
 - [x] Verify generated missions against captured Play and trusted worker replay
-  at 30/120 Hz, including occurrence-specific content. Retain existing compatibility
+  at 30/120 Hz, including mission chunk-specific content. Retain existing compatibility
   checks and runner/Chunk Creator regressions for reused paths.
 - [x] Update implemented campaign and world-interaction TDD/GDD, editor README
   and affected ownership instructions after delivery. Record exact commands,
@@ -300,12 +356,12 @@ Local implementation evidence (November 11–12, 2026; current task worktree):
 
 | Directory / check | Result and scope |
 | --- | --- |
-| `packages/runner_content_pipeline`: `campaign_placement_source_test.dart` using cached Dart test runner | 11 passed: strict additive source, distinct repeated occurrences, enemy identity, incomplete rescue readiness, trap/rescue composition, gold/gems and attached fires |
+| `packages/runner_content_pipeline`: `campaign_placement_source_test.dart` using cached Dart test runner | 11 passed: strict additive source, distinct repeated mission chunks, enemy identity, incomplete rescue readiness, trap/rescue composition, gold/gems and attached fires |
 | Same runtime fixtures | Both characters, seed 42, 30/120 Hz, two repeated flat Training Field chunks; continuous travel 60→1100→80→1100 with a 20-second budget per leg. Pickups remain consumed, fires retain state, blessing does not stack, restart resets. Missing/moved/out-of-bounds support fails |
 | `packages/runner_core`: `interactions/world_interaction_test.dart interactions/world_interaction_game_core_test.dart` | 25 passed, including actual prefab top contact, airborne/side/stale/enemy/dead negative controls, both characters, captured-Play parity and old manual bindings |
 | `tools/editor`: `campaign_authoring_test.dart` | Existing chapter/reward/route/panel/Save/drift tests passed; the new coin/fire widget test passes place/drag, Escape cancellation, unfinished-gesture and invalid-field Save blocking, valid draft resolution, attach rejection, undo/redo, Save/reopen and untouched chunk bytes. The Windows image-I/O cleanup race was resolved by draining frames and real I/O after unmount |
-| Same file: `--plain-name 'every palette brush'` | Passed all eight placement brushes, incomplete-to-complete rescue editing, cross-occurrence movement, duplicate/delete, undo/redo, stale-revision rejection, Save/reopen and another mission remaining unchanged. Its two-minute timeout covers repository I/O and repeated validation; simulation horizons are unchanged |
-| `tools/editor`: `campaign_marker_edit_test.dart`, `chunk_marker_scene_gesture_test.dart`, `chunk_v2_marker_placement_projection_test.dart`, `chunk_trap_authoring_test.dart`, `chunk_encounter_authoring_test.dart` | 25 passed: objective remapping and occurrence duplication plus regressions for reused scene projections, gestures and inspectors |
+| Same file: `--plain-name 'every palette brush'` | Passed all eight placement brushes, incomplete-to-complete rescue editing, cross-mission chunk movement, duplicate/delete, undo/redo, stale-revision rejection, Save/reopen and another mission remaining unchanged. Its two-minute timeout covers repository I/O and repeated validation; simulation horizons are unchanged |
+| `tools/editor`: `campaign_marker_edit_test.dart`, `chunk_marker_scene_gesture_test.dart`, `chunk_v2_marker_placement_projection_test.dart`, `chunk_trap_authoring_test.dart`, `chunk_encounter_authoring_test.dart` | 25 passed: objective remapping and mission chunk duplication plus regressions for reused scene projections, gestures and inspectors |
 | Root: `flutter test --no-pub test/tool/generate_chunk_runtime_data_test.dart --plain-name 'campaign generates' --reporter expanded` | Passed generated trusted registry and actual replay worker at 30/120 Hz with local coins/gem/fire and a local conditional enemy pattern |
 | Root: generator `--dry-run` | Passed: 166 chunk files, 3 levels, 3 themes and 3 materials; authored and generated user files were not rewritten |
 | Root/editor: targeted `dart analyze` on changed Core, pipeline, generator, Campaign UI, shared enemy form and new tests | No issues found |
@@ -491,7 +547,7 @@ new categories still require explicit support. Shared names/icons/picker are unc
   Dev now serves 2026.11.11; device and signed-in Play Games acceptance remain unrun.
 
 November 12 content checkpoint: Reporting for Duty revision 26 includes sixteen
-campaign-only Forest occurrences, supported start at (60, 224) and a final-chunk
+campaign-only Forest mission chunks, supported start at (60, 224) and a final-chunk
 exit at x=500. It remains combat-free with no additional required objectives.
 Generated Core terrain/registry and UI/backend projections match canonical source
 (`generate_chunk_runtime_data.dart --dry-run`). Focused Dart analysis, nine campaign
@@ -758,6 +814,289 @@ Editor deletion correctly raised the guarded Save exception; its test now checks
 that outcome and source retention. No real chapter traversal, native editor
 manual pass, phone performance or live authenticated campaign flow is claimed.
 
+Campaign settings follow-up, November 12 (local working-tree source): supplied
+JPEGs moved to `assets/images/maps/lothringen_bonfire.jpg` and `theodonis.jpg`
+with identical Git blob hashes; Town references and the asset manifest were updated.
+Validation used the installed SDK binaries directly to bypass Windows wrapper/cache
+permissions; equivalent commands and working directories are recorded below.
+
+| Directory | Check | Result |
+| --- | --- | --- |
+| `tools/editor` | `flutter test --no-pub --concurrency=1 --timeout=2m test/campaign_settings_test.dart` | 3 passed: guarded Save/reopen/Undo, picker/Apply/Cancel, image/path validation |
+| `packages/runner_content_pipeline` | `dart test test/campaign_settings_source_test.dart` | 2 passed on the final path policy |
+| Root | `flutter test --no-pub test/tool/campaign_map_generation_test.dart test/tool/content_build_snapshot_test.dart` | 3 passed: source/game metadata, map capture and invalid/missing/changed images |
+| Root | `flutter test --no-pub test/ui/pages/campaign_page_test.dart test/ui/pages/meta/codex_library_test.dart` | 23 passed, including campaign and Town maps |
+| Root | `dart tool/generate_chunk_runtime_data.dart --dry-run`; `dart tool/sync_assets.dart --check`; `git diff --check` | Passed after generation |
+| Root | `corepack pnpm --dir functions build` | Passed with regenerated metadata |
+| Root and `tools/editor` | Targeted `dart analyze` for campaign sources/UI, map generation, build capture and new tests | No issues |
+
+Earlier combined editor runs hit Windows I/O timeouts and were interrupted; they
+do not establish a full editor-suite pass. The final settings checks ran serially.
+Native explorer interaction remains a manual acceptance check; widget tests inject
+the picker result. Concurrent editor changes were preserved; task edits remain
+uncommitted alongside that work. No deployment or device acceptance is claimed.
+
+### Campaign editor usability follow-up (November 12)
+
+Current scope preserves the pre-existing uncommitted campaign/map work. Acceptance:
+
+- [x] Campaign spacing and Completion skills/items summaries above the selector.
+- [x] Shared geographic placement with zoom/pan and actual game callout preview;
+      measured labels avoid pins/one another where space allows, and leaders
+      terminate at measured label edges. Campaign consumes the same layout.
+- [x] Confirm selected-mission deletion by exact name, guard stale commands,
+      retain at least one mission per chapter, reserve deleted IDs across Save,
+      and preserve Undo/Redo, selection and source-drift protection.
+- [x] Share the 48-chunk cap across Core, source validation and editor controls;
+      reject 49 and verify a compiled 48-chunk route.
+- [x] Route selection reveals its chunk in the preview; action tooltips use chunk.
+- [x] Focused editor/pipeline/game checks, generator freshness and diff review.
+
+Local evidence (November 12):
+
+- `tools/editor`: `flutter test --no-pub --concurrency=1
+  test/campaign_chapter_dialog_test.dart test/campaign_settings_test.dart
+  test/campaign_chapter_section_test.dart` passed 8 tests. Coverage includes
+  language drafts, placement/numeric sync, zoom/pan, actual game preview and
+  cancellation.
+- `tools/editor`: targeted `test/campaign_authoring_test.dart` invocations passed
+  deletion guards/Save/history, typed-name confirmation/cancellation, unsaved
+  chapter history, reward selection, chapter navigation, route preview selection
+  across 48 chunks, existing view-context/route controls and appending through
+  the 48-chunk boundary (including Undo). These are focused checks, not a claim
+  that the full editor suite ran. Initial failures from test scroll settling,
+  animation timing and the renamed Mission Settings panel were corrected and
+  their focused reruns passed.
+- `packages/runner_content_pipeline`: `dart test test/campaign_source_test.dart
+  --reporter expanded` passed 7 tests, including the compiled 48-chunk route,
+  rejection of 49, reserved-ID validation and existing traversal regression.
+  This does not establish traversal or device performance for a 48-chunk mission.
+- Root: focused `flutter test` coverage in
+  `test/ui/pages/meta/map_callout_test.dart` and `test/ui/pages/campaign_page_test.dart`
+  passed 11 tests. Clustered-label fixture bounds were corrected to allow the
+  measured enlarged labels to fit; impossible dense layouts retain the documented
+  least-overlap fallback.
+- Before concurrent reward/combat contract edits, targeted root/editor
+  `dart analyze` passed with no issues. Root
+  `dart run tool/generate_chunk_runtime_data.dart --dry-run` passed freshness
+  validation for 166 chunks, 3 levels, 3 parallax definitions and 3 materials.
+  `git diff --check` and `node tools/agents/check.mjs` passed.
+
+A later analysis overlapped the concurrent reward migration and reported stale
+`rewardAbilityId` test references; those references were subsequently migrated
+by the concurrent work. Initial follow-up test runs also overlapped generation
+and failed on the removed `combatAllowed` constructor argument. After the shared
+source/catalog aligned, the pipeline command above passed all 8 current tests.
+The final editor run of `test/campaign_authoring_test.dart` with
+`--name 'mission deletion guards|delete mission requires|reward selectors|route preview fills|appending chunks retains'`
+also passed all 5 selected tests against those concurrent updates.
+These transient failures do not establish a clean final whole-tree analysis.
+
+Concurrent uncommitted work remains preserved. No native interactive session,
+deployment or device performance acceptance is claimed for this follow-up.
+
 Next: native-editor usability and user-authored production layouts/M4 acceptance.
 Keep content/device acceptance explicit;
 archive this plan only once that remaining work is completed or replaced.
+
+
+### Mission rewards and combat-policy cleanup (November 12)
+
+Acceptance for this follow-up preserves the existing uncommitted campaign/map work:
+
+- [x] Replace the mission XP/ability controls with a first-clear reward modal,
+      sharing Chapter rewards' XP/gold/catalogue picker and cancellation behavior.
+- [x] Preserve authored XP and Double Jump; support explicit skill recipients and
+      account-wide equipment through generation, results and canonical settlement.
+- [x] Remove the combat toggle, source field and runtime permission check; content
+      alone determines combat, while existing placement/readiness checks remain.
+- [x] Verify focused editor, pipeline, Core, generation and settlement checks;
+      review the final diff and record local evidence.
+
+Local verification on November 12 (uncommitted current sources):
+
+- `packages/runner_content_pipeline`: `dart test test/campaign_source_test.dart
+  test/campaign_placement_source_test.dart --reporter expanded` passed 19 tests.
+- `packages/runner_core`: `dart test test/campaign/campaign_runtime_test.dart
+  --reporter expanded` passed 4 tests, including authored combat admission and
+  continuous outward/return state.
+- `tools/editor`: `flutter test --no-pub --concurrency=1 --timeout=2m
+  test/campaign_authoring_test.dart --plain-name "reward"` passed 3 tests. After
+  extending picker/nested-draft coverage, the same command with
+  `--plain-name "reward selectors"` passed its selected test. Coverage includes
+  gear/skill selection, XP/gold, Apply/Cancel, Save/reopen, Undo and source drift.
+- Root: `flutter test --no-pub test/tool/generate_chunk_runtime_data_test.dart
+  --plain-name "campaign generates"` passed, generating both reward projections
+  and replaying the real worker at 30/120 Hz. Its first attempt exposed a missing
+  map asset in the test fixture; the fixture now captures that dependency. The
+  interrupted broad generator run is not a whole-suite pass.
+- Root: `flutter test --no-pub --concurrency=1
+  test/tool/campaign_map_generation_test.dart test/ui/pages/campaign_page_test.dart`
+  passed 11 tests, including real generated reward metadata decoded by the client
+  and English/French compact campaign views.
+- Root: `corepack pnpm --dir functions build` and `build:test` passed;
+  `node --test functions/lib_test/test/campaign/progression.test.js` passed 9
+  local unit tests. No emulator or live Firestore transaction check is claimed.
+  Mission/chapter grants, recipients, repeat suppression and combined-wallet
+  overflow are covered.
+- Targeted root/editor `dart analyze` passed with no issues. Root
+  `dart run tool/generate_chunk_runtime_data.dart --dry-run`,
+  `dart run tool/localization.dart check` and `git diff --check` passed.
+
+The sandbox initially blocked SDK cache/build-output access; approved local reruns
+completed the checks. Existing overlapping campaign/map edits remain uncommitted.
+Native editor smoke, device performance and deployment remain unrun.
+
+No deployment or device acceptance is authorized or claimed.
+
+
+### Inline mission settings (November 12)
+
+- [x] Move title/assignment language tabs, region, theme and Build inclusion into
+      the Mission Settings sidebar; remove the old settings dialog and opener.
+- [x] Keep first-clear mission rewards in their shared reward modal.
+- [x] Join field drafts to Save/Play, Undo/Redo, mission/tab selection and guarded
+      source edits; keep revision checks and plugin-owned writes.
+- [x] Run focused inline-field, reward and responsive navigation checks and analysis.
+
+Native editor interaction remains unrun; this follow-up changes no runtime policy.
+
+Local checks from `tools/editor`: targeted `dart analyze` of the settings form,
+inspector, page, remaining marker dialog and authoring tests passed. Focused
+`test/campaign_authoring_test.dart` checks for workspace fields, responsive view
+context and reward selectors passed (3 tests). The new inline-settings lifecycle
+test passed separately with `--plain-name "inline mission settings"`, covering
+bilingual validation, blocked tab changes, Save, Build inclusion, Undo and mission
+switching. Its first two runs completed assertions but failed Windows cleanup
+while unrelated atlas previews held fixture images open. The final test uses an
+empty authored draft and a no-match chunk search to isolate metadata behavior;
+preview coverage remains in the existing workspace tests. `git diff --check`
+passed. This follow-up changes no generated/runtime contracts and does not claim
+native editor acceptance or a full-suite run.
+
+### Mission chunk terminology (November 12)
+
+- [x] Rename campaign route instances to mission chunks across authoring, Core,
+      editor selection, placement/objective bindings and generator templates.
+- [x] Rename existing authored IDs to `mission_chunk_N` and JSON references to
+      `missionChunkId` directly, without compatibility aliases or migration.
+- [x] Regenerate catalogs and verify source round trips, editor marker/route
+      behavior, finite streaming, campaign runtime and worker replay parity.
+- [x] Audit remaining terminology and record focused validation evidence.
+
+Local verification for the terminology rename (uncommitted sources):
+
+- `packages/runner_content_pipeline`: `dart test test/campaign_source_test.dart
+  test/campaign_placement_source_test.dart --reporter expanded` passed 19 tests.
+- `packages/runner_core`: `dart test test/track/finite_chunk_pattern_source_test.dart
+  test/track/finite_track_streamer_test.dart test/campaign/campaign_runtime_test.dart
+  test/interactions/world_interaction_test.dart --reporter expanded` passed 29
+  tests, including continuous return travel and independently bound placements.
+- Root: `flutter test --no-pub test/tool/generate_chunk_runtime_data_test.dart
+  --plain-name "campaign generates"` passed real generated-catalog/worker parity
+  at 30/120 Hz.
+- `tools/editor`: `flutter test --no-pub --concurrency=1 --timeout=2m
+  test/campaign_marker_edit_test.dart test/campaign_authoring_test.dart` passed
+  24 cases and exposed ambiguous French-tab/Apply selectors in the chapter test
+  after the concurrent inline settings change. Both selectors now target the
+  chapter dialog; rerunning `--plain-name "chapters collapse, create and reveal
+  selected missions"` passed the remaining case. All 25 targeted cases have
+  passing evidence; the entire editor suite was not run.
+- Targeted root/editor `dart analyze` and `corepack pnpm --dir functions build`
+  passed. Generation and its `--dry-run` passed; Core, client and backend share
+  the same final content digest. An initial generation attempt correctly rejected
+  concurrent source drift; a fresh run completed without bypassing that guard.
+- The authored-source comparison found only the intended ID/field rename and
+  catalog/mission revision increments. All references resolve. The campaign
+  terminology audit, `node tools/agents/check.mjs` and `git diff --check` passed.
+
+Unrelated concurrent campaign/settings edits were preserved. Native editor smoke,
+device acceptance and deployment remain unrun.
+
+### Mobile HUD in mission Play (November 12)
+
+- [x] Enable the real mobile game HUD by default in captured mission Play, with
+      a pre-launch Show mobile HUD toggle and arrows/floating/fixed joystick selection.
+- [x] Keep accepted choices local to the Campaign page and retain them through Restart;
+      preserve frozen source, backend isolation and keyboard controls.
+- [x] Neutralize held input across pause and teardown.
+- [x] Verify all three styles with pointer-driven movement and frameless
+      pause/resume, disabled HUD, restart, and editor default-host selection.
+- [x] Use the character catalog's starter equipment, restoring the shield slot;
+      verify shield hold/release and preserve explicit scenario overrides.
+- [x] Fill the simulated mission display with pixel-perfect cover; share rendering,
+      pointer aim and HUD indicator geometry. Remove running setup controls.
+- [x] Open setup from Play mission/F5 before capture; Cancel preserves the
+      document and does not create a runtime. Remember only accepted choices.
+
+Initial verification before the launch-setup correction: root
+`flutter test --no-pub test/playtest/runner_chunk_playtest_host_test.dart
+test/ui/hud/game/hud_layout_test.dart` passed 13 tests using the real Core/Flame
+host with fixture sprite images. From `tools/editor`,
+`flutter test --no-pub test/authored_playtest_session_test.dart
+test/campaign_authoring_test.dart --name "Save/reopen|capture locks|source replacement|capture failure"`
+passed four captured-Play/session tests. Targeted implementation analysis and
+diff checks passed. Native editor interaction and device acceptance were not run.
+See the [playtest contract](../../tdd/editor_chunk_playtest_host.md#presentation-and-input).
+
+Follow-up verification on the uncommitted working tree (November 12):
+
+- Root `flutter test test/playtest/runner_chunk_playtest_host_test.dart
+  test/ui/hud/game/hud_layout_test.dart --reporter expanded` passed 15 tests.
+  The host-only rerun after visual-review font setup passed 13 tests. Most tests
+  use fixture images with real Core/Flame; the viewport test loads real repository
+  images and writes `build/test/campaign_playtest_hud.png`. The 1770×797 review
+  confirms the shield control and filled game area; layout also checks 1.25 DPI.
+- From `tools/editor`, `flutter test --no-pub
+  test/campaign_playtest_dialog_test.dart test/authored_playtest_session_test.dart
+  test/campaign_authoring_test.dart --name "Play returns|HUD can be|Cancel discards|mission Play and F5|Save/reopen|capture locks|source replacement|capture failure"
+  --reporter expanded` passed 10 focused setup/capture tests.
+- Targeted root and editor analysis passed. Native editor interaction, physical
+  device acceptance and deployment remain unrun.
+- Broader editor integration checks exposed separate failures: Level Play and
+  sample preview reject `forest_boss_easy_cmp_001` with
+  `level_playtest_unmatched_terrain` because the captured terrain includes
+  campaign chunks outside the runner pool. Chunk tests had undersized synthetic
+  sprite atlases; reusing the catalog-derived fixture bounds resolves that load
+  error, but the capture test still expects six rocky-grove chunks while the
+  current repository supplies eighteen. The Chunk rerun finished with four
+  passes and two failures: that stale count and a 49-pixel horizontal overflow
+  in the focused-metadata form. The separate Level run had two pool failures.
+  These failures are not mission HUD
+  acceptance evidence and remain explicit rather than weakening assertions.
+
+Device preview follow-up (November 12):
+
+- [x] Add one shared display value/catalog using Chrome DevTools landscape sizes
+      and DPR, plus validated Custom dimensions in the launch modal.
+- [x] Lay out the whole game/HUD at device dimensions before uniformly fitting
+      it into the editor. Preserve proportions and runtime through window resize.
+- [x] Share viewport metrics across rendering, indicators and mouse aiming;
+      transform the aim-cancel target correctly when the display is scaled.
+- [x] Verify preset/custom selection, invalid-input recovery, resize/DPI isolation,
+      scaled movement, aim cancellation and rendered mobile layout.
+
+Device-preview verification on the uncommitted working tree:
+
+- Root `flutter test --no-pub test/playtest/runner_playtest_display_frame_test.dart
+  test/playtest/runner_chunk_playtest_host_test.dart
+  test/ui/controls/directional_action_button_test.dart --reporter expanded`
+  passed 23 tests. All seven device layouts preserve their dimensions/DPR and
+  map scaled taps correctly. Real Core/Flame tests cover all movement styles,
+  shield hold, pause/restart, desktop aiming and aim cancellation after resize.
+  The viewport case uses repository sprites at 1770×797 and 640×480 with monitor
+  DPR 1 and 1.25; other host cases use fixture images.
+- From `tools/editor`, `flutter test --no-pub
+  test/campaign_playtest_dialog_test.dart test/campaign_authoring_test.dart
+  test/authored_playtest_session_test.dart --name "Play returns|HUD can be|Cancel discards|launch captures|custom dimensions|compact launch|mission Play and F5|Save/reopen|capture locks|source replacement|capture failure"
+  --reporter expanded` passed 19 tests, including preset/custom validation,
+  compact-dialog scrolling, Cancel/F5 isolation and captured-session lifecycle.
+- Targeted root/editor `dart analyze` passed with no issues. `git diff --check`
+  passed. Visual review of `build/test/campaign_playtest_mobile.png` confirms
+  the game, text, shield and other controls scale together inside the preview.
+  Native editor interaction and physical-device acceptance remain unrun.
+
+The subsequent cross-host cleanup, shared launch setup for Chunk/Runner Level/
+Campaign and physical-size device previews are tracked only in the
+[shared gameplay runtime plan](../shared_gameplay_runtime.md). The evidence above
+describes the existing fit-to-window Campaign preview, not that planned migration.

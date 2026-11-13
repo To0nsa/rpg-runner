@@ -229,12 +229,9 @@
     ]
   },
   {
-    "file": "lib/ui/runner_game_widget.dart",
+    "file": "lib/ui/run/run_replay_finalization.dart",
     "reason": "Replay trace phases and journal diagnostics; GameOverOverlay renders localized status, never these strings.",
     "literals": [
-      "'run_end'",
-      "'Replay saving prerequisites were unavailable. Retry before leaving.'",
-      "'Replay submission prerequisites were unavailable.'",
       "'local_replay_save'",
       "'local_journal'",
       "'Replay could not be saved. Retry before leaving.'"
