@@ -2,9 +2,10 @@
 
 Status: implementation, task-diff review, targeted native/unit tests and Windows
 release editor compilation completed November 12, 2026. M1–M5 are implemented.
-M6 remains open for optimized web/browser verification and hands-on ruler,
-monitor and real-device acceptance. Resource/tooling limitations are recorded
-below; this is not a full-acceptance claim.
+Optimized web compilation and compiled-artifact Chrome smoke passed November 14.
+M6 remains open for the targeted Chrome widget suites and hands-on ruler,
+monitor and real-device acceptance. Tooling limitations are recorded below;
+this is not a full-acceptance claim.
 This is the single implementation checklist for this cleanup. The existing
 [Campaign preview evidence](campaign/implementation.md#mobile-hud-in-mission-play-november-12)
 records the earlier implementation, not completion of this plan.
@@ -331,8 +332,11 @@ without a valid profile. Frame/input tests pass before the physical measurement 
 - [x] Run the affected native/unit integration targets, including repeated lifecycle
       transitions, calibrated geometry, editor admission and scenario parity.
 - [x] Complete final Windows editor compilation and focused analysis checks.
-- [ ] Complete optimized web compilation and browser execution checks; current
-      attempts are blocked by memory headroom and the local Flutter test server.
+- [x] Complete optimized web compilation and real-artifact Chrome execution:
+      current hub, Practice Options, readiness/start, timer and game-over pass
+      with no browser exceptions or backend requests (November 14 release gates).
+- [ ] Execute the targeted Chrome runtime/bindings/display-frame widget suites;
+      the Windows Flutter test server's CanvasKit routing remains unresolved.
 - [ ] Run native editor/product/Training smoke checks, physical ruler measurement
       and monitor switching/straddling. These require actual device interaction.
 - [x] Update implemented TDDs, editor README and public embedding/playtest API docs.
@@ -685,7 +689,20 @@ Final review follow-ups:
   `build/shared_runtime_final_artifacts.json`. Source encoding, local Markdown
   targets and task diff whitespace were checked after the final documentation edits.
 
-Remaining work is precisely the unchecked M6 gates: optimized web/browser
-verification in a suitable environment, plus native visual/ruler/multimonitor and
-real-phone acceptance. No test failures are being counted as passes. Keep this
-plan in `building/` until those gates have evidence.
+### November 14 release preparation
+
+Canonical preparation for source `d0563ac4` passes the full 1,664-test client
+suite (one existing skip), 2,970 Core tests, optimized web compilation, Wasm
+compatibility dry run and real compiled-artifact Chrome smoke. The smoke covers
+the current hub, Practice-only Options, readiness/start, timer and game-over,
+with no browser exceptions or backend requests. Component reuse verifies input,
+toolchain and artifact hashes and preserves original provenance. This supersedes
+the earlier optimized-build resource limitation; it does not establish the
+targeted Chrome widget suites or device performance. See the
+[dev release evidence](../verification/dev-release-2026-11-14.md) for deployed
+artifact identities and the matching inspected Android APK 9.
+
+Remaining work is precisely the unchecked M6 gates: targeted Chrome widget
+verification after resolving the Windows test server, plus native visual/ruler/
+multimonitor and real-phone acceptance. Keep this plan in `building/` until those
+gates have evidence.

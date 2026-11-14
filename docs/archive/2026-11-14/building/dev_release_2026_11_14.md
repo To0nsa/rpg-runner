@@ -1,5 +1,9 @@
 # Dev release — November 14, 2026
 
+Status: completed. The [release record](../../../verification/dev-release-2026-11-14.md)
+contains final identities and live readback. Earlier checkpoints below retain
+the preparation findings and their resolutions.
+
 The owner authorized committing the game worktree, deploying the current game to
 dev and building its matching Android APK. Cancellation of blocking dev tickets
 is authorized if needed. Account resets, staging/prod and Play publication are
@@ -10,16 +14,16 @@ outside this release.
       `2026.11.14 / rules-v2 / score-v4 / ghost-v1` and refresh ranked seeds.
 - [x] Review and commit the complete Campaign, shared-runtime and UI worktree
       (`33aebb79`; follow-up replay fixture correction below).
-- [ ] Freeze a clean LF release checkout; complete canonical Prepare gates,
+- [x] Freeze a clean LF release checkout; complete canonical Prepare gates,
       reusing only matching component evidence.
-- [ ] Build and verify the immutable worker image, seeded from the verified
+- [x] Build and verify the immutable worker image, seeded from the verified
       previous dev image's navigation pack.
-- [ ] Build and inspect a matching dev Android APK with the next local dev code.
-- [ ] Inspect live dev, pause issuance, review drain and cancel only blocking
+- [x] Build and inspect a matching dev Android APK with the next local dev code.
+- [x] Inspect live dev, pause issuance, review drain and cancel only blocking
       tickets if necessary; preserve accepted runs, settlement and player data.
-- [ ] Deploy Functions, worker and Hosting; verify boards, resume issuance and
+- [x] Deploy Functions, worker and Hosting; verify boards, resume issuance and
       inspect final live state, locks and checkout cleanliness.
-- [ ] Record source/artifact identities, actual checks and acceptance limits.
+- [x] Record source/artifact identities, actual checks and acceptance limits.
 
 The initial offline Plan correctly rejected changed deterministic gameplay under
 the deployed `2026.11.11` tuple. The tuple and route seeds are being updated
@@ -94,3 +98,59 @@ trace repeat. No production combat or navigation code changed.
 Device installation and signed-in gameplay/replay/reward/leaderboard/ghost
 acceptance require a device; packaging and live service verification do not
 establish those results. Record any unrun checks explicitly.
+
+Final candidate `d0563ac4` completed canonical Prepare at
+`2026-11-14T00:37:56Z`, source digest
+`54f6541c8e742215798a1c97baf581b240e770c272a773f24e459cf22a7aafb5`.
+All 2,970 Core tests and the remaining protocol/content/terrain/freshness gates
+pass. Canonical reuse verified the matching client/backend/validator evidence
+and artifact bytes. Supplemental shared presentation analysis, generated Admin
+catalog parity, all 12 Tool UI tests and all seven Admin tests pass. Cloud Build
+`6c83445c-9779-4d18-8d18-8cecc0d13a3f` is seeded from the previous verified dev
+image; Android code 9 reused all 3,740 client navigation graphs. Neither result
+is considered complete until its required artifact verification finishes.
+
+Android code 9 completed at `2026-11-14T00:52:37Z`: package
+`com.example.rpg_runner.dev`, version `1.0.0-dev`, min/target SDK 24/36, correct
+dev Firebase/Play Games resources and unchanged workstation debug certificate.
+All three ABIs, 12 native libraries, 16-KiB ELF alignment, all 3,740 graphs and
+the navigation manifest hash passed inspection. The 197,583,909-byte delivery
+copy `.tmp/dev-release-20261114/app-dev-release-v9.apk` matches SHA-256
+`c9f0c62705a31340cccd29cbd380a2251002b45a418710a94f509c28b24c6ecb`.
+All three Dart symbol files and the R8 mapping are retained with the evidence.
+The frozen checkout remains clean. No phone install or Play publication occurred.
+
+Cloud Build `6c83445c-9779-4d18-8d18-8cecc0d13a3f` succeeded after preparing
+9,500 navigation windows / 93,840 graph instances (14,590 built, 79,250 reused).
+The exact final container passed all strict 36,000-tick, one-CPU/512-MiB gates
+for Field and Forest. Its immutable image digest is
+`sha256:0320cd8176a1765757b772b262200e618617dda30a7863dafe09440c016d03b4`.
+
+The previous issuer image had been removed from the registry. Canonical
+PauseIssuance rebuilt the prepared issuer with the explicit pause gate and
+verified the healthy revision serving all traffic. The source-bound cutover
+record remains owned by this candidate. Paused inventory confirmed the same
+29 blockers and protected player baseline. Under the dev mutation lock, plan
+`71b2e7b985f265803e674342546646fe7908f56c01d1a1cb9683b67ecafd4506`
+cancelled 28 unsubmitted tickets and the one reviewed expired Campaign retry at
+`2026-11-14T01:07:11.944143Z`. The transaction fenced validation leases and revoked
+only its malformed zero-gold provisional grant. Readback confirms all 29 terminal,
+no accepted-run writes and byte-structure equality of canonical player data.
+Sensitive full backups and the commit receipt remain in ignored release evidence.
+
+Deployment completed at `01:17:36Z`; canonical resume restored issuance at
+`01:23:27Z`, saved the verified worker/Hosting baseline and cleared the matching
+cutover record. Final inventory at `01:25:11Z` confirms 35 active Functions,
+three running queues, ten enabled schedulers, three active current boards and
+three disabled old boards, no active sessions or settlement backlog, and all
+34 accepted runs / settled grants / 3,379 gold preserved. Issuer revision
+`runsessioncreate-00104-nm4` is healthy at 100% traffic with no pause override;
+worker `replay-validator-00069-xtw` serves the exact verified image at 100%.
+Final marker/integrity readback confirms no mutation lock or cutover record,
+a clean frozen checkout and a matching delivery APK hash.
+
+The owner-authorized commit/deploy/build operation is complete. Broader device,
+signed-in and physical/browser-widget acceptance remains with the active
+Campaign and shared-runtime plans. Final artifact identities, command scopes,
+results and limitations are in the
+[November 14 release record](../../../verification/dev-release-2026-11-14.md).

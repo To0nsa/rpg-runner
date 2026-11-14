@@ -1,8 +1,10 @@
 # Current Implementation Plans
 
-- [November 14 dev release](dev_release_2026_11_14.md): commit the current game
-  worktree, execute the coordinated dev deployment and build its matching Android
-  APK. Preparation and live verification are in progress.
+- [Completed November 14 dev release](../archive/2026-11-14/building/dev_release_2026_11_14.md):
+  committed game worktree, coordinated `2026.11.14` dev deployment and verified
+  Android APK 9. All services, boards, queues and issuance pass final readback;
+  [release evidence](../verification/dev-release-2026-11-14.md) records the
+  29 reviewed cancellations and preserved player progress.
 
 - [Completed Campaign combat introduction](../archive/2026-11-14/building/campaign_combat_tutorial.md):
   projectile practice, temporary input lock, sword introduction at Core-owned melee
@@ -52,14 +54,15 @@
   share runtime/input/view mechanics while retaining their own policies. Includes
   common launch settings and physically calibrated device previews. Runtime,
   surface and launch migrations, targeted native tests and the Windows release
-  build are complete. Web verification and physical acceptance remain open.
+  build are complete. Optimized web compilation and compiled-artifact Chrome
+  smoke pass; targeted Chrome widget suites and physical acceptance remain open.
 
 - [Campaign and Val Outpost](campaign/README.md): finite missions, bidirectional
   movement, chunk conversion, campaign menus and verified progression are
   implemented locally, including [visual marker authoring](campaign/implementation.md#m2-follow-up-visual-marker-authoring)
   with Chunk Creator-style tools and mission chunk-local enemies, traps, rescues,
-  coins, restoration gems and blessing shrines. Production layouts, device
-  acceptance and authorized release remain open in the same checklist.
+  coins, restoration gems and blessing shrines. Dev deployment and APK 9 are
+  complete; production layouts and device acceptance remain open in the checklist.
 
 - [Equipment and Training town services](town_services.md): permanent catalogues,
   independent character browsing and protected purchases. Implementation, dev

@@ -1,8 +1,9 @@
 # Campaign implementation checklist
 
-Status: campaign platform and visual marker authoring implemented locally
-November 11–12, 2026. The user's Reporting for Duty route is included in Build;
-missions 2–4 remain drafts. Device and release acceptance remain open.
+Status: Campaign platform, visual marker authoring and tutorial progression
+implemented November 11–14, 2026. The user's Reporting for Duty route is included
+in Build; missions 2–4 remain drafts. Dev `2026.11.14` is deployed and matching
+APK 9 is built and inspected; device and signed-in acceptance remain open.
 This is the sole checklist; [technical contracts](../../tdd/campaign_runtime.md)
 and [game behavior](../../gdd/campaign.md) describe the delivered systems.
 
@@ -536,15 +537,19 @@ new categories still require explicit support. Shared names/icons/picker are unc
   post-unlock Willow, required encounters and continuous return traversal.
 - [ ] Complete device performance/input/accessibility and signed-in end-to-end
   acceptance on a deliberately prepared compatible app/backend/worker release.
-- [x] Obtain release authorization: on November 12 the owner requested current
-  code deployed to dev backend and a matching Android build. This supersedes the
-  implementation-only authorization above; staging/prod and data resets are excluded.
+- [x] Obtain latest release authorization: on November 14 the owner requested
+  committing the game worktree, dev deployment and a matching Android build;
+  blocking dev tickets may be cancelled. Account resets, staging/prod and Play
+  publication are excluded.
 - [x] Freeze the validated source and complete canonical preparation, reusing
   component and navigation evidence only when its inputs and artifact bytes match.
 - [x] Build and benchmark the worker image; build and inspect a matching dev APK.
 - [x] Inspect dev, pause issuance, review drain, deploy the coordinated candidate
   and verify readiness before resuming issuance. Record actual artifact identities.
-  Dev now serves 2026.11.11; device and signed-in Play Games acceptance remain unrun.
+  Dev now serves `2026.11.14` with APK 9; the
+  [release evidence](../../verification/dev-release-2026-11-14.md) records all gates,
+  reviewed cancellations and preserved progress. Device and signed-in Play Games
+  acceptance remain unrun.
 
 November 12 content checkpoint: Reporting for Duty revision 26 includes sixteen
 campaign-only Forest mission chunks, supported start at (60, 224) and a final-chunk
