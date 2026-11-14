@@ -143,11 +143,12 @@ void main() {
     expect(transformedDerfs, isNotEmpty);
     expect(sawDerfStrike, isTrue);
     expect(strikeTurns, greaterThan(0));
-    // Grojib repositions before either swing instead of committing in his blind
-    // spot. This 915-tick trace retains the roster and facing checks above.
+    // This trace includes bounded backsteps and running-target commitments;
+    // retain the roster, transformation and facing checks above.
+    expect(core.tick, 939);
     expect(
       digest,
-      '5994421a39566e2bd3f63fe6f4533bce398a8e9b5dd6955e579c2c28deabcf81',
+      '0b1ac845386776ebab20caeaa122af6eb4745b8fc83f401a39c204ac4e802671',
       reason: 'ticks=${core.tick}, enemies=$seenEnemies',
     );
   });

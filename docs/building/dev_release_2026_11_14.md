@@ -80,6 +80,17 @@ cases still pass. No assertions, projections, runtime source or shared release
 recipe changed, so matching completed components remain reusable. The final
 preparation must still run the complete Core suite and remaining package gates.
 
+The first complete Core run passed 2,968 cases and reproduced the two stale
+fixtures already documented in `derf-running-target-2026-11-13.md`. An isolated
+checkout of the original `69a250be` source reproduces both failures and the exact
+same 939-tick ordinary-combat digest as the current Campaign source:
+`0b1ac845386776ebab20caeaa122af6eb4745b8fc83f401a39c204ac4e802671`.
+The target-identity fixture now uses 36 units inside Grojib's existing 34–40
+commit band and explicitly checks the selected NPC. The golden retains all
+roster, transformation, facing and complete-trace checks, with the reviewed
+checksum and duration. All 139 focused combat cases pass, as does a second-process
+trace repeat. No production combat or navigation code changed.
+
 Device installation and signed-in gameplay/replay/reward/leaderboard/ghost
 acceptance require a device; packaging and live service verification do not
 establish those results. Record any unrun checks explicitly.

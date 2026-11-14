@@ -37,19 +37,21 @@ void main() {
     final world = EcsWorld();
     final enemy = _enemy(world, EnemyId.grojib);
     final player = actor(world, -200);
-    final npc = actor(world, 12);
+    // Grojib's existing 34–40 unit commit band keeps this about target identity.
+    final npc = actor(world, 36);
     world.aiTarget.configure(
       enemy,
       targetPolicy: AiTargetPolicy.preferEncounterNpcs,
       candidates: [npc],
     );
     AiTargetSystem().step(world, player: player);
+    expect(combatTarget(world, enemy, player), npc);
     final tuning = GroundEnemyTuningDerived.from(
       const GroundEnemyTuning(),
       tickHz: 60,
     );
     final engagement = EnemyEngagementSystem(groundEnemyTuning: tuning);
-    world.navIntent.navTargetX[world.navIntent.indexOf(enemy)] = 12;
+    world.navIntent.navTargetX[world.navIntent.indexOf(enemy)] = 36;
     engagement.step(world, player: player, currentTick: 1);
     engagement.step(world, player: player, currentTick: 2);
     EnemyMeleeSystem(groundEnemyTuning: tuning)
