@@ -1,6 +1,9 @@
 @TestOn('vm')
 library;
 
+// The Flutter workspace analyzer hides VM-only mirrors. The Core VM suite still
+// compiles and executes this complete-field contract test; app code imports none.
+// ignore: uri_does_not_exist
 import 'dart:mirrors';
 
 import 'package:runner_core/campaign/campaign_registry.dart';
@@ -87,15 +90,19 @@ Object? _value(Object? value) {
   if (value is Map) {
     return value.map((key, value) => MapEntry(_value(key), _value(value)));
   }
+  // ignore: undefined_function
   final instance = reflect(value);
   final result = <String, Object?>{'type': value.runtimeType.toString()};
   for (
+    // ignore: undefined_class
     ClassMirror? type = instance.type;
     type != null;
     type = type.superclass
   ) {
+    // ignore: non_type_as_type_argument
     for (final field in type.declarations.values.whereType<VariableMirror>()) {
       if (!field.isStatic && !field.isPrivate) {
+        // ignore: undefined_identifier
         result[MirrorSystem.getName(field.simpleName)] = _value(
           instance.getField(field.simpleName).reflectee,
         );

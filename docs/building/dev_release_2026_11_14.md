@@ -70,6 +70,16 @@ PowerShell 5.1 (62, 121 and 59 checks per shell). The shared preparation recipe
 fingerprint includes this script, so a new frozen preparation is required; the
 failed prior preparation remains preserved.
 
+The corrected-recipe candidate `3646d904` passed all client/backend/validator
+checks, the optimized web build, Wasm dry run and real-artifact Chrome smoke.
+Core analysis then encountered VM-only mirrors references in the full-state
+Campaign construction parity test. The unchanged test passes both characters on
+the Dart VM; only those five platform-specific analyzer diagnostics are now
+scoped to their individual references. Full Core analysis is clean and both VM
+cases still pass. No assertions, projections, runtime source or shared release
+recipe changed, so matching completed components remain reusable. The final
+preparation must still run the complete Core suite and remaining package gates.
+
 Device installation and signed-in gameplay/replay/reward/leaderboard/ghost
 acceptance require a device; packaging and live service verification do not
 establish those results. Record any unrun checks explicitly.
